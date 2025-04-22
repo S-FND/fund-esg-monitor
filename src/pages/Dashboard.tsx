@@ -26,15 +26,15 @@ const companies = [
 const financialYears = ["2021", "2022", "2023", "2024", "2025"];
 
 export default function Dashboard() {
-  const [selectedFund, setSelectedFund] = useState<string>("");
-  const [selectedCompany, setSelectedCompany] = useState<string>("");
+  const [selectedFund, setSelectedFund] = useState<string>("all");
+  const [selectedCompany, setSelectedCompany] = useState<string>("all");
   const [selectedYear, setSelectedYear] = useState<string>("2025");
   const navigate = useNavigate();
   
   // Filter companies based on selected fund
-  const filteredCompanies = selectedFund 
-    ? companies.filter(company => company.fundId === parseInt(selectedFund))
-    : companies;
+  const filteredCompanies = selectedFund === "all"
+    ? companies
+    : companies.filter(company => company.fundId === parseInt(selectedFund));
   
   return (
     <div className="space-y-6">
@@ -91,7 +91,7 @@ export default function Dashboard() {
               <SelectValue placeholder="All Funds" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Funds</SelectItem>
+              <SelectItem value="all">All Funds</SelectItem>
               {funds.map(fund => (
                 <SelectItem key={fund.id} value={fund.id.toString()}>
                   {fund.name}
@@ -108,7 +108,7 @@ export default function Dashboard() {
               <SelectValue placeholder="All Companies" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Companies</SelectItem>
+              <SelectItem value="all">All Companies</SelectItem>
               {filteredCompanies.map(company => (
                 <SelectItem key={company.id} value={company.id.toString()}>
                   {company.name}

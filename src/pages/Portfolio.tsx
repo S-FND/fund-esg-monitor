@@ -137,14 +137,14 @@ const sectors = Array.from(new Set(portfolioCompanies.map(company => company.sec
 
 export default function Portfolio() {
   const navigate = useNavigate();
-  const [selectedFund, setSelectedFund] = useState<string>("");
-  const [selectedSector, setSelectedSector] = useState<string>("");
+  const [selectedFund, setSelectedFund] = useState<string>("all");
+  const [selectedSector, setSelectedSector] = useState<string>("all");
   const [email, setEmail] = useState("");
   
   // Filter companies based on selected filters
   const filteredCompanies = portfolioCompanies.filter(company => {
-    const matchesFund = selectedFund ? company.fundId.toString() === selectedFund : true;
-    const matchesSector = selectedSector ? company.sector === selectedSector : true;
+    const matchesFund = selectedFund === "all" ? true : company.fundId.toString() === selectedFund;
+    const matchesSector = selectedSector === "all" ? true : company.sector === selectedSector;
     return matchesFund && matchesSector;
   });
   
@@ -217,7 +217,7 @@ export default function Portfolio() {
               <SelectValue placeholder="All Funds" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Funds</SelectItem>
+              <SelectItem value="all">All Funds</SelectItem>
               {funds.map(fund => (
                 <SelectItem key={fund.id} value={fund.id.toString()}>
                   {fund.name}
@@ -234,7 +234,7 @@ export default function Portfolio() {
               <SelectValue placeholder="All Sectors" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Sectors</SelectItem>
+              <SelectItem value="all">All Sectors</SelectItem>
               {sectors.map(sector => (
                 <SelectItem key={sector} value={sector}>
                   {sector}
