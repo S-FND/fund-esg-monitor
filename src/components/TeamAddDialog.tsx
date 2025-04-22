@@ -81,7 +81,30 @@ export function TeamAddDialog({ onAdd }: TeamAddDialogProps) {
 
       if (assignmentError) throw assignmentError;
 
-      // Simulate invite (replace with actual email invite later)
+      // Fetch fund names for email
+      const assignedFundNames = funds.filter(f => selectedFunds.includes(f.id)).map(f => f.name);
+      
+      // Get admin name (optional)
+      let adminName = null;
+      try {
+        const { data: userData } = await supabase.auth.getUser();
+        adminName = userData?.user?.user_metadata?.name || userData?.user?.email || null;
+      } catch { /* ignore */ }
+
+      // Send invite email via Edge Function
+      const { error: sendEmailError } = await supabase.functions.invoke('send-team-invite', {
+        body: {
+          name,
+          email,
+          adminName,
+          fundNames: assignedFundNames,
+        },
+      });
+
+      if (sendEmailError) {
+        throw sendEmailError;
+      }
+
       onAdd({
         name,
         email,
@@ -96,7 +119,7 @@ export function TeamAddDialog({ onAdd }: TeamAddDialogProps) {
 
       toast({
         title: "Team Member Added",
-        description: `${name} has been added to the team.`,
+        description: `${name} has been added to the team. Invite email sent!`,
       });
     } catch (error) {
       console.error('Error adding team member:', error);
