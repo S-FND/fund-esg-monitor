@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -15,6 +16,7 @@ import Categorization from "./pages/Categorization";
 import NotFound from "./pages/NotFound";
 import InvestorInfo from "./pages/InvestorInfo";
 import EditInvestorProfile from "./pages/EditInvestorProfile";
+import Team from "./pages/Team";
 
 const queryClient = new QueryClient();
 
@@ -38,7 +40,7 @@ const App = () => (
               <Route path="portfolio/pre-screening" element={<PreScreening />} />
               <Route path="portfolio/categorization" element={<Categorization />} />
               <Route path="portfolio/:id" element={<div className="p-6">Portfolio Company Details</div>} />
-              <Route path="team" element={<div className="p-6">Team Management</div>} />
+              <Route path="team" element={<Team />} />
               <Route path="esg-dd" element={<div className="p-6">ESG Due Diligence</div>} />
             </Route>
             <Route path="*" element={<NotFound />} />
