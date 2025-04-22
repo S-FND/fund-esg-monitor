@@ -1,48 +1,93 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { TeamAddDialog } from "@/components/TeamAddDialog";
 import { Card } from "@/components/ui/card";
+import { supabase } from "@/integrations/supabase/client";
 
-// Dummy funds for selection
-const dummyFunds = [
-  { id: 1, name: "Climate Impact Fund" },
-  { id: 2, name: "Future Tech Fund" },
-  { id: 3, name: "Sustainable Ventures" },
-];
-
-// Dummy team member structure
+// Update the type definition to use string IDs (UUIDs) instead of numbers
 type TeamMember = {
   name: string;
   email: string;
-  fundIds: number[];
+  fundIds: string[];
+};
+
+// Update the fund type to use string IDs
+type Fund = {
+  id: string;
+  name: string;
 };
 
 export default function Team() {
-  const [team, setTeam] = useState<TeamMember[]>([
-    {
-      name: "Main Admin",
-      email: "admin@investor.com",
-      fundIds: [1, 2],
-    },
-  ]);
+  const [team, setTeam] = useState<TeamMember[]>([]);
+  const [funds, setFunds] = useState<Fund[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleAddTeamMember = (m: TeamMember) => {
-    setTeam(prev => [...prev, m]);
+  useEffect(() => {
+    // Fetch team members and funds when component mounts
+    const fetchData = async () => {
+      setLoading(true);
+      
+      // Fetch funds
+      const { data: fundsData, error: fundsError } = await supabase
+        .from('funds')
+        .select('*');
+      
+      if (fundsError) {
+        console.error('Error fetching funds:', fundsError);
+      } else if (fundsData) {
+        setFunds(fundsData);
+      }
+      
+      // Fetch team members
+      const { data: teamData, error: teamError } = await supabase
+        .from('team_members')
+        .select(`
+          id, 
+          name, 
+          email, 
+          team_member_funds (
+            fund_id
+          )
+        `);
+      
+      if (teamError) {
+        console.error('Error fetching team members:', teamError);
+      } else if (teamData) {
+        // Transform the data to match our TeamMember type
+        const formattedTeam = teamData.map(member => ({
+          name: member.name,
+          email: member.email,
+          fundIds: member.team_member_funds?.map(f => f.fund_id) || []
+        }));
+        
+        setTeam(formattedTeam);
+      }
+      
+      setLoading(false);
+    };
+
+    fetchData();
+  }, []);
+
+  const handleAddTeamMember = (member: { name: string; email: string; fundIds: string[] }) => {
+    setTeam(prev => [...prev, member]);
   };
 
-  const getFundNames = (ids: number[]) =>
+  const getFundNames = (ids: string[]) =>
     ids.length === 0
       ? "None"
-      : ids.map(id => dummyFunds.find(f => f.id === id)?.name).filter(Boolean).join(", ");
+      : ids.map(id => funds.find(f => f.id === id)?.name).filter(Boolean).join(", ");
 
   return (
     <div className="container max-w-2xl mx-auto py-8">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold">Team Management</h1>
-        <TeamAddDialog allFunds={dummyFunds} onAdd={handleAddTeamMember} />
+        <TeamAddDialog onAdd={handleAddTeamMember} />
       </div>
       <div className="space-y-4">
-        {team.length === 0 ? (
+        {loading ? (
+          <div className="text-center py-4">Loading team members...</div>
+        ) : team.length === 0 ? (
           <div className="text-muted-foreground">No team members yet.</div>
         ) : (
           team.map((member, idx) => (
