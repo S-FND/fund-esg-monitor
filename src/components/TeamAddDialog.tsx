@@ -2,12 +2,10 @@
 import React, { useState, useEffect } from "react";
 import {
   Dialog,
-  DialogTrigger,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-  DialogClose,
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -30,15 +28,21 @@ type Fund = {
 
 interface TeamAddDialogProps {
   onAdd: (member: { name: string; email: string; fundIds: string[] }) => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function TeamAddDialog({ onAdd }: TeamAddDialogProps) {
-  const [open, setOpen] = useState(false);
+export function TeamAddDialog({ onAdd, open, onOpenChange }: TeamAddDialogProps) {
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [funds, setFunds] = useState<Fund[]>([]);
   const [selectedFunds, setSelectedFunds] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
+
+  // Use the controlled open state if provided, otherwise use internal state
+  const isOpen = open !== undefined ? open : dialogOpen;
+  const setIsOpen = onOpenChange || setDialogOpen;
 
   useEffect(() => {
     // Fetch available funds
@@ -115,7 +119,7 @@ export function TeamAddDialog({ onAdd }: TeamAddDialogProps) {
       setName("");
       setEmail("");
       setSelectedFunds([]);
-      setOpen(false);
+      setIsOpen(false);
 
       toast({
         title: "Team Member Added",
@@ -134,10 +138,7 @@ export function TeamAddDialog({ onAdd }: TeamAddDialogProps) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>Add Team Member</Button>
-      </DialogTrigger>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Add Team Member</DialogTitle>
