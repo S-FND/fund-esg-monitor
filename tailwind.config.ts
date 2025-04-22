@@ -52,6 +52,15 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
+				esg: {
+					primary: '#1E8A5A',
+					secondary: '#2D9CDB',
+					light: '#E4F7ED',
+					warning: '#F2994A',
+					danger: '#EB5757',
+					success: '#27AE60',
+					neutral: '#4F4F4F',
+				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
 					foreground: 'hsl(var(--sidebar-foreground))',

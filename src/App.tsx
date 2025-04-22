@@ -1,26 +1,49 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { ThemeProvider } from "@/components/ThemeProvider";
+import { MainLayout } from "./layouts/MainLayout";
+import Dashboard from "./pages/Dashboard";
+import Funds from "./pages/Funds";
+import NewFund from "./pages/NewFund";
+import Portfolio from "./pages/Portfolio";
+import NewCompany from "./pages/NewCompany";
+import PreScreening from "./pages/PreScreening";
+import Categorization from "./pages/Categorization";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+    <ThemeProvider defaultTheme="light">
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<MainLayout />}>
+            <Route index element={<Dashboard />} />
+            <Route path="investor-info" element={<div className="p-6">Investor General Information</div>} />
+            <Route path="funds" element={<Funds />} />
+            <Route path="funds/new" element={<NewFund />} />
+            <Route path="funds/:id" element={<div className="p-6">Fund Details</div>} />
+            <Route path="portfolio" element={<Portfolio />} />
+            <Route path="portfolio/new" element={<NewCompany />} />
+            <Route path="portfolio/pre-screening" element={<PreScreening />} />
+            <Route path="portfolio/categorization" element={<Categorization />} />
+            <Route path="portfolio/:id" element={<div className="p-6">Portfolio Company Details</div>} />
+            <Route path="team" element={<div className="p-6">Team Management</div>} />
+            <Route path="esg-dd" element={<div className="p-6">ESG Due Diligence</div>} />
+          </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 

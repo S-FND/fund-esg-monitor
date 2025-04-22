@@ -1,0 +1,212 @@
+
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ChevronRight } from "lucide-react";
+
+// Pre-screening questions
+const preScreeningQuestions = [
+  {
+    id: "B.1",
+    question: "Does the company and/or businesses potentially trigger any of the activity listed in FoF Exclusion List?",
+    scoringCriteria: "No: 0, Yes/Maybe: 1"
+  },
+  {
+    id: "B.2",
+    question: "Does the company and/or businesses have potential to be used for military, surveillance, human profiling, infringing upon human rights & human dignity, affecting electoral process or run into future regulatory issues?",
+    scoringCriteria: "No: 0, Yes/Maybe: 1"
+  },
+  {
+    id: "B.3",
+    question: "Does the company and/or businesses work in one or more the following frontier technological areas? a) Brain Computer Interfaces; b)Gene sequencing and editing; c)genetic medicines; d) quantum computing; e) drones and autonomous vehicles; f) facial recognition and biometrics; g) bio-surveillance ; h)block chain; i)Emotional AI or AI in productive analysis; j) blockchain & NFTs",
+    scoringCriteria: "No: 0, Yes/Maybe: 0.33"
+  },
+  {
+    id: "B.4",
+    question: "Does the company and/or its businesses have the potential to involve involuntary land acquisition resulting in physical and economic displacement and livelihood systems?",
+    scoringCriteria: "No: 0, Yes/Maybe: 0.33"
+  },
+  {
+    id: "B.5",
+    question: "Does the company and/or its businesses have the potential to impact on the identity, dignity, human rights, livelihood systems, and culture of indigenous peoples?",
+    scoringCriteria: "No: 0, Yes/Maybe: 0.33"
+  }
+];
+
+export default function PreScreening() {
+  const navigate = useNavigate();
+  const [responses, setResponses] = useState<Record<string, { response: string; score: number; remarks: string }>>({
+    "B.1": { response: "No", score: 0, remarks: "" },
+    "B.2": { response: "No", score: 0, remarks: "" },
+    "B.3": { response: "Yes", score: 0.33, remarks: "" },
+    "B.4": { response: "Yes", score: 0.33, remarks: "" },
+    "B.5": { response: "Yes", score: 0.33, remarks: "" }
+  });
+  
+  const handleResponseChange = (questionId: string, value: string) => {
+    const newScore = value === "No" ? 0 : questionId === "B.1" || questionId === "B.2" ? 1 : 0.33;
+    
+    setResponses(prev => ({
+      ...prev,
+      [questionId]: {
+        ...prev[questionId],
+        response: value,
+        score: newScore
+      }
+    }));
+  };
+  
+  const handleRemarksChange = (questionId: string, value: string) => {
+    setResponses(prev => ({
+      ...prev,
+      [questionId]: {
+        ...prev[questionId],
+        remarks: value
+      }
+    }));
+  };
+  
+  // Calculate total score
+  const totalScore = Object.values(responses).reduce((sum, item) => sum + item.score, 0);
+  
+  // Determine Go/No-Go decision
+  const getDecision = (score: number) => {
+    if (score >= 1) {
+      return "No-Go";
+    } else if (score >= 0.66) {
+      return "Caution - Detailed ESDD Required";
+    } else {
+      return "Go";
+    }
+  };
+  
+  const decision = getDecision(totalScore);
+  
+  // Determine action based on decision
+  const getAction = (decision: string) => {
+    if (decision === "No-Go") {
+      return "Decline the investment opportunity due to high ESG risks";
+    } else if (decision === "Caution - Detailed ESDD Required") {
+      return "Proceed with detailed ESG due diligence to identify and mitigate risks";
+    } else {
+      return "Proceed with investment process";
+    }
+  };
+  
+  const action = getAction(decision);
+  
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Pre-Screening Gating Checklist</h1>
+          <p className="text-muted-foreground">Part B</p>
+        </div>
+      </div>
+      
+      <Card>
+        <CardHeader>
+          <CardTitle>Objective</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p>Identify whether to proceed with the investment idea or not. Post responding to the Section 1 below, Go/No Go decision is arrived as an outcome.</p>
+        </CardContent>
+      </Card>
+      
+      <Card>
+        <CardHeader>
+          <CardTitle>Section 1. Exclusion and Business Flaws Screening</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[100px]">S. No.</TableHead>
+                <TableHead className="w-[300px]">Question</TableHead>
+                <TableHead className="w-[150px]">Response</TableHead>
+                <TableHead className="w-[100px]">Score</TableHead>
+                <TableHead className="w-[150px]">Scoring Criteria</TableHead>
+                <TableHead>Remarks / Comments</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {preScreeningQuestions.map((question) => (
+                <TableRow key={question.id}>
+                  <TableCell>{question.id}</TableCell>
+                  <TableCell>{question.question}</TableCell>
+                  <TableCell>
+                    <Select 
+                      value={responses[question.id]?.response} 
+                      onValueChange={(value) => handleResponseChange(question.id, value)}
+                    >
+                      <SelectTrigger className="w-[100px]">
+                        <SelectValue placeholder="Select" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="No">No</SelectItem>
+                        <SelectItem value="Yes">Yes</SelectItem>
+                        <SelectItem value="Maybe">Maybe</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                  <TableCell>{responses[question.id]?.score.toFixed(2)}</TableCell>
+                  <TableCell>{question.scoringCriteria}</TableCell>
+                  <TableCell>
+                    <Textarea 
+                      value={responses[question.id]?.remarks} 
+                      onChange={(e) => handleRemarksChange(question.id, e.target.value)}
+                      placeholder="Add remarks"
+                      className="min-h-[60px]"
+                    />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          
+          <div className="mt-8 p-4 bg-muted rounded-md">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label className="text-sm font-medium">Total Score:</Label>
+                <p className="text-2xl font-bold">{totalScore.toFixed(2)}</p>
+              </div>
+              
+              <div>
+                <Label className="text-sm font-medium">Decision on investment:</Label>
+                <p className={`text-2xl font-bold ${
+                  decision === "Go" 
+                    ? "text-green-600" 
+                    : decision === "No-Go" 
+                      ? "text-red-600" 
+                      : "text-amber-600"
+                }`}>
+                  {decision}
+                </p>
+              </div>
+              
+              <div>
+                <Label className="text-sm font-medium">Action:</Label>
+                <p className="text-sm">{action}</p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      
+      <div className="flex justify-between mt-6">
+        <Button variant="outline" type="button" onClick={() => navigate(-1)}>
+          Back
+        </Button>
+        <Button onClick={() => navigate("/portfolio/categorization")} className="gap-2">
+          <span>Next: Categorization</span>
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
