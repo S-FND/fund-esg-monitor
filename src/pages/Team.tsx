@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { TeamAddDialog } from "@/components/TeamAddDialog";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 
 // Update the type definition to use string IDs (UUIDs) instead of numbers
@@ -21,23 +22,24 @@ export default function Team() {
   const [team, setTeam] = useState<TeamMember[]>([]);
   const [funds, setFunds] = useState<Fund[]>([]);
   const [loading, setLoading] = useState(true);
+  const [addingDialogOpen, setAddingDialogOpen] = useState(false);
 
   useEffect(() => {
     // Fetch team members and funds when component mounts
     const fetchData = async () => {
       setLoading(true);
-      
+
       // Fetch funds
       const { data: fundsData, error: fundsError } = await supabase
         .from('funds')
         .select('*');
-      
+
       if (fundsError) {
         console.error('Error fetching funds:', fundsError);
       } else if (fundsData) {
         setFunds(fundsData);
       }
-      
+
       // Fetch team members
       const { data: teamData, error: teamError } = await supabase
         .from('team_members')
@@ -49,7 +51,7 @@ export default function Team() {
             fund_id
           )
         `);
-      
+
       if (teamError) {
         console.error('Error fetching team members:', teamError);
       } else if (teamData) {
@@ -59,7 +61,7 @@ export default function Team() {
           email: member.email,
           fundIds: member.team_member_funds?.map(f => f.fund_id) || []
         }));
-        
+
         setTeam(formattedTeam);
       }
       
@@ -82,7 +84,7 @@ export default function Team() {
     <div className="container max-w-2xl mx-auto py-8">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold">Team Management</h1>
-        <TeamAddDialog onAdd={handleAddTeamMember} />
+        <Button onClick={() => setAddingDialogOpen(true)}>Add New Team Member</Button>
       </div>
       <div className="space-y-4">
         {loading ? (
@@ -104,6 +106,9 @@ export default function Team() {
           ))
         )}
       </div>
+
+      <TeamAddDialog open={addingDialogOpen} onOpenChange={setAddingDialogOpen} onAdd={handleAddTeamMember} />
+
       <div className="mt-8 text-sm text-muted-foreground">
         <ul className="list-disc ml-6">
           <li>Admins can add team members, assign them to funds, and each new member receives an email invite.</li>
