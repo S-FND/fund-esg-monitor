@@ -1,4 +1,6 @@
 
+// Providing UI for Name, Email, Designation, Mobile Number, and Password fields in the add user form
+
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 

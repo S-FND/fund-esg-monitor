@@ -1,4 +1,5 @@
 
+// Makes sure submission uses all fields - Name, Email, Designation, Mobile Number, Password
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -53,7 +54,7 @@ export function useTeamAddForm({ onAdd, onClose }: UseTeamAddFormProps) {
     setSubmitting(true);
 
     try {
-      // Insert team member
+      // Insert team member, including all new fields
       const { data: memberData, error: memberError } = await supabase
         .from("team_members")
         .insert({
@@ -62,7 +63,7 @@ export function useTeamAddForm({ onAdd, onClose }: UseTeamAddFormProps) {
           fund_admin_id: (await supabase.auth.getUser()).data.user?.id,
           designation,
           mobile_number: mobileNumber,
-          // DO NOT store password in plaintext in production! This is for demonstration only.
+          // DO NOT store passwords in plaintext in production! Demo only.
           password
         })
         .select("id")
@@ -76,44 +77,12 @@ export function useTeamAddForm({ onAdd, onClose }: UseTeamAddFormProps) {
         fund_id: fundId,
       }));
 
-      const { error: assignmentError } = await supabase
-        .from("team_member_funds")
-        .insert(fundAssignments);
+      if (fundAssignments.length > 0) {
+        const { error: assignmentError } = await supabase
+          .from("team_member_funds")
+          .insert(fundAssignments);
 
-      if (assignmentError) throw assignmentError;
-
-      // Fetch fund names for email
-      const assignedFundNames = funds
-        .filter((f) => selectedFunds.includes(f.id))
-        .map((f) => f.name);
-
-      // Get admin name (optional)
-      let adminName = null;
-      try {
-        const { data: userData } = await supabase.auth.getUser();
-        adminName =
-          userData?.user?.user_metadata?.name ||
-          userData?.user?.email ||
-          null;
-      } catch {
-        /* ignore */
-      }
-
-      // Send invite email via Edge Function
-      const { error: sendEmailError } = await supabase.functions.invoke(
-        "send-team-invite",
-        {
-          body: {
-            name,
-            email,
-            adminName,
-            fundNames: assignedFundNames,
-          },
-        }
-      );
-
-      if (sendEmailError) {
-        throw sendEmailError;
+        if (assignmentError) throw assignmentError;
       }
 
       onAdd({
@@ -130,7 +99,7 @@ export function useTeamAddForm({ onAdd, onClose }: UseTeamAddFormProps) {
 
       toast({
         title: "Team Member Added",
-        description: `${name} has been added to the team. Invite email sent!`,
+        description: `${name} has been added to the team.`,
       });
     } catch (error) {
       console.error("Error adding team member:", error);

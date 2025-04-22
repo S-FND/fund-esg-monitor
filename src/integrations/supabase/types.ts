@@ -1055,31 +1055,40 @@ export type Database = {
         Row: {
           accepted: boolean | null
           created_at: string
+          designation: string | null
           email: string
           fund_admin_id: string
           id: string
           invite_sent_at: string | null
+          mobile_number: string | null
           name: string
+          password: string | null
           updated_at: string
         }
         Insert: {
           accepted?: boolean | null
           created_at?: string
+          designation?: string | null
           email: string
           fund_admin_id: string
           id?: string
           invite_sent_at?: string | null
+          mobile_number?: string | null
           name: string
+          password?: string | null
           updated_at?: string
         }
         Update: {
           accepted?: boolean | null
           created_at?: string
+          designation?: string | null
           email?: string
           fund_admin_id?: string
           id?: string
           invite_sent_at?: string | null
+          mobile_number?: string | null
           name?: string
+          password?: string | null
           updated_at?: string
         }
         Relationships: []

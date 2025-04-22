@@ -1,18 +1,18 @@
-
 import React, { useState, useEffect } from "react";
 import { TeamAddDialog } from "@/components/TeamAddDialog";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 
-// Update the type definition to use string IDs (UUIDs) instead of numbers
 type TeamMember = {
   name: string;
   email: string;
   fundIds: string[];
+  designation?: string;
+  mobileNumber?: string;
+  password?: string;
 };
 
-// Update the fund type to use string IDs
 type Fund = {
   id: string;
   name: string;
@@ -47,6 +47,9 @@ export default function Team() {
           id, 
           name, 
           email, 
+          designation,
+          mobile_number,
+          password,
           team_member_funds (
             fund_id
           )
@@ -55,13 +58,14 @@ export default function Team() {
       if (teamError) {
         console.error('Error fetching team members:', teamError);
       } else if (teamData) {
-        // Transform the data to match our TeamMember type
         const formattedTeam = teamData.map(member => ({
           name: member.name,
           email: member.email,
-          fundIds: member.team_member_funds?.map(f => f.fund_id) || []
+          fundIds: member.team_member_funds?.map(f => f.fund_id) || [],
+          designation: member.designation ?? "",
+          mobileNumber: member.mobile_number ?? "",
+          password: member.password ?? "",
         }));
-
         setTeam(formattedTeam);
       }
       
@@ -71,7 +75,7 @@ export default function Team() {
     fetchData();
   }, []);
 
-  const handleAddTeamMember = (member: { name: string; email: string; fundIds: string[] }) => {
+  const handleAddTeamMember = (member: { name: string; email: string; fundIds: string[], designation: string, mobileNumber: string, password: string }) => {
     setTeam(prev => [...prev, member]);
   };
 
@@ -97,6 +101,12 @@ export default function Team() {
               <div>
                 <div className="font-medium">{member.name}</div>
                 <div className="text-muted-foreground text-sm">{member.email}</div>
+                {member.designation && (
+                  <div className="text-xs text-muted-foreground">Designation: {member.designation}</div>
+                )}
+                {member.mobileNumber && (
+                  <div className="text-xs text-muted-foreground">Mobile: {member.mobileNumber}</div>
+                )}
               </div>
               <div>
                 <span className="text-xs font-semibold">Assigned Funds: </span>

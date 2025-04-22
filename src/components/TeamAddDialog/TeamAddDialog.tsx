@@ -1,4 +1,3 @@
-
 import React from "react";
 import {
   Dialog,
@@ -29,7 +28,6 @@ export function TeamAddDialog({
   open,
   onOpenChange,
 }: TeamAddDialogProps) {
-  // Support both controlled & uncontrolled dialog
   const [internalOpen, setInternalOpen] = React.useState(false);
   const isControlled = open !== undefined && onOpenChange;
   const actualOpen = isControlled ? open : internalOpen;
