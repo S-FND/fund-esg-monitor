@@ -94,7 +94,7 @@ export default function ESGCAP() {
       case "In Progress":
         return <Badge variant="secondary">In Progress</Badge>;
       case "Completed":
-        return <Badge variant="success" className="bg-green-500 hover:bg-green-600">Completed</Badge>;
+        return <Badge variant="default" className="bg-green-500 hover:bg-green-600">Completed</Badge>;
       case "Delayed":
         return <Badge variant="destructive">Delayed</Badge>;
       case "Rejected":
