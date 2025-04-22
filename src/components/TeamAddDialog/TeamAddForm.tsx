@@ -12,6 +12,12 @@ export function TeamAddForm({
   setSelectedFunds,
   submitting,
   handleSubmit,
+  designation,
+  setDesignation,
+  mobileNumber,
+  setMobileNumber,
+  password,
+  setPassword,
 }: {
   name: string;
   setName: (name: string) => void;
@@ -22,6 +28,12 @@ export function TeamAddForm({
   setSelectedFunds: (ids: string[]) => void;
   submitting: boolean;
   handleSubmit: (e: React.FormEvent) => void;
+  designation: string;
+  setDesignation: (designation: string) => void;
+  mobileNumber: string;
+  setMobileNumber: (number: string) => void;
+  password: string;
+  setPassword: (pw: string) => void;
 }) {
   return (
     <form className="space-y-4" onSubmit={handleSubmit}>
@@ -31,6 +43,12 @@ export function TeamAddForm({
         setName={setName}
         setEmail={setEmail}
         submitting={submitting}
+        designation={designation}
+        setDesignation={setDesignation}
+        mobileNumber={mobileNumber}
+        setMobileNumber={setMobileNumber}
+        password={password}
+        setPassword={setPassword}
       />
       <TeamAddFundsField
         funds={funds}

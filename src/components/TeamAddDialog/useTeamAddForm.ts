@@ -9,13 +9,23 @@ export type Fund = {
 };
 
 interface UseTeamAddFormProps {
-  onAdd: (member: { name: string; email: string; fundIds: string[] }) => void;
+  onAdd: (member: { 
+    name: string; 
+    email: string; 
+    fundIds: string[]; 
+    designation: string;
+    mobileNumber: string;
+    password: string;
+  }) => void;
   onClose: () => void;
 }
 
 export function useTeamAddForm({ onAdd, onClose }: UseTeamAddFormProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [designation, setDesignation] = useState("");
+  const [mobileNumber, setMobileNumber] = useState("");
+  const [password, setPassword] = useState("");
   const [funds, setFunds] = useState<Fund[]>([]);
   const [selectedFunds, setSelectedFunds] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -32,6 +42,9 @@ export function useTeamAddForm({ onAdd, onClose }: UseTeamAddFormProps) {
   const reset = () => {
     setName("");
     setEmail("");
+    setDesignation("");
+    setMobileNumber("");
+    setPassword("");
     setSelectedFunds([]);
   };
 
@@ -47,6 +60,10 @@ export function useTeamAddForm({ onAdd, onClose }: UseTeamAddFormProps) {
           name,
           email,
           fund_admin_id: (await supabase.auth.getUser()).data.user?.id,
+          designation,
+          mobile_number: mobileNumber,
+          // DO NOT store password in plaintext in production! This is for demonstration only.
+          password
         })
         .select("id")
         .single();
@@ -103,6 +120,9 @@ export function useTeamAddForm({ onAdd, onClose }: UseTeamAddFormProps) {
         name,
         email,
         fundIds: selectedFunds,
+        designation,
+        mobileNumber,
+        password,
       });
 
       reset();
@@ -134,5 +154,11 @@ export function useTeamAddForm({ onAdd, onClose }: UseTeamAddFormProps) {
     setSelectedFunds,
     submitting,
     handleSubmit,
+    designation,
+    setDesignation,
+    mobileNumber,
+    setMobileNumber,
+    password,
+    setPassword,
   };
 }
