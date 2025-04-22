@@ -17,6 +17,8 @@ import NotFound from "./pages/NotFound";
 import InvestorInfo from "./pages/InvestorInfo";
 import EditInvestorProfile from "./pages/EditInvestorProfile";
 import Team from "./pages/Team";
+import ESGDDReport from "./pages/ESGDDReport";
+import ESGCAP from "./pages/ESGCAP";
 
 const queryClient = new QueryClient();
 
@@ -42,6 +44,8 @@ const App = () => (
               <Route path="portfolio/:id" element={<div className="p-6">Portfolio Company Details</div>} />
               <Route path="team" element={<Team />} />
               <Route path="esg-dd" element={<div className="p-6">ESG Due Diligence</div>} />
+              <Route path="esg-dd/report" element={<ESGDDReport />} />
+              <Route path="esg-dd/cap" element={<ESGCAP />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

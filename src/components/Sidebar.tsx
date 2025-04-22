@@ -8,9 +8,13 @@ import {
   FolderOpen,
   ListChecks,
   Users,
+  FileCheck,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
+import { useState } from "react";
 
-const sidebarItems = [
+const mainNavItems = [
   {
     title: "Dashboard",
     href: "/",
@@ -36,15 +40,31 @@ const sidebarItems = [
     href: "/team",
     icon: Users,
   },
-  {
-    title: "ESG DD",
-    href: "/esg-dd",
-    icon: ListChecks,
-  },
 ];
+
+const esgDDNavItem = {
+  title: "ESG DD",
+  href: "/esg-dd",
+  icon: ListChecks,
+  subItems: [
+    {
+      title: "ESG DD Report",
+      href: "/esg-dd/report",
+      icon: FileText,
+    },
+    {
+      title: "ESG CAP",
+      href: "/esg-dd/cap",
+      icon: FileCheck,
+    },
+  ]
+};
 
 export function Sidebar() {
   const location = useLocation();
+  const [esgSubmenuOpen, setEsgSubmenuOpen] = useState(
+    location.pathname.startsWith("/esg-dd")
+  );
   
   return (
     <div className="h-screen w-64 bg-sidebar fixed left-0 border-r border-sidebar-border">
@@ -56,7 +76,7 @@ export function Sidebar() {
         
         <nav className="mt-8 flex-1 overflow-y-auto">
           <ul className="space-y-1 px-2">
-            {sidebarItems.map((item) => {
+            {mainNavItems.map((item) => {
               const isActive = location.pathname === item.href;
               return (
                 <li key={item.href}>
@@ -75,6 +95,53 @@ export function Sidebar() {
                 </li>
               );
             })}
+            
+            {/* ESG DD with submenu */}
+            <li>
+              <button
+                onClick={() => setEsgSubmenuOpen(!esgSubmenuOpen)}
+                className={cn(
+                  "flex items-center justify-between w-full rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                  location.pathname.startsWith("/esg-dd")
+                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                    : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <esgDDNavItem.icon className="h-4 w-4" />
+                  <span>{esgDDNavItem.title}</span>
+                </div>
+                {esgSubmenuOpen ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+              </button>
+              
+              {esgSubmenuOpen && (
+                <ul className="mt-1 pl-9 space-y-1">
+                  {esgDDNavItem.subItems.map((subItem) => {
+                    const isActive = location.pathname === subItem.href;
+                    return (
+                      <li key={subItem.href}>
+                        <Link
+                          to={subItem.href}
+                          className={cn(
+                            "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                            isActive
+                              ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                              : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+                          )}
+                        >
+                          <subItem.icon className="h-4 w-4" />
+                          <span>{subItem.title}</span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </li>
           </ul>
         </nav>
         
