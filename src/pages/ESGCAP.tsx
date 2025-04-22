@@ -1,42 +1,9 @@
 
 import { useState } from "react";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Check, Clock, X } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
-
-// Types for the CAP item
-type CAPStatus = "Pending" | "In Progress" | "Completed" | "Delayed" | "Rejected";
-type CAPType = "CP" | "CS"; // Condition Precedent or Condition Subsequent
-
-interface CAPItem {
-  id: string;
-  item: string;
-  actions: string;
-  responsibility: string;
-  deliverable: string;
-  targetDate: string;
-  type: CAPType;
-  actualDate?: string;
-  status: CAPStatus;
-}
+import { CAPItem, CAPStatus, CAPType, CAPTable } from "@/components/esg-cap/CAPTable";
+import { ReviewDialog } from "@/components/esg-cap/ReviewDialog";
 
 export default function ESGCAP() {
   const [selectedItem, setSelectedItem] = useState<CAPItem | null>(null);
@@ -87,23 +54,6 @@ export default function ESGCAP() {
     }
   ];
 
-  const getStatusBadge = (status: CAPStatus) => {
-    switch (status) {
-      case "Pending":
-        return <Badge variant="outline">Pending</Badge>;
-      case "In Progress":
-        return <Badge variant="secondary">In Progress</Badge>;
-      case "Completed":
-        return <Badge variant="default" className="bg-green-500 hover:bg-green-600">Completed</Badge>;
-      case "Delayed":
-        return <Badge variant="destructive">Delayed</Badge>;
-      case "Rejected":
-        return <Badge variant="destructive">Rejected</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  };
-
   const handleReview = (item: CAPItem) => {
     setSelectedItem(item);
     setReviewDialogOpen(true);
@@ -149,109 +99,21 @@ export default function ESGCAP() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[50px]">S. No</TableHead>
-                  <TableHead>Item</TableHead>
-                  <TableHead>Measures and/or Corrective Actions</TableHead>
-                  <TableHead>Resource & Responsibility</TableHead>
-                  <TableHead>Expected Deliverable</TableHead>
-                  <TableHead>Target Date</TableHead>
-                  <TableHead>CP/CS</TableHead>
-                  <TableHead>Actual Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {mockCAPItems.map((item, index) => (
-                  <TableRow key={item.id}>
-                    <TableCell>{index + 1}</TableCell>
-                    <TableCell className="font-medium">{item.item}</TableCell>
-                    <TableCell>{item.actions}</TableCell>
-                    <TableCell>{item.responsibility}</TableCell>
-                    <TableCell>{item.deliverable}</TableCell>
-                    <TableCell>{item.targetDate}</TableCell>
-                    <TableCell>{item.type}</TableCell>
-                    <TableCell>{item.actualDate || "-"}</TableCell>
-                    <TableCell>{getStatusBadge(item.status)}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => handleReview(item)}
-                        >
-                          Review
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={() => handleSendReminder(item)}
-                        >
-                          <Clock className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+          <CAPTable 
+            items={mockCAPItems}
+            onReview={handleReview}
+            onSendReminder={handleSendReminder}
+          />
         </CardContent>
       </Card>
 
-      {/* Review Dialog */}
-      <Dialog open={reviewDialogOpen} onOpenChange={setReviewDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Review CAP Item</DialogTitle>
-            <DialogDescription>
-              Review and approve or reject this CAP item.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            <div>
-              <h4 className="font-semibold">Item</h4>
-              <p>{selectedItem?.item}</p>
-            </div>
-            <div>
-              <h4 className="font-semibold">Corrective Actions</h4>
-              <p>{selectedItem?.actions}</p>
-            </div>
-            <div>
-              <h4 className="font-semibold">Responsibility</h4>
-              <p>{selectedItem?.responsibility}</p>
-            </div>
-            <div>
-              <h4 className="font-semibold">Target Date</h4>
-              <p>{selectedItem?.targetDate}</p>
-            </div>
-            <div>
-              <h4 className="font-semibold">Type</h4>
-              <p>{selectedItem?.type}</p>
-            </div>
-            <div>
-              <h4 className="font-semibold">Status</h4>
-              <p>{selectedItem?.status}</p>
-            </div>
-          </div>
-          
-          <DialogFooter className="flex space-x-2 sm:justify-end">
-            <Button variant="destructive" onClick={handleReject}>
-              <X className="mr-2 h-4 w-4" />
-              Reject
-            </Button>
-            <Button onClick={handleApprove}>
-              <Check className="mr-2 h-4 w-4" />
-              Approve
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ReviewDialog
+        item={selectedItem}
+        open={reviewDialogOpen}
+        onApprove={handleApprove}
+        onReject={handleReject}
+        onOpenChange={setReviewDialogOpen}
+      />
     </div>
   );
 }
