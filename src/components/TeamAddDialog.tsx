@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogTrigger,
@@ -14,50 +14,100 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectMultiValue } from "@radix-ui/react-select";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue, 
+} from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
 
 type Fund = {
-  id: number;
+  id: string;
   name: string;
 };
 
 interface TeamAddDialogProps {
-  allFunds: Fund[];
-  onAdd: (member: { name: string; email: string; fundIds: number[] }) => void;
+  onAdd: (member: { name: string; email: string; fundIds: string[] }) => void;
 }
 
-export function TeamAddDialog({ allFunds, onAdd }: TeamAddDialogProps) {
+export function TeamAddDialog({ onAdd }: TeamAddDialogProps) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [selectedFunds, setSelectedFunds] = useState<number[]>([]);
+  const [funds, setFunds] = useState<Fund[]>([]);
+  const [selectedFunds, setSelectedFunds] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
-  const handleSelectFund = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selected = Array.from(e.target.selectedOptions).map(opt => Number(opt.value));
-    setSelectedFunds(selected);
-  };
+  useEffect(() => {
+    // Fetch available funds
+    const fetchFunds = async () => {
+      const { data, error } = await supabase.from('funds').select('*');
+      if (data) setFunds(data);
+      if (error) console.error('Error fetching funds:', error);
+    };
 
-  const handleSubmit = (e: React.FormEvent) => {
+    fetchFunds();
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
-    // Simulate invite
-    setTimeout(() => {
+
+    try {
+      // Insert team member
+      const { data: memberData, error: memberError } = await supabase
+        .from('team_members')
+        .insert({
+          name, 
+          email,
+          fund_admin_id: (await supabase.auth.getUser()).data.user?.id
+        })
+        .select('id')
+        .single();
+
+      if (memberError) throw memberError;
+
+      // Insert fund assignments
+      const fundAssignments = selectedFunds.map(fundId => ({
+        team_member_id: memberData.id,
+        fund_id: fundId
+      }));
+
+      const { error: assignmentError } = await supabase
+        .from('team_member_funds')
+        .insert(fundAssignments);
+
+      if (assignmentError) throw assignmentError;
+
+      // Simulate invite (replace with actual email invite later)
       onAdd({
         name,
         email,
         fundIds: selectedFunds,
       });
-      setOpen(false);
+
+      // Reset form
       setName("");
       setEmail("");
       setSelectedFunds([]);
-      setSubmitting(false);
+      setOpen(false);
+
       toast({
-        title: "Invite Sent",
-        description: `An invite has been sent to ${email}.`,
+        title: "Team Member Added",
+        description: `${name} has been added to the team.`,
       });
-    }, 800);
+    } catch (error) {
+      console.error('Error adding team member:', error);
+      toast({
+        title: "Error",
+        description: "Could not add team member. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -95,31 +145,37 @@ export function TeamAddDialog({ allFunds, onAdd }: TeamAddDialogProps) {
             />
           </div>
           <div>
-            <Label htmlFor="funds">Assign to Funds</Label>
-            <select
-              id="funds"
-              name="funds"
-              multiple
-              required
-              disabled={submitting}
-              className="block w-full rounded-md border border-input bg-background px-3 py-2 text-base min-h-[40px]"
-              value={selectedFunds.map(id => String(id))}
-              onChange={handleSelectFund}
-              size={Math.min(allFunds.length, 5)}
+            <Label>Assign to Funds</Label>
+            <Select 
+              onValueChange={(value) => 
+                setSelectedFunds(prev => 
+                  prev.includes(value) 
+                    ? prev.filter(id => id !== value) 
+                    : [...prev, value]
+                )
+              } 
+              value={selectedFunds[selectedFunds.length - 1]}
             >
-              {allFunds.map(fund => (
-                <option key={fund.id} value={fund.id}>
-                  {fund.name}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger>
+                <SelectValue placeholder="Select funds" />
+              </SelectTrigger>
+              <SelectContent>
+                {funds.map(fund => (
+                  <SelectItem key={fund.id} value={fund.id}>
+                    {fund.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <div className="text-xs text-muted-foreground mt-1">
-              Hold Ctrl/Cmd to select multiple
+              {selectedFunds.length > 0 
+                ? `${selectedFunds.length} fund(s) selected` 
+                : "No funds selected"}
             </div>
           </div>
           <DialogFooter>
             <Button type="submit" disabled={submitting}>
-              {submitting ? "Inviting..." : "Send Invite"}
+              {submitting ? "Adding..." : "Add Team Member"}
             </Button>
           </DialogFooter>
         </form>

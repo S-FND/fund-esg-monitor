@@ -914,6 +914,27 @@ export type Database = {
         }
         Relationships: []
       }
+      funds: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       partner_case_studies: {
         Row: {
           client_name: string
@@ -991,6 +1012,75 @@ export type Database = {
           services_offered?: string[] | null
           updated_at?: string
           website?: string | null
+        }
+        Relationships: []
+      }
+      team_member_funds: {
+        Row: {
+          created_at: string
+          fund_id: string
+          id: string
+          team_member_id: string
+        }
+        Insert: {
+          created_at?: string
+          fund_id: string
+          id?: string
+          team_member_id: string
+        }
+        Update: {
+          created_at?: string
+          fund_id?: string
+          id?: string
+          team_member_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_member_funds_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: false
+            referencedRelation: "funds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_member_funds_team_member_id_fkey"
+            columns: ["team_member_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_members: {
+        Row: {
+          accepted: boolean | null
+          created_at: string
+          email: string
+          fund_admin_id: string
+          id: string
+          invite_sent_at: string | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          accepted?: boolean | null
+          created_at?: string
+          email: string
+          fund_admin_id: string
+          id?: string
+          invite_sent_at?: string | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          accepted?: boolean | null
+          created_at?: string
+          email?: string
+          fund_admin_id?: string
+          id?: string
+          invite_sent_at?: string | null
+          name?: string
+          updated_at?: string
         }
         Relationships: []
       }
