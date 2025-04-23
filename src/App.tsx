@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -18,6 +19,7 @@ import EditInvestorProfile from "./pages/EditInvestorProfile";
 import Team from "./pages/Team";
 import ESGDDReport from "./pages/ESGDDReport";
 import ESGCAP from "./pages/ESGCAP";
+import EditPortfolioCompany from "./pages/EditPortfolioCompany";
 
 const queryClient = new QueryClient();
 
@@ -40,7 +42,7 @@ const App = () => (
               <Route path="portfolio/new" element={<NewCompany />} />
               <Route path="portfolio/pre-screening" element={<PreScreening />} />
               <Route path="portfolio/categorization" element={<Categorization />} />
-              <Route path="portfolio/:id" element={<import("./pages/EditPortfolioCompany").then(m => <m.default />)} />
+              <Route path="portfolio/:id" element={<EditPortfolioCompany />} />
               <Route path="team" element={<Team />} />
               <Route path="esg-dd" element={<div className="p-6">ESG Due Diligence</div>} />
               <Route path="esg-dd/report" element={<ESGDDReport />} />
