@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -41,7 +40,7 @@ const App = () => (
               <Route path="portfolio/new" element={<NewCompany />} />
               <Route path="portfolio/pre-screening" element={<PreScreening />} />
               <Route path="portfolio/categorization" element={<Categorization />} />
-              <Route path="portfolio/:id" element={<div className="p-6">Portfolio Company Details</div>} />
+              <Route path="portfolio/:id" element={<import("./pages/EditPortfolioCompany").then(m => <m.default />)} />
               <Route path="team" element={<Team />} />
               <Route path="esg-dd" element={<div className="p-6">ESG Due Diligence</div>} />
               <Route path="esg-dd/report" element={<ESGDDReport />} />
