@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -7,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { PortfolioCompanyKPIs } from "@/components/PortfolioCompanyKPIs";
 
 // Dummy data
 const funds = [
@@ -36,6 +36,12 @@ export default function Dashboard() {
     ? companies
     : companies.filter(company => company.fundId === parseInt(selectedFund));
   
+  // Find companyId for API fetch based on selected company string ID
+  const selectedCompanyId =
+    selectedCompany !== "all"
+      ? companies.find((c) => c.id.toString() === selectedCompany)?.id?.toString() ?? ""
+      : "";
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -227,9 +233,18 @@ export default function Dashboard() {
               <CardTitle>ESG Scores by Component</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="h-[400px] flex items-center justify-center bg-accent rounded-md">
+              <div className="h-[400px] flex items-center justify-center bg-accent rounded-md mb-4">
                 <p className="text-muted-foreground">ESG Component Chart</p>
               </div>
+              {/* ESG KPIs reported by portfolio company for the selected year */}
+              {selectedCompany !== "all" && selectedCompanyId && (
+                <PortfolioCompanyKPIs companyId={selectedCompanyId} reportedYear={selectedYear} />
+              )}
+              {selectedCompany === "all" && (
+                <p className="text-sm text-muted-foreground mt-4">
+                  Select a specific portfolio company to view its reported ESG KPIs.
+                </p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

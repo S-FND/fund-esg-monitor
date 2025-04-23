@@ -9,6 +9,39 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      company_esg_kpis: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          kpi_metric: number | null
+          kpi_name: string
+          metric_unit: string | null
+          reported_year: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          kpi_metric?: number | null
+          kpi_name: string
+          metric_unit?: string | null
+          reported_year: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          kpi_metric?: number | null
+          kpi_name?: string
+          metric_unit?: string | null
+          reported_year?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ehs_audit_responses: {
         Row: {
           action_deadline: string | null
