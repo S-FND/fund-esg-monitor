@@ -7,6 +7,13 @@ import { Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { PortfolioCompanyKPIs } from "@/components/PortfolioCompanyKPIs";
+import { DashboardFilters } from "@/components/dashboard/DashboardFilters";
+import { FundsStatsCard } from "@/components/dashboard/FundsStatsCard";
+import { CompaniesStatsCard } from "@/components/dashboard/CompaniesStatsCard";
+import { ESGStatsCard } from "@/components/dashboard/ESGStatsCard";
+import { FundPerformanceCard } from "@/components/dashboard/FundPerformanceCard";
+import { TopPerformersCard } from "@/components/dashboard/TopPerformersCard";
+import { ESGKPIsSection } from "@/components/dashboard/ESGKPIsSection";
 
 // Dummy data
 const funds = [
@@ -89,57 +96,17 @@ export default function Dashboard() {
         </div>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div>
-          <label className="block text-sm font-medium mb-1">Select Fund</label>
-          <Select value={selectedFund} onValueChange={setSelectedFund}>
-            <SelectTrigger>
-              <SelectValue placeholder="All Funds" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Funds</SelectItem>
-              {funds.map(fund => (
-                <SelectItem key={fund.id} value={fund.id.toString()}>
-                  {fund.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        
-        <div>
-          <label className="block text-sm font-medium mb-1">Select Portfolio Company</label>
-          <Select value={selectedCompany} onValueChange={setSelectedCompany}>
-            <SelectTrigger>
-              <SelectValue placeholder="All Companies" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Companies</SelectItem>
-              {filteredCompanies.map(company => (
-                <SelectItem key={company.id} value={company.id.toString()}>
-                  {company.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        
-        <div>
-          <label className="block text-sm font-medium mb-1">Financial Year</label>
-          <Select value={selectedYear} onValueChange={setSelectedYear}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select Year" />
-            </SelectTrigger>
-            <SelectContent>
-              {financialYears.map(year => (
-                <SelectItem key={year} value={year}>
-                  {year}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      <DashboardFilters
+        funds={funds}
+        companies={companies}
+        financialYears={financialYears}
+        selectedFund={selectedFund}
+        setSelectedFund={setSelectedFund}
+        selectedCompany={selectedCompany}
+        setSelectedCompany={setSelectedCompany}
+        selectedYear={selectedYear}
+        setSelectedYear={setSelectedYear}
+      />
       
       <Tabs defaultValue="overview">
         <TabsList className="grid grid-cols-3 mb-4">
@@ -150,103 +117,19 @@ export default function Dashboard() {
         
         <TabsContent value="overview" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Total Funds</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{funds.length}</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Total capital: $175M
-                </p>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Portfolio Companies</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{companies.length}</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Across {funds.length} funds
-                </p>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Average ESG Score</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">82</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  4.5% increase since last year
-                </p>
-              </CardContent>
-            </Card>
+            <FundsStatsCard totalFunds={funds.length} />
+            <CompaniesStatsCard totalCompanies={companies.length} numFunds={funds.length} />
+            <ESGStatsCard />
           </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>ESG Performance by Fund</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[300px] flex items-center justify-center bg-accent rounded-md">
-                  <p className="text-muted-foreground">Fund Performance Chart</p>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>Top ESG Performers</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {companies
-                    .sort((a, b) => b.esgScore - a.esgScore)
-                    .slice(0, 3)
-                    .map((company, i) => (
-                      <div key={company.id} className="flex items-center gap-4">
-                        <div className="h-8 w-8 rounded-full bg-esg-primary text-white flex items-center justify-center">
-                          {i + 1}
-                        </div>
-                        <div>
-                          <p className="font-medium">{company.name}</p>
-                          <p className="text-sm text-muted-foreground">{company.sector}</p>
-                        </div>
-                        <div className="ml-auto font-bold">{company.esgScore}</div>
-                      </div>
-                    ))
-                  }
-                </div>
-              </CardContent>
-            </Card>
+            <FundPerformanceCard />
+            <TopPerformersCard companies={companies} />
           </div>
         </TabsContent>
         
         <TabsContent value="esg-scores">
-          <Card>
-            <CardHeader>
-              <CardTitle>ESG Scores by Component</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[400px] flex items-center justify-center bg-accent rounded-md mb-4">
-                <p className="text-muted-foreground">ESG Component Chart</p>
-              </div>
-              {/* ESG KPIs reported by portfolio company for the selected year */}
-              {selectedCompany !== "all" && selectedCompanyId && (
-                <PortfolioCompanyKPIs companyId={selectedCompanyId} reportedYear={selectedYear} />
-              )}
-              {selectedCompany === "all" && (
-                <p className="text-sm text-muted-foreground mt-4">
-                  Select a specific portfolio company to view its reported ESG KPIs.
-                </p>
-              )}
-            </CardContent>
-          </Card>
+          <ESGKPIsSection selectedCompany={selectedCompany} selectedCompanyId={selectedCompanyId} selectedYear={selectedYear} />
         </TabsContent>
         
         <TabsContent value="trends">
