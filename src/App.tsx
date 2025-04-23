@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -20,6 +19,7 @@ import Team from "./pages/Team";
 import ESGDDReport from "./pages/ESGDDReport";
 import ESGCAP from "./pages/ESGCAP";
 import EditPortfolioCompany from "./pages/EditPortfolioCompany";
+import EditFund from "./pages/EditFund";
 
 const queryClient = new QueryClient();
 
@@ -37,7 +37,7 @@ const App = () => (
               <Route path="investor-info/edit" element={<EditInvestorProfile />} />
               <Route path="funds" element={<Funds />} />
               <Route path="funds/new" element={<NewFund />} />
-              <Route path="funds/:id" element={<div className="p-6">Fund Details</div>} />
+              <Route path="funds/:id" element={<EditFund />} />
               <Route path="portfolio" element={<Portfolio />} />
               <Route path="portfolio/new" element={<NewCompany />} />
               <Route path="portfolio/pre-screening" element={<PreScreening />} />
