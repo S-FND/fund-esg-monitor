@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -14,6 +15,9 @@ import { ESGStatsCard } from "@/components/dashboard/ESGStatsCard";
 import { FundPerformanceCard } from "@/components/dashboard/FundPerformanceCard";
 import { TopPerformersCard } from "@/components/dashboard/TopPerformersCard";
 import { ESGKPIsSection } from "@/components/dashboard/ESGKPIsSection";
+import { SDGPerformanceCard } from "@/components/dashboard/SDGPerformanceCard";
+import { TopSDGsCard } from "@/components/dashboard/TopSDGsCard";
+import { TopInitiativesCard } from "@/components/dashboard/TopInitiativesCard";
 
 // Dummy data
 const funds = [
@@ -109,9 +113,10 @@ export default function Dashboard() {
       />
       
       <Tabs defaultValue="overview">
-        <TabsList className="grid grid-cols-3 mb-4">
+        <TabsList className="grid grid-cols-4 mb-4">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="esg-scores">ESG Scores</TabsTrigger>
+          <TabsTrigger value="sdg-performance">SDG Performance</TabsTrigger>
           <TabsTrigger value="trends">Trends</TabsTrigger>
         </TabsList>
         
@@ -130,6 +135,27 @@ export default function Dashboard() {
         
         <TabsContent value="esg-scores">
           <ESGKPIsSection selectedCompany={selectedCompany} selectedCompanyId={selectedCompanyId} selectedYear={selectedYear} />
+        </TabsContent>
+        
+        <TabsContent value="sdg-performance" className="space-y-4">
+          <SDGPerformanceCard 
+            selectedFund={selectedFund} 
+            selectedCompany={selectedCompany} 
+            selectedYear={selectedYear} 
+          />
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <TopSDGsCard 
+              selectedFund={selectedFund} 
+              selectedCompany={selectedCompany} 
+              selectedYear={selectedYear} 
+            />
+            <TopInitiativesCard 
+              selectedFund={selectedFund} 
+              selectedCompany={selectedCompany} 
+              selectedYear={selectedYear} 
+            />
+          </div>
         </TabsContent>
         
         <TabsContent value="trends">
