@@ -23,6 +23,7 @@ import EditPortfolioCompany from "./pages/EditPortfolioCompany";
 import EditFund from "./pages/EditFund";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { AdminProtectedRoute } from "@/components/admin/AdminProtectedRoute";
+import Auth from "./pages/Auth";
 
 const queryClient = new QueryClient();
 
@@ -35,6 +36,7 @@ const App = () => (
             <Toaster />
             <Sonner />
             <Routes>
+              <Route path="/auth" element={<Auth />} />
               <Route path="/" element={<MainLayout />}>
                 <Route index element={<Dashboard />} />
                 <Route path="investor-info" element={<InvestorInfo />} />

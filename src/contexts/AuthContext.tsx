@@ -9,6 +9,7 @@ interface AuthContextType {
   user: User | null;
   userRole: 'investor' | 'admin' | 'fandoro_admin' | null;
   signOut: () => Promise<void>;
+  signIn: (email: string, password: string) => Promise<{ error: any }>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -18,6 +19,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [userRole, setUserRole] = useState<'investor' | 'admin' | 'fandoro_admin' | null>(null);
   const navigate = useNavigate();
+
+  const signIn = async (email: string, password: string) => {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      return { error };
+    }
+
+    if (data.session) {
+      setSession(data.session);
+      setUser(data.session.user);
+      navigate('/');
+    }
+
+    return { error: null };
+  };
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -64,7 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, userRole, signOut }}>
+    <AuthContext.Provider value={{ session, user, userRole, signOut, signIn }}>
       {children}
     </AuthContext.Provider>
   );
