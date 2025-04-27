@@ -21,7 +21,10 @@ export function Header() {
     <header className="h-16 border-b fixed top-0 left-64 right-0 bg-background z-10">
       <div className="flex h-full items-center justify-between px-6">
         <div className="flex items-center gap-4">
-          <h1 className="text-lg font-medium">ESG Tracking and Monitoring</h1>
+          <div className="flex items-center">
+            <h1 className="text-lg font-medium">ESG Monitor</h1>
+            <span className="text-sm text-muted-foreground ml-2">by Fandoro Technologies</span>
+          </div>
         </div>
         
         <div className="flex items-center gap-4">

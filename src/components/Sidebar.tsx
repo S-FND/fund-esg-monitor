@@ -71,7 +71,7 @@ export function Sidebar() {
       <div className="flex flex-col h-full">
         <div className="p-4">
           <h2 className="text-xl font-bold text-sidebar-foreground">ESG Monitor</h2>
-          <p className="text-sm text-sidebar-foreground/70">Investor Platform</p>
+          <p className="text-sm text-sidebar-foreground/70">Fandoro Technologies</p>
         </div>
         
         <nav className="mt-8 flex-1 overflow-y-auto">
@@ -146,7 +146,7 @@ export function Sidebar() {
         </nav>
         
         <div className="p-4 text-xs text-sidebar-foreground/70">
-          <p>© 2025 ESG Monitor</p>
+          <p>© {new Date().getFullYear()} Fandoro Technologies</p>
           <p>All rights reserved</p>
         </div>
       </div>
