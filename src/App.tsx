@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -21,6 +22,7 @@ import ESGCAP from "./pages/ESGCAP";
 import EditPortfolioCompany from "./pages/EditPortfolioCompany";
 import EditFund from "./pages/EditFund";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { AdminProtectedRoute } from "@/components/admin/AdminProtectedRoute";
 
 const queryClient = new QueryClient();
 
