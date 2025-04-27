@@ -947,6 +947,54 @@ export type Database = {
         }
         Relationships: []
       }
+      esg_risks: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string | null
+          description: string
+          fund_id: string | null
+          id: string
+          risk_index: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          created_by?: string | null
+          description: string
+          fund_id?: string | null
+          id?: string
+          risk_index: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          fund_id?: string | null
+          id?: string
+          risk_index?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "esg_risks_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "esg_risks_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: false
+            referencedRelation: "funds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       funds: {
         Row: {
           created_at: string
@@ -967,6 +1015,54 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      non_compliances: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string
+          fund_id: string | null
+          id: string
+          occurrences: number
+          severity: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description: string
+          fund_id?: string | null
+          id?: string
+          occurrences?: number
+          severity: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          fund_id?: string | null
+          id?: string
+          occurrences?: number
+          severity?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "non_compliances_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "non_compliances_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: false
+            referencedRelation: "funds"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       partner_case_studies: {
         Row: {
@@ -1045,6 +1141,33 @@ export type Database = {
           services_offered?: string[] | null
           updated_at?: string
           website?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string | null
+          id: string
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          full_name?: string | null
+          id: string
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
         }
         Relationships: []
       }
@@ -1139,6 +1262,7 @@ export type Database = {
     Enums: {
       action_status_type: "open" | "in_progress" | "closed"
       ehs_audit_response_type: "yes" | "no" | "partial" | "na"
+      user_role: "investor" | "admin" | "fandoro_admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1256,6 +1380,7 @@ export const Constants = {
     Enums: {
       action_status_type: ["open", "in_progress", "closed"],
       ehs_audit_response_type: ["yes", "no", "partial", "na"],
+      user_role: ["investor", "admin", "fandoro_admin"],
     },
   },
 } as const
