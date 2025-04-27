@@ -1,12 +1,15 @@
+
 import { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 
+type UserRole = 'fandoro_admin' | 'investor_admin' | 'investor_employee' | null;
+
 interface AuthContextType {
   session: Session | null;
   user: User | null;
-  userRole: 'investor' | 'admin' | 'fandoro_admin' | null;
+  userRole: UserRole;
   signOut: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   updatePassword: (newPassword: string) => Promise<{ error: any }>;
@@ -17,7 +20,7 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [userRole, setUserRole] = useState<'investor' | 'admin' | 'fandoro_admin' | null>(null);
+  const [userRole, setUserRole] = useState<UserRole>(null);
   const navigate = useNavigate();
 
   const signIn = async (email: string, password: string) => {
