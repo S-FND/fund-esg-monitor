@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -18,8 +17,9 @@ import { ESGKPIsSection } from "@/components/dashboard/ESGKPIsSection";
 import { SDGPerformanceCard } from "@/components/dashboard/SDGPerformanceCard";
 import { TopSDGsCard } from "@/components/dashboard/TopSDGsCard";
 import { TopInitiativesCard } from "@/components/dashboard/TopInitiativesCard";
+import { TopNonCompliancesCard } from "@/components/dashboard/TopNonCompliancesCard";
+import { ESGRisksCard } from "@/components/dashboard/ESGRisksCard";
 
-// Dummy data
 const funds = [
   { id: 1, name: "Green Tech Fund I", size: "$50M", focus: "ClimateTech", stage: "Series A" },
   { id: 2, name: "Sustainable Growth Fund", size: "$100M", focus: "AgriTech, HealthTech", stage: "Series B and above" },
@@ -42,12 +42,10 @@ export default function Dashboard() {
   const [selectedYear, setSelectedYear] = useState<string>("2025");
   const navigate = useNavigate();
   
-  // Filter companies based on selected fund
   const filteredCompanies = selectedFund === "all"
     ? companies
     : companies.filter(company => company.fundId === parseInt(selectedFund));
   
-  // Find companyId for API fetch based on selected company string ID
   const selectedCompanyId =
     selectedCompany !== "all"
       ? companies.find((c) => c.id.toString() === selectedCompany)?.id?.toString() ?? ""
@@ -130,6 +128,19 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <FundPerformanceCard />
             <TopPerformersCard companies={companies} />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <TopNonCompliancesCard 
+              selectedFund={selectedFund} 
+              selectedCompany={selectedCompany} 
+              selectedYear={selectedYear} 
+            />
+            <ESGRisksCard 
+              selectedFund={selectedFund} 
+              selectedCompany={selectedCompany} 
+              selectedYear={selectedYear} 
+            />
           </div>
         </TabsContent>
         
