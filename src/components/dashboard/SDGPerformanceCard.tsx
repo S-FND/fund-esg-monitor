@@ -6,7 +6,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import { Bar, BarChart, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
+import { Bar, BarChart, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell } from "recharts";
 
 const sdgColors = {
   1: "#E5243B", // No Poverty
@@ -110,9 +110,12 @@ export function SDGPerformanceCard({
                 fill="currentColor"
                 radius={[4, 4, 0, 0]}
                 className="fill-primary"
-                getClassName={(entry) => `fill-[${entry.color}]`}
                 barSize={30}
-              />
+              >
+                {chartData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </ChartContainer>
