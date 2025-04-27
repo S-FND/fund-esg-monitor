@@ -1,8 +1,7 @@
-
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Globe, Social, Shield } from "lucide-react";
+import { Users, Globe, Shield } from "lucide-react";
 
 interface ESGRisk {
   id: number;
@@ -23,7 +22,6 @@ export function ESGRisksCard({
   selectedCompany = "all",
   selectedYear = "2025",
 }: ESGRisksCardProps) {
-  // This would be fetched from an API in a real application
   const esgRisks: ESGRisk[] = [
     {
       id: 1,
@@ -60,7 +58,7 @@ export function ESGRisksCard({
       case 'environmental':
         return <Globe className="h-4 w-4" />;
       case 'social':
-        return <Social className="h-4 w-4" />;
+        return <Users className="h-4 w-4" />;
       case 'governance':
         return <Shield className="h-4 w-4" />;
     }
