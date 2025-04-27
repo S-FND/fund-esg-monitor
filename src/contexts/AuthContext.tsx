@@ -63,7 +63,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             .eq('id', session.user.id)
             .single();
           
-          setUserRole(profile?.role ?? null);
+          // Make sure we only set roles that match our UserRole type
+          const role = profile?.role as UserRole;
+          setUserRole(role);
         } else {
           setUserRole(null);
         }
@@ -81,7 +83,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .eq('id', session.user.id)
           .single()
           .then(({ data: profile }) => {
-            setUserRole(profile?.role ?? null);
+            // Make sure we only set roles that match our UserRole type
+            const role = profile?.role as UserRole;
+            setUserRole(role);
           });
       }
     });
