@@ -24,6 +24,7 @@ import EditFund from "./pages/EditFund";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { AdminProtectedRoute } from "@/components/admin/AdminProtectedRoute";
 import Auth from "./pages/Auth";
+import SetupAdminPage from "./pages/SetupAdminPage";
 
 const queryClient = new QueryClient();
 
@@ -37,6 +38,7 @@ const App = () => (
             <Sonner />
             <Routes>
               <Route path="/auth" element={<Auth />} />
+              <Route path="/setup-admin" element={<SetupAdminPage />} />
               <Route path="/" element={<MainLayout />}>
                 <Route index element={<Dashboard />} />
                 <Route path="investor-info" element={<InvestorInfo />} />
