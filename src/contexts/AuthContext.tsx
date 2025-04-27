@@ -1,20 +1,15 @@
-
 import { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 
-// Define all possible user roles in the application
-export type UserRole = 'investor' | 'admin' | 'fandoro_admin' | 'investor_employee';
-
 interface AuthContextType {
   session: Session | null;
   user: User | null;
-  userRole: UserRole | null;
+  userRole: 'investor' | 'admin' | 'fandoro_admin' | null;
   signOut: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   updatePassword: (newPassword: string) => Promise<{ error: any }>;
-  isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -22,8 +17,7 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [userRole, setUserRole] = useState<UserRole | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [userRole, setUserRole] = useState<'investor' | 'admin' | 'fandoro_admin' | null>(null);
   const navigate = useNavigate();
 
   const signIn = async (email: string, password: string) => {
@@ -54,8 +48,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    setIsLoading(true);
-    
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         setSession(session);
@@ -72,8 +64,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else {
           setUserRole(null);
         }
-        
-        setIsLoading(false);
       }
     );
 
@@ -89,10 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .single()
           .then(({ data: profile }) => {
             setUserRole(profile?.role ?? null);
-            setIsLoading(false);
           });
-      } else {
-        setIsLoading(false);
       }
     });
 
@@ -111,8 +98,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       userRole, 
       signOut, 
       signIn,
-      updatePassword,
-      isLoading
+      updatePassword 
     }}>
       {children}
     </AuthContext.Provider>
