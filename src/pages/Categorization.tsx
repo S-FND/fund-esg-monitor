@@ -130,6 +130,12 @@ const responseOptions = {
   "impact": ["Yes, with metrics", "Yes, qualitative", "No"]
 };
 
+const getCategory = (score: number) => {
+  if (score >= 25) return "A - High Risk";
+  if (score >= 15) return "B - Medium Risk";
+  return "C - Low Risk";
+};
+
 export default function Categorization() {
   const navigate = useNavigate();
   const [questions, setQuestions] = useState(categorizationQuestions);
@@ -225,6 +231,8 @@ export default function Categorization() {
   }, {});
   
   const totalScore = Object.values(sectionScores).reduce((sum, score) => sum + score, 0);
+  
+  const category = getCategory(totalScore);
   
   const getSectionTitle = (section: string) => {
     switch(section) {
