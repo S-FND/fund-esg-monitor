@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -23,6 +22,7 @@ import EditPortfolioCompany from "./pages/EditPortfolioCompany";
 import EditFund from "./pages/EditFund";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { AdminProtectedRoute } from "@/components/admin/AdminProtectedRoute";
+import { AuthCheck } from "@/components/AuthCheck";
 
 const queryClient = new QueryClient();
 
@@ -35,7 +35,7 @@ const App = () => (
             <Toaster />
             <Sonner />
             <Routes>
-              <Route path="/" element={<MainLayout />}>
+              <Route path="/" element={<AuthCheck><MainLayout /></AuthCheck>}>
                 <Route index element={<Dashboard />} />
                 <Route path="investor-info" element={<InvestorInfo />} />
                 <Route path="investor-info/edit" element={<EditInvestorProfile />} />
