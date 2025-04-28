@@ -8,8 +8,23 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 
+// Updated interface to include the esgPolicyFileName property
+interface InvestorFormData {
+  investorName: string;
+  companyName: string;
+  email: string;
+  pan: string;
+  gst: string;
+  esgManagerEmail: string;
+  sdgGoals: string;
+  sdgTargets: string;
+  designation: string;
+  companyAddress: string;
+  esgPolicyFileName?: string;
+}
+
 // Dummy data for testing
-const dummyInvestorData = {
+const dummyInvestorData: InvestorFormData = {
   investorName: "Global Sustainable Ventures",
   companyName: "GSV Holdings Ltd.",
   email: "contact@gsventures.com",
@@ -23,9 +38,9 @@ const dummyInvestorData = {
 };
 
 export default function EditInvestorProfile() {
-  const [formData, setFormData] = useState(dummyInvestorData);
+  const [formData, setFormData] = useState<InvestorFormData>(dummyInvestorData);
   const [uploading, setUploading] = useState(false);
-  const [submittedData, setSubmittedData] = useState<null | typeof formData>(null);
+  const [submittedData, setSubmittedData] = useState<InvestorFormData | null>(null);
   const [submittedFile, setSubmittedFile] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
@@ -53,7 +68,7 @@ export default function EditInvestorProfile() {
     setUploading(true);
 
     // Store submitted data for display
-    setSubmittedData(formData);
+    setSubmittedData({ ...formData });
     if (fileInputRef.current?.files?.[0]) {
       setSubmittedFile(fileInputRef.current.files[0].name);
     }
@@ -70,7 +85,7 @@ export default function EditInvestorProfile() {
 
   return (
     <div className="container mx-auto p-6">
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Edit Investor Profile</CardTitle>
@@ -252,12 +267,14 @@ export default function EditInvestorProfile() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {Object.entries(submittedData).map(([key, value]) => (
-                  <div key={key} className="space-y-1">
-                    <Label>{key}</Label>
-                    <p className="text-sm text-muted-foreground">{value}</p>
-                  </div>
-                ))}
+                {Object.entries(submittedData).map(([key, value]) => 
+                  key !== "esgPolicyFileName" ? (
+                    <div key={key} className="space-y-1">
+                      <Label>{key}</Label>
+                      <p className="text-sm text-muted-foreground">{value}</p>
+                    </div>
+                  ) : null
+                )}
                 {submittedFile && (
                   <div className="space-y-1">
                     <Label>Uploaded File</Label>
