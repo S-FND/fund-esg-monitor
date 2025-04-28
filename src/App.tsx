@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -28,6 +27,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { FandoroAdminRoute } from "@/components/auth/FandoroAdminRoute";
 import { InvestorAdminRoute } from "@/components/auth/InvestorAdminRoute";
 import { InvestorEmployeeRoute } from "@/components/auth/InvestorEmployeeRoute";
+import ResetPassword from "./pages/ResetPassword";
 
 const queryClient = new QueryClient();
 
@@ -42,6 +42,7 @@ const App = () => (
             <Routes>
               {/* Public routes */}
               <Route path="/auth" element={<Auth />} />
+              <Route path="/auth/reset-password" element={<ResetPassword />} />
               <Route path="/setup-admin" element={<SetupAdminPage />} />
               
               {/* Protected routes for all authenticated users */}
