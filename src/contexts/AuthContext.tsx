@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -65,7 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setSession(false);
     setUser(null);
     setUserRole(null);
-    window.location.href = 'https://sustainability.fandoro.com';
+    navigate('/');
   };
 
   return (

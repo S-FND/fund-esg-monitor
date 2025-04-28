@@ -8,9 +8,9 @@ export function AuthCheck({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!token) {
-      window.location.href = 'https://sustainability.fandoro.com';
+      navigate('/');
     }
-  }, [token]);
+  }, [token, navigate]);
 
   if (!token) {
     return null;
