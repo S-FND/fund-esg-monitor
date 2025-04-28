@@ -1,66 +1,50 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
-import { Session, User } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 
 interface AuthContextType {
-  session: Session | null;
-  user: User | null;
+  session: boolean;
+  user: any | null;
   userRole: 'investor' | 'admin' | 'fandoro_admin' | 'investor_admin' | null;
-  signOut: () => Promise<void>;
+  signOut: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<boolean>(false);
+  const [user, setUser] = useState<any | null>(null);
   const [userRole, setUserRole] = useState<'investor' | 'admin' | 'fandoro_admin' | 'investor_admin' | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', session.user.id)
-            .single();
-          
-          setUserRole(profile?.role ?? null);
-        } else {
-          setUserRole(null);
-        }
-      }
-    );
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', session.user.id)
-          .single()
-          .then(({ data: profile }) => {
-            setUserRole(profile?.role ?? null);
-          });
-      }
-    });
-
-    return () => subscription.unsubscribe();
+    // Check for auth token in localStorage or sessionStorage
+    const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+    const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+    const storedRole = localStorage.getItem('userRole') || sessionStorage.getItem('userRole');
+    
+    if (token && storedUser && storedRole) {
+      setSession(true);
+      setUser(JSON.parse(storedUser));
+      setUserRole(storedRole as AuthContextType['userRole']);
+    } else {
+      setSession(false);
+      setUser(null);
+      setUserRole(null);
+    }
   }, []);
 
-  const signOut = async () => {
-    await supabase.auth.signOut();
-    navigate('/auth');
+  const signOut = () => {
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('userRole');
+    sessionStorage.removeItem('auth_token');
+    sessionStorage.removeItem('user');
+    sessionStorage.removeItem('userRole');
+    setSession(false);
+    setUser(null);
+    setUserRole(null);
+    window.location.href = 'https://sustainability.fandoro.com';
   };
 
   return (

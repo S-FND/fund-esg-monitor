@@ -1,19 +1,18 @@
 
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
 
 export function AuthCheck({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
-  const { session } = useAuth();
+  const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
 
   useEffect(() => {
-    if (!session) {
+    if (!token) {
       window.location.href = 'https://sustainability.fandoro.com';
     }
-  }, [session]);
+  }, [token]);
 
-  if (!session) {
+  if (!token) {
     return null;
   }
 
