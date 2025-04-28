@@ -10,7 +10,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChevronLeft } from "lucide-react";
 import { ManageCategoryQuestions } from "@/components/categorization/ManageCategoryQuestions";
 
-// Categorization questions by section
 const categorizationQuestions = {
   "policy": [
     {
@@ -138,7 +137,6 @@ export default function Categorization() {
   const navigate = useNavigate();
   const [questions, setQuestions] = useState(categorizationQuestions);
   
-  // Initialize responses with default values
   const initialResponses: Record<string, Record<string, { response: string; score: number; observations: string; }>> = {};
   
   Object.entries(categorizationQuestions).forEach(([section, questions]) => {
@@ -162,7 +160,6 @@ export default function Categorization() {
     
     let score = scoreMap[index];
     
-    // Special case for question 1.9
     if (questionId === "1.9") {
       if (value === "Yes") score = 0;
       else if (value === "No, but willing to have") score = 1;
@@ -201,7 +198,6 @@ export default function Categorization() {
       [section]: updatedQuestions
     }));
     
-    // Update responses to include any new questions
     setResponses(prev => {
       const newResponses = { ...prev };
       if (!newResponses[section]) {
@@ -222,7 +218,6 @@ export default function Categorization() {
     });
   };
 
-  // Calculate section scores
   const sectionScores = Object.keys(categorizationQuestions).reduce<Record<string, number>>((acc, section) => {
     const sectionQuestions = categorizationQuestions[section as keyof typeof categorizationQuestions];
     const total = sectionQuestions.reduce((sum, question) => {
@@ -232,19 +227,14 @@ export default function Categorization() {
     return acc;
   }, {});
   
-  // Calculate total score
   const totalScore = Object.values(sectionScores).reduce((sum, score) => sum + score, 0);
   
-  // Determine company category based on total score
   const getCategory = (score: number) => {
     if (score >= 25) return "A - High Risk";
     if (score >= 15) return "B - Medium Risk";
     return "C - Low Risk";
   };
   
-  const category = getCategory(totalScore);
-  
-  // Function to get section title
   const getSectionTitle = (section: string) => {
     switch(section) {
       case "policy": return "Policy Commitment";
