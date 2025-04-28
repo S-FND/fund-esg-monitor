@@ -17,7 +17,7 @@ export function ManageCategoryQuestions({
   onQuestionUpdate 
 }: ManageCategoryQuestionsProps) {
   const { userRole } = useAuth();
-  const canManageQuestions = userRole === 'fandoro_admin' || userRole === 'admin';
+  const canManageQuestions = userRole === 'fandoro_admin' || userRole === 'admin' || userRole === 'investor_admin';
 
   if (!canManageQuestions) {
     return null;
