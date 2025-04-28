@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 export function AdminProtectedRoute() {
   const { userRole } = useAuth();
 
-  if (userRole !== 'fandoro_admin') {
+  if (userRole !== 'admin' && userRole !== 'investor_admin') {
     return <Navigate to="/" replace />;
   }
 
