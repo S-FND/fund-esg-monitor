@@ -2,13 +2,10 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChevronLeft } from "lucide-react";
 import { ManageCategoryQuestions } from "@/components/categorization/ManageCategoryQuestions";
+import { CategoryScoringSidebar } from "@/components/categorization/CategoryScoringSidebar";
+import { CategoryQuestionsTable } from "@/components/categorization/CategoryQuestionsTable";
 
 const categorizationQuestions = {
   "policy": [
@@ -153,8 +150,8 @@ export default function Categorization() {
   const [responses, setResponses] = useState(initialResponses);
   const [activeTab, setActiveTab] = useState<string>("policy");
   
-  const handleResponseChange = (section: string, questionId: string, value: string) => {
-    const options = responseOptions[section as keyof typeof responseOptions];
+  const handleResponseChange = (questionId: string, value: string) => {
+    const options = responseOptions[activeTab as keyof typeof responseOptions];
     const index = options.indexOf(value);
     const scoreMap = [0, 1, 3]; // Default scoring pattern
     
@@ -168,10 +165,10 @@ export default function Categorization() {
     
     setResponses(prev => ({
       ...prev,
-      [section]: {
-        ...prev[section],
+      [activeTab]: {
+        ...prev[activeTab],
         [questionId]: {
-          ...prev[section][questionId],
+          ...prev[activeTab][questionId],
           response: value,
           score: score
         }
@@ -179,13 +176,13 @@ export default function Categorization() {
     }));
   };
   
-  const handleObservationsChange = (section: string, questionId: string, value: string) => {
+  const handleObservationsChange = (questionId: string, value: string) => {
     setResponses(prev => ({
       ...prev,
-      [section]: {
-        ...prev[section],
+      [activeTab]: {
+        ...prev[activeTab],
         [questionId]: {
-          ...prev[section][questionId],
+          ...prev[activeTab][questionId],
           observations: value
         }
       }
@@ -228,12 +225,6 @@ export default function Categorization() {
   }, {});
   
   const totalScore = Object.values(sectionScores).reduce((sum, score) => sum + score, 0);
-  
-  const getCategory = (score: number) => {
-    if (score >= 25) return "A - High Risk";
-    if (score >= 15) return "B - Medium Risk";
-    return "C - Low Risk";
-  };
   
   const getSectionTitle = (section: string) => {
     switch(section) {
@@ -282,45 +273,12 @@ export default function Categorization() {
       </Card>
       
       <div className="flex space-x-6">
-        <div className="w-64 space-y-2">
-          <h3 className="font-medium">Sections</h3>
-          <div className="space-y-1">
-            {Object.keys(categorizationQuestions).map((section) => (
-              <div 
-                key={section} 
-                className={`flex justify-between items-center rounded-md px-3 py-2 text-sm cursor-pointer ${
-                  activeTab === section ? "bg-primary text-primary-foreground" : "hover:bg-muted"
-                }`}
-                onClick={() => setActiveTab(section)}
-              >
-                <span>{getSectionTitle(section)}</span>
-                <span className="font-medium">{sectionScores[section]}</span>
-              </div>
-            ))}
-          </div>
-          
-          <div className="mt-8 p-4 bg-muted rounded-md">
-            <h3 className="font-medium mb-2">Summary</h3>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span>Total Score:</span>
-                <span className="font-bold">{totalScore}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span>Category:</span>
-                <span className={`font-bold px-2 py-1 rounded ${
-                  category.startsWith("A") 
-                    ? "bg-red-100 text-red-800" 
-                    : category.startsWith("B")
-                      ? "bg-yellow-100 text-yellow-800"
-                      : "bg-green-100 text-green-800"
-                }`}>
-                  {category}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
+        <CategoryScoringSidebar 
+          sectionScores={sectionScores}
+          totalScore={totalScore}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+        />
         
         <div className="flex-1">
           <Card>
@@ -331,55 +289,13 @@ export default function Categorization() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[80px]">S. No.</TableHead>
-                    <TableHead className="w-[300px]">Question</TableHead>
-                    <TableHead className="w-[150px]">Response</TableHead>
-                    <TableHead className="w-[80px]">Score</TableHead>
-                    <TableHead className="w-[150px]">Scoring Criteria</TableHead>
-                    <TableHead className="w-[200px]">Specific Observations</TableHead>
-                    <TableHead>Guidance for ESDD Report</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {categorizationQuestions[activeTab as keyof typeof categorizationQuestions].map((question) => (
-                    <TableRow key={question.id}>
-                      <TableCell>{question.id}</TableCell>
-                      <TableCell>{question.question}</TableCell>
-                      <TableCell>
-                        <Select 
-                          value={responses[activeTab]?.[question.id]?.response} 
-                          onValueChange={(value) => handleResponseChange(activeTab, question.id, value)}
-                        >
-                          <SelectTrigger className="w-[180px]">
-                            <SelectValue placeholder="Select" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {responseOptions[activeTab as keyof typeof responseOptions].map((option) => (
-                              <SelectItem key={option} value={option}>
-                                {option}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                      <TableCell>{responses[activeTab]?.[question.id]?.score}</TableCell>
-                      <TableCell>{question.scoringCriteria}</TableCell>
-                      <TableCell>
-                        <Textarea 
-                          value={responses[activeTab]?.[question.id]?.observations} 
-                          onChange={(e) => handleObservationsChange(activeTab, question.id, e.target.value)}
-                          placeholder="Add observations"
-                          className="min-h-[60px]"
-                        />
-                      </TableCell>
-                      <TableCell>{question.guidance}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <CategoryQuestionsTable
+                questions={questions[activeTab as keyof typeof categorizationQuestions]}
+                responses={responses[activeTab]}
+                responseOptions={responseOptions[activeTab as keyof typeof responseOptions]}
+                onResponseChange={handleResponseChange}
+                onObservationsChange={handleObservationsChange}
+              />
             </CardContent>
           </Card>
         </div>
