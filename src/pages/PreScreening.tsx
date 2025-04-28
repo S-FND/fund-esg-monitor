@@ -3,53 +3,62 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ChevronRight } from "lucide-react";
+import { ManageQuestions } from "@/components/pre-screening/ManageQuestions";
 
-// Pre-screening questions
-const preScreeningQuestions = [
+// Initial pre-screening questions
+const initialQuestions = [
   {
     id: "B.1",
     question: "Does the company and/or businesses potentially trigger any of the activity listed in FoF Exclusion List?",
-    scoringCriteria: "No: 0, Yes/Maybe: 1"
+    scoringCriteria: "No: 0, Yes/Maybe: 1",
+    weightage: 1
   },
   {
     id: "B.2",
     question: "Does the company and/or businesses have potential to be used for military, surveillance, human profiling, infringing upon human rights & human dignity, affecting electoral process or run into future regulatory issues?",
-    scoringCriteria: "No: 0, Yes/Maybe: 1"
+    scoringCriteria: "No: 0, Yes/Maybe: 1",
+    weightage: 1
   },
   {
     id: "B.3",
     question: "Does the company and/or businesses work in one or more the following frontier technological areas? a) Brain Computer Interfaces; b)Gene sequencing and editing; c)genetic medicines; d) quantum computing; e) drones and autonomous vehicles; f) facial recognition and biometrics; g) bio-surveillance ; h)block chain; i)Emotional AI or AI in productive analysis; j) blockchain & NFTs",
-    scoringCriteria: "No: 0, Yes/Maybe: 0.33"
+    scoringCriteria: "No: 0, Yes/Maybe: 0.33",
+    weightage: 0.33
   },
   {
     id: "B.4",
     question: "Does the company and/or its businesses have the potential to involve involuntary land acquisition resulting in physical and economic displacement and livelihood systems?",
-    scoringCriteria: "No: 0, Yes/Maybe: 0.33"
+    scoringCriteria: "No: 0, Yes/Maybe: 0.33",
+    weightage: 0.33
   },
   {
     id: "B.5",
     question: "Does the company and/or its businesses have the potential to impact on the identity, dignity, human rights, livelihood systems, and culture of indigenous peoples?",
-    scoringCriteria: "No: 0, Yes/Maybe: 0.33"
+    scoringCriteria: "No: 0, Yes/Maybe: 0.33",
+    weightage: 0.33
   }
 ];
 
 export default function PreScreening() {
   const navigate = useNavigate();
-  const [responses, setResponses] = useState<Record<string, { response: string; score: number; remarks: string }>>({
-    "B.1": { response: "No", score: 0, remarks: "" },
-    "B.2": { response: "No", score: 0, remarks: "" },
-    "B.3": { response: "Yes", score: 0.33, remarks: "" },
-    "B.4": { response: "Yes", score: 0.33, remarks: "" },
-    "B.5": { response: "Yes", score: 0.33, remarks: "" }
+  const [questions, setQuestions] = useState(initialQuestions);
+  const [responses, setResponses] = useState<Record<string, { response: string; score: number; remarks: string }>>(() => {
+    const initial: Record<string, { response: string; score: number; remarks: string }> = {};
+    questions.forEach(q => {
+      initial[q.id] = { response: "No", score: 0, remarks: "" };
+    });
+    return initial;
   });
   
   const handleResponseChange = (questionId: string, value: string) => {
-    const newScore = value === "No" ? 0 : questionId === "B.1" || questionId === "B.2" ? 1 : 0.33;
+    const question = questions.find(q => q.id === questionId);
+    if (!question) return;
+    
+    const newScore = value === "No" ? 0 : question.weightage;
     
     setResponses(prev => ({
       ...prev,
@@ -69,6 +78,20 @@ export default function PreScreening() {
         remarks: value
       }
     }));
+  };
+  
+  const handleQuestionsUpdate = (updatedQuestions: any[]) => {
+    setQuestions(updatedQuestions);
+    // Update responses to include any new questions
+    setResponses(prev => {
+      const newResponses = { ...prev };
+      updatedQuestions.forEach(q => {
+        if (!newResponses[q.id]) {
+          newResponses[q.id] = { response: "No", score: 0, remarks: "" };
+        }
+      });
+      return newResponses;
+    });
   };
   
   // Calculate total score
@@ -120,7 +143,10 @@ export default function PreScreening() {
       
       <Card>
         <CardHeader>
-          <CardTitle>Section 1. Exclusion and Business Flaws Screening</CardTitle>
+          <CardTitle className="flex justify-between items-center">
+            <span>Section 1. Exclusion and Business Flaws Screening</span>
+            <ManageQuestions questions={questions} onQuestionUpdate={handleQuestionsUpdate} />
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
@@ -135,7 +161,7 @@ export default function PreScreening() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {preScreeningQuestions.map((question) => (
+              {questions.map((question) => (
                 <TableRow key={question.id}>
                   <TableCell>{question.id}</TableCell>
                   <TableCell>{question.question}</TableCell>
@@ -172,12 +198,12 @@ export default function PreScreening() {
           <div className="mt-8 p-4 bg-muted rounded-md">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <Label className="text-sm font-medium">Total Score:</Label>
+                <p className="text-sm font-medium">Total Score:</p>
                 <p className="text-2xl font-bold">{totalScore.toFixed(2)}</p>
               </div>
               
               <div>
-                <Label className="text-sm font-medium">Decision on investment:</Label>
+                <p className="text-sm font-medium">Decision on investment:</p>
                 <p className={`text-2xl font-bold ${
                   decision === "Go" 
                     ? "text-green-600" 
@@ -190,7 +216,7 @@ export default function PreScreening() {
               </div>
               
               <div>
-                <Label className="text-sm font-medium">Action:</Label>
+                <p className="text-sm font-medium">Action:</p>
                 <p className="text-sm">{action}</p>
               </div>
             </div>

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -136,6 +135,7 @@ const responseOptions = {
 
 export default function Categorization() {
   const navigate = useNavigate();
+  const [questions, setQuestions] = useState(categorizationQuestions);
   
   // Initialize responses with default values
   const initialResponses: Record<string, Record<string, { response: string; score: number; observations: string; }>> = {};
@@ -194,6 +194,33 @@ export default function Categorization() {
     }));
   };
   
+  const handleQuestionUpdate = (section: string, updatedQuestions: any[]) => {
+    setQuestions(prev => ({
+      ...prev,
+      [section]: updatedQuestions
+    }));
+    
+    // Update responses to include any new questions
+    setResponses(prev => {
+      const newResponses = { ...prev };
+      if (!newResponses[section]) {
+        newResponses[section] = {};
+      }
+      
+      updatedQuestions.forEach(q => {
+        if (!newResponses[section][q.id]) {
+          newResponses[section][q.id] = { 
+            response: responseOptions[section as keyof typeof responseOptions][0], 
+            score: 0,
+            observations: "" 
+          };
+        }
+      });
+      
+      return newResponses;
+    });
+  };
+
   // Calculate section scores
   const sectionScores = Object.keys(categorizationQuestions).reduce<Record<string, number>>((acc, section) => {
     const sectionQuestions = categorizationQuestions[section as keyof typeof categorizationQuestions];
@@ -235,6 +262,10 @@ export default function Categorization() {
           <h1 className="text-2xl font-bold tracking-tight">Categorization Checklist</h1>
           <p className="text-muted-foreground">Part C - ESG DD Questionnaire</p>
         </div>
+        <ManageCategoryQuestions 
+          questions={questions} 
+          onQuestionUpdate={handleQuestionUpdate}
+        />
       </div>
       
       <Card>
