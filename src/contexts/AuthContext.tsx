@@ -11,6 +11,24 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+// Dummy data for testing
+const DUMMY_TOKEN = 'dummy_test_token_123';
+const DUMMY_USER = {
+  id: '1',
+  email: 'test@example.com',
+  name: 'Test User'
+};
+const DUMMY_ROLE = 'investor';
+
+// Helper function to set dummy data
+const setDummyAuthData = () => {
+  if (!localStorage.getItem('auth_token') && !sessionStorage.getItem('auth_token')) {
+    localStorage.setItem('auth_token', DUMMY_TOKEN);
+    localStorage.setItem('user', JSON.stringify(DUMMY_USER));
+    localStorage.setItem('userRole', DUMMY_ROLE);
+  }
+};
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<boolean>(false);
   const [user, setUser] = useState<any | null>(null);
@@ -18,6 +36,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Set dummy data for testing
+    setDummyAuthData();
+    
     // Check for auth token in localStorage or sessionStorage
     const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
     const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
