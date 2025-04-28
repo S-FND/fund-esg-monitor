@@ -4,15 +4,11 @@ import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 
-type UserRole = 'fandoro_admin' | 'investor_admin' | 'investor_employee' | null;
-
 interface AuthContextType {
   session: Session | null;
   user: User | null;
-  userRole: UserRole;
+  userRole: 'investor' | 'admin' | 'fandoro_admin' | null;
   signOut: () => Promise<void>;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
-  updatePassword: (newPassword: string) => Promise<{ error: any }>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -20,35 +16,8 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [userRole, setUserRole] = useState<UserRole>(null);
+  const [userRole, setUserRole] = useState<'investor' | 'admin' | 'fandoro_admin' | null>(null);
   const navigate = useNavigate();
-
-  const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) {
-      return { error };
-    }
-
-    if (data.session) {
-      setSession(data.session);
-      setUser(data.session.user);
-      navigate('/');
-    }
-
-    return { error: null };
-  };
-
-  const updatePassword = async (newPassword: string) => {
-    const { error } = await supabase.auth.updateUser({
-      password: newPassword
-    });
-
-    return { error };
-  };
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -63,9 +32,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             .eq('id', session.user.id)
             .single();
           
-          // Make sure we only set roles that match our UserRole type
-          const role = profile?.role as UserRole;
-          setUserRole(role);
+          setUserRole(profile?.role ?? null);
         } else {
           setUserRole(null);
         }
@@ -83,9 +50,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .eq('id', session.user.id)
           .single()
           .then(({ data: profile }) => {
-            // Make sure we only set roles that match our UserRole type
-            const role = profile?.role as UserRole;
-            setUserRole(role);
+            setUserRole(profile?.role ?? null);
           });
       }
     });
@@ -99,14 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      session, 
-      user, 
-      userRole, 
-      signOut, 
-      signIn,
-      updatePassword 
-    }}>
+    <AuthContext.Provider value={{ session, user, userRole, signOut }}>
       {children}
     </AuthContext.Provider>
   );
