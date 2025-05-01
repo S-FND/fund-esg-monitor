@@ -1,8 +1,9 @@
 
 import { getSectionTitle, getCategory } from "@/data/categorizationQuestions";
+import { SectionScores } from "@/types/categorization";
 
 interface CategoryScoringProps {
-  sectionScores: Record<string, number>;
+  sectionScores: SectionScores;
   totalScore: number;
   activeTab: string;
   onTabChange: (section: string) => void;

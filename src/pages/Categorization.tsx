@@ -10,6 +10,7 @@ import { CategoryQuestionsTable } from "@/components/categorization/CategoryQues
 import { ObjectiveCard } from "@/components/categorization/ObjectiveCard";
 import { useCategorization } from "@/hooks/useCategorization";
 import { getSectionTitle, getCategory } from "@/data/categorizationQuestions";
+import { responseOptions } from "@/utils/categorizationUtils";
 
 export default function Categorization() {
   const navigate = useNavigate();

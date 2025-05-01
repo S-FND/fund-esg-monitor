@@ -2,11 +2,11 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { CategoryQuestion } from "@/data/categorizationQuestions";
+import { CategoryQuestion, Response } from "@/types/categorization";
 
 interface CategoryQuestionsTableProps {
   questions: CategoryQuestion[];
-  responses: Record<string, { response: string; score: number; observations: string; }>;
+  responses: Record<string, Response>;
   responseOptions: string[];
   onResponseChange: (questionId: string, value: string) => void;
   onObservationsChange: (questionId: string, value: string) => void;

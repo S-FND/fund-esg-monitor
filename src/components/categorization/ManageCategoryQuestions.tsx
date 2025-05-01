@@ -4,13 +4,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useAuth } from "@/contexts/AuthContext";
 import { CategoryQuestionForm, type CategoryQuestionFormData } from "./CategoryQuestionForm";
 import { CategoryQuestionsList } from "./CategoryQuestionsList";
-import { CategoriesData } from "@/data/categorizationQuestions";
+import { CategoryQuestion, CategoriesData } from "@/types/categorization";
 
 const sections = ["policy", "esg", "social", "environmental", "impact"];
 
 interface ManageCategoryQuestionsProps {
   questions: CategoriesData;
-  onQuestionUpdate: (section: string, updatedQuestions: any[]) => void;
+  onQuestionUpdate: (section: string, updatedQuestions: CategoryQuestion[]) => void;
 }
 
 export function ManageCategoryQuestions({ 
@@ -30,26 +30,33 @@ export function ManageCategoryQuestions({
     const existingIndex = updatedQuestions.findIndex(q => q.id === data.id);
     
     if (existingIndex >= 0) {
-      updatedQuestions[existingIndex] = data;
+      updatedQuestions[existingIndex] = {
+        id: data.id,
+        question: data.question,
+        scoringCriteria: data.scoringCriteria,
+        guidance: data.guidance
+      };
     } else {
       const sectionPrefix = section.charAt(0).toUpperCase();
       updatedQuestions.push({
-        ...data,
-        id: `${sectionPrefix}.${updatedQuestions.length + 1}`
+        id: `${sectionPrefix}.${updatedQuestions.length + 1}`,
+        question: data.question,
+        scoringCriteria: data.scoringCriteria,
+        guidance: data.guidance
       });
     }
     
     onQuestionUpdate(section, updatedQuestions);
   };
 
-  const handleEditQuestion = (section: string, question: CategoryQuestionFormData) => {
+  const handleEditQuestion = (section: string, question: CategoryQuestion) => {
     const formData: CategoryQuestionFormData = {
       id: question.id,
       section,
       question: question.question,
       scoringCriteria: question.scoringCriteria,
       guidance: question.guidance,
-      weightage: question.weightage
+      weightage: 0.5 // Default weightage for form
     };
     handleSubmit(formData);
   };

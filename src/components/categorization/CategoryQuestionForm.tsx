@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { CategorySection } from "@/types/categorization";
 
 const categoryQuestionSchema = z.object({
   id: z.string(),
@@ -19,7 +20,7 @@ const categoryQuestionSchema = z.object({
 
 export type CategoryQuestionFormData = z.infer<typeof categoryQuestionSchema>;
 
-const sections = ["policy", "esg", "social", "environmental", "impact"];
+const sections: CategorySection[] = ["policy", "esg", "social", "environmental", "impact"];
 
 interface CategoryQuestionFormProps {
   onSubmit: (data: CategoryQuestionFormData) => void;

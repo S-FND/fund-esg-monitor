@@ -1,46 +1,50 @@
 
 import { useState } from "react";
-import { CategoriesData, categorizationQuestions, responseOptions } from "@/data/categorizationQuestions";
+import { categorizationQuestions } from "@/data/categorizationQuestions";
+import { 
+  CategoryQuestion, 
+  CategoriesData, 
+  ResponsesData, 
+  CategorizationHookResult 
+} from "@/types/categorization";
+import {
+  calculateQuestionScore,
+  calculateAllSectionScores,
+  calculateTotalScore,
+  getSectionResponseOptions
+} from "@/utils/categorizationUtils";
 
-type Response = {
-  response: string;
-  score: number;
-  observations: string;
-};
-
-type ResponsesData = Record<string, Record<string, Response>>;
-
-export function useCategorization() {
+/**
+ * Hook for managing categorization state and actions
+ */
+export function useCategorization(): CategorizationHookResult {
   const [questions, setQuestions] = useState<CategoriesData>(categorizationQuestions);
-  
-  const initialResponses: ResponsesData = {};
-  
-  Object.entries(categorizationQuestions).forEach(([section, questions]) => {
-    initialResponses[section] = {};
-    questions.forEach(question => {
-      initialResponses[section][question.id] = { 
-        response: responseOptions[section as keyof typeof responseOptions][0], 
-        score: 0,
-        observations: "" 
-      };
-    });
-  });
-  
-  const [responses, setResponses] = useState<ResponsesData>(initialResponses);
   const [activeTab, setActiveTab] = useState<string>("policy");
   
+  // Initialize responses with default values
+  const initializeResponses = (): ResponsesData => {
+    const initialData: ResponsesData = {};
+    
+    Object.entries(categorizationQuestions).forEach(([section, sectionQuestions]) => {
+      initialData[section] = {};
+      sectionQuestions.forEach(question => {
+        const options = getSectionResponseOptions(section);
+        initialData[section][question.id] = { 
+          response: options[0], 
+          score: 0,
+          observations: "" 
+        };
+      });
+    });
+    
+    return initialData;
+  };
+  
+  const [responses, setResponses] = useState<ResponsesData>(initializeResponses());
+  
+  // Handle response change for a question
   const handleResponseChange = (questionId: string, value: string) => {
-    const options = responseOptions[activeTab as keyof typeof responseOptions];
-    const index = options.indexOf(value);
-    const scoreMap = [0, 1, 3]; // Default scoring pattern
-    
-    let score = scoreMap[index];
-    
-    if (questionId === "1.9") {
-      if (value === "Yes") score = 0;
-      else if (value === "No, but willing to have") score = 1;
-      else score = 3;
-    }
+    const score = calculateQuestionScore(questionId, value, activeTab);
     
     setResponses(prev => ({
       ...prev,
@@ -55,6 +59,7 @@ export function useCategorization() {
     }));
   };
   
+  // Handle observations change for a question
   const handleObservationsChange = (questionId: string, value: string) => {
     setResponses(prev => ({
       ...prev,
@@ -68,12 +73,14 @@ export function useCategorization() {
     }));
   };
   
-  const handleQuestionUpdate = (section: string, updatedQuestions: any[]) => {
+  // Update questions for a section
+  const handleQuestionUpdate = (section: string, updatedQuestions: CategoryQuestion[]) => {
     setQuestions(prev => ({
       ...prev,
       [section]: updatedQuestions
     }));
     
+    // Update responses to include any new questions
     setResponses(prev => {
       const newResponses = { ...prev };
       if (!newResponses[section]) {
@@ -82,8 +89,9 @@ export function useCategorization() {
       
       updatedQuestions.forEach(q => {
         if (!newResponses[section][q.id]) {
+          const options = getSectionResponseOptions(section);
           newResponses[section][q.id] = { 
-            response: responseOptions[section as keyof typeof responseOptions][0], 
+            response: options[0], 
             score: 0,
             observations: "" 
           };
@@ -94,16 +102,11 @@ export function useCategorization() {
     });
   };
 
-  const sectionScores = Object.keys(questions).reduce<Record<string, number>>((acc, section) => {
-    const sectionQuestions = questions[section as keyof typeof questions];
-    const total = sectionQuestions.reduce((sum, question) => {
-      return sum + (responses[section][question.id]?.score || 0);
-    }, 0);
-    acc[section] = total;
-    return acc;
-  }, {});
+  // Calculate scores for all sections
+  const sectionScores = calculateAllSectionScores(questions, responses);
   
-  const totalScore = Object.values(sectionScores).reduce((sum, score) => sum + score, 0);
+  // Calculate total score across all sections
+  const totalScore = calculateTotalScore(sectionScores);
 
   return {
     questions,
