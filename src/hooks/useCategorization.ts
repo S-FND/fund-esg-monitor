@@ -12,7 +12,7 @@ import {
   calculateAllSectionScores,
   calculateTotalScore,
   getSectionResponseOptions
-} from "@/utils/categorizationUtils";
+} from "@/utils/categorization";
 import { useToast } from "@/components/ui/use-toast";
 
 /**

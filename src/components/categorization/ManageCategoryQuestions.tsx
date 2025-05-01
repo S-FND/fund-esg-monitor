@@ -1,10 +1,9 @@
-
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { CategoryQuestionForm, type CategoryQuestionFormData } from "./CategoryQuestionForm";
 import { CategoryQuestionsList } from "./CategoryQuestionsList";
-import { CategoryQuestion, CategoriesData } from "@/types/categorization";
+import { CategoryQuestion, CategoriesData, ResponseOption } from "@/types/categorization";
 import { useState } from "react";
 import { Trash2, PlusCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
@@ -43,7 +42,7 @@ export function ManageCategoryQuestions({
         question: data.question,
         scoringCriteria: data.scoringCriteria,
         guidance: data.guidance,
-        responses: data.responses || []
+        responses: data.responses as ResponseOption[]
       };
       
       toast({
@@ -59,7 +58,7 @@ export function ManageCategoryQuestions({
         question: data.question,
         scoringCriteria: data.scoringCriteria,
         guidance: data.guidance,
-        responses: data.responses || []
+        responses: data.responses as ResponseOption[]
       });
       
       toast({
