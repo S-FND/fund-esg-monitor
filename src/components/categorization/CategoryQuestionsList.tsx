@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { type CategoryQuestionFormData } from "./CategoryQuestionForm";
-import { CategoriesData } from "@/data/categorizationQuestions";
+import { CategoriesData } from "@/types/categorization";
 
 interface CategoryQuestionsListProps {
   sections: string[];
