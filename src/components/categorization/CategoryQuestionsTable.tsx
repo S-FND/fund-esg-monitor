@@ -2,13 +2,7 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-
-interface CategoryQuestion {
-  id: string;
-  question: string;
-  scoringCriteria: string;
-  guidance: string;
-}
+import { CategoryQuestion } from "@/data/categorizationQuestions";
 
 interface CategoryQuestionsTableProps {
   questions: CategoryQuestion[];
@@ -77,4 +71,3 @@ export function CategoryQuestionsTable({
     </Table>
   );
 }
-

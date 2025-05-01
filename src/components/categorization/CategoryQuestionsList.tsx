@@ -1,10 +1,11 @@
 
 import { Button } from "@/components/ui/button";
 import { type CategoryQuestionFormData } from "./CategoryQuestionForm";
+import { CategoriesData } from "@/data/categorizationQuestions";
 
 interface CategoryQuestionsListProps {
   sections: string[];
-  questions: Record<string, any[]>;
+  questions: CategoriesData;
   onEditQuestion: (section: string, question: CategoryQuestionFormData) => void;
 }
 
@@ -26,13 +27,19 @@ export function CategoryQuestionsList({
                   <div>
                     <p className="font-medium">{q.id}: {q.question}</p>
                     <p className="text-sm text-muted-foreground">Scoring: {q.scoringCriteria}</p>
-                    <p className="text-sm text-muted-foreground">Weightage: {q.weightage}</p>
                     <p className="text-sm text-muted-foreground">Guidance: {q.guidance}</p>
                   </div>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => onEditQuestion(section, q)}
+                    onClick={() => onEditQuestion(section, {
+                      id: q.id,
+                      section: section,
+                      question: q.question,
+                      scoringCriteria: q.scoringCriteria,
+                      guidance: q.guidance,
+                      weightage: 0.5 // Default weightage
+                    })}
                   >
                     Edit
                   </Button>

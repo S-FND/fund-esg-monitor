@@ -4,11 +4,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useAuth } from "@/contexts/AuthContext";
 import { CategoryQuestionForm, type CategoryQuestionFormData } from "./CategoryQuestionForm";
 import { CategoryQuestionsList } from "./CategoryQuestionsList";
+import { CategoriesData } from "@/data/categorizationQuestions";
 
 const sections = ["policy", "esg", "social", "environmental", "impact"];
 
 interface ManageCategoryQuestionsProps {
-  questions: Record<string, any[]>;
+  questions: CategoriesData;
   onQuestionUpdate: (section: string, updatedQuestions: any[]) => void;
 }
 
