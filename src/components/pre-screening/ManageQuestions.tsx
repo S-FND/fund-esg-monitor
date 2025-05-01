@@ -8,6 +8,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useAuth } from "@/contexts/AuthContext";
+import { Trash2 } from "lucide-react";
+import { useState } from "react";
+import { useToast } from "@/components/ui/use-toast";
 
 const questionSchema = z.object({
   id: z.string(),
@@ -23,6 +26,9 @@ export function ManageQuestions({ questions, onQuestionUpdate }: {
   onQuestionUpdate: (questions: any[]) => void 
 }) {
   const { userRole } = useAuth();
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  
   const form = useForm<QuestionFormData>({
     resolver: zodResolver(questionSchema),
     defaultValues: {
@@ -33,7 +39,8 @@ export function ManageQuestions({ questions, onQuestionUpdate }: {
     }
   });
 
-  const canManageQuestions = userRole === 'admin' || userRole === 'investor_admin';
+  // Allow admin, investor_admin, and investor roles to manage questions
+  const canManageQuestions = userRole === 'admin' || userRole === 'investor_admin' || userRole === 'investor';
 
   if (!canManageQuestions) {
     return null;
@@ -45,19 +52,54 @@ export function ManageQuestions({ questions, onQuestionUpdate }: {
     
     if (existingIndex >= 0) {
       updatedQuestions[existingIndex] = data;
+      toast({
+        title: "Question Updated",
+        description: "The question has been successfully updated."
+      });
     } else {
       updatedQuestions.push({
         ...data,
         id: `B.${questions.length + 1}`
       });
+      toast({
+        title: "Question Added",
+        description: "New question has been successfully added."
+      });
     }
     
     onQuestionUpdate(updatedQuestions);
     form.reset();
+    setOpen(false);
+  };
+
+  const handleDeleteQuestion = (questionId: string) => {
+    const updatedQuestions = questions.filter(q => q.id !== questionId);
+    
+    // Renumber the questions to maintain sequential ids
+    const renumberedQuestions = updatedQuestions.map((q, index) => ({
+      ...q,
+      id: `B.${index + 1}`
+    }));
+    
+    onQuestionUpdate(renumberedQuestions);
+    toast({
+      title: "Question Deleted",
+      description: "The question has been successfully deleted."
+    });
+  };
+
+  const handleEditClick = (question: any) => {
+    form.reset({
+      id: question.id,
+      question: question.question,
+      scoringCriteria: question.scoringCriteria,
+      weightage: question.weightage
+    });
+    setOpen(true);
   };
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" className="mb-4">Manage Questions</Button>
       </DialogTrigger>
@@ -115,7 +157,19 @@ export function ManageQuestions({ questions, onQuestionUpdate }: {
                 )}
               />
               
-              <Button type="submit">Save Question</Button>
+              <div className="flex justify-end gap-2">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => {
+                    form.reset();
+                    setOpen(false);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit">Save Question</Button>
+              </div>
             </form>
           </Form>
           
@@ -130,20 +184,22 @@ export function ManageQuestions({ questions, onQuestionUpdate }: {
                       <p className="text-sm text-muted-foreground">Scoring: {q.scoringCriteria}</p>
                       <p className="text-sm text-muted-foreground">Weightage: {q.weightage}</p>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        form.reset({
-                          id: q.id,
-                          question: q.question,
-                          scoringCriteria: q.scoringCriteria,
-                          weightage: q.weightage
-                        });
-                      }}
-                    >
-                      Edit
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEditClick(q)}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDeleteQuestion(q.id)}
+                      >
+                        <Trash2 size={16} />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}

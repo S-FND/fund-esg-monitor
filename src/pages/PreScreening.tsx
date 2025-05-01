@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -8,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ChevronRight } from "lucide-react";
 import { ManageQuestions } from "@/components/pre-screening/ManageQuestions";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Initial pre-screening questions
 const initialQuestions = [
@@ -45,6 +45,7 @@ const initialQuestions = [
 
 export default function PreScreening() {
   const navigate = useNavigate();
+  const { userRole } = useAuth();
   const [questions, setQuestions] = useState(initialQuestions);
   const [responses, setResponses] = useState<Record<string, { response: string; score: number; remarks: string }>>(() => {
     const initial: Record<string, { response: string; score: number; remarks: string }> = {};
@@ -130,6 +131,9 @@ export default function PreScreening() {
           <h1 className="text-2xl font-bold tracking-tight">Pre-Screening Gating Checklist</h1>
           <p className="text-muted-foreground">Part B</p>
         </div>
+        
+        {/* Display ManageQuestions component for all roles */}
+        <ManageQuestions questions={questions} onQuestionUpdate={handleQuestionsUpdate} />
       </div>
       
       <Card>
