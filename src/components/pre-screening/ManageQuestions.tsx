@@ -28,6 +28,7 @@ export function ManageQuestions({ questions, onQuestionUpdate }: {
   const { userRole } = useAuth();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   
   const form = useForm<QuestionFormData>({
     resolver: zodResolver(questionSchema),
@@ -70,6 +71,7 @@ export function ManageQuestions({ questions, onQuestionUpdate }: {
     onQuestionUpdate(updatedQuestions);
     form.reset();
     setOpen(false);
+    setIsEditing(false);
   };
 
   const handleDeleteQuestion = (questionId: string) => {
@@ -95,17 +97,35 @@ export function ManageQuestions({ questions, onQuestionUpdate }: {
       scoringCriteria: question.scoringCriteria,
       weightage: question.weightage
     });
+    setIsEditing(true);
+    setOpen(true);
+  };
+
+  const handleAddNewClick = () => {
+    form.reset({
+      id: "",
+      question: "",
+      scoringCriteria: "",
+      weightage: 0.5
+    });
+    setIsEditing(false);
     setOpen(true);
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(newOpen) => {
+      setOpen(newOpen);
+      if (!newOpen) {
+        // Reset form when dialog is closed
+        setIsEditing(false);
+      }
+    }}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="mb-4">Manage Questions</Button>
+        <Button variant="outline" className="mb-4" onClick={handleAddNewClick}>Manage Questions</Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Manage Pre-Screening Questions</DialogTitle>
+          <DialogTitle>{isEditing ? "Edit Question" : "Add New Question"}</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-4">
@@ -168,7 +188,7 @@ export function ManageQuestions({ questions, onQuestionUpdate }: {
                 >
                   Cancel
                 </Button>
-                <Button type="submit">Save Question</Button>
+                <Button type="submit">{isEditing ? "Update Question" : "Save Question"}</Button>
               </div>
             </form>
           </Form>
