@@ -1,18 +1,21 @@
 
 import { Button } from "@/components/ui/button";
-import { type CategoryQuestionFormData } from "./CategoryQuestionForm";
-import { CategoriesData } from "@/types/categorization";
+import { Trash2, Edit } from "lucide-react";
+import { CategoriesData, CategoryQuestion } from "@/types/categorization";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 interface CategoryQuestionsListProps {
   sections: string[];
   questions: CategoriesData;
-  onEditQuestion: (section: string, question: CategoryQuestionFormData) => void;
+  onEditQuestion: (section: string, question: CategoryQuestion) => void;
+  onDeleteQuestion: (section: string, questionId: string) => void;
 }
 
 export function CategoryQuestionsList({ 
   sections, 
   questions, 
-  onEditQuestion 
+  onEditQuestion,
+  onDeleteQuestion
 }: CategoryQuestionsListProps) {
   return (
     <div className="mt-6">
@@ -24,28 +27,53 @@ export function CategoryQuestionsList({
             {questions[section]?.map((q) => (
               <div key={q.id} className="p-4 border rounded">
                 <div className="flex justify-between items-start">
-                  <div>
+                  <div className="flex-1 pr-4">
                     <p className="font-medium">{q.id}: {q.question}</p>
                     <p className="text-sm text-muted-foreground">Scoring: {q.scoringCriteria}</p>
-                    <p className="text-sm text-muted-foreground">Guidance: {q.guidance}</p>
+                    {q.guidance && <p className="text-sm text-muted-foreground">Guidance: {q.guidance}</p>}
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onEditQuestion(section, {
-                      id: q.id,
-                      section: section,
-                      question: q.question,
-                      scoringCriteria: q.scoringCriteria,
-                      guidance: q.guidance,
-                      weightage: 0.5 // Default weightage
-                    })}
-                  >
-                    Edit
-                  </Button>
+                  <div className="flex gap-2 shrink-0">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onEditQuestion(section, q)}
+                    >
+                      <Edit className="h-4 w-4 mr-1" />
+                      Edit
+                    </Button>
+                    
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          Delete
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete question "{q.id}: {q.question.substring(0, 50)}..."
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => onDeleteQuestion(section, q.id)}>
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </div>
               </div>
             ))}
+            {questions[section]?.length === 0 && (
+              <p className="text-sm text-muted-foreground">No questions in this section. Add one above.</p>
+            )}
           </div>
         </div>
       ))}

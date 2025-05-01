@@ -13,6 +13,7 @@ import {
   calculateTotalScore,
   getSectionResponseOptions
 } from "@/utils/categorizationUtils";
+import { useToast } from "@/components/ui/use-toast";
 
 /**
  * Hook for managing categorization state and actions
@@ -20,6 +21,7 @@ import {
 export function useCategorization(): CategorizationHookResult {
   const [questions, setQuestions] = useState<CategoriesData>(categorizationQuestions);
   const [activeTab, setActiveTab] = useState<string>("policy");
+  const { toast } = useToast();
   
   // Initialize responses with default values
   const initializeResponses = (): ResponsesData => {
@@ -80,13 +82,14 @@ export function useCategorization(): CategorizationHookResult {
       [section]: updatedQuestions
     }));
     
-    // Update responses to include any new questions
+    // Update responses to include any new questions and remove deleted ones
     setResponses(prev => {
       const newResponses = { ...prev };
       if (!newResponses[section]) {
         newResponses[section] = {};
       }
       
+      // Initialize new questions with default responses
       updatedQuestions.forEach(q => {
         if (!newResponses[section][q.id]) {
           const options = getSectionResponseOptions(section);
@@ -95,6 +98,16 @@ export function useCategorization(): CategorizationHookResult {
             score: 0,
             observations: "" 
           };
+        }
+      });
+      
+      // Clean up responses for questions that no longer exist
+      const currentQuestionIds = updatedQuestions.map(q => q.id);
+      const existingQuestionIds = Object.keys(newResponses[section]);
+      
+      existingQuestionIds.forEach(id => {
+        if (!currentQuestionIds.includes(id)) {
+          delete newResponses[section][id];
         }
       });
       

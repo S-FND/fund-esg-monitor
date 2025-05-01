@@ -11,9 +11,11 @@ import { ObjectiveCard } from "@/components/categorization/ObjectiveCard";
 import { useCategorization } from "@/hooks/useCategorization";
 import { getSectionTitle, getCategory } from "@/data/categorizationQuestions";
 import { responseOptions } from "@/utils/categorizationUtils";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Categorization() {
   const navigate = useNavigate();
+  const { userRole } = useAuth();
   
   const {
     questions,
@@ -28,6 +30,7 @@ export default function Categorization() {
   } = useCategorization();
   
   const category = getCategory(totalScore);
+  const canManageQuestions = userRole === 'admin' || userRole === 'investor_admin' || userRole === 'investor';
   
   return (
     <div className="space-y-6">
@@ -36,10 +39,13 @@ export default function Categorization() {
           <h1 className="text-2xl font-bold tracking-tight">Categorization Checklist</h1>
           <p className="text-muted-foreground">Part C - ESG DD Questionnaire</p>
         </div>
-        <ManageCategoryQuestions 
-          questions={questions} 
-          onQuestionUpdate={handleQuestionUpdate}
-        />
+        
+        {canManageQuestions && (
+          <ManageCategoryQuestions 
+            questions={questions} 
+            onQuestionUpdate={handleQuestionUpdate}
+          />
+        )}
       </div>
       
       <ObjectiveCard />

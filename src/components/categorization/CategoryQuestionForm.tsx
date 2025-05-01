@@ -2,7 +2,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -25,9 +25,10 @@ const sections: CategorySection[] = ["policy", "esg", "social", "environmental",
 interface CategoryQuestionFormProps {
   onSubmit: (data: CategoryQuestionFormData) => void;
   initialData?: CategoryQuestionFormData;
+  onCancel?: () => void;
 }
 
-export function CategoryQuestionForm({ onSubmit, initialData }: CategoryQuestionFormProps) {
+export function CategoryQuestionForm({ onSubmit, initialData, onCancel }: CategoryQuestionFormProps) {
   const form = useForm<CategoryQuestionFormData>({
     resolver: zodResolver(categoryQuestionSchema),
     defaultValues: initialData || {
@@ -64,6 +65,7 @@ export function CategoryQuestionForm({ onSubmit, initialData }: CategoryQuestion
                   ))}
                 </SelectContent>
               </Select>
+              <FormMessage />
             </FormItem>
           )}
         />
@@ -75,8 +77,9 @@ export function CategoryQuestionForm({ onSubmit, initialData }: CategoryQuestion
             <FormItem>
               <FormLabel>Question</FormLabel>
               <FormControl>
-                <Textarea {...field} placeholder="Enter question text" />
+                <Textarea {...field} placeholder="Enter question text" className="min-h-[100px]" />
               </FormControl>
+              <FormMessage />
             </FormItem>
           )}
         />
@@ -90,6 +93,7 @@ export function CategoryQuestionForm({ onSubmit, initialData }: CategoryQuestion
               <FormControl>
                 <Input {...field} placeholder="e.g., Yes- 0, No- 2" />
               </FormControl>
+              <FormMessage />
             </FormItem>
           )}
         />
@@ -103,6 +107,7 @@ export function CategoryQuestionForm({ onSubmit, initialData }: CategoryQuestion
               <FormControl>
                 <Textarea {...field} placeholder="Enter guidance for ESDD Report" />
               </FormControl>
+              <FormMessage />
             </FormItem>
           )}
         />
@@ -123,11 +128,21 @@ export function CategoryQuestionForm({ onSubmit, initialData }: CategoryQuestion
                   onChange={e => field.onChange(parseFloat(e.target.value))}
                 />
               </FormControl>
+              <FormMessage />
             </FormItem>
           )}
         />
         
-        <Button type="submit">Save Question</Button>
+        <div className="flex justify-end gap-2 pt-2">
+          {onCancel && (
+            <Button type="button" variant="outline" onClick={onCancel}>
+              Cancel
+            </Button>
+          )}
+          <Button type="submit">
+            {initialData?.id ? 'Update Question' : 'Add Question'}
+          </Button>
+        </div>
       </form>
     </Form>
   );

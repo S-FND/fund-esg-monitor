@@ -5,6 +5,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { CategoryQuestionForm, type CategoryQuestionFormData } from "./CategoryQuestionForm";
 import { CategoryQuestionsList } from "./CategoryQuestionsList";
 import { CategoryQuestion, CategoriesData } from "@/types/categorization";
+import { useState } from "react";
+import { Trash2, PlusCircle } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 
 const sections = ["policy", "esg", "social", "environmental", "impact"];
 
@@ -18,7 +21,11 @@ export function ManageCategoryQuestions({
   onQuestionUpdate 
 }: ManageCategoryQuestionsProps) {
   const { userRole } = useAuth();
-  const canManageQuestions = userRole === 'admin' || userRole === 'investor_admin';
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const [editingQuestion, setEditingQuestion] = useState<CategoryQuestionFormData | null>(null);
+  
+  const canManageQuestions = userRole === 'admin' || userRole === 'investor_admin' || userRole === 'investor';
 
   if (!canManageQuestions) {
     return null;
@@ -36,48 +43,112 @@ export function ManageCategoryQuestions({
         scoringCriteria: data.scoringCriteria,
         guidance: data.guidance
       };
+      
+      toast({
+        title: "Question Updated",
+        description: `Question ${data.id} has been successfully updated.`
+      });
     } else {
       const sectionPrefix = section.charAt(0).toUpperCase();
+      const newId = `${sectionPrefix}.${updatedQuestions.length + 1}`;
+      
       updatedQuestions.push({
-        id: `${sectionPrefix}.${updatedQuestions.length + 1}`,
+        id: newId,
         question: data.question,
         scoringCriteria: data.scoringCriteria,
         guidance: data.guidance
       });
+      
+      toast({
+        title: "Question Added",
+        description: `New question ${newId} has been successfully added.`
+      });
     }
     
     onQuestionUpdate(section, updatedQuestions);
+    setOpen(false);
+    setEditingQuestion(null);
   };
 
   const handleEditQuestion = (section: string, question: CategoryQuestion) => {
-    const formData: CategoryQuestionFormData = {
+    setEditingQuestion({
       id: question.id,
       section,
       question: question.question,
       scoringCriteria: question.scoringCriteria,
       guidance: question.guidance,
       weightage: 0.5 // Default weightage for form
-    };
-    handleSubmit(formData);
+    });
+    setOpen(true);
+  };
+  
+  const handleDeleteQuestion = (section: string, questionId: string) => {
+    const updatedQuestions = questions[section].filter(q => q.id !== questionId);
+    
+    // Renumber questions if needed
+    const renumberedQuestions = updatedQuestions.map((q, index) => {
+      const sectionPrefix = section.charAt(0).toUpperCase();
+      const newId = `${sectionPrefix}.${index + 1}`;
+      
+      return {
+        ...q,
+        id: newId
+      };
+    });
+    
+    onQuestionUpdate(section, renumberedQuestions);
+    
+    toast({
+      title: "Question Deleted",
+      description: `Question ${questionId} has been successfully deleted.`
+    });
+  };
+
+  const handleAddNewQuestion = () => {
+    setEditingQuestion(null);
+    setOpen(true);
   };
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={(newOpen) => {
+      setOpen(newOpen);
+      if (!newOpen) {
+        setEditingQuestion(null);
+      }
+    }}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="mb-4">Manage Category Questions</Button>
+        <Button variant="outline" className="mb-4">Manage Questions</Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Manage Categorization Questions</DialogTitle>
+          <DialogTitle>{editingQuestion ? "Edit Question" : "Manage Categorization Questions"}</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-4">
-          <CategoryQuestionForm onSubmit={handleSubmit} />
-          <CategoryQuestionsList 
-            sections={sections} 
-            questions={questions} 
-            onEditQuestion={handleEditQuestion}
-          />
+          {editingQuestion ? (
+            <CategoryQuestionForm 
+              onSubmit={handleSubmit} 
+              initialData={editingQuestion}
+              onCancel={() => setEditingQuestion(null)}
+            />
+          ) : (
+            <>
+              <Button 
+                onClick={handleAddNewQuestion} 
+                className="w-full gap-2"
+              >
+                <PlusCircle className="h-4 w-4" />
+                <span>Add New Question</span>
+              </Button>
+              
+              <CategoryQuestionsList 
+                sections={sections} 
+                questions={questions} 
+                onEditQuestion={handleEditQuestion}
+                onDeleteQuestion={handleDeleteQuestion}
+              />
+            </>
+          )}
         </div>
       </DialogContent>
     </Dialog>
