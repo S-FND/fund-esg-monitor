@@ -19,6 +19,14 @@ export function CategoryQuestionsTable({
   onResponseChange,
   onObservationsChange
 }: CategoryQuestionsTableProps) {
+  // Get available response options for a question (either from the question's responses or from the general options)
+  const getQuestionResponseOptions = (question: CategoryQuestion): string[] => {
+    if (question.responses && question.responses.length > 0) {
+      return question.responses.map(r => r.response);
+    }
+    return responseOptions;
+  };
+  
   return (
     <Table>
       <TableHeader>
@@ -39,14 +47,14 @@ export function CategoryQuestionsTable({
             <TableCell>{question.question}</TableCell>
             <TableCell>
               <Select 
-                value={responses[question.id]?.response} 
+                value={responses[question.id]?.response || ""} 
                 onValueChange={(value) => onResponseChange(question.id, value)}
               >
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Select" />
                 </SelectTrigger>
                 <SelectContent>
-                  {responseOptions.map((option) => (
+                  {getQuestionResponseOptions(question).map((option) => (
                     <SelectItem key={option} value={option}>
                       {option}
                     </SelectItem>
@@ -58,7 +66,7 @@ export function CategoryQuestionsTable({
             <TableCell>{question.scoringCriteria}</TableCell>
             <TableCell>
               <Textarea 
-                value={responses[question.id]?.observations} 
+                value={responses[question.id]?.observations || ""} 
                 onChange={(e) => onObservationsChange(question.id, e.target.value)}
                 placeholder="Add observations"
                 className="min-h-[60px]"

@@ -31,6 +31,19 @@ export function CategoryQuestionsList({
                     <p className="font-medium">{q.id}: {q.question}</p>
                     <p className="text-sm text-muted-foreground">Scoring: {q.scoringCriteria}</p>
                     {q.guidance && <p className="text-sm text-muted-foreground">Guidance: {q.guidance}</p>}
+                    
+                    {q.responses && q.responses.length > 0 && (
+                      <div className="mt-2">
+                        <p className="text-sm font-medium">Response Options:</p>
+                        <div className="text-xs text-muted-foreground grid grid-cols-2 gap-1 mt-1">
+                          {q.responses.map((r, idx) => (
+                            <div key={idx} className="bg-muted/30 px-2 py-1 rounded">
+                              {r.response}: {r.score} points
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div className="flex gap-2 shrink-0">
                     <Button

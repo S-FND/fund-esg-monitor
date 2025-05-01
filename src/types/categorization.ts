@@ -1,9 +1,15 @@
 
+export type ResponseOption = {
+  response: string;
+  score: number;
+};
+
 export type CategoryQuestion = {
   id: string;
   question: string;
   scoringCriteria: string;
   guidance: string;
+  responses?: ResponseOption[];
 };
 
 export type CategoriesData = Record<string, CategoryQuestion[]>;

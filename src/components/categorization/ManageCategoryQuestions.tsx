@@ -8,6 +8,7 @@ import { CategoryQuestion, CategoriesData } from "@/types/categorization";
 import { useState } from "react";
 import { Trash2, PlusCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { responseOptions } from "@/data/categorization/responseOptions";
 
 const sections = ["policy", "esg", "social", "environmental", "impact"];
 
@@ -41,7 +42,8 @@ export function ManageCategoryQuestions({
         id: data.id,
         question: data.question,
         scoringCriteria: data.scoringCriteria,
-        guidance: data.guidance
+        guidance: data.guidance,
+        responses: data.responses || []
       };
       
       toast({
@@ -56,7 +58,8 @@ export function ManageCategoryQuestions({
         id: newId,
         question: data.question,
         scoringCriteria: data.scoringCriteria,
-        guidance: data.guidance
+        guidance: data.guidance,
+        responses: data.responses || []
       });
       
       toast({
@@ -76,8 +79,9 @@ export function ManageCategoryQuestions({
       section,
       question: question.question,
       scoringCriteria: question.scoringCriteria,
-      guidance: question.guidance,
-      weightage: 0.5 // Default weightage for form
+      guidance: question.guidance || "",
+      weightage: 0.5, // Default weightage for form
+      responses: question.responses || []
     });
     setOpen(true);
   };

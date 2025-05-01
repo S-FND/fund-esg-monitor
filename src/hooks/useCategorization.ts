@@ -30,10 +30,14 @@ export function useCategorization(): CategorizationHookResult {
     Object.entries(categorizationQuestions).forEach(([section, sectionQuestions]) => {
       initialData[section] = {};
       sectionQuestions.forEach(question => {
-        const options = getSectionResponseOptions(section);
+        // If the question has predefined responses, use the first one as default
+        const defaultResponse = question.responses && question.responses.length > 0
+          ? question.responses[0]
+          : { response: getSectionResponseOptions(section)[0] || "", score: 0 };
+          
         initialData[section][question.id] = { 
-          response: options[0], 
-          score: 0,
+          response: defaultResponse.response, 
+          score: defaultResponse.score,
           observations: "" 
         };
       });
@@ -46,7 +50,20 @@ export function useCategorization(): CategorizationHookResult {
   
   // Handle response change for a question
   const handleResponseChange = (questionId: string, value: string) => {
-    const score = calculateQuestionScore(questionId, value, activeTab);
+    // Get the question object to check for defined responses
+    const question = questions[activeTab]?.find(q => q.id === questionId);
+    
+    // Try to find the score in the question's responses
+    let score = 0;
+    if (question?.responses) {
+      const responseOption = question.responses.find(r => r.response === value);
+      if (responseOption) {
+        score = responseOption.score;
+      }
+    } else {
+      // Fall back to calculating score using the utility function
+      score = calculateQuestionScore(questionId, value, activeTab);
+    }
     
     setResponses(prev => ({
       ...prev,
@@ -92,10 +109,14 @@ export function useCategorization(): CategorizationHookResult {
       // Initialize new questions with default responses
       updatedQuestions.forEach(q => {
         if (!newResponses[section][q.id]) {
-          const options = getSectionResponseOptions(section);
+          // If the question has predefined responses, use the first one as default
+          const defaultResponse = q.responses && q.responses.length > 0
+            ? q.responses[0]
+            : { response: getSectionResponseOptions(section)[0] || "", score: 0 };
+            
           newResponses[section][q.id] = { 
-            response: options[0], 
-            score: 0,
+            response: defaultResponse.response, 
+            score: defaultResponse.score,
             observations: "" 
           };
         }
