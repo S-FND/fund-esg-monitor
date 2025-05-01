@@ -8,9 +8,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useAuth } from "@/contexts/AuthContext";
-import { Trash2 } from "lucide-react";
+import { Trash2, Edit, Plus } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 const questionSchema = z.object({
   id: z.string(),
@@ -199,30 +200,53 @@ export function ManageQuestions({ questions, onQuestionUpdate }: {
               {questions.map((q) => (
                 <div key={q.id} className="p-4 border rounded">
                   <div className="flex justify-between items-start">
-                    <div>
+                    <div className="flex-1 pr-4">
                       <p className="font-medium">{q.id}: {q.question}</p>
                       <p className="text-sm text-muted-foreground">Scoring: {q.scoringCriteria}</p>
                       <p className="text-sm text-muted-foreground">Weightage: {q.weightage}</p>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 shrink-0">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => handleEditClick(q)}
                       >
+                        <Edit className="h-4 w-4 mr-1" />
                         Edit
                       </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDeleteQuestion(q.id)}
-                      >
-                        <Trash2 size={16} />
-                      </Button>
+                      
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                          >
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            Delete
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This action cannot be undone. This will permanently delete question "{q.id}: {q.question.substring(0, 50)}..."
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDeleteQuestion(q.id)}>
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </div>
                 </div>
               ))}
+              {questions.length === 0 && (
+                <p className="text-sm text-muted-foreground">No questions yet. Add one above.</p>
+              )}
             </div>
           </div>
         </div>

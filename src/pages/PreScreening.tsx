@@ -65,6 +65,9 @@ export default function PreScreening() {
   // Calculate total score
   const totalScore = getTotalScore();
   
+  // Determine if user can manage questions
+  const canManageQuestions = userRole === 'admin' || userRole === 'investor_admin' || userRole === 'investor';
+  
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -73,7 +76,9 @@ export default function PreScreening() {
           <p className="text-muted-foreground">Part B</p>
         </div>
         
-        <ManageQuestions questions={questions} onQuestionUpdate={handleQuestionsUpdate} />
+        {canManageQuestions && (
+          <ManageQuestions questions={questions} onQuestionUpdate={handleQuestionsUpdate} />
+        )}
       </div>
       
       <ObjectivesCard />
@@ -82,7 +87,6 @@ export default function PreScreening() {
         <CardHeader>
           <CardTitle className="flex justify-between items-center">
             <span>Section 1. Exclusion and Business Flaws Screening</span>
-            <ManageQuestions questions={questions} onQuestionUpdate={handleQuestionsUpdate} />
           </CardTitle>
         </CardHeader>
         <CardContent>
