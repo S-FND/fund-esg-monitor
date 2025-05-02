@@ -32,6 +32,7 @@ interface CategoryQuestionFormBaseProps {
 
 export function CategoryQuestionFormBase({ onSubmit, initialData, onCancel }: CategoryQuestionFormBaseProps) {
   const [selectedSection, setSelectedSection] = useState<string>(initialData?.section || "policy");
+  // Ensure we're using a correctly typed array for the responsesList state
   const [responsesList, setResponsesList] = useState<{response: string, score: number}[]>(
     initialData?.responses || []
   );
@@ -55,6 +56,7 @@ export function CategoryQuestionFormBase({ onSubmit, initialData, onCancel }: Ca
   };
 
   const addResponse = (response: string, score: number) => {
+    // Ensure we're passing required properties
     const newResponsesList = [...responsesList, { response, score }];
     setResponsesList(newResponsesList);
     form.setValue("responses", newResponsesList);
