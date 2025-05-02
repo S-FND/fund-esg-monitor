@@ -4,9 +4,51 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus } from "lucide-react";
 import { funds } from "./fundsData";
+import { useEffect, useState } from "react";
 
 export default function Funds() {
   const navigate = useNavigate();
+  const [funds,setFunds]=useState([])
+  const getFundList= async()=>{
+    try {
+      const res = await fetch(`http://localhost:3002` + `/investor/fund`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
+      });
+      if (!res.ok) {
+        // toast.error("Invalid credentials");
+        // setIsLoading(false);
+        return;
+      }
+      else {
+        const jsondata = await res.json();
+        console.log('jsondata', jsondata)
+        setFunds(jsondata['data'])
+        // let investorInfo:InvestorFormData = {
+        //   investorName: jsondata['data']['investorName'],
+        //   companyName: jsondata['data']['companyName'],
+        //   email: jsondata['data']['email'],
+        //   pan: jsondata['data']['panNumber'],
+        //   gst: jsondata['data']['gstNumber'],
+        //   esgManagerEmail: jsondata['data']['esgManagerEmail'],
+        //   sdgGoals: jsondata['data']['sdgGoal'],
+        //   sdgTargets: jsondata['data']['sdgTarget'],
+        //   designation: jsondata['data']['designation'],
+        //   companyAddress: jsondata['data']['address'],
+        // };
+        // setFormData(investorInfo)
+      }
+    } catch (error) {
+      console.error("Api call:", error);
+      // toast.error("API Call failed. Please try again.");
+    } finally {
+      // setIsLoading(false);
+    }
+  }
+
+  useEffect(()=>{
+    getFundList()
+  },[])
   
   return (
     <div className="space-y-6">
@@ -34,7 +76,7 @@ export default function Funds() {
                 <div>
                   <h3 className="text-sm font-medium text-muted-foreground mb-1">Sector Focus</h3>
                   <div className="flex flex-wrap gap-1">
-                    {fund.focus.map(sector => (
+                    {["ClimateTech", "AgriTech",fund.sectorFocus].map(sector => (
                       <span key={sector} className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-accent text-accent-foreground">
                         {sector}
                       </span>
@@ -44,7 +86,7 @@ export default function Funds() {
                 
                 <div>
                   <h3 className="text-sm font-medium text-muted-foreground mb-1">Investment Stage</h3>
-                  <p>{fund.stage}</p>
+                  <p>{fund.stageOfInvestment}</p>
                 </div>
               </div>
               
@@ -52,7 +94,7 @@ export default function Funds() {
                 <div>
                   <h3 className="text-sm font-medium text-muted-foreground mb-2">Inclusion Terms</h3>
                   <div className="flex flex-wrap gap-1">
-                    {fund.inclusionTerms.map(term => (
+                    {fund.inclusion.map(term => (
                       <span key={term} className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-esg-light text-esg-primary">
                         {term}
                       </span>
@@ -63,7 +105,7 @@ export default function Funds() {
                 <div>
                   <h3 className="text-sm font-medium text-muted-foreground mb-2">Exclusion Terms</h3>
                   <div className="flex flex-wrap gap-1">
-                    {fund.exclusionTerms.map(term => (
+                    {fund.exclusion.map(term => (
                       <span key={term} className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-600">
                         {term}
                       </span>
@@ -73,7 +115,7 @@ export default function Funds() {
               </div>
               
               <div className="flex justify-end mt-6">
-                <Button variant="outline" onClick={() => navigate(`/funds/${fund.id}`)}>
+                <Button variant="outline" onClick={() => navigate(`/funds/${fund._id}`)}>
                   View Details
                 </Button>
               </div>

@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -37,7 +37,10 @@ const investmentStages = [
 export default function EditFund() {
   const navigate = useNavigate();
   const { id } = useParams();
-  const fund = dummyFunds.find(f => f.id === Number(id));
+  // const fund = dummyFunds.find(f => f.id === Number(id));
+
+  const [fund,setFund]=useState([])
+  
 
   // If fund not found (bad URL), return to list
   if (!fund) {
@@ -46,13 +49,13 @@ export default function EditFund() {
   }
 
   const [formData, setFormData] = useState({
-    name: fund.name,
-    size: fund.size,
-    currency: fund.currency,
-    focus: fund.focus,
-    stage: fund.stage,
-    inclusionTerms: fund.inclusionTerms,
-    exclusionTerms: fund.exclusionTerms,
+    name: fund['name'],
+    size: fund['size'],
+    currency: fund['currency'],
+    focus: fund['focus'],
+    stage: fund['stage'],
+    inclusionTerms: fund['inclusionTerms'],
+    exclusionTerms: fund['exclusionTerms'],
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -84,6 +87,34 @@ export default function EditFund() {
     navigate("/funds");
   };
 
+  const getFundDetail= async()=>{
+    try {
+      const res = await fetch(`http://localhost:3002` + `/investor/fund/${id}`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
+      });
+      if (!res.ok) {
+        // toast.error("Invalid credentials");
+        // setIsLoading(false);
+        return;
+      }
+      else {
+        const jsondata = await res.json();
+        console.log('jsondata', jsondata)
+        setFormData(jsondata['data'][0])
+      }
+    } catch (error) {
+      console.error("Api call:", error);
+      // toast.error("API Call failed. Please try again.");
+    } finally {
+      // setIsLoading(false);
+    }
+  }
+
+  useEffect(()=>{
+    getFundDetail()
+  },[])
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -92,7 +123,7 @@ export default function EditFund() {
       <form onSubmit={handleSubmit}>
         <Card>
           <CardHeader>
-            <CardTitle>Edit Details for {fund.name}</CardTitle>
+            <CardTitle>Edit Details for {fund['name']}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -101,7 +132,7 @@ export default function EditFund() {
                 <Input
                   id="name"
                   name="name"
-                  value={formData.name}
+                  value={formData['name']}
                   onChange={handleInputChange}
                   required
                   placeholder="Enter fund name"
@@ -143,7 +174,7 @@ export default function EditFund() {
                     <input
                       type="checkbox"
                       id={`focus-${sector}`}
-                      checked={formData.focus.includes(sector)}
+                      checked={formData.focus?.includes(sector)}
                       onChange={() => handleFocusToggle(sector)}
                       className="accent-primary h-4 w-4 rounded border"
                     />
@@ -172,7 +203,7 @@ export default function EditFund() {
               <div>
                 <Label>Inclusion Terms</Label>
                 <textarea
-                  value={formData.inclusionTerms.join(", ")}
+                  value={formData['inclusion']?.join(", ")}
                   readOnly
                   className="w-full mt-1 text-sm bg-muted rounded"
                   rows={2}
@@ -181,7 +212,7 @@ export default function EditFund() {
               <div>
                 <Label>Exclusion Terms</Label>
                 <textarea
-                  value={formData.exclusionTerms.join(", ")}
+                  value={formData['exclusion']?.join(", ")}
                   readOnly
                   className="w-full mt-1 text-sm bg-muted rounded"
                   rows={2}

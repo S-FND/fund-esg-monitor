@@ -1,5 +1,5 @@
 
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -63,6 +63,47 @@ export default function EditInvestorProfile() {
     fileInputRef.current?.click();
   };
 
+  const getInvestorInfo= async()=>{
+    
+    try {
+      const res = await fetch(`http://localhost:3002` + "/investor/general-info/", {
+        method: "GET",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
+      });
+      if (!res.ok) {
+        // toast.error("Invalid credentials");
+        // setIsLoading(false);
+        return;
+      }
+      else {
+        const jsondata = await res.json();
+        console.log('jsondata', jsondata)
+        let investorInfo:InvestorFormData = {
+          investorName: jsondata['data']['investorName'],
+          companyName: jsondata['data']['companyName'],
+          email: jsondata['data']['email'],
+          pan: jsondata['data']['panNumber'],
+          gst: jsondata['data']['gstNumber'],
+          esgManagerEmail: jsondata['data']['esgManagerEmail'],
+          sdgGoals: jsondata['data']['sdgGoal'],
+          sdgTargets: jsondata['data']['sdgTarget'],
+          designation: jsondata['data']['designation'],
+          companyAddress: jsondata['data']['address'],
+        };
+        setFormData(investorInfo)
+      }
+    } catch (error) {
+      console.error("Api call:", error);
+      // toast.error("API Call failed. Please try again.");
+    } finally {
+      // setIsLoading(false);
+    }
+  }
+
+  useEffect(()=>{
+    getInvestorInfo()
+  },[])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setUploading(true);
@@ -72,6 +113,30 @@ export default function EditInvestorProfile() {
     if (fileInputRef.current?.files?.[0]) {
       setSubmittedFile(fileInputRef.current.files[0].name);
     }
+
+    // try {
+    //   const res = await fetch(`${import.meta.env.VITE_API_URL}` + "/investor/general-info/", {
+    //     method: "GET",
+    //     headers: { "Content-Type": "application/json", Authorization: `Bearer ${sessionStorage.getItem("auth_token")}` },
+    //   });
+    //   if (!res.ok) {
+    //     // toast.error("Invalid credentials");
+    //     // setIsLoading(false);
+    //     return;
+    //   }
+    //   else {
+    //     const jsondata = await res.json();
+    //     console.log('jsondata', jsondata)
+    //     // if(!training){
+    //     //   training=data[0]
+    //     // }
+    //   }
+    // } catch (error) {
+    //   console.error("Api call:", error);
+    //   toast.error("API Call failed. Please try again.");
+    // } finally {
+    //   // setIsLoading(false);
+    // }
 
     // Simulating API call delay
     setTimeout(() => {

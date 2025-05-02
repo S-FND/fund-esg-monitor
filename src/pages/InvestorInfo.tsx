@@ -1,11 +1,24 @@
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 
-const dummyInvestorData = {
+interface InvestorFormData {
+  investorName: string;
+  companyName: string;
+  email: string;
+  pan: string;
+  gst: string;
+  esgManagerEmail: string;
+  sdgGoals: string;
+  sdgTargets: string;
+  designation: string;
+  companyAddress: string;
+  esgPolicyFileName?: string;
+}
+let dummyInvestorData = {
   investorName: "Global Sustainable Ventures",
   companyName: "GSV Holdings Ltd.",
   email: "contact@gsventures.com",
@@ -20,6 +33,47 @@ const dummyInvestorData = {
 
 export default function InvestorInfo() {
   const navigate = useNavigate();
+  const [formData, setFormData] = useState<InvestorFormData>(dummyInvestorData);
+  const getInvestorInfo= async()=>{
+    
+    try {
+      const res = await fetch(`http://localhost:3002` + "/investor/general-info/", {
+        method: "GET",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
+      });
+      if (!res.ok) {
+        // toast.error("Invalid credentials");
+        // setIsLoading(false);
+        return;
+      }
+      else {
+        const jsondata = await res.json();
+        console.log('jsondata', jsondata)
+        let investorInfo = {
+          investorName: jsondata['data']['investorName'],
+          companyName: jsondata['data']['companyName'],
+          email: jsondata['data']['email'],
+          pan: jsondata['data']['panNumber'],
+          gst: jsondata['data']['gstNumber'],
+          esgManagerEmail: jsondata['data']['esgManagerEmail'],
+          sdgGoals: jsondata['data']['sdgGoal'],
+          sdgTargets: jsondata['data']['sdgTarget'],
+          designation: jsondata['data']['designation'],
+          companyAddress: jsondata['data']['address'],
+        };
+        setFormData(investorInfo)
+      }
+    } catch (error) {
+      console.error("Api call:", error);
+      // toast.error("API Call failed. Please try again.");
+    } finally {
+      // setIsLoading(false);
+    }
+  }
+
+  useEffect(()=>{
+    getInvestorInfo()
+  },[])
 
   return (
     <div className="p-6">
@@ -37,43 +91,43 @@ export default function InvestorInfo() {
             <TableBody>
               <TableRow>
                 <TableCell className="font-medium">Investor Name</TableCell>
-                <TableCell>{dummyInvestorData.investorName}</TableCell>
+                <TableCell>{formData.investorName}</TableCell>
               </TableRow>
               <TableRow>
                 <TableCell className="font-medium">Company Name</TableCell>
-                <TableCell>{dummyInvestorData.companyName}</TableCell>
+                <TableCell>{formData.companyName}</TableCell>
               </TableRow>
               <TableRow>
                 <TableCell className="font-medium">Email</TableCell>
-                <TableCell>{dummyInvestorData.email}</TableCell>
+                <TableCell>{formData.email}</TableCell>
               </TableRow>
               <TableRow>
                 <TableCell className="font-medium">PAN</TableCell>
-                <TableCell>{dummyInvestorData.pan}</TableCell>
+                <TableCell>{formData.pan}</TableCell>
               </TableRow>
               <TableRow>
                 <TableCell className="font-medium">GST</TableCell>
-                <TableCell>{dummyInvestorData.gst}</TableCell>
+                <TableCell>{formData.gst}</TableCell>
               </TableRow>
               <TableRow>
                 <TableCell className="font-medium">ESG Manager Email</TableCell>
-                <TableCell>{dummyInvestorData.esgManagerEmail}</TableCell>
+                <TableCell>{formData.esgManagerEmail}</TableCell>
               </TableRow>
               <TableRow>
                 <TableCell className="font-medium">SDG Goals</TableCell>
-                <TableCell>{dummyInvestorData.sdgGoals}</TableCell>
+                <TableCell>{formData.sdgGoals}</TableCell>
               </TableRow>
               <TableRow>
                 <TableCell className="font-medium">SDG Targets</TableCell>
-                <TableCell>{dummyInvestorData.sdgTargets}</TableCell>
+                <TableCell>{formData.sdgTargets}</TableCell>
               </TableRow>
               <TableRow>
                 <TableCell className="font-medium">Designation</TableCell>
-                <TableCell>{dummyInvestorData.designation}</TableCell>
+                <TableCell>{formData.designation}</TableCell>
               </TableRow>
               <TableRow>
                 <TableCell className="font-medium">Company Address</TableCell>
-                <TableCell>{dummyInvestorData.companyAddress}</TableCell>
+                <TableCell>{formData.companyAddress}</TableCell>
               </TableRow>
             </TableBody>
           </Table>
