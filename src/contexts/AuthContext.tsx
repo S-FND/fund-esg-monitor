@@ -1,10 +1,11 @@
+
 import { createContext, useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 interface AuthContextType {
   session: boolean;
   user: any | null;
-  userRole: 'investor' | 'admin' | 'fandoro_admin' | 'investor_admin' | null;
+  userRole: 'investor' | 'admin' | 'investor_admin' | null;
   signOut: () => void;
 }
 
@@ -31,7 +32,7 @@ const setDummyAuthData = () => {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<boolean>(false);
   const [user, setUser] = useState<any | null>(null);
-  const [userRole, setUserRole] = useState<'investor' | 'admin' | 'fandoro_admin' | 'investor_admin' | null>(null);
+  const [userRole, setUserRole] = useState<'investor' | 'admin' | 'investor_admin' | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {

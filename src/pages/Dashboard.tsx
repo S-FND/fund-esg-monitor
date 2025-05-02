@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -19,6 +20,8 @@ import { TopSDGsCard } from "@/components/dashboard/TopSDGsCard";
 import { TopInitiativesCard } from "@/components/dashboard/TopInitiativesCard";
 import { TopNonCompliancesCard } from "@/components/dashboard/TopNonCompliancesCard";
 import { ESGRisksCard } from "@/components/dashboard/ESGRisksCard";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
 
 const funds = [
   { id: 1, name: "Green Tech Fund I", size: "$50M", focus: "ClimateTech", stage: "Series A" },
@@ -35,6 +38,23 @@ const companies = [
 ];
 
 const financialYears = ["2021", "2022", "2023", "2024", "2025"];
+
+// ESG Trends Data
+const esgTrendsData = [
+  { year: "2021", environmental: 65, social: 60, governance: 70, overall: 65 },
+  { year: "2022", environmental: 70, social: 68, governance: 75, overall: 71 },
+  { year: "2023", environmental: 75, social: 73, governance: 80, overall: 76 },
+  { year: "2024", environmental: 82, social: 78, governance: 85, overall: 82 },
+  { year: "2025", environmental: 88, social: 85, governance: 90, overall: 88 },
+];
+
+// Chart configuration
+const esgTrendsChartConfig = {
+  environmental: { color: "#22c55e" },
+  social: { color: "#3b82f6" },
+  governance: { color: "#8b5cf6" },
+  overall: { color: "#f43f5e" }
+};
 
 export default function Dashboard() {
   const [selectedFund, setSelectedFund] = useState<string>("all");
@@ -175,9 +195,52 @@ export default function Dashboard() {
               <CardTitle>ESG Trends</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="h-[400px] flex items-center justify-center bg-accent rounded-md">
-                <p className="text-muted-foreground">Year-over-Year ESG Trend Chart</p>
-              </div>
+              <ChartContainer className="h-[400px]" config={esgTrendsChartConfig}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart
+                    data={esgTrendsData}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 10 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="year" />
+                    <YAxis domain={[0, 100]} label={{ value: 'Score', angle: -90, position: 'insideLeft', offset: -5 }} />
+                    <Tooltip content={<ChartTooltipContent />} />
+                    <Legend />
+                    <Line 
+                      type="monotone" 
+                      dataKey="environmental" 
+                      name="Environmental" 
+                      stroke="#22c55e" 
+                      strokeWidth={2} 
+                      activeDot={{ r: 8 }} 
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="social" 
+                      name="Social" 
+                      stroke="#3b82f6" 
+                      strokeWidth={2} 
+                      activeDot={{ r: 8 }} 
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="governance" 
+                      name="Governance" 
+                      stroke="#8b5cf6" 
+                      strokeWidth={2} 
+                      activeDot={{ r: 8 }} 
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="overall" 
+                      name="Overall ESG" 
+                      stroke="#f43f5e" 
+                      strokeWidth={3} 
+                      activeDot={{ r: 8 }} 
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </ChartContainer>
             </CardContent>
           </Card>
         </TabsContent>

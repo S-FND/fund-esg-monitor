@@ -1,29 +1,13 @@
 
-import { useNavigate } from "react-router-dom";
+import { getSectionTitle, getCategory } from "@/data/categorizationQuestions";
+import { SectionScores } from "@/types/categorization";
 
 interface CategoryScoringProps {
-  sectionScores: Record<string, number>;
+  sectionScores: SectionScores;
   totalScore: number;
   activeTab: string;
   onTabChange: (section: string) => void;
 }
-
-const getSectionTitle = (section: string) => {
-  switch(section) {
-    case "policy": return "Policy Commitment";
-    case "esg": return "ESG";
-    case "social": return "Social Attributes";
-    case "environmental": return "Environmental and Occupational Health & Safety Attributes";
-    case "impact": return "Impact Attributes";
-    default: return section;
-  }
-};
-
-const getCategory = (score: number) => {
-  if (score >= 25) return "A - High Risk";
-  if (score >= 15) return "B - Medium Risk";
-  return "C - Low Risk";
-};
 
 export function CategoryScoringSidebar({ 
   sectionScores, 
@@ -75,4 +59,3 @@ export function CategoryScoringSidebar({
     </div>
   );
 }
-
