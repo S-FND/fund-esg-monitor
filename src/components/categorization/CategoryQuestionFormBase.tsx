@@ -32,16 +32,16 @@ interface CategoryQuestionFormBaseProps {
 
 export function CategoryQuestionFormBase({ onSubmit, initialData, onCancel }: CategoryQuestionFormBaseProps) {
   const [selectedSection, setSelectedSection] = useState<string>(initialData?.section || "policy");
-  // Ensure we're using a correctly typed array for the responsesList state
-  const [responsesList, setResponsesList] = useState<{response: string, score: number}[]>(
-    initialData?.responses ? 
-    // Make sure each response has required properties with default values if missing
-    initialData.responses.map(r => ({
-      response: r.response || "",
-      score: typeof r.score === 'number' ? r.score : 0
-    })) : 
-    []
-  );
+  
+  // Ensure we have properly typed responses with required fields
+  const initialResponses = initialData?.responses 
+    ? initialData.responses.map(r => ({
+        response: r.response || "",
+        score: typeof r.score === 'number' ? r.score : 0
+      }))
+    : [];
+    
+  const [responsesList, setResponsesList] = useState<{response: string, score: number}[]>(initialResponses);
   
   const form = useForm<CategoryQuestionFormData>({
     resolver: zodResolver(categoryQuestionSchema),
