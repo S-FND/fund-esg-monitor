@@ -30,6 +30,7 @@ export function ManageQuestions({ questions, onQuestionUpdate }: {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [showQuestionForm, setShowQuestionForm] = useState(false);
   
   const form = useForm<QuestionFormData>({
     resolver: zodResolver(questionSchema),
@@ -71,6 +72,7 @@ export function ManageQuestions({ questions, onQuestionUpdate }: {
     
     onQuestionUpdate(updatedQuestions);
     form.reset();
+    setShowQuestionForm(false);
     setOpen(false);
     setIsEditing(false);
   };
@@ -99,6 +101,7 @@ export function ManageQuestions({ questions, onQuestionUpdate }: {
       weightage: question.weightage
     });
     setIsEditing(true);
+    setShowQuestionForm(true);
     setOpen(true);
   };
 
@@ -110,6 +113,12 @@ export function ManageQuestions({ questions, onQuestionUpdate }: {
       weightage: 0.5
     });
     setIsEditing(false);
+    setShowQuestionForm(true);
+    setOpen(true);
+  };
+
+  const handleManageQuestionsClick = () => {
+    setShowQuestionForm(false);
     setOpen(true);
   };
 
@@ -119,136 +128,148 @@ export function ManageQuestions({ questions, onQuestionUpdate }: {
       if (!newOpen) {
         // Reset form when dialog is closed
         setIsEditing(false);
+        setShowQuestionForm(false);
       }
     }}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="mb-4" onClick={handleAddNewClick}>Manage Questions</Button>
+        <Button variant="outline" className="mb-4" onClick={handleManageQuestionsClick}>Manage Questions</Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{isEditing ? "Edit Question" : "Add New Question"}</DialogTitle>
+          <DialogTitle>{showQuestionForm ? (isEditing ? "Edit Question" : "Add New Question") : "Manage Categorization Questions"}</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-4">
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="question"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Question</FormLabel>
-                    <FormControl>
-                      <Textarea {...field} placeholder="Enter question text" />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="scoringCriteria"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Scoring Criteria</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="e.g., No: 0, Yes/Maybe: 1" />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="weightage"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Question Weightage (0-1)</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        step="0.1"
-                        min="0"
-                        max="1"
-                        {...field}
-                        onChange={e => field.onChange(parseFloat(e.target.value))}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-              
-              <div className="flex justify-end gap-2">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => {
-                    form.reset();
-                    setOpen(false);
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit">{isEditing ? "Update Question" : "Save Question"}</Button>
-              </div>
-            </form>
-          </Form>
-          
-          <div className="mt-6">
-            <h3 className="font-medium mb-2">Current Questions</h3>
-            <div className="space-y-2">
-              {questions.map((q) => (
-                <div key={q.id} className="p-4 border rounded">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1 pr-4">
-                      <p className="font-medium">{q.id}: {q.question}</p>
-                      <p className="text-sm text-muted-foreground">Scoring: {q.scoringCriteria}</p>
-                      <p className="text-sm text-muted-foreground">Weightage: {q.weightage}</p>
-                    </div>
-                    <div className="flex gap-2 shrink-0">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEditClick(q)}
-                      >
-                        <Edit className="h-4 w-4 mr-1" />
-                        Edit
-                      </Button>
-                      
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                          >
-                            <Trash2 className="h-4 w-4 mr-1" />
-                            Delete
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This action cannot be undone. This will permanently delete question "{q.id}: {q.question.substring(0, 50)}..."
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDeleteQuestion(q.id)}>
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </div>
+          {showQuestionForm ? (
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="question"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Question</FormLabel>
+                      <FormControl>
+                        <Textarea {...field} placeholder="Enter question text" />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="scoringCriteria"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Scoring Criteria</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="e.g., No: 0, Yes/Maybe: 1" />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="weightage"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Question Weightage (0-1)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          step="0.1"
+                          min="0"
+                          max="1"
+                          {...field}
+                          onChange={e => field.onChange(parseFloat(e.target.value))}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                
+                <div className="flex justify-end gap-2">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => {
+                      setShowQuestionForm(false);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit">{isEditing ? "Update Question" : "Save Question"}</Button>
                 </div>
-              ))}
-              {questions.length === 0 && (
-                <p className="text-sm text-muted-foreground">No questions yet. Add one above.</p>
-              )}
-            </div>
-          </div>
+              </form>
+            </Form>
+          ) : (
+            <>
+              <Button 
+                onClick={handleAddNewClick} 
+                className="w-full gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                <span>Add New Question</span>
+              </Button>
+              
+              <div className="mt-6">
+                <h3 className="font-medium mb-2">Current Questions</h3>
+                <div className="space-y-2">
+                  {questions.map((q) => (
+                    <div key={q.id} className="p-4 border rounded">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1 pr-4">
+                          <p className="font-medium">{q.id}: {q.question}</p>
+                          <p className="text-sm text-muted-foreground">Scoring: {q.scoringCriteria}</p>
+                          <p className="text-sm text-muted-foreground">Weightage: {q.weightage}</p>
+                        </div>
+                        <div className="flex gap-2 shrink-0">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEditClick(q)}
+                          >
+                            <Edit className="h-4 w-4 mr-1" />
+                            Edit
+                          </Button>
+                          
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                              >
+                                <Trash2 className="h-4 w-4 mr-1" />
+                                Delete
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This action cannot be undone. This will permanently delete question "{q.id}: {q.question.substring(0, 50)}..."
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDeleteQuestion(q.id)}>
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {questions.length === 0 && (
+                    <p className="text-sm text-muted-foreground">No questions yet. Add one above.</p>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </DialogContent>
     </Dialog>

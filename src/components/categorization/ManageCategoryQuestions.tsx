@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/AuthContext";
@@ -24,6 +25,7 @@ export function ManageCategoryQuestions({
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<CategoryQuestionFormData | null>(null);
+  const [showQuestionForm, setShowQuestionForm] = useState(false);
   
   const canManageQuestions = userRole === 'admin' || userRole === 'investor_admin' || userRole === 'investor';
 
@@ -70,6 +72,7 @@ export function ManageCategoryQuestions({
     onQuestionUpdate(section, updatedQuestions);
     setOpen(false);
     setEditingQuestion(null);
+    setShowQuestionForm(false);
   };
 
   const handleEditQuestion = (section: string, question: CategoryQuestion) => {
@@ -82,6 +85,7 @@ export function ManageCategoryQuestions({
       weightage: 0.5, // Default weightage for form
       responses: question.responses || []
     });
+    setShowQuestionForm(true);
     setOpen(true);
   };
   
@@ -109,6 +113,12 @@ export function ManageCategoryQuestions({
 
   const handleAddNewQuestion = () => {
     setEditingQuestion(null);
+    setShowQuestionForm(true);
+    setOpen(true);
+  };
+  
+  const handleManageQuestionsClick = () => {
+    setShowQuestionForm(false);
     setOpen(true);
   };
 
@@ -117,22 +127,23 @@ export function ManageCategoryQuestions({
       setOpen(newOpen);
       if (!newOpen) {
         setEditingQuestion(null);
+        setShowQuestionForm(false);
       }
     }}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="mb-4">Manage Questions</Button>
+        <Button variant="outline" className="mb-4" onClick={handleManageQuestionsClick}>Manage Questions</Button>
       </DialogTrigger>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{editingQuestion ? "Edit Question" : "Manage Categorization Questions"}</DialogTitle>
+          <DialogTitle>{showQuestionForm ? (editingQuestion ? "Edit Question" : "Add New Question") : "Manage Categorization Questions"}</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-4">
-          {editingQuestion ? (
+          {showQuestionForm ? (
             <CategoryQuestionForm 
               onSubmit={handleSubmit} 
               initialData={editingQuestion}
-              onCancel={() => setEditingQuestion(null)}
+              onCancel={() => setShowQuestionForm(false)}
             />
           ) : (
             <>
