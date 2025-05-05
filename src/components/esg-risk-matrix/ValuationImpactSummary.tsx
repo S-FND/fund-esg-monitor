@@ -1,4 +1,4 @@
-
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { 
@@ -7,6 +7,9 @@ import {
   ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Legend 
 } from "recharts";
 import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
+import { CalculationDetailsDialog } from "./CalculationDetailsDialog";
+import { TooltipProvider, Tooltip as UITooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { Info } from "lucide-react";
 
 // Sample data for valuation impact
 const valuationImpactByCompany = [
@@ -65,7 +68,53 @@ export function ValuationImpactSummary({
   
   // Filter companies by fund and sector if needed
   const filteredCompanies = valuationImpactByCompany;
-  
+
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [calculationDetails, setCalculationDetails] = useState({
+    title: "",
+    calculation: "",
+    reference: ""
+  });
+
+  const showCalculationDetails = (title: string, calculation: string, reference: string = "") => {
+    setCalculationDetails({ title, calculation, reference });
+    setDialogOpen(true);
+  };
+
+  // Portfolio calculation
+  const portfolioCalculation = `
+Initial Portfolio Value: $${(initialValuation / 1000000).toFixed(1)}M
+ESG-Adjusted Value: $${(adjustedValuation / 1000000).toFixed(1)}M
+
+Calculation Method:
+${filteredCompanies.map(company => `
+${company.name}:
+  Initial: $${(company.valuation / 1000000).toFixed(1)}M
+  ESG Impact: ${company.value >= 0 ? '+' : ''}${company.value}%
+  Adjusted: $${(company.adjustedValuation / 1000000).toFixed(1)}M
+  Value Change: ${(company.adjustedValuation - company.valuation) >= 0 ? '+' : ''}$${((company.adjustedValuation - company.valuation) / 1000000).toFixed(2)}M
+`).join('')}
+
+Net Portfolio Impact: 
+  Value Change: $${((adjustedValuation - initialValuation) / 1000000).toFixed(2)}M
+  Percentage Change: ${netImpact.toFixed(1)}%
+`;
+
+  // Company-specific calculations
+  const getCompanyCalculation = (company: any) => `
+Initial Valuation: $${(company.valuation / 1000000).toFixed(1)}M
+
+ESG Impact: ${company.value}% 
+- Environmental factors: ${company.value < 0 ? '-3.2%' : '+4.8%'}
+- Social factors: ${company.value < 0 ? '-2.7%' : '+3.3%'}
+- Governance factors: ${company.value < 0 ? '-2.3%' : '+4.3%'}
+
+Calculation: $${(company.valuation / 1000000).toFixed(1)}M × (1 ${company.value >= 0 ? '+' : ''}${company.value / 100}) = $${(company.adjustedValuation / 1000000).toFixed(1)}M
+
+Net Impact: ${(company.adjustedValuation - company.valuation) >= 0 ? '+' : ''}$${((company.adjustedValuation - company.valuation) / 1000000).toFixed(2)}M
+`;
+
+  // Now let's update the UI to include clickable values with calculation dialogs
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -74,26 +123,54 @@ export function ValuationImpactSummary({
             <CardTitle className="text-lg">Portfolio Valuation Impact</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="font-medium text-sm">Initial Portfolio Value:</span>
-              <span className="font-bold">${(initialValuation / 1000000).toFixed(1)}M</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="font-medium text-sm">ESG-Adjusted Value:</span>
-              <span className="font-bold">${(adjustedValuation / 1000000).toFixed(1)}M</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="font-medium text-sm">Net ESG Impact:</span>
-              <span className={`font-bold ${netImpact >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-                {netImpact >= 0 ? "+" : ""}{netImpact.toFixed(1)}%
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="font-medium text-sm">Value Added/Lost:</span>
-              <span className={`font-bold ${netImpact >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-                {adjustedValuation - initialValuation >= 0 ? "+" : ""}${((adjustedValuation - initialValuation) / 1000000).toFixed(2)}M
-              </span>
-            </div>
+            <TooltipProvider>
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-sm">Initial Portfolio Value:</span>
+                <span className="font-bold">${(initialValuation / 1000000).toFixed(1)}M</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-sm">ESG-Adjusted Value:</span>
+                <span className="font-bold">${(adjustedValuation / 1000000).toFixed(1)}M</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-sm">Net ESG Impact:</span>
+                <button
+                  onClick={() => showCalculationDetails(
+                    "Portfolio Valuation Impact",
+                    portfolioCalculation,
+                    "Based on Q2 2024 ESG assessments and historical performance data."
+                  )}
+                  className={`font-bold ${netImpact >= 0 ? "text-emerald-600" : "text-red-600"} hover:underline inline-flex items-center`}
+                >
+                  {netImpact >= 0 ? "+" : ""}{netImpact.toFixed(1)}%
+                  <UITooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 ml-1 text-muted-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent>Click for calculation details</TooltipContent>
+                  </UITooltip>
+                </button>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-sm">Value Added/Lost:</span>
+                <button
+                  onClick={() => showCalculationDetails(
+                    "Value Added/Lost Calculation",
+                    portfolioCalculation,
+                    "Based on Q2 2024 ESG assessments and historical performance data."
+                  )}
+                  className={`font-bold ${netImpact >= 0 ? "text-emerald-600" : "text-red-600"} hover:underline inline-flex items-center`}
+                >
+                  {adjustedValuation - initialValuation >= 0 ? "+" : ""}${((adjustedValuation - initialValuation) / 1000000).toFixed(2)}M
+                  <UITooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 ml-1 text-muted-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent>Click for calculation details</TooltipContent>
+                  </UITooltip>
+                </button>
+              </div>
+            </TooltipProvider>
           </CardContent>
         </Card>
         
@@ -102,22 +179,54 @@ export function ValuationImpactSummary({
             <CardTitle className="text-lg">Highest Positive Impact</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="font-medium text-sm">Company:</span>
-              <span className="font-bold">MediTech Innovations</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="font-medium text-sm">Valuation Impact:</span>
-              <span className="font-bold text-emerald-600">+12.4%</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="font-medium text-sm">Value Added:</span>
-              <span className="font-bold text-emerald-600">+$3.72M</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="font-medium text-sm">Top ESG Factor:</span>
-              <span className="font-medium">Green Products (+4.5%)</span>
-            </div>
+            <TooltipProvider>
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-sm">Company:</span>
+                <span className="font-bold">MediTech Innovations</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-sm">Valuation Impact:</span>
+                <button
+                  onClick={() => showCalculationDetails(
+                    "MediTech Innovations - Positive Impact",
+                    getCompanyCalculation(valuationImpactByCompany.find(c => c.name === "MediTech Innovations")),
+                    "Based on Q1-Q2 2024 ESG performance data and industry benchmarks."
+                  )}
+                  className="font-bold text-emerald-600 hover:underline inline-flex items-center"
+                >
+                  +12.4%
+                  <UITooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 ml-1 text-muted-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent>Click for calculation details</TooltipContent>
+                  </UITooltip>
+                </button>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-sm">Value Added:</span>
+                <button
+                  onClick={() => showCalculationDetails(
+                    "MediTech Innovations - Value Added",
+                    getCompanyCalculation(valuationImpactByCompany.find(c => c.name === "MediTech Innovations")),
+                    "Based on Q1-Q2 2024 ESG performance data and industry benchmarks."
+                  )}
+                  className="font-bold text-emerald-600 hover:underline inline-flex items-center"
+                >
+                  +$3.72M
+                  <UITooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 ml-1 text-muted-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent>Click for calculation details</TooltipContent>
+                  </UITooltip>
+                </button>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-sm">Top ESG Factor:</span>
+                <span className="font-medium">Green Products (+4.5%)</span>
+              </div>
+            </TooltipProvider>
           </CardContent>
         </Card>
         
@@ -126,22 +235,54 @@ export function ValuationImpactSummary({
             <CardTitle className="text-lg">Highest Negative Impact</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="font-medium text-sm">Company:</span>
-              <span className="font-bold">EcoSolutions Inc.</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="font-medium text-sm">Valuation Impact:</span>
-              <span className="font-bold text-red-600">-8.2%</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="font-medium text-sm">Value Lost:</span>
-              <span className="font-bold text-red-600">-$2.05M</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="font-medium text-sm">Top ESG Factor:</span>
-              <span className="font-medium">Carbon Emissions (-4.2%)</span>
-            </div>
+            <TooltipProvider>
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-sm">Company:</span>
+                <span className="font-bold">EcoSolutions Inc.</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-sm">Valuation Impact:</span>
+                <button
+                  onClick={() => showCalculationDetails(
+                    "EcoSolutions Inc. - Negative Impact",
+                    getCompanyCalculation(valuationImpactByCompany.find(c => c.name === "EcoSolutions Inc.")),
+                    "Based on Q1-Q2 2024 ESG performance data and industry benchmarks."
+                  )}
+                  className="font-bold text-red-600 hover:underline inline-flex items-center"
+                >
+                  -8.2%
+                  <UITooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 ml-1 text-muted-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent>Click for calculation details</TooltipContent>
+                  </UITooltip>
+                </button>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-sm">Value Lost:</span>
+                <button
+                  onClick={() => showCalculationDetails(
+                    "EcoSolutions Inc. - Value Lost",
+                    getCompanyCalculation(valuationImpactByCompany.find(c => c.name === "EcoSolutions Inc.")),
+                    "Based on Q1-Q2 2024 ESG performance data and industry benchmarks."
+                  )}
+                  className="font-bold text-red-600 hover:underline inline-flex items-center"
+                >
+                  -$2.05M
+                  <UITooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 ml-1 text-muted-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent>Click for calculation details</TooltipContent>
+                  </UITooltip>
+                </button>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-sm">Top ESG Factor:</span>
+                <span className="font-medium">Carbon Emissions (-4.2%)</span>
+              </div>
+            </TooltipProvider>
           </CardContent>
         </Card>
       </div>
@@ -218,58 +359,128 @@ export function ValuationImpactSummary({
             <CardTitle>ESG Valuation Impact Detail</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Company</TableHead>
-                    <TableHead>Initial Valuation</TableHead>
-                    <TableHead>ESG-Adjusted</TableHead>
-                    <TableHead>Impact (%)</TableHead>
-                    <TableHead>Value Added/Lost</TableHead>
-                    <TableHead>Top Risk Factor</TableHead>
-                    <TableHead>Top Opportunity</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredCompanies.map((company) => (
-                    <TableRow key={company.name}>
-                      <TableCell className="font-medium">{company.name}</TableCell>
-                      <TableCell>${(company.valuation / 1000000).toFixed(1)}M</TableCell>
-                      <TableCell>${(company.adjustedValuation / 1000000).toFixed(1)}M</TableCell>
-                      <TableCell className={`font-medium ${company.value >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-                        {company.value >= 0 ? "+" : ""}{company.value}%
-                      </TableCell>
-                      <TableCell className={`font-medium ${company.value >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-                        {company.value >= 0 ? "+" : ""}${((company.adjustedValuation - company.valuation) / 1000000).toFixed(2)}M
-                      </TableCell>
-                      <TableCell>
-                        {company.value < 0 ? "Carbon Emissions" : "N/A"}
-                      </TableCell>
-                      <TableCell>
-                        {company.value > 0 ? "Green Products" : "Renewable Energy"}
-                      </TableCell>
+            <TooltipProvider>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Company</TableHead>
+                      <TableHead>Initial Valuation</TableHead>
+                      <TableHead>ESG-Adjusted</TableHead>
+                      <TableHead>Impact (%)</TableHead>
+                      <TableHead>Value Added/Lost</TableHead>
+                      <TableHead>Top Risk Factor</TableHead>
+                      <TableHead>Top Opportunity</TableHead>
                     </TableRow>
-                  ))}
-                  <TableRow className="bg-muted/50 font-medium">
-                    <TableCell>Total Portfolio</TableCell>
-                    <TableCell>${(initialValuation / 1000000).toFixed(1)}M</TableCell>
-                    <TableCell>${(adjustedValuation / 1000000).toFixed(1)}M</TableCell>
-                    <TableCell className={`${netImpact >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-                      {netImpact >= 0 ? "+" : ""}{netImpact.toFixed(1)}%
-                    </TableCell>
-                    <TableCell className={`${netImpact >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-                      {adjustedValuation - initialValuation >= 0 ? "+" : ""}${((adjustedValuation - initialValuation) / 1000000).toFixed(2)}M
-                    </TableCell>
-                    <TableCell>-</TableCell>
-                    <TableCell>-</TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredCompanies.map((company) => (
+                      <TableRow key={company.name}>
+                        <TableCell className="font-medium">{company.name}</TableCell>
+                        <TableCell>${(company.valuation / 1000000).toFixed(1)}M</TableCell>
+                        <TableCell>${(company.adjustedValuation / 1000000).toFixed(1)}M</TableCell>
+                        <TableCell className={`font-medium ${company.value >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                          <button
+                            onClick={() => showCalculationDetails(
+                              `${company.name} - Impact Calculation`,
+                              getCompanyCalculation(company),
+                              `Based on Q1-Q2 2024 ESG performance data and ${company.name} industry benchmarks.`
+                            )}
+                            className={`${company.value >= 0 ? "text-emerald-600" : "text-red-600"} hover:underline inline-flex items-center`}
+                          >
+                            {company.value >= 0 ? "+" : ""}{company.value}%
+                            <UITooltip>
+                              <TooltipTrigger asChild>
+                                <Info className="h-3.5 w-3.5 ml-1 text-muted-foreground" />
+                              </TooltipTrigger>
+                              <TooltipContent>Click for calculation details</TooltipContent>
+                            </UITooltip>
+                          </button>
+                        </TableCell>
+                        <TableCell className={`font-medium ${company.value >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                          <button
+                            onClick={() => showCalculationDetails(
+                              `${company.name} - Value Change Calculation`,
+                              getCompanyCalculation(company),
+                              `Based on Q1-Q2 2024 ESG performance data and ${company.name} industry benchmarks.`
+                            )}
+                            className={`${company.value >= 0 ? "text-emerald-600" : "text-red-600"} hover:underline inline-flex items-center`}
+                          >
+                            {company.value >= 0 ? "+" : ""}${((company.adjustedValuation - company.valuation) / 1000000).toFixed(2)}M
+                            <UITooltip>
+                              <TooltipTrigger asChild>
+                                <Info className="h-3.5 w-3.5 ml-1 text-muted-foreground" />
+                              </TooltipTrigger>
+                              <TooltipContent>Click for calculation details</TooltipContent>
+                            </UITooltip>
+                          </button>
+                        </TableCell>
+                        <TableCell>
+                          {company.value < 0 ? "Carbon Emissions" : "N/A"}
+                        </TableCell>
+                        <TableCell>
+                          {company.value > 0 ? "Green Products" : "Renewable Energy"}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    <TableRow className="bg-muted/50 font-medium">
+                      <TableCell>Total Portfolio</TableCell>
+                      <TableCell>${(initialValuation / 1000000).toFixed(1)}M</TableCell>
+                      <TableCell>${(adjustedValuation / 1000000).toFixed(1)}M</TableCell>
+                      <TableCell className={`${netImpact >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                        <button
+                          onClick={() => showCalculationDetails(
+                            "Portfolio Total Impact",
+                            portfolioCalculation,
+                            "Based on aggregated Q1-Q2 2024 ESG performance data across all companies."
+                          )}
+                          className={`${netImpact >= 0 ? "text-emerald-600" : "text-red-600"} hover:underline inline-flex items-center`}
+                        >
+                          {netImpact >= 0 ? "+" : ""}{netImpact.toFixed(1)}%
+                          <UITooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="h-3.5 w-3.5 ml-1 text-muted-foreground" />
+                            </TooltipTrigger>
+                            <TooltipContent>Click for calculation details</TooltipContent>
+                          </UITooltip>
+                        </button>
+                      </TableCell>
+                      <TableCell className={`${netImpact >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                        <button
+                          onClick={() => showCalculationDetails(
+                            "Portfolio Total Value Change",
+                            portfolioCalculation,
+                            "Based on aggregated Q1-Q2 2024 ESG performance data across all companies."
+                          )}
+                          className={`${netImpact >= 0 ? "text-emerald-600" : "text-red-600"} hover:underline inline-flex items-center`}
+                        >
+                          {adjustedValuation - initialValuation >= 0 ? "+" : ""}${((adjustedValuation - initialValuation) / 1000000).toFixed(2)}M
+                          <UITooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="h-3.5 w-3.5 ml-1 text-muted-foreground" />
+                            </TooltipTrigger>
+                            <TooltipContent>Click for calculation details</TooltipContent>
+                          </UITooltip>
+                        </button>
+                      </TableCell>
+                      <TableCell>-</TableCell>
+                      <TableCell>-</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+            </TooltipProvider>
           </CardContent>
         </Card>
       </div>
+
+      <CalculationDetailsDialog 
+        open={dialogOpen}
+        setOpen={setDialogOpen}
+        title={calculationDetails.title}
+        calculation={calculationDetails.calculation}
+        reference={calculationDetails.reference}
+      />
     </>
   );
 }

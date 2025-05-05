@@ -6,6 +6,8 @@ export interface ESGRiskData {
   score: number;
   weight: number;
   impact: number;
+  calculation?: string; // Calculation explanation
+  reference?: string;  // Reference to historical data
 }
 
 export interface ESGScore {
@@ -19,6 +21,8 @@ export interface Valuation {
   current: number;
   adjusted: number;
   impact: number;
+  calculation?: string; // Detailed calculation explanation
+  reference?: string;   // Reference to historical data used
 }
 
 export interface HistoricalData {
@@ -48,8 +52,11 @@ export interface CompanyData {
 export interface PillarImpactData {
   name: string;
   value: number;
+  calculation?: string; // Calculation explanation
+  reference?: string;   // Reference to historical data
 }
 
 export interface CompanyDataMap {
   [key: string]: CompanyData;
 }
+
