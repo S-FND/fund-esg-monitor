@@ -19,6 +19,7 @@ import EditInvestorProfile from "./pages/EditInvestorProfile";
 import Team from "./pages/Team";
 import ESGDDReport from "./pages/ESGDDReport";
 import ESGCAP from "./pages/ESGCAP";
+import ESGRiskMatrix from "./pages/ESGRiskMatrix";
 import EditPortfolioCompany from "./pages/EditPortfolioCompany";
 import EditFund from "./pages/EditFund";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -52,6 +53,7 @@ const App = () => (
                 <Route path="esg-dd" element={<div className="p-6">ESG Due Diligence</div>} />
                 <Route path="esg-dd/report" element={<ESGDDReport />} />
                 <Route path="esg-dd/cap" element={<ESGCAP />} />
+                <Route path="esg-dd/risk-matrix" element={<ESGRiskMatrix />} />
               </Route>
               <Route element={<AdminProtectedRoute />}>
                 <Route path="/admin/risks" element={<div className="p-6">Manage ESG Risks</div>} />
