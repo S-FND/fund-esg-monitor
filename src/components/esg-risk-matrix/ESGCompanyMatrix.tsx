@@ -8,7 +8,7 @@ import {
   BarChart, Bar, 
   LineChart, Line, 
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, 
-  ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Legend 
+  ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Cell 
 } from "recharts";
 import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
 
@@ -128,6 +128,37 @@ export function ESGCompanyMatrix({ companyId }: ESGCompanyMatrixProps) {
   
   const { impact } = company.valuation;
   const impactClass = impact < 0 ? "text-red-600" : "text-emerald-600";
+
+  // Generate pillar impact data for bar chart
+  const pillarImpactData = [
+    {
+      name: "Environmental",
+      value: company.esgRiskData
+        .filter(item => item.category === "Environmental")
+        .reduce((sum, item) => sum + item.impact, 0) - 
+        company.esgOpportunityData
+        .filter(item => item.category === "Environmental")
+        .reduce((sum, item) => sum + item.impact, 0)
+    },
+    {
+      name: "Social",
+      value: company.esgRiskData
+        .filter(item => item.category === "Social")
+        .reduce((sum, item) => sum + item.impact, 0) - 
+        company.esgOpportunityData
+        .filter(item => item.category === "Social")
+        .reduce((sum, item) => sum + item.impact, 0)
+    },
+    {
+      name: "Governance",
+      value: company.esgRiskData
+        .filter(item => item.category === "Governance")
+        .reduce((sum, item) => sum + item.impact, 0) -
+        company.esgOpportunityData
+        .filter(item => item.category === "Governance")
+        .reduce((sum, item) => sum + item.impact, 0)
+    }
+  ];
   
   return (
     <>
@@ -238,45 +269,16 @@ export function ESGCompanyMatrix({ companyId }: ESGCompanyMatrixProps) {
                   <div>
                     <h4 className="text-sm font-medium mb-2">Valuation Impact by ESG Pillar</h4>
                     <ResponsiveContainer width="100%" height={120}>
-                      <BarChart
-                        data={[
-                          {
-                            name: "Environmental",
-                            value: company.esgRiskData
-                              .filter(item => item.category === "Environmental")
-                              .reduce((sum, item) => sum + item.impact, 0) - 
-                              company.esgOpportunityData
-                              .filter(item => item.category === "Environmental")
-                              .reduce((sum, item) => sum + item.impact, 0)
-                          },
-                          {
-                            name: "Social",
-                            value: company.esgRiskData
-                              .filter(item => item.category === "Social")
-                              .reduce((sum, item) => sum + item.impact, 0) - 
-                              company.esgOpportunityData
-                              .filter(item => item.category === "Social")
-                              .reduce((sum, item) => sum + item.impact, 0)
-                          },
-                          {
-                            name: "Governance",
-                            value: company.esgRiskData
-                              .filter(item => item.category === "Governance")
-                              .reduce((sum, item) => sum + item.impact, 0) -
-                              company.esgOpportunityData
-                              .filter(item => item.category === "Governance")
-                              .reduce((sum, item) => sum + item.impact, 0)
-                          }
-                        ]}
-                      >
+                      <BarChart data={pillarImpactData}>
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="name" />
                         <YAxis />
                         <Tooltip formatter={(value) => [`${value}%`, 'Impact']} />
-                        <Bar 
-                          dataKey="value" 
-                          fill={(value) => value < 0 ? "#ef4444" : "#22c55e"}
-                        />
+                        <Bar dataKey="value" fill="#8884d8">
+                          {pillarImpactData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.value < 0 ? "#ef4444" : "#22c55e"} />
+                          ))}
+                        </Bar>
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
