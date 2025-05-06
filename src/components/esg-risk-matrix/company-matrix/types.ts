@@ -59,4 +59,3 @@ export interface PillarImpactData {
 export interface CompanyDataMap {
   [key: string]: CompanyData;
 }
-
