@@ -15,14 +15,16 @@ import { Label } from "@/components/ui/label";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AdminNav } from "./admin/AdminNav";
 import { useAuth } from "@/contexts/AuthContext";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 
 export function Header() {
   const { userRole } = useAuth();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   
   return (
-    <header className="fixed top-0 left-64 right-0 z-50 flex h-16 items-center justify-between border-b bg-background px-4">
+    <header className="flex h-16 items-center justify-between border-b bg-background px-4">
       <div className="flex items-center gap-4">
+        <SidebarTrigger />
         {(userRole === 'admin' || userRole === 'investor_admin') && <AdminNav />}
       </div>
       
