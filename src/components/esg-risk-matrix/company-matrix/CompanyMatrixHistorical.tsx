@@ -81,6 +81,10 @@ const longTermFinancialData = [
   { year: "2029", company: 139.4, djsiPeers: 109.6, msciPeers: 107.5, projected: true }
 ];
 
+// Split the data into historical and projected for different dash styles
+const historicalData = longTermFinancialData.filter((item) => !item.projected);
+const projectedData = longTermFinancialData.filter((item) => item.projected);
+
 export function CompanyMatrixHistorical({ company }: CompanyMatrixHistoricalProps) {
   // Create a custom renderer for the XAxis that adds a dashed line for projected years
   const customAxisTick = (props: any) => {
@@ -284,6 +288,8 @@ export function CompanyMatrixHistorical({ company }: CompanyMatrixHistoricalProp
                     />
                     <Tooltip content={<ChartTooltipContent />} />
                     <Legend />
+                    
+                    {/* Historical Data Areas */}
                     <Area 
                       type="monotone" 
                       dataKey="company" 
@@ -292,7 +298,7 @@ export function CompanyMatrixHistorical({ company }: CompanyMatrixHistoricalProp
                       fillOpacity={1}
                       fill="url(#colorCompany)" 
                       strokeWidth={2}
-                      strokeDasharray={(d: any) => d.projected ? "3 3" : "0"}
+                      data={historicalData}
                     />
                     <Area 
                       type="monotone" 
@@ -302,7 +308,7 @@ export function CompanyMatrixHistorical({ company }: CompanyMatrixHistoricalProp
                       fillOpacity={1}
                       fill="url(#colorDjsi)" 
                       strokeWidth={2}
-                      strokeDasharray={(d: any) => d.projected ? "3 3" : "0"}
+                      data={historicalData}
                     />
                     <Area 
                       type="monotone" 
@@ -312,7 +318,42 @@ export function CompanyMatrixHistorical({ company }: CompanyMatrixHistoricalProp
                       fillOpacity={1}
                       fill="url(#colorMsci)" 
                       strokeWidth={2}
-                      strokeDasharray={(d: any) => d.projected ? "3 3" : "0"}
+                      data={historicalData}
+                    />
+                    
+                    {/* Projected Data Areas with Dashed Lines */}
+                    <Area 
+                      type="monotone" 
+                      dataKey="company" 
+                      name={`${company.name} (Projected)`} 
+                      stroke="#8b5cf6" 
+                      fillOpacity={1}
+                      fill="url(#colorCompany)" 
+                      strokeWidth={2}
+                      strokeDasharray="3 3"
+                      data={projectedData}
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="djsiPeers" 
+                      name="DJSI Peers (Projected)" 
+                      stroke="#22c55e" 
+                      fillOpacity={1}
+                      fill="url(#colorDjsi)" 
+                      strokeWidth={2}
+                      strokeDasharray="3 3"
+                      data={projectedData}
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="msciPeers" 
+                      name="MSCI Peers (Projected)" 
+                      stroke="#3b82f6" 
+                      fillOpacity={1}
+                      fill="url(#colorMsci)" 
+                      strokeWidth={2}
+                      strokeDasharray="3 3"
+                      data={projectedData}
                     />
                   </AreaChart>
                 </ResponsiveContainer>
