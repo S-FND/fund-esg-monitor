@@ -19,9 +19,10 @@ export type ChartContextProps = {
   config: ChartConfig;
 };
 
+// Fix the interface to avoid the conflict with 'content' property
 export interface ChartTooltipContentProps
-  extends React.ComponentProps<typeof RechartsPrimitive.Tooltip>,
-    React.ComponentProps<"div"> {
+  extends Omit<React.ComponentProps<typeof RechartsPrimitive.Tooltip>, 'content'>,
+    React.HTMLAttributes<HTMLDivElement> {
   hideLabel?: boolean;
   hideIndicator?: boolean;
   indicator?: "line" | "dot" | "dashed";
