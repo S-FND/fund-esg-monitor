@@ -25,6 +25,13 @@ export function Header() {
     <header className="flex h-16 items-center justify-between border-b bg-background px-4">
       <div className="flex items-center gap-4">
         <SidebarTrigger />
+        <div className="flex items-center">
+          <img 
+            src="/fandoro-logo.png" 
+            alt="Fandoro Technologies" 
+            className="h-8 w-8 mr-2 hidden sm:block" 
+          />
+        </div>
         {(userRole === 'admin' || userRole === 'investor_admin') && <AdminNav />}
       </div>
       
