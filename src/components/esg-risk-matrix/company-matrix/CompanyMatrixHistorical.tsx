@@ -82,6 +82,28 @@ const longTermFinancialData = [
 ];
 
 export function CompanyMatrixHistorical({ company }: CompanyMatrixHistoricalProps) {
+  // Create a custom renderer for the XAxis that adds a dashed line for projected years
+  const customAxisTick = (props: any) => {
+    const { x, y, payload } = props;
+    const year = parseInt(payload.value);
+    const isProjected = year >= 2025;
+    
+    return (
+      <g transform={`translate(${x},${y})`}>
+        <text 
+          x={0} 
+          y={0} 
+          dy={16} 
+          textAnchor="middle" 
+          fill={isProjected ? "#666666" : "#000000"}
+          style={{ fontStyle: isProjected ? 'italic' : 'normal' }}
+        >
+          {payload.value}
+        </text>
+      </g>
+    );
+  };
+  
   return (
     <div className="grid grid-cols-1 gap-4">
       <Tabs defaultValue="esg">
@@ -254,10 +276,7 @@ export function CompanyMatrixHistorical({ company }: CompanyMatrixHistoricalProp
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis 
                       dataKey="year"
-                      axisLine={{ strokeDasharray: (value) => {
-                        const year = parseInt(value);
-                        return year >= 2025 ? "3 3" : "0";
-                      }}}
+                      tick={customAxisTick}
                     />
                     <YAxis 
                       domain={[60, 150]} 
@@ -273,7 +292,7 @@ export function CompanyMatrixHistorical({ company }: CompanyMatrixHistoricalProp
                       fillOpacity={1}
                       fill="url(#colorCompany)" 
                       strokeWidth={2}
-                      strokeDasharray={(dataPoint) => dataPoint.projected ? "3 3" : "0"}
+                      strokeDasharray={(d: any) => d.projected ? "3 3" : "0"}
                     />
                     <Area 
                       type="monotone" 
@@ -283,7 +302,7 @@ export function CompanyMatrixHistorical({ company }: CompanyMatrixHistoricalProp
                       fillOpacity={1}
                       fill="url(#colorDjsi)" 
                       strokeWidth={2}
-                      strokeDasharray={(dataPoint) => dataPoint.projected ? "3 3" : "0"}
+                      strokeDasharray={(d: any) => d.projected ? "3 3" : "0"}
                     />
                     <Area 
                       type="monotone" 
@@ -293,7 +312,7 @@ export function CompanyMatrixHistorical({ company }: CompanyMatrixHistoricalProp
                       fillOpacity={1}
                       fill="url(#colorMsci)" 
                       strokeWidth={2}
-                      strokeDasharray={(dataPoint) => dataPoint.projected ? "3 3" : "0"}
+                      strokeDasharray={(d: any) => d.projected ? "3 3" : "0"}
                     />
                   </AreaChart>
                 </ResponsiveContainer>
