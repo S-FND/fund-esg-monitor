@@ -54,6 +54,7 @@ export default function EditFund() {
     currency: fund['currency'],
     focus: fund['focus'],
     stage: fund['stage'],
+
     inclusionTerms: fund['inclusionTerms'],
     exclusionTerms: fund['exclusionTerms'],
   });
@@ -101,7 +102,8 @@ export default function EditFund() {
       else {
         const jsondata = await res.json();
         console.log('jsondata', jsondata)
-        setFormData(jsondata['data'][0])
+        // setFormData(jsondata['data'][0])
+        setFormData({...jsondata['data'][0],focus:jsondata['data'][0]['sectorFocus'].split(",")})
       }
     } catch (error) {
       console.error("Api call:", error);

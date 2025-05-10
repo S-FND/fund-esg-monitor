@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronLeft } from "lucide-react";
@@ -16,7 +16,8 @@ import { useAuth } from "@/contexts/AuthContext";
 export default function Categorization() {
   const navigate = useNavigate();
   const { userRole } = useAuth();
-  
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const {
     questions,
     responses,
@@ -27,11 +28,59 @@ export default function Categorization() {
     handleResponseChange,
     handleObservationsChange,
     handleQuestionUpdate
-  } = useCategorization();
-  
+  } = useCategorization(searchParams.get('companyInfoId'));
+
   const category = getCategory(totalScore);
   const canManageQuestions = userRole === 'admin' || userRole === 'investor_admin' || userRole === 'investor';
-  
+
+  const submitCategorizationData = async () => {
+    // navigate("/portfolio")
+    try {
+      let questionResponse=[]
+    Object.keys(questions).map((q,index)=>{
+      // let response=responses[q]
+      questionResponse.push({
+        srNumber:index,
+        questionName:q,
+        categoryTotalScore:0,
+        responses:questions[q].map((ques)=>{
+            return {...ques,selectedResponse:responses[q][ques.id]?.response,score:responses[q][ques.id]?.score,observations:responses[q][ques.id]?.observations}
+          })
+      })
+    })
+    
+    let  preliminaryCategorisation={}
+    Object.keys(sectionScores).forEach((section)=>{
+      preliminaryCategorisation[section]=getCategory(sectionScores[section])
+    })
+    let payloadObj={
+      companyInfoId:searchParams.get('companyInfoId'),
+      grandTotal:totalScore,
+      categories:questionResponse,
+      preliminaryCategorisation:preliminaryCategorisation
+    }
+    console.log('payloadObj',payloadObj)
+      const res = await fetch(`http://localhost:3002` + `/investor/categorisation`, {
+        method: "POST",
+        body: JSON.stringify({...payloadObj}),
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
+      });
+      if (!res.ok) {
+        // toast.error("Invalid credentials");
+        // setIsLoading(false);
+        return;
+      }
+      else {
+        const jsondata = await res.json();
+        console.log('jsondata', jsondata)
+        // Navigate to pre-screening page
+        // navigate("/portfolio/categorization?companyInfoId="+searchParams.get('companyInfoId'))
+      }
+    } catch (error) {
+      
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -39,25 +88,25 @@ export default function Categorization() {
           <h1 className="text-2xl font-bold tracking-tight">Categorization Checklist</h1>
           <p className="text-muted-foreground">Part C - ESG DD Questionnaire</p>
         </div>
-        
+
         {canManageQuestions && (
-          <ManageCategoryQuestions 
-            questions={questions} 
+          <ManageCategoryQuestions
+            questions={questions}
             onQuestionUpdate={handleQuestionUpdate}
           />
         )}
       </div>
-      
+
       <ObjectiveCard />
-      
+
       <div className="flex space-x-6">
-        <CategoryScoringSidebar 
+        <CategoryScoringSidebar
           sectionScores={sectionScores}
           totalScore={totalScore}
           activeTab={activeTab}
           onTabChange={setActiveTab}
         />
-        
+
         <div className="flex-1">
           <Card>
             <CardHeader>
@@ -78,13 +127,13 @@ export default function Categorization() {
           </Card>
         </div>
       </div>
-      
+
       <div className="flex justify-between mt-6">
         <Button variant="outline" type="button" onClick={() => navigate(-1)} className="gap-2">
           <ChevronLeft className="h-4 w-4" />
           <span>Back</span>
         </Button>
-        <Button onClick={() => navigate("/portfolio")}>
+        <Button onClick={() => submitCategorizationData()}>
           Complete and Save
         </Button>
       </div>

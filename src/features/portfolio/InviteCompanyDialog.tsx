@@ -13,7 +13,29 @@ interface InviteCompanyDialogProps {
 export function InviteCompanyDialog({ onInvite }: InviteCompanyDialogProps) {
   const [email, setEmail] = useState("");
 
-  const handleSend = () => {
+  const handleSend = async () => {
+    // /investor/fund/company/invite
+    try {
+      const res = await fetch(`http://localhost:3002` + `/investor/fund/company/invite`, {
+        method: "POST",
+        body:JSON.stringify({email:email}),
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
+      });
+      if (!res.ok) {
+        // toast.error("Invalid credentials");
+        // setIsLoading(false);
+        return;
+      }
+      else {
+        const jsondata = await res.json();
+        console.log('jsondata', jsondata)
+      }
+    } catch (error) {
+      console.error("Api call:", error);
+      // toast.error("API Call failed. Please try again.");
+    } finally {
+      // setIsLoading(false);
+    }
     onInvite(email);
     setEmail("");
   };

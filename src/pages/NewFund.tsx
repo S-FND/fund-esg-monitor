@@ -111,10 +111,33 @@ export default function NewFund() {
     }
   };
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async(e: React.FormEvent) => {
     e.preventDefault();
     console.log("Submitting fund data:", formData);
-    navigate("/funds");
+    try {
+      const res = await fetch(`http://localhost:3002` + `/investor/fund`, {
+        method: "POST",
+        body:JSON.stringify({...formData,sectorFocus:formData.sectors.join(","),inclusion:formData.inclusionTerms,exclusion:formData.exclusionTerms,stageOfInvestment:formData.stage}),
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
+      });
+      if (!res.ok) {
+        // toast.error("Invalid credentials");
+        // setIsLoading(false);
+        return;
+      }
+      else {
+        const jsondata = await res.json();
+        console.log('jsondata', jsondata)
+        // setFunds(jsondata['data'])
+        navigate("/funds");
+      }
+    } catch (error) {
+      console.error("Api call:", error);
+      // toast.error("API Call failed. Please try again.");
+    } finally {
+      // setIsLoading(false);
+    }
+    
   };
   
   return (

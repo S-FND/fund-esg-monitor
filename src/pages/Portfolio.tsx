@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -135,6 +135,7 @@ export default function Portfolio() {
   const navigate = useNavigate();
   const [selectedFund, setSelectedFund] = useState<string>("all");
   const [selectedSector, setSelectedSector] = useState<string>("all");
+  const [portfolioCompanyList,setPortfolioCompanyList]=useState([])
 
   // Filter companies based on selected filters
   const filteredCompanies = portfolioCompanies.filter(company => {
@@ -151,6 +152,35 @@ export default function Portfolio() {
     setSelectedFund("all");
     setSelectedSector("all");
   };
+
+  const getCompanyList= async()=>{
+    
+    try {
+      const res = await fetch(`http://localhost:3002` + "/investor/companyInfo/", {
+        method: "GET",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
+      });
+      if (!res.ok) {
+        // toast.error("Invalid credentials");
+        // setIsLoading(false);
+        return;
+      }
+      else {
+        const jsondata = await res.json();
+        console.log('jsondata', jsondata)
+        setPortfolioCompanyList(jsondata['data'])
+      }
+    } catch (error) {
+      console.error("Api call:", error);
+      // toast.error("API Call failed. Please try again.");
+    } finally {
+      // setIsLoading(false);
+    }
+  }
+
+  useEffect(()=>{
+    getCompanyList()
+  },[])
 
   return (
     <div className="space-y-6">
@@ -180,7 +210,16 @@ export default function Portfolio() {
         ))}
       </div>
 
-      {filteredCompanies.length === 0 && (
+       {/*{filteredCompanies.length === 0 && (
+        <NoCompaniesFound clearFilters={clearFilters} />
+      )} */}
+      <div className="grid grid-cols-1 gap-4">
+        {portfolioCompanyList.map(company => (
+          <CompanyCard key={company._id} company={company} />
+        ))}
+      </div>
+
+      {portfolioCompanyList.length === 0 && (
         <NoCompaniesFound clearFilters={clearFilters} />
       )}
     </div>

@@ -3,6 +3,28 @@ interface ScoreSummaryProps {
   totalScore: number;
 }
 
+// Determine Go/No-Go decision
+export const getDecision = (score: number) => {
+  if (score >= 1) {
+    return "No-Go";
+  } else if (score >= 0.66) {
+    return "Caution - Detailed ESDD Required";
+  } else {
+    return "Go";
+  }
+};
+
+// Determine action based on decision
+export const getAction = (decision: string) => {
+  if (decision === "No-Go") {
+    return "Decline the investment opportunity due to high ESG risks";
+  } else if (decision === "Caution - Detailed ESDD Required") {
+    return "Proceed with detailed ESG due diligence to identify and mitigate risks";
+  } else {
+    return "Proceed with investment process";
+  }
+};
+
 export function ScoreSummary({ totalScore }: ScoreSummaryProps) {
   // Determine Go/No-Go decision
   const getDecision = (score: number) => {

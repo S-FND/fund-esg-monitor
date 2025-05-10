@@ -62,7 +62,7 @@ export default function Funds() {
       
       <div className="grid grid-cols-1 gap-4">
         {funds.map(fund => (
-          <Card key={fund.id} className="overflow-hidden">
+          <Card key={fund._id} className="overflow-hidden">
             <CardHeader className="bg-muted/50 pb-4">
               <CardTitle>{fund.name}</CardTitle>
             </CardHeader>
@@ -76,7 +76,7 @@ export default function Funds() {
                 <div>
                   <h3 className="text-sm font-medium text-muted-foreground mb-1">Sector Focus</h3>
                   <div className="flex flex-wrap gap-1">
-                    {["ClimateTech", "AgriTech",fund.sectorFocus].map(sector => (
+                    {["ClimateTech", "AgriTech",fund.sectorFocus.split(",")].flat().map(sector => (
                       <span key={sector} className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-accent text-accent-foreground">
                         {sector}
                       </span>

@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronRight } from "lucide-react";
@@ -8,7 +8,7 @@ import { ManageQuestions } from "@/components/pre-screening/ManageQuestions";
 import { useAuth } from "@/contexts/AuthContext";
 import { ObjectivesCard } from "@/components/pre-screening/ObjectivesCard";
 import { QuestionsTable } from "@/components/pre-screening/QuestionsTable";
-import { ScoreSummary } from "@/components/pre-screening/ScoreSummary";
+import { ScoreSummary,getDecision,getAction } from "@/components/pre-screening/ScoreSummary";
 import { usePreScreeningResponses } from "@/hooks/usePreScreeningResponses";
 
 // Initial pre-screening questions
@@ -49,18 +49,65 @@ export default function PreScreening() {
   const navigate = useNavigate();
   const { userRole } = useAuth();
   const [questions, setQuestions] = useState(initialQuestions);
+  const [searchParams, setSearchParams] = useSearchParams();
+  console.log('companyInfoId',searchParams.get('companyInfoId'))
   const {
     responses,
     handleResponseChange,
     handleRemarksChange,
     updateResponsesForQuestions,
     getTotalScore
-  } = usePreScreeningResponses(initialQuestions);
+  } = usePreScreeningResponses(initialQuestions,searchParams.get('companyInfoId'));
   
   const handleQuestionsUpdate = (updatedQuestions: any[]) => {
     setQuestions(updatedQuestions);
     updateResponsesForQuestions(updatedQuestions);
   };
+  
+  const handlePrescreeningSubmit=async ()=>{
+    
+    try {
+      console.log('responses',responses)
+      let decision=getDecision(totalScore)
+      let action=getAction(decision)
+      let updatedQuestionData=questions.map((q)=>{
+        
+        return {...q,selectedResponse:responses[q.id]?.response,score:responses[q.id]?.score,remarks:responses[q.id]?.remarks}
+      })
+      console.log('updatedData',updatedQuestionData)
+      let postPayload={
+        companyInfoId:searchParams.get('companyInfoId'),
+        responses:updatedQuestionData,
+        totalScore:totalScore,
+        action:action,
+        decisionOnTheInvestment:{
+          withCaution:decision,
+          undertakeDetailed:''
+        }
+      }
+      const res = await fetch(`http://localhost:3002` + `/investor/pre-screening`, {
+        method: "POST",
+        body: JSON.stringify({...postPayload}),
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
+      });
+      if (!res.ok) {
+        // toast.error("Invalid credentials");
+        // setIsLoading(false);
+        return;
+      }
+      else {
+        const jsondata = await res.json();
+        console.log('jsondata', jsondata)
+        // Navigate to pre-screening page
+        navigate("/portfolio/categorization?companyInfoId="+searchParams.get('companyInfoId'))
+      }
+    } catch (error) {
+      
+    }
+    finally{
+
+    }
+  }
   
   // Calculate total score
   const totalScore = getTotalScore();
@@ -107,7 +154,7 @@ export default function PreScreening() {
         <Button variant="outline" type="button" onClick={() => navigate(-1)}>
           Back
         </Button>
-        <Button onClick={() => navigate("/portfolio/categorization")} className="gap-2">
+        <Button onClick={() => handlePrescreeningSubmit()} className="gap-2">
           <span>Next: Categorization</span>
           <ChevronRight className="h-4 w-4" />
         </Button>
@@ -115,3 +162,5 @@ export default function PreScreening() {
     </div>
   );
 }
+
+// navigate("/portfolio/categorization")

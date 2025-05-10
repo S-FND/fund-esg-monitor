@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { categorizationQuestions } from "@/data/categorizationQuestions";
 import { 
   CategoryQuestion, 
@@ -14,11 +14,12 @@ import {
   getSectionResponseOptions
 } from "@/utils/categorization";
 import { useToast } from "@/components/ui/use-toast";
+import { useSearchParams } from "react-router-dom";
 
 /**
  * Hook for managing categorization state and actions
  */
-export function useCategorization(): CategorizationHookResult {
+export function useCategorization(companyInfoId: string): CategorizationHookResult {
   const [questions, setQuestions] = useState<CategoriesData>(categorizationQuestions);
   const [activeTab, setActiveTab] = useState<string>("policy");
   const { toast } = useToast();
@@ -141,6 +142,54 @@ export function useCategorization(): CategorizationHookResult {
   
   // Calculate total score across all sections
   const totalScore = calculateTotalScore(sectionScores);
+
+  const getCategorisationData = async (companyInfoId) => {
+    try {
+      const res = await fetch(`http://localhost:3002` + `/investor/categorisation/${companyInfoId}`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
+      });
+      if (!res.ok) {
+        // toast.error("Invalid credentials");
+        // setIsLoading(false);
+        return;
+      }
+      else {
+        const jsondata = await res.json();
+        console.log('getCategorisationData ::jsondata',jsondata)
+        console.log('getCategorisationData ::responses',responses)
+        if (jsondata['categories'] && jsondata['categories'].length > 0) {
+          let parsedResponse={}
+          jsondata['categories'].forEach((response)=>{
+            let responsesObj={}
+            response['responses'].forEach((res:any)=>{
+              responsesObj[res['id']]={
+                observations: res['observations'],
+                response: res['selectedResponse'],
+                score: res['score']
+              }
+            })
+            parsedResponse[response['questionName']]=responsesObj
+          })
+          console.log("parsedResponse",parsedResponse)
+          setResponses(parsedResponse)
+        }
+
+      }
+    } catch (error) {
+      console.error("Api call:", error);
+      // toast.error("API Call failed. Please try again.");
+    } finally {
+      // setIsLoading(false);
+    }
+
+  };
+
+  useEffect(() => {
+    console.log("Inside useEffect companyInfoId", companyInfoId)
+    getCategorisationData(companyInfoId)
+    
+  }, [])
 
   return {
     questions,

@@ -26,7 +26,7 @@ export function CompanyCard({ company }: CompanyCardProps) {
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between">
           <div>
-            <CardTitle>{company.name}</CardTitle>
+            <CardTitle>{company.companyName}</CardTitle>
             <p className="text-sm text-muted-foreground">{company.sector}</p>
           </div>
           <Badge className={getCategoryColor(company.esgCategory)}>
@@ -40,16 +40,16 @@ export function CompanyCard({ company }: CompanyCardProps) {
             <h3 className="text-sm font-medium text-muted-foreground">Company Details</h3>
             <div className="space-y-1 mt-2">
               <p className="text-sm">
-                <span className="font-medium">Type:</span> {company.type}
+                <span className="font-medium">Type:</span> {company.companytype}
               </p>
               <p className="text-sm">
-                <span className="font-medium">CEO:</span> {company.ceo}
+                <span className="font-medium">CEO:</span> {company.founder}
               </p>
               <p className="text-sm">
                 <span className="font-medium">Fund:</span> {company.fundName}
               </p>
               <p className="text-sm">
-                <span className="font-medium">Stage:</span> {company.stage}
+                <span className="font-medium">Stage:</span> {company.opportunityStatus}
               </p>
             </div>
           </div>
@@ -57,10 +57,10 @@ export function CompanyCard({ company }: CompanyCardProps) {
             <h3 className="text-sm font-medium text-muted-foreground">Investment Info</h3>
             <div className="space-y-1 mt-2">
               <p className="text-sm">
-                <span className="font-medium">Investment Date:</span> {new Date(company.investmentDate).toLocaleDateString()}
+                <span className="font-medium">Investment Date:</span> {new Date(company.dateofScreening).toLocaleDateString()}
               </p>
               <p className="text-sm">
-                <span className="font-medium">Fund Shareholding:</span> {company.shareholding}%
+                <span className="font-medium">Fund Shareholding:</span> {company.fundShareholding}%
               </p>
               <p className="text-sm">
                 <span className="font-medium">ESG Score:</span> {company.esgScore}/100
@@ -72,20 +72,21 @@ export function CompanyCard({ company }: CompanyCardProps) {
             <div className="space-y-1 mt-2 text-xs">
               <p className="font-medium">Employees:</p>
               <p>
-                Founders: {company.employees.founders.male} male, {company.employees.founders.female} female, {company.employees.founders.others} others
+                Founders: {company.foundersPromotorsMale} male, {company.foundersPromotorsFemale} female, {company.foundersPromotorsOther} others
               </p>
               <p>
-                Other: {company.employees.others.male} male, {company.employees.others.female} female, {company.employees.others.others} others
+                Other: {company.otherEmpMale} male, {company.otherEmpFemale} female, {company.otherEmpOther} others
               </p>
               <Separator className="my-1" />
               <p className="font-medium">Workers:</p>
               <p>
-                Direct: {company.workers.direct.male} male, {company.workers.direct.female} female, {company.workers.direct.others} others
+                Direct: {company.directContractMale} male, {company.directContractFemale} female, {company.directContractOther} others
               </p>
               <p>
-                Indirect: {company.workers.indirect.male} male, {company.workers.indirect.female} female, {company.workers.indirect.others} others
+                Indirect: {company.indirectlyMale} male, {company.indirectlyFemale} female, {company.indirectlyOther} others
               </p>
             </div>
+            
           </div>
         </div>
       </CardContent>

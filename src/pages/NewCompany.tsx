@@ -19,17 +19,17 @@ const funds = [
 ];
 
 const sectors = [
-  "Agritech", 
-  "ClimateTech", 
-  "FinTech", 
-  "HealthTech", 
-  "EdTech", 
-  "Logistics", 
-  "DeepTech", 
-  "SpaceTech", 
-  "Quick Commerce", 
-  "Ecomm", 
-  "Robotics", 
+  "Agritech",
+  "ClimateTech",
+  "FinTech",
+  "HealthTech",
+  "EdTech",
+  "Logistics",
+  "DeepTech",
+  "SpaceTech",
+  "Quick Commerce",
+  "Ecomm",
+  "Robotics",
   "Others"
 ];
 
@@ -70,50 +70,78 @@ export default function NewCompany() {
     sector: "",
     subsector: "",
     designation: "",
-    businessNature: "",
+    natureofBusiness: "",
     founder: "",
-    screeningDate: "",
+    dateofScreening: "",
     investmentDate: "",
     fundId: "",
-    investmentStrategy: "",
-    city: "",
-    description: "",
-    investmentSize: "",
-    investmentStage: "",
+    fundInvestmentS: "",
+    location: "",
+    briefdescription: "",
+    potentialInvestmentSize: "",
+    opportunityStatus: "",
     futureAction: "",
-    informationSource: "",
-    gstNumber: "",
-    shareholding: "",
-    employeesFoundersMale: "0",
-    employeesFoundersFemale: "0",
-    employeesFoundersOthers: "0",
-    employeesOtherMale: "0",
-    employeesOtherFemale: "0",
-    employeesOtherOthers: "0",
-    workersDirectMale: "0",
-    workersDirectFemale: "0",
-    workersDirectOthers: "0",
-    workersIndirectMale: "0",
-    workersIndirectFemale: "0",
-    workersIndirectOthers: "0"
+    sourceofInformation: "",
+    gst: "",
+    fundShareholding: "",
+    foundersPromotorsMale: "0",
+    foundersPromotorsFemale: "0",
+    foundersPromotorsOther: "0",
+    otherEmpMale: "0",
+    otherEmpFemale: "0",
+    otherEmpOther: "0",
+    directContractMale: "0",
+    directContractFemale: "0",
+    directContractOther: "0",
+    indirectlyMale: "0",
+    indirectlyFemale: "0",
+    indirectlyOther: "0"
   });
-  
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
-  
+
   const handleSelectChange = (name: string, value: string) => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
-  
-  const handleSubmit = (e: React.FormEvent) => {
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log("Submitting company data:", formData);
-    // Navigate to pre-screening page
-    navigate("/portfolio/pre-screening");
+    try {
+      const res = await fetch(`http://localhost:3002` + `/investor/companyInfo/update`, {
+        method: "POST",
+        body: JSON.stringify({ ...formData, companytype: 'Portfolio Company' }),
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
+      });
+      if (!res.ok) {
+        // toast.error("Invalid credentials");
+        // setIsLoading(false);
+        return;
+      }
+      else {
+        const jsondata = await res.json();
+        console.log('jsondata', jsondata)
+        // Navigate to pre-screening page
+        if(jsondata['companyInfoId']){
+          navigate("/portfolio/pre-screening?companyInfoId="+jsondata['companyInfoId']);
+        }
+        else{
+          //show toast error
+        }
+        
+      }
+    } catch (error) {
+      console.error("Api call:", error);
+      // toast.error("API Call failed. Please try again.");
+    } finally {
+      // setIsLoading(false);
+    }
+
   };
-  
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -122,7 +150,7 @@ export default function NewCompany() {
           <p className="text-muted-foreground">General Information</p>
         </div>
       </div>
-      
+
       <form onSubmit={handleSubmit}>
         <Card>
           <CardHeader>
@@ -132,20 +160,20 @@ export default function NewCompany() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="companyName">Company Name</Label>
-                <Input 
-                  id="companyName" 
-                  name="companyName" 
-                  value={formData.companyName} 
-                  onChange={handleInputChange} 
-                  placeholder="Enter company name" 
-                  required 
+                <Input
+                  id="companyName"
+                  name="companyName"
+                  value={formData.companyName}
+                  onChange={handleInputChange}
+                  placeholder="Enter company name"
+                  required
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="companyType">Company Type</Label>
-                <Select 
-                  value={formData.companyType} 
+                <Select
+                  value={formData.companyType}
                   onValueChange={(value) => handleSelectChange("companyType", value)}
                 >
                   <SelectTrigger>
@@ -160,25 +188,25 @@ export default function NewCompany() {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input 
-                  id="email" 
-                  name="email" 
+                <Input
+                  id="email"
+                  name="email"
                   type="email"
-                  value={formData.email} 
-                  onChange={handleInputChange} 
-                  placeholder="Enter email address" 
-                  required 
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  placeholder="Enter email address"
+                  required
                 />
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="sector">Sector</Label>
-                  <Select 
-                    value={formData.sector} 
+                  <Select
+                    value={formData.sector}
                     onValueChange={(value) => handleSelectChange("sector", value)}
                   >
                     <SelectTrigger>
@@ -193,35 +221,35 @@ export default function NewCompany() {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="subsector">Subsector</Label>
-                  <Input 
-                    id="subsector" 
-                    name="subsector" 
-                    value={formData.subsector} 
-                    onChange={handleInputChange} 
-                    placeholder="Enter subsector" 
+                  <Input
+                    id="subsector"
+                    name="subsector"
+                    value={formData.subsector}
+                    onChange={handleInputChange}
+                    placeholder="Enter subsector"
                   />
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="designation">Designation</Label>
-                <Input 
-                  id="designation" 
-                  name="designation" 
-                  value={formData.designation} 
-                  onChange={handleInputChange} 
-                  placeholder="Enter designation" 
+                <Input
+                  id="designation"
+                  name="designation"
+                  value={formData.designation}
+                  onChange={handleInputChange}
+                  placeholder="Enter designation"
                 />
               </div>
-              
+
               <div className="space-y-2">
-                <Label htmlFor="businessNature">Nature of Business</Label>
-                <RadioGroup 
-                  onValueChange={(value) => handleSelectChange("businessNature", value)} 
-                  defaultValue={formData.businessNature}
+                <Label htmlFor="natureofBusiness">Nature of Business</Label>
+                <RadioGroup
+                  onValueChange={(value) => handleSelectChange("natureofBusiness", value)}
+                  defaultValue={formData.natureofBusiness}
                   className="flex space-x-4"
                 >
                   {businessNatures.map(nature => (
@@ -232,47 +260,47 @@ export default function NewCompany() {
                   ))}
                 </RadioGroup>
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="founder">Founder / CEO</Label>
-                <Input 
-                  id="founder" 
-                  name="founder" 
-                  value={formData.founder} 
-                  onChange={handleInputChange} 
-                  placeholder="Enter founder/CEO name" 
-                  required 
+                <Input
+                  id="founder"
+                  name="founder"
+                  value={formData.founder}
+                  onChange={handleInputChange}
+                  placeholder="Enter founder/CEO name"
+                  required
                 />
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="screeningDate">Date of Screening</Label>
-                  <Input 
-                    id="screeningDate" 
-                    name="screeningDate" 
+                  <Label htmlFor="dateofScreening">Date of Screening</Label>
+                  <Input
+                    id="dateofScreening"
+                    name="dateofScreening"
                     type="date"
-                    value={formData.screeningDate} 
-                    onChange={handleInputChange} 
+                    value={formData.dateofScreening}
+                    onChange={handleInputChange}
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="investmentDate">Date of Investment</Label>
-                  <Input 
-                    id="investmentDate" 
-                    name="investmentDate" 
+                  <Input
+                    id="investmentDate"
+                    name="investmentDate"
                     type="date"
-                    value={formData.investmentDate} 
-                    onChange={handleInputChange} 
+                    value={formData.investmentDate}
+                    onChange={handleInputChange}
                   />
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="fundId">Fund</Label>
-                <Select 
-                  value={formData.fundId} 
+                <Select
+                  value={formData.fundId}
                   onValueChange={(value) => handleSelectChange("fundId", value)}
                 >
                   <SelectTrigger>
@@ -287,57 +315,57 @@ export default function NewCompany() {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="space-y-2">
-                <Label htmlFor="investmentStrategy">Fund Investment Strategy</Label>
-                <Input 
-                  id="investmentStrategy" 
-                  name="investmentStrategy" 
-                  value={formData.investmentStrategy} 
-                  onChange={handleInputChange} 
-                  placeholder="Enter investment strategy" 
+                <Label htmlFor="fundInvestmentS">Fund Investment Strategy</Label>
+                <Input
+                  id="fundInvestmentS"
+                  name="fundInvestmentS"
+                  value={formData.fundInvestmentS}
+                  onChange={handleInputChange}
+                  placeholder="Enter investment strategy"
                 />
               </div>
-              
+
               <div className="space-y-2">
-                <Label htmlFor="city">City</Label>
-                <Input 
-                  id="city" 
-                  name="city" 
-                  value={formData.city} 
-                  onChange={handleInputChange} 
-                  placeholder="Enter city" 
+                <Label htmlFor="location">City</Label>
+                <Input
+                  id="location"
+                  name="location"
+                  value={formData.location}
+                  onChange={handleInputChange}
+                  placeholder="Enter city"
                 />
               </div>
-              
+
               <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="description">Brief Description of Company Activities</Label>
-                <Textarea 
-                  id="description" 
-                  name="description" 
-                  value={formData.description} 
-                  onChange={handleInputChange} 
-                  placeholder="Describe company activities" 
+                <Label htmlFor="briefdescription">Brief Description of Company Activities</Label>
+                <Textarea
+                  id="briefdescription"
+                  name="briefdescription"
+                  value={formData.briefdescription}
+                  onChange={handleInputChange}
+                  placeholder="Describe company activities"
                   rows={3}
                 />
               </div>
-              
+
               <div className="space-y-2">
-                <Label htmlFor="investmentSize">Potential Investment Size (INR)</Label>
-                <Input 
-                  id="investmentSize" 
-                  name="investmentSize" 
-                  value={formData.investmentSize} 
-                  onChange={handleInputChange} 
-                  placeholder="Enter investment size" 
+                <Label htmlFor="potentialInvestmentSize">Potential Investment Size (INR)</Label>
+                <Input
+                  id="potentialInvestmentSize"
+                  name="potentialInvestmentSize"
+                  value={formData.potentialInvestmentSize}
+                  onChange={handleInputChange}
+                  placeholder="Enter investment size"
                 />
               </div>
-              
+
               <div className="space-y-2">
-                <Label htmlFor="investmentStage">Stage of Investment</Label>
-                <Select 
-                  value={formData.investmentStage} 
-                  onValueChange={(value) => handleSelectChange("investmentStage", value)}
+                <Label htmlFor="opportunityStatus">Stage of Investment</Label>
+                <Select
+                  value={formData.opportunityStatus}
+                  onValueChange={(value) => handleSelectChange("opportunityStatus", value)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select investment stage" />
@@ -351,11 +379,11 @@ export default function NewCompany() {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="futureAction">Future Action</Label>
-                <Select 
-                  value={formData.futureAction} 
+                <Select
+                  value={formData.futureAction}
                   onValueChange={(value) => handleSelectChange("futureAction", value)}
                 >
                   <SelectTrigger>
@@ -370,47 +398,47 @@ export default function NewCompany() {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="space-y-2">
-                <Label htmlFor="informationSource">Source of Information</Label>
-                <Input 
-                  id="informationSource" 
-                  name="informationSource" 
-                  value={formData.informationSource} 
-                  onChange={handleInputChange} 
-                  placeholder="Enter information source" 
+                <Label htmlFor="sourceofInformation">Source of Information</Label>
+                <Input
+                  id="sourceofInformation"
+                  name="sourceofInformation"
+                  value={formData.sourceofInformation}
+                  onChange={handleInputChange}
+                  placeholder="Enter information source"
                 />
               </div>
-              
+
               <div className="space-y-2">
-                <Label htmlFor="gstNumber">GST Number</Label>
-                <Input 
-                  id="gstNumber" 
-                  name="gstNumber" 
-                  value={formData.gstNumber} 
-                  onChange={handleInputChange} 
-                  placeholder="Enter GST number" 
+                <Label htmlFor="gst">GST Number</Label>
+                <Input
+                  id="gst"
+                  name="gst"
+                  value={formData.gst}
+                  onChange={handleInputChange}
+                  placeholder="Enter GST number"
                 />
               </div>
-              
+
               <div className="space-y-2">
-                <Label htmlFor="shareholding">Fund Shareholding (%)</Label>
-                <Input 
-                  id="shareholding" 
-                  name="shareholding" 
+                <Label htmlFor="fundShareholding">Fund Shareholding (%)</Label>
+                <Input
+                  id="fundShareholding"
+                  name="fundShareholding"
                   type="number"
                   min="0"
                   max="100"
                   step="0.01"
-                  value={formData.shareholding} 
-                  onChange={handleInputChange} 
-                  placeholder="Enter shareholding percentage" 
+                  value={formData.fundShareholding}
+                  onChange={handleInputChange}
+                  placeholder="Enter shareholding percentage"
                 />
               </div>
             </div>
-            
+
             <Separator />
-            
+
             <div>
               <h3 className="font-medium mb-4">Total Number of Permanent Employees</h3>
               <div className="grid grid-cols-4 gap-4 mb-4">
@@ -419,78 +447,78 @@ export default function NewCompany() {
                 <div className="text-center text-sm font-medium">Female</div>
                 <div className="text-center text-sm font-medium">Others</div>
               </div>
-              
+
               <div className="grid grid-cols-4 gap-4 mb-4">
                 <div className="flex items-center">Founders/Promoters</div>
                 <div>
-                  <Input 
-                    id="employeesFoundersMale" 
-                    name="employeesFoundersMale" 
+                  <Input
+                    id="foundersPromotorsMale"
+                    name="foundersPromotorsMale"
                     type="number"
                     min="0"
-                    value={formData.employeesFoundersMale} 
-                    onChange={handleInputChange} 
+                    value={formData.foundersPromotorsMale}
+                    onChange={handleInputChange}
                   />
                 </div>
                 <div>
-                  <Input 
-                    id="employeesFoundersFemale" 
-                    name="employeesFoundersFemale" 
+                  <Input
+                    id="foundersPromotorsFemale"
+                    name="foundersPromotorsFemale"
                     type="number"
                     min="0"
-                    value={formData.employeesFoundersFemale} 
-                    onChange={handleInputChange} 
+                    value={formData.foundersPromotorsFemale}
+                    onChange={handleInputChange}
                   />
                 </div>
                 <div>
-                  <Input 
-                    id="employeesFoundersOthers" 
-                    name="employeesFoundersOthers" 
+                  <Input
+                    id="foundersPromotorsOther"
+                    name="foundersPromotorsOther"
                     type="number"
                     min="0"
-                    value={formData.employeesFoundersOthers} 
-                    onChange={handleInputChange} 
+                    value={formData.foundersPromotorsOther}
+                    onChange={handleInputChange}
                   />
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-4 gap-4">
                 <div className="flex items-center">Other Employees</div>
                 <div>
-                  <Input 
-                    id="employeesOtherMale" 
-                    name="employeesOtherMale" 
+                  <Input
+                    id="otherEmpMale"
+                    name="otherEmpMale"
                     type="number"
                     min="0"
-                    value={formData.employeesOtherMale} 
-                    onChange={handleInputChange} 
+                    value={formData.otherEmpMale}
+                    onChange={handleInputChange}
                   />
                 </div>
                 <div>
-                  <Input 
-                    id="employeesOtherFemale" 
-                    name="employeesOtherFemale" 
+                  <Input
+                    id="otherEmpFemale"
+                    name="otherEmpFemale"
                     type="number"
                     min="0"
-                    value={formData.employeesOtherFemale} 
-                    onChange={handleInputChange} 
+                    value={formData.otherEmpFemale}
+                    onChange={handleInputChange}
                   />
                 </div>
                 <div>
-                  <Input 
-                    id="employeesOtherOthers" 
-                    name="employeesOtherOthers" 
+                  <Input
+                    id="otherEmpOther"
+                    name="otherEmpOther"
                     type="number"
                     min="0"
-                    value={formData.employeesOtherOthers} 
-                    onChange={handleInputChange} 
+                    value={formData.otherEmpOther}
+                    onChange={handleInputChange}
                   />
                 </div>
               </div>
             </div>
-            
+
             <Separator />
-            
+
             <div>
               <h3 className="font-medium mb-4">Number of Workers</h3>
               <div className="grid grid-cols-4 gap-4 mb-4">
@@ -499,78 +527,78 @@ export default function NewCompany() {
                 <div className="text-center text-sm font-medium">Female</div>
                 <div className="text-center text-sm font-medium">Others</div>
               </div>
-              
+
               <div className="grid grid-cols-4 gap-4 mb-4">
                 <div className="flex items-center">Direct contract / no. of workers</div>
                 <div>
-                  <Input 
-                    id="workersDirectMale" 
-                    name="workersDirectMale" 
+                  <Input
+                    id="directContractMale"
+                    name="directContractMale"
                     type="number"
                     min="0"
-                    value={formData.workersDirectMale} 
-                    onChange={handleInputChange} 
+                    value={formData.directContractMale}
+                    onChange={handleInputChange}
                   />
                 </div>
                 <div>
-                  <Input 
-                    id="workersDirectFemale" 
-                    name="workersDirectFemale" 
+                  <Input
+                    id="directContractFemale"
+                    name="directContractFemale"
                     type="number"
                     min="0"
-                    value={formData.workersDirectFemale} 
-                    onChange={handleInputChange} 
+                    value={formData.directContractFemale}
+                    onChange={handleInputChange}
                   />
                 </div>
                 <div>
-                  <Input 
-                    id="workersDirectOthers" 
-                    name="workersDirectOthers" 
+                  <Input
+                    id="directContractOther"
+                    name="directContractOther"
                     type="number"
                     min="0"
-                    value={formData.workersDirectOthers} 
-                    onChange={handleInputChange} 
+                    value={formData.directContractOther}
+                    onChange={handleInputChange}
                   />
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-4 gap-4">
                 <div className="flex items-center">Indirectly through service providers</div>
                 <div>
-                  <Input 
-                    id="workersIndirectMale" 
-                    name="workersIndirectMale" 
+                  <Input
+                    id="indirectlyMale"
+                    name="indirectlyMale"
                     type="number"
                     min="0"
-                    value={formData.workersIndirectMale} 
-                    onChange={handleInputChange} 
+                    value={formData.indirectlyMale}
+                    onChange={handleInputChange}
                   />
                 </div>
                 <div>
-                  <Input 
-                    id="workersIndirectFemale" 
-                    name="workersIndirectFemale" 
+                  <Input
+                    id="indirectlyFemale"
+                    name="indirectlyFemale"
                     type="number"
                     min="0"
-                    value={formData.workersIndirectFemale} 
-                    onChange={handleInputChange} 
+                    value={formData.indirectlyFemale}
+                    onChange={handleInputChange}
                   />
                 </div>
                 <div>
-                  <Input 
-                    id="workersIndirectOthers" 
-                    name="workersIndirectOthers" 
+                  <Input
+                    id="indirectlyOther"
+                    name="indirectlyOther"
                     type="number"
                     min="0"
-                    value={formData.workersIndirectOthers} 
-                    onChange={handleInputChange} 
+                    value={formData.indirectlyOther}
+                    onChange={handleInputChange}
                   />
                 </div>
               </div>
             </div>
           </CardContent>
         </Card>
-        
+
         <div className="flex justify-end mt-6 space-x-2">
           <Button variant="outline" type="button" onClick={() => navigate("/portfolio")}>
             Cancel

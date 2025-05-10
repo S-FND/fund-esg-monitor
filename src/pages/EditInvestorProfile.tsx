@@ -13,14 +13,15 @@ interface InvestorFormData {
   investorName: string;
   companyName: string;
   email: string;
-  pan: string;
-  gst: string;
+  panNumber: string;
+  gstNumber: string;
   esgManagerEmail: string;
-  sdgGoals: string;
-  sdgTargets: string;
+  sdgGoal: string;
+  sdgTarget: string;
   designation: string;
-  companyAddress: string;
-  esgPolicyFileName?: string;
+  address: string;
+  esgPolicy?: string;
+  _id?:string
 }
 
 // Dummy data for testing
@@ -28,13 +29,13 @@ const dummyInvestorData: InvestorFormData = {
   investorName: "Global Sustainable Ventures",
   companyName: "GSV Holdings Ltd.",
   email: "contact@gsventures.com",
-  pan: "AAAAA1234A",
-  gst: "29AAAAA1234A1Z5",
+  panNumber: "AAAAA1234A",
+  gstNumber: "29AAAAA1234A1Z5",
   esgManagerEmail: "esg@gsventures.com",
-  sdgGoals: "SDG 7 (Clean Energy), SDG 13 (Climate Action)",
-  sdgTargets: "50% reduction in portfolio carbon emissions by 2030",
+  sdgGoal: "SDG 7 (Clean Energy), SDG 13 (Climate Action)",
+  sdgTarget: "50% reduction in portfolio carbon emissions by 2030",
   designation: "Investment Director",
-  companyAddress: "123 Green Street, Eco Park, Sustainable City - 560001"
+  address: "123 Green Street, Eco Park, Sustainable City - 560001"
 };
 
 export default function EditInvestorProfile() {
@@ -54,7 +55,7 @@ export default function EditInvestorProfile() {
     if (e.target.files && e.target.files.length > 0) {
       setFormData((prev) => ({
         ...prev,
-        esgPolicyFileName: e.target.files![0].name,
+        esgPolicy: e.target.files![0].name,
       }));
     }
   };
@@ -82,13 +83,14 @@ export default function EditInvestorProfile() {
           investorName: jsondata['data']['investorName'],
           companyName: jsondata['data']['companyName'],
           email: jsondata['data']['email'],
-          pan: jsondata['data']['panNumber'],
-          gst: jsondata['data']['gstNumber'],
+          panNumber: jsondata['data']['panNumber'],
+          gstNumber: jsondata['data']['gstNumber'],
           esgManagerEmail: jsondata['data']['esgManagerEmail'],
-          sdgGoals: jsondata['data']['sdgGoal'],
-          sdgTargets: jsondata['data']['sdgTarget'],
+          sdgGoal: jsondata['data']['sdgGoal'],
+          sdgTarget: jsondata['data']['sdgTarget'],
           designation: jsondata['data']['designation'],
-          companyAddress: jsondata['data']['address'],
+          address: jsondata['data']['address'],
+          _id:jsondata['data']['_id']
         };
         setFormData(investorInfo)
       }
@@ -114,29 +116,30 @@ export default function EditInvestorProfile() {
       setSubmittedFile(fileInputRef.current.files[0].name);
     }
 
-    // try {
-    //   const res = await fetch(`${import.meta.env.VITE_API_URL}` + "/investor/general-info/", {
-    //     method: "GET",
-    //     headers: { "Content-Type": "application/json", Authorization: `Bearer ${sessionStorage.getItem("auth_token")}` },
-    //   });
-    //   if (!res.ok) {
-    //     // toast.error("Invalid credentials");
-    //     // setIsLoading(false);
-    //     return;
-    //   }
-    //   else {
-    //     const jsondata = await res.json();
-    //     console.log('jsondata', jsondata)
-    //     // if(!training){
-    //     //   training=data[0]
-    //     // }
-    //   }
-    // } catch (error) {
-    //   console.error("Api call:", error);
-    //   toast.error("API Call failed. Please try again.");
-    // } finally {
-    //   // setIsLoading(false);
-    // }
+    try {
+      const res = await fetch(`http://localhost:3002` + "/investor/general-info/", {
+        method: "PUT",
+        body:JSON.stringify(formData),
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
+      });
+      if (!res.ok) {
+        // toast.error("Invalid credentials");
+        // setIsLoading(false);
+        return;
+      }
+      else {
+        const jsondata = await res.json();
+        console.log('jsondata', jsondata)
+        // if(!training){
+        //   training=data[0]
+        // }
+      }
+    } catch (error) {
+      console.error("Api call:", error);
+      // toastS.error("API Call failed. Please try again.");
+    } finally {
+      // setIsLoading(false);
+    }
 
     // Simulating API call delay
     setTimeout(() => {
@@ -199,7 +202,7 @@ export default function EditInvestorProfile() {
                 <Input
                   id="pan"
                   name="pan"
-                  value={formData.pan}
+                  value={formData.panNumber}
                   onChange={handleFieldChange}
                   placeholder="Enter PAN"
                   required
@@ -211,7 +214,7 @@ export default function EditInvestorProfile() {
                 <Input
                   id="gst"
                   name="gst"
-                  value={formData.gst}
+                  value={formData.gstNumber}
                   onChange={handleFieldChange}
                   placeholder="Enter GST"
                   required
@@ -222,10 +225,10 @@ export default function EditInvestorProfile() {
                 <Label htmlFor="esgPolicy">ESG Policy (PDF/Doc)</Label>
                 <div className="flex items-center gap-3">
                   <Button type="button" onClick={handleUploadClick} variant="outline">
-                    {formData.esgPolicyFileName ? "Change file" : "Upload file"}
+                    {formData.esgPolicy ? "Change file" : "Upload file"}
                   </Button>
                   <span className="text-sm">
-                    {formData.esgPolicyFileName || "No file chosen"}
+                    {formData.esgPolicy || "No file chosen"}
                   </span>
                   <input
                     id="esgPolicy"
@@ -257,7 +260,7 @@ export default function EditInvestorProfile() {
                 <Textarea
                   id="sdgGoals"
                   name="sdgGoals"
-                  value={formData.sdgGoals}
+                  value={formData.sdgGoal}
                   onChange={handleFieldChange}
                   placeholder="List SDG goals"
                   rows={2}
@@ -270,7 +273,7 @@ export default function EditInvestorProfile() {
                 <Textarea
                   id="sdgTargets"
                   name="sdgTargets"
-                  value={formData.sdgTargets}
+                  value={formData.sdgTarget}
                   onChange={handleFieldChange}
                   placeholder="List SDG targets"
                   rows={2}
@@ -295,7 +298,7 @@ export default function EditInvestorProfile() {
                 <Textarea
                   id="companyAddress"
                   name="companyAddress"
-                  value={formData.companyAddress}
+                  value={formData.address}
                   onChange={handleFieldChange}
                   placeholder="Enter company address"
                   rows={3}
