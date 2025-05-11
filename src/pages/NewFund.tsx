@@ -11,6 +11,7 @@ import { FundCompaniesField, Company } from "@/components/NewFund/FundCompaniesF
 import { FundTeamMembersField, TeamMember } from "@/components/NewFund/FundTeamMembersField";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { PostgrestResponse } from "@supabase/supabase-js";
 
 const sectors = [
   "Agritech", 
@@ -99,17 +100,17 @@ export default function NewFund() {
       try {
         // Check if portfolio_companies table exists and fetch companies
         try {
-          // Try to fetch from portfolio_companies table
-          const { data: companiesData, error: companiesError } = await supabase
-            .from('portfolio_companies')
-            .select('*') as { data: any[] | null, error: any };
+          // Use type assertion to bypass strict typing
+          const { data: companiesData, error: companiesError } = await (supabase
+            .from('portfolio_companies' as any)
+            .select('*')) as PostgrestResponse<any>;
           
           if (companiesError) {
             console.error('Error fetching companies:', companiesError);
             // Try with alternate table name "companies" if available
-            const { data: altCompaniesData, error: altCompaniesError } = await supabase
-              .from('companies')
-              .select('*') as { data: any[] | null, error: any };
+            const { data: altCompaniesData, error: altCompaniesError } = await (supabase
+              .from('companies' as any)
+              .select('*')) as PostgrestResponse<any>;
             
             if (altCompaniesError) {
               console.error('Error fetching from alternate companies table:', altCompaniesError);
@@ -150,7 +151,7 @@ export default function NewFund() {
         try {
           const { data: teamData, error: teamError } = await supabase
             .from('team_members')
-            .select('*') as { data: any[] | null, error: any };
+            .select('*');
           
           if (teamError) {
             console.error('Error fetching team members:', teamError);
@@ -326,7 +327,8 @@ export default function NewFund() {
           
           try {
             // Use type assertion to bypass TypeScript's strict table checking
-            const { error: teamError } = await (supabase.from('team_member_funds') as any)
+            const { error: teamError } = await supabase
+              .from('team_member_funds')
               .insert(teamAssociations);
             
             if (teamError) {
