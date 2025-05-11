@@ -1,38 +1,28 @@
+
 import { TeamAddUserFields } from "./TeamAddUserFields";
-import { TeamAddFundsField } from "./TeamAddFundsField";
 
 export function TeamAddForm({
   name,
   setName,
   email,
   setEmail,
-  funds,
-  selectedFunds,
-  setSelectedFunds,
   submitting,
   handleSubmit,
   designation,
   setDesignation,
   mobileNumber,
   setMobileNumber,
-  password,
-  setPassword,
 }: {
   name: string;
   setName: (name: string) => void;
   email: string;
   setEmail: (email: string) => void;
-  funds: { id: string; name: string }[];
-  selectedFunds: string[];
-  setSelectedFunds: (ids: string[]) => void;
   submitting: boolean;
   handleSubmit: (e: React.FormEvent) => void;
   designation: string;
   setDesignation: (designation: string) => void;
   mobileNumber: string;
   setMobileNumber: (number: string) => void;
-  password: string;
-  setPassword: (pw: string) => void;
 }) {
   return (
     <form className="space-y-4" onSubmit={handleSubmit}>
@@ -46,14 +36,6 @@ export function TeamAddForm({
         setDesignation={setDesignation}
         mobileNumber={mobileNumber}
         setMobileNumber={setMobileNumber}
-        password={password}
-        setPassword={setPassword}
-      />
-      <TeamAddFundsField
-        funds={funds}
-        selectedFunds={selectedFunds}
-        setSelectedFunds={setSelectedFunds}
-        submitting={submitting}
       />
       <div className="flex justify-end">
         <button
