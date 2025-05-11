@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,6 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { FundCompaniesField } from "@/components/NewFund/FundCompaniesField";
+import { FundTeamMembersField } from "@/components/NewFund/FundTeamMembersField";
+import { supabase } from "@/integrations/supabase/client";
 
 const sectors = [
   "Agritech", 
@@ -53,6 +56,34 @@ const defaultExclusionTerms = [
   "Politics"
 ];
 
+// Sample data for companies and team members
+// Will be replaced with real data from Supabase
+const sampleCompanies = [
+  { id: 1, name: "EcoTech Solutions" },
+  { id: 2, name: "HealthAI" },
+  { id: 3, name: "EdFinance" },
+  { id: 4, name: "GreenEnergy Corp" },
+  { id: 5, name: "FarmTech Innovations" },
+];
+
+const sampleTeamMembers = [
+  { id: 1, name: "Jane Smith", designation: "Investment Manager" },
+  { id: 2, name: "John Doe", designation: "Risk Analyst" },
+  { id: 3, name: "Alice Brown", designation: "ESG Specialist" },
+  { id: 4, name: "Bob Johnson", designation: "Financial Advisor" },
+];
+
+interface Company {
+  id: number;
+  name: string;
+}
+
+interface TeamMember {
+  id: number;
+  name: string;
+  designation: string;
+}
+
 export default function NewFund() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -66,6 +97,39 @@ export default function NewFund() {
     customInclusionTerm: "",
     customExclusionTerm: ""
   });
+  
+  const [companies, setCompanies] = useState<Company[]>(sampleCompanies);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>(sampleTeamMembers);
+  const [selectedCompanies, setSelectedCompanies] = useState<Company[]>([]);
+  const [selectedTeamMembers, setSelectedTeamMembers] = useState<TeamMember[]>([]);
+  
+  // Fetch real data from Supabase
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        // Fetch companies
+        const { data: companiesData, error: companiesError } = await supabase
+          .from('portfolio_companies')
+          .select('id, name');
+        
+        if (companiesError) throw companiesError;
+        if (companiesData) setCompanies(companiesData);
+        
+        // Fetch team members
+        const { data: teamData, error: teamError } = await supabase
+          .from('team_members')
+          .select('id, name, designation');
+        
+        if (teamError) throw teamError;
+        if (teamData) setTeamMembers(teamData);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        // Fallback to sample data is handled by default state
+      }
+    }
+    
+    fetchData();
+  }, []);
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -111,10 +175,67 @@ export default function NewFund() {
     }
   };
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log("Submitting fund data:", formData);
-    navigate("/funds");
+    console.log("Selected companies:", selectedCompanies);
+    console.log("Selected team members:", selectedTeamMembers);
+    
+    try {
+      // Insert fund data
+      const { data: fundData, error: fundError } = await supabase
+        .from('funds')
+        .insert({
+          name: formData.name,
+          size: formData.size,
+          currency: formData.currency,
+          sectors: formData.sectors,
+          stage: formData.stage,
+          inclusion_terms: formData.inclusionTerms,
+          exclusion_terms: formData.exclusionTerms
+        })
+        .select('id')
+        .single();
+      
+      if (fundError) throw fundError;
+      
+      if (fundData?.id) {
+        const fundId = fundData.id;
+        
+        // Insert company associations
+        if (selectedCompanies.length > 0) {
+          const companyAssociations = selectedCompanies.map(company => ({
+            fund_id: fundId,
+            company_id: company.id
+          }));
+          
+          const { error: companiesError } = await supabase
+            .from('fund_companies')
+            .insert(companyAssociations);
+          
+          if (companiesError) throw companiesError;
+        }
+        
+        // Insert team member associations
+        if (selectedTeamMembers.length > 0) {
+          const teamAssociations = selectedTeamMembers.map(member => ({
+            fund_id: fundId,
+            team_member_id: member.id
+          }));
+          
+          const { error: teamError } = await supabase
+            .from('team_member_funds')
+            .insert(teamAssociations);
+          
+          if (teamError) throw teamError;
+        }
+      }
+      
+      navigate("/funds");
+    } catch (error) {
+      console.error("Error saving fund data:", error);
+      // In a real application, we would show an error message to the user
+    }
   };
   
   return (
@@ -212,6 +333,20 @@ export default function NewFund() {
                 </SelectContent>
               </Select>
             </div>
+            
+            {/* Fund Companies Field - NEW */}
+            <FundCompaniesField 
+              companies={companies}
+              selectedCompanies={selectedCompanies}
+              setSelectedCompanies={setSelectedCompanies}
+            />
+            
+            {/* Fund Team Members Field - NEW */}
+            <FundTeamMembersField 
+              teamMembers={teamMembers}
+              selectedTeamMembers={selectedTeamMembers}
+              setSelectedTeamMembers={setSelectedTeamMembers}
+            />
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
