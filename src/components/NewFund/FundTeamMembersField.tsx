@@ -6,8 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card } from "@/components/ui/card";
 import { X } from "lucide-react";
 
-interface TeamMember {
-  id: number;
+export interface TeamMember {
+  id: string; // Changed from number to string
   name: string;
   designation: string;
 }
@@ -32,14 +32,14 @@ export function FundTeamMembersField({
   const handleAddTeamMember = () => {
     if (!selectedTeamMemberId) return;
     
-    const memberToAdd = teamMembers.find(m => m.id === parseInt(selectedTeamMemberId));
+    const memberToAdd = teamMembers.find(m => m.id === selectedTeamMemberId);
     if (memberToAdd && !selectedTeamMembers.some(m => m.id === memberToAdd.id)) {
       setSelectedTeamMembers([...selectedTeamMembers, memberToAdd]);
       setSelectedTeamMemberId("");
     }
   };
 
-  const handleRemoveTeamMember = (memberId: number) => {
+  const handleRemoveTeamMember = (memberId: string) => {
     setSelectedTeamMembers(selectedTeamMembers.filter(m => m.id !== memberId));
   };
 
@@ -57,7 +57,7 @@ export function FundTeamMembersField({
           <SelectContent>
             {availableTeamMembers.length > 0 ? (
               availableTeamMembers.map(member => (
-                <SelectItem key={member.id} value={member.id.toString()}>
+                <SelectItem key={member.id} value={member.id}>
                   {member.name} - {member.designation}
                 </SelectItem>
               ))

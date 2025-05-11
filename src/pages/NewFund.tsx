@@ -7,9 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { FundCompaniesField } from "@/components/NewFund/FundCompaniesField";
-import { FundTeamMembersField } from "@/components/NewFund/FundTeamMembersField";
+import { FundCompaniesField, Company } from "@/components/NewFund/FundCompaniesField";
+import { FundTeamMembersField, TeamMember } from "@/components/NewFund/FundTeamMembersField";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const sectors = [
   "Agritech", 
@@ -59,30 +60,19 @@ const defaultExclusionTerms = [
 // Sample data for companies and team members
 // Will be replaced with real data from Supabase
 const sampleCompanies = [
-  { id: 1, name: "EcoTech Solutions" },
-  { id: 2, name: "HealthAI" },
-  { id: 3, name: "EdFinance" },
-  { id: 4, name: "GreenEnergy Corp" },
-  { id: 5, name: "FarmTech Innovations" },
+  { id: "1", name: "EcoTech Solutions" },
+  { id: "2", name: "HealthAI" },
+  { id: "3", name: "EdFinance" },
+  { id: "4", name: "GreenEnergy Corp" },
+  { id: "5", name: "FarmTech Innovations" },
 ];
 
 const sampleTeamMembers = [
-  { id: 1, name: "Jane Smith", designation: "Investment Manager" },
-  { id: 2, name: "John Doe", designation: "Risk Analyst" },
-  { id: 3, name: "Alice Brown", designation: "ESG Specialist" },
-  { id: 4, name: "Bob Johnson", designation: "Financial Advisor" },
+  { id: "1", name: "Jane Smith", designation: "Investment Manager" },
+  { id: "2", name: "John Doe", designation: "Risk Analyst" },
+  { id: "3", name: "Alice Brown", designation: "ESG Specialist" },
+  { id: "4", name: "Bob Johnson", designation: "Financial Advisor" },
 ];
-
-interface Company {
-  id: number;
-  name: string;
-}
-
-interface TeamMember {
-  id: number;
-  name: string;
-  designation: string;
-}
 
 export default function NewFund() {
   const navigate = useNavigate();
@@ -107,13 +97,20 @@ export default function NewFund() {
   useEffect(() => {
     async function fetchData() {
       try {
-        // Fetch companies
+        // Fetch companies - using the correct table name
         const { data: companiesData, error: companiesError } = await supabase
-          .from('portfolio_companies')
+          .from('portfolio_company')  // Corrected table name
           .select('id, name');
         
         if (companiesError) throw companiesError;
-        if (companiesData) setCompanies(companiesData);
+        if (companiesData) {
+          // Ensure proper type conversion
+          const typedCompanies: Company[] = companiesData.map(c => ({
+            id: c.id.toString(),
+            name: c.name
+          }));
+          setCompanies(typedCompanies);
+        }
         
         // Fetch team members
         const { data: teamData, error: teamError } = await supabase
@@ -121,10 +118,19 @@ export default function NewFund() {
           .select('id, name, designation');
         
         if (teamError) throw teamError;
-        if (teamData) setTeamMembers(teamData);
+        if (teamData) {
+          // Ensure proper type conversion
+          const typedTeamMembers: TeamMember[] = teamData.map(t => ({
+            id: t.id.toString(),
+            name: t.name,
+            designation: t.designation || ''
+          }));
+          setTeamMembers(typedTeamMembers);
+        }
       } catch (error) {
         console.error('Error fetching data:', error);
         // Fallback to sample data is handled by default state
+        toast.error("Failed to load companies or team members");
       }
     }
     
@@ -209,8 +215,9 @@ export default function NewFund() {
             company_id: company.id
           }));
           
+          // Using correct table name and ensuring consistent types
           const { error: companiesError } = await supabase
-            .from('fund_companies')
+            .from('fund_company')  // Corrected table name
             .insert(companyAssociations);
           
           if (companiesError) throw companiesError;
@@ -229,12 +236,13 @@ export default function NewFund() {
           
           if (teamError) throw teamError;
         }
+
+        toast.success("Fund created successfully");
+        navigate("/funds");
       }
-      
-      navigate("/funds");
     } catch (error) {
       console.error("Error saving fund data:", error);
-      // In a real application, we would show an error message to the user
+      toast.error("Error creating fund");
     }
   };
   
@@ -334,14 +342,14 @@ export default function NewFund() {
               </Select>
             </div>
             
-            {/* Fund Companies Field - NEW */}
+            {/* Fund Companies Field */}
             <FundCompaniesField 
               companies={companies}
               selectedCompanies={selectedCompanies}
               setSelectedCompanies={setSelectedCompanies}
             />
             
-            {/* Fund Team Members Field - NEW */}
+            {/* Fund Team Members Field */}
             <FundTeamMembersField 
               teamMembers={teamMembers}
               selectedTeamMembers={selectedTeamMembers}

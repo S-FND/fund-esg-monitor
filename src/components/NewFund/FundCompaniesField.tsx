@@ -6,8 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card } from "@/components/ui/card";
 import { X } from "lucide-react";
 
-interface Company {
-  id: number;
+export interface Company {
+  id: string; // Changed from number to string
   name: string;
 }
 
@@ -31,14 +31,14 @@ export function FundCompaniesField({
   const handleAddCompany = () => {
     if (!selectedCompanyId) return;
     
-    const companyToAdd = companies.find(c => c.id === parseInt(selectedCompanyId));
+    const companyToAdd = companies.find(c => c.id === selectedCompanyId);
     if (companyToAdd && !selectedCompanies.some(c => c.id === companyToAdd.id)) {
       setSelectedCompanies([...selectedCompanies, companyToAdd]);
       setSelectedCompanyId("");
     }
   };
 
-  const handleRemoveCompany = (companyId: number) => {
+  const handleRemoveCompany = (companyId: string) => {
     setSelectedCompanies(selectedCompanies.filter(c => c.id !== companyId));
   };
 
@@ -56,7 +56,7 @@ export function FundCompaniesField({
           <SelectContent>
             {availableCompanies.length > 0 ? (
               availableCompanies.map(company => (
-                <SelectItem key={company.id} value={company.id.toString()}>
+                <SelectItem key={company.id} value={company.id}>
                   {company.name}
                 </SelectItem>
               ))
