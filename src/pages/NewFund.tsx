@@ -58,7 +58,7 @@ const defaultExclusionTerms = [
 ];
 
 // Sample data for companies and team members
-// Will be replaced with real data from Supabase
+// Will be used as fallback if Supabase query fails
 const sampleCompanies = [
   { id: "1", name: "EcoTech Solutions" },
   { id: "2", name: "HealthAI" },
@@ -97,39 +97,48 @@ export default function NewFund() {
   useEffect(() => {
     async function fetchData() {
       try {
-        // Fetch companies - using the correct table name
-        const { data: companiesData, error: companiesError } = await supabase
-          .from('portfolio_company')  // Corrected table name
-          .select('id, name');
-        
-        if (companiesError) throw companiesError;
-        if (companiesData) {
-          // Ensure proper type conversion
-          const typedCompanies: Company[] = companiesData.map(c => ({
-            id: c.id.toString(),
-            name: c.name
-          }));
-          setCompanies(typedCompanies);
+        // Check if portfolio_companies table exists and fetch companies
+        try {
+          const { data: companiesData, error: companiesError } = await supabase
+            .from('portfolio_companies')
+            .select('id, name');
+          
+          if (companiesError) throw companiesError;
+          if (companiesData && Array.isArray(companiesData)) {
+            // Ensure proper type conversion
+            const typedCompanies: Company[] = companiesData.map(c => ({
+              id: c.id.toString(),
+              name: c.name
+            }));
+            setCompanies(typedCompanies);
+          }
+        } catch (companyError) {
+          console.error('Error fetching companies:', companyError);
+          // Fallback to sample companies (already set as default)
         }
         
         // Fetch team members
-        const { data: teamData, error: teamError } = await supabase
-          .from('team_members')
-          .select('id, name, designation');
-        
-        if (teamError) throw teamError;
-        if (teamData) {
-          // Ensure proper type conversion
-          const typedTeamMembers: TeamMember[] = teamData.map(t => ({
-            id: t.id.toString(),
-            name: t.name,
-            designation: t.designation || ''
-          }));
-          setTeamMembers(typedTeamMembers);
+        try {
+          const { data: teamData, error: teamError } = await supabase
+            .from('team_members')
+            .select('id, name, designation');
+          
+          if (teamError) throw teamError;
+          if (teamData && Array.isArray(teamData)) {
+            // Ensure proper type conversion
+            const typedTeamMembers: TeamMember[] = teamData.map(t => ({
+              id: t.id.toString(),
+              name: t.name,
+              designation: t.designation || ''
+            }));
+            setTeamMembers(typedTeamMembers);
+          }
+        } catch (teamError) {
+          console.error('Error fetching team members:', teamError);
+          // Fallback to sample team members (already set as default)
         }
       } catch (error) {
         console.error('Error fetching data:', error);
-        // Fallback to sample data is handled by default state
         toast.error("Failed to load companies or team members");
       }
     }
@@ -208,19 +217,31 @@ export default function NewFund() {
       if (fundData?.id) {
         const fundId = fundData.id;
         
-        // Insert company associations
+        // Insert company associations - try both possible table names
         if (selectedCompanies.length > 0) {
           const companyAssociations = selectedCompanies.map(company => ({
             fund_id: fundId,
             company_id: company.id
           }));
           
-          // Using correct table name and ensuring consistent types
-          const { error: companiesError } = await supabase
-            .from('fund_company')  // Corrected table name
-            .insert(companyAssociations);
-          
-          if (companiesError) throw companiesError;
+          try {
+            // First attempt with fund_companies
+            const { error: companiesError } = await supabase
+              .from('fund_companies')
+              .insert(companyAssociations);
+            
+            if (companiesError) {
+              // If that fails, try with portfolio_fund_companies
+              const { error: alternateFundCompaniesError } = await supabase
+                .from('portfolio_fund_companies')
+                .insert(companyAssociations);
+                
+              if (alternateFundCompaniesError) throw alternateFundCompaniesError;
+            }
+          } catch (companyAssocError) {
+            console.error("Error associating companies with fund:", companyAssocError);
+            toast.error("Failed to associate companies with fund");
+          }
         }
         
         // Insert team member associations
@@ -230,11 +251,16 @@ export default function NewFund() {
             team_member_id: member.id
           }));
           
-          const { error: teamError } = await supabase
-            .from('team_member_funds')
-            .insert(teamAssociations);
-          
-          if (teamError) throw teamError;
+          try {
+            const { error: teamError } = await supabase
+              .from('team_member_funds')
+              .insert(teamAssociations);
+            
+            if (teamError) throw teamError;
+          } catch (teamAssocError) {
+            console.error("Error associating team members with fund:", teamAssocError);
+            toast.error("Failed to associate team members with fund");
+          }
         }
 
         toast.success("Fund created successfully");
