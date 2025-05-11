@@ -67,7 +67,7 @@ export default function EditInvestorProfile() {
   const getInvestorInfo= async()=>{
     
     try {
-      const res = await fetch(`http://localhost:3002` + "/investor/general-info/", {
+      const res = await fetch(`http://localhost:3003` + "/investor/general-info/", {
         method: "GET",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
       });
@@ -117,7 +117,7 @@ export default function EditInvestorProfile() {
     }
 
     try {
-      const res = await fetch(`http://localhost:3002` + "/investor/general-info/", {
+      const res = await fetch(`http://localhost:3003` + "/investor/general-info/", {
         method: "PUT",
         body:JSON.stringify(formData),
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },

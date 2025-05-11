@@ -1,3 +1,4 @@
+
 import React from "react";
 import {
   Dialog,
@@ -14,10 +15,8 @@ interface TeamAddDialogProps {
   onAdd: (member: { 
     name: string; 
     email: string; 
-    fundIds: string[];
     designation: string;
     mobileNumber: string;
-    password: string;
   }) => void;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -38,17 +37,12 @@ export function TeamAddDialog({
     setName,
     email,
     setEmail,
-    funds,
-    selectedFunds,
-    setSelectedFunds,
     submitting,
     handleSubmit,
     designation,
     setDesignation,
     mobileNumber,
     setMobileNumber,
-    password,
-    setPassword,
   } = useTeamAddForm({
     onAdd,
     onClose: () => setActualOpen(false),
@@ -60,7 +54,7 @@ export function TeamAddDialog({
         <DialogHeader>
           <DialogTitle>Add Team Member</DialogTitle>
           <DialogDescription>
-            Invite a new team member and assign them to funds.
+            Invite a new team member to join your organization.
           </DialogDescription>
         </DialogHeader>
         <TeamAddForm
@@ -68,17 +62,12 @@ export function TeamAddDialog({
           setName={setName}
           email={email}
           setEmail={setEmail}
-          funds={funds}
-          selectedFunds={selectedFunds}
-          setSelectedFunds={setSelectedFunds}
           submitting={submitting}
           handleSubmit={handleSubmit}
           designation={designation}
           setDesignation={setDesignation}
           mobileNumber={mobileNumber}
           setMobileNumber={setMobileNumber}
-          password={password}
-          setPassword={setPassword}
         />
         <DialogFooter />
       </DialogContent>

@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,6 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { FundCompaniesField, Company } from "@/components/NewFund/FundCompaniesField";
+import { FundTeamMembersField, TeamMember } from "@/components/NewFund/FundTeamMembersField";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { PostgrestResponse } from "@supabase/supabase-js";
 
 const sectors = [
   "Agritech", 
@@ -53,6 +58,23 @@ const defaultExclusionTerms = [
   "Politics"
 ];
 
+// Sample data for companies and team members
+// Will be used as fallback if Supabase query fails
+const sampleCompanies = [
+  { id: "1", name: "EcoTech Solutions" },
+  { id: "2", name: "HealthAI" },
+  { id: "3", name: "EdFinance" },
+  { id: "4", name: "GreenEnergy Corp" },
+  { id: "5", name: "FarmTech Innovations" },
+];
+
+const sampleTeamMembers = [
+  { id: "1", name: "Jane Smith", designation: "Investment Manager" },
+  { id: "2", name: "John Doe", designation: "Risk Analyst" },
+  { id: "3", name: "Alice Brown", designation: "ESG Specialist" },
+  { id: "4", name: "Bob Johnson", designation: "Financial Advisor" },
+];
+
 export default function NewFund() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -66,6 +88,100 @@ export default function NewFund() {
     customInclusionTerm: "",
     customExclusionTerm: ""
   });
+  
+  const [companies, setCompanies] = useState<Company[]>(sampleCompanies);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>(sampleTeamMembers);
+  const [selectedCompanies, setSelectedCompanies] = useState<Company[]>([]);
+  const [selectedTeamMembers, setSelectedTeamMembers] = useState<TeamMember[]>([]);
+  
+  // Fetch real data from Supabase
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        // Check if portfolio_companies table exists and fetch companies
+        try {
+          // Use type assertion to bypass strict typing
+          const { data: companiesData, error: companiesError } = await (supabase
+            .from('portfolio_companies' as any)
+            .select('*')) as PostgrestResponse<any>;
+          
+          if (companiesError) {
+            console.error('Error fetching companies:', companiesError);
+            // Try with alternate table name "companies" if available
+            const { data: altCompaniesData, error: altCompaniesError } = await (supabase
+              .from('companies' as any)
+              .select('*')) as PostgrestResponse<any>;
+            
+            if (altCompaniesError) {
+              console.error('Error fetching from alternate companies table:', altCompaniesError);
+            } else if (altCompaniesData && Array.isArray(altCompaniesData) && altCompaniesData.length > 0) {
+              // Safely check if each item has necessary properties before converting
+              const validCompanies = altCompaniesData.filter(c => 
+                c && typeof c === 'object' && 'id' in c && 'name' in c
+              );
+              
+              if (validCompanies.length > 0) {
+                const typedCompanies: Company[] = validCompanies.map(c => ({
+                  id: String(c.id),
+                  name: String(c.name)
+                }));
+                setCompanies(typedCompanies);
+              }
+            }
+          } else if (companiesData && Array.isArray(companiesData) && companiesData.length > 0) {
+            // Safely check if each item has necessary properties before converting
+            const validCompanies = companiesData.filter(c => 
+              c && typeof c === 'object' && 'id' in c && 'name' in c
+            );
+            
+            if (validCompanies.length > 0) {
+              const typedCompanies: Company[] = validCompanies.map(c => ({
+                id: String(c.id),
+                name: String(c.name)
+              }));
+              setCompanies(typedCompanies);
+            }
+          }
+        } catch (companyError) {
+          console.error('Error fetching companies:', companyError);
+          // Fallback to sample companies (already set as default)
+        }
+        
+        // Fetch team members
+        try {
+          const { data: teamData, error: teamError } = await supabase
+            .from('team_members')
+            .select('*');
+          
+          if (teamError) {
+            console.error('Error fetching team members:', teamError);
+          } else if (teamData && Array.isArray(teamData)) {
+            // Ensure proper type conversion and validate the data
+            const validTeamMembers = teamData.filter(t => 
+              t && typeof t === 'object' && 'id' in t && 'name' in t
+            );
+            
+            if (validTeamMembers.length > 0) {
+              const typedTeamMembers: TeamMember[] = validTeamMembers.map(t => ({
+                id: String(t.id),
+                name: String(t.name),
+                designation: t.designation ? String(t.designation) : ''
+              }));
+              setTeamMembers(typedTeamMembers);
+            }
+          }
+        } catch (teamError) {
+          console.error('Error fetching team members:', teamError);
+          // Fallback to sample team members (already set as default)
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        toast.error("Failed to load companies or team members");
+      }
+    }
+    
+    fetchData();
+  }, []);
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -115,7 +231,7 @@ export default function NewFund() {
     e.preventDefault();
     console.log("Submitting fund data:", formData);
     try {
-      const res = await fetch(`http://localhost:3002` + `/investor/fund`, {
+      const res = await fetch(`http://localhost:3003` + `/investor/fund`, {
         method: "POST",
         body:JSON.stringify({...formData,sectorFocus:formData.sectors.join(","),inclusion:formData.inclusionTerms,exclusion:formData.exclusionTerms,stageOfInvestment:formData.stage}),
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
@@ -235,6 +351,20 @@ export default function NewFund() {
                 </SelectContent>
               </Select>
             </div>
+            
+            {/* Fund Companies Field */}
+            <FundCompaniesField 
+              companies={companies}
+              selectedCompanies={selectedCompanies}
+              setSelectedCompanies={setSelectedCompanies}
+            />
+            
+            {/* Fund Team Members Field */}
+            <FundTeamMembersField 
+              teamMembers={teamMembers}
+              selectedTeamMembers={selectedTeamMembers}
+              setSelectedTeamMembers={setSelectedTeamMembers}
+            />
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">

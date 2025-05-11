@@ -3,12 +3,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Clock } from "lucide-react";
+import { portfolioCompanies } from "@/features/edit-portfolio-company/portfolioCompanies";
 
 export type CAPStatus = "Pending" | "In Progress" | "Completed" | "Delayed" | "Rejected";
 export type CAPType = "CP" | "CS";
 
 export interface CAPItem {
   id: string;
+  companyId: number;
   item: string;
   actions: string;
   responsibility: string;
@@ -42,6 +44,11 @@ const getStatusBadge = (status: CAPStatus) => {
   }
 };
 
+const getCompanyName = (companyId: number) => {
+  const company = portfolioCompanies.find(company => company.id === companyId);
+  return company ? company.name : "Unknown Company";
+};
+
 export function CAPTable({ items, onReview, onSendReminder }: CAPTableProps) {
   return (
     <div className="rounded-md border">
@@ -49,6 +56,7 @@ export function CAPTable({ items, onReview, onSendReminder }: CAPTableProps) {
         <TableHeader>
           <TableRow>
             <TableHead className="w-[50px]">S. No</TableHead>
+            <TableHead>Company</TableHead>
             <TableHead>Item</TableHead>
             <TableHead>Measures and/or Corrective Actions</TableHead>
             <TableHead>Resource & Responsibility</TableHead>
@@ -64,6 +72,7 @@ export function CAPTable({ items, onReview, onSendReminder }: CAPTableProps) {
           {items.map((item, index) => (
             <TableRow key={item.id}>
               <TableCell>{index + 1}</TableCell>
+              <TableCell>{getCompanyName(item.companyId)}</TableCell>
               <TableCell className="font-medium">{item.item}</TableCell>
               <TableCell>{item.actions}</TableCell>
               <TableCell>{item.responsibility}</TableCell>

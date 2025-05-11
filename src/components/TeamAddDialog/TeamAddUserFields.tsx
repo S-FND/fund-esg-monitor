@@ -1,5 +1,5 @@
 
-// Providing UI for Name, Email, Designation, Mobile Number, and Password fields in the add user form
+// Providing UI for Name, Email, Designation, and Mobile Number fields in the add user form
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,8 +14,6 @@ export function TeamAddUserFields({
   setDesignation,
   mobileNumber,
   setMobileNumber,
-  password,
-  setPassword,
 }: {
   name: string;
   email: string;
@@ -26,8 +24,6 @@ export function TeamAddUserFields({
   setDesignation: (designation: string) => void;
   mobileNumber: string;
   setMobileNumber: (number: string) => void;
-  password: string;
-  setPassword: (pw: string) => void;
 }) {
   return (
     <div className="space-y-3">
@@ -71,17 +67,6 @@ export function TeamAddUserFields({
           type="tel"
           value={mobileNumber}
           onChange={e => setMobileNumber(e.target.value)}
-          disabled={submitting}
-          required
-        />
-      </div>
-      <div>
-        <Label htmlFor="team-password">Password</Label>
-        <Input
-          id="team-password"
-          type="password"
-          value={password}
-          onChange={e => setPassword(e.target.value)}
           disabled={submitting}
           required
         />

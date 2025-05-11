@@ -90,7 +90,7 @@ export default function EditFund() {
 
   const getFundDetail= async()=>{
     try {
-      const res = await fetch(`http://localhost:3002` + `/investor/fund/${id}`, {
+      const res = await fetch(`http://localhost:3003` + `/investor/fund/${id}`, {
         method: "GET",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
       });

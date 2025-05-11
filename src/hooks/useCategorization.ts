@@ -145,7 +145,7 @@ export function useCategorization(companyInfoId: string): CategorizationHookResu
 
   const getCategorisationData = async (companyInfoId) => {
     try {
-      const res = await fetch(`http://localhost:3002` + `/investor/categorisation/${companyInfoId}`, {
+      const res = await fetch(`http://localhost:3003` + `/investor/categorisation/${companyInfoId}`, {
         method: "GET",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
       });

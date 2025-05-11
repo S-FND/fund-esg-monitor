@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { TeamAddDialog } from "@/components/TeamAddDialog";
 import { Card } from "@/components/ui/card";
@@ -7,38 +8,19 @@ import { supabase } from "@/integrations/supabase/client";
 type TeamMember = {
   name: string;
   email: string;
-  fundIds: string[];
   designation?: string;
   mobileNumber?: string;
-  password?: string;
-};
-
-type Fund = {
-  id: string;
-  name: string;
 };
 
 export default function Team() {
   const [team, setTeam] = useState<TeamMember[]>([]);
-  const [funds, setFunds] = useState<Fund[]>([]);
   const [loading, setLoading] = useState(true);
   const [addingDialogOpen, setAddingDialogOpen] = useState(false);
 
   useEffect(() => {
-    // Fetch team members and funds when component mounts
+    // Fetch team members when component mounts
     const fetchData = async () => {
       setLoading(true);
-
-      // Fetch funds
-      const { data: fundsData, error: fundsError } = await supabase
-        .from('funds')
-        .select('*');
-
-      if (fundsError) {
-        console.error('Error fetching funds:', fundsError);
-      } else if (fundsData) {
-        setFunds(fundsData);
-      }
 
       // Fetch team members
       const { data: teamData, error: teamError } = await supabase
@@ -48,11 +30,7 @@ export default function Team() {
           name, 
           email, 
           designation,
-          mobile_number,
-          password,
-          team_member_funds (
-            fund_id
-          )
+          mobile_number
         `);
 
       if (teamError) {
@@ -61,10 +39,8 @@ export default function Team() {
         const formattedTeam = teamData.map(member => ({
           name: member.name,
           email: member.email,
-          fundIds: member.team_member_funds?.map(f => f.fund_id) || [],
           designation: member.designation ?? "",
           mobileNumber: member.mobile_number ?? "",
-          password: member.password ?? "",
         }));
         setTeam(formattedTeam);
       }
@@ -75,14 +51,9 @@ export default function Team() {
     fetchData();
   }, []);
 
-  const handleAddTeamMember = (member: { name: string; email: string; fundIds: string[], designation: string, mobileNumber: string, password: string }) => {
+  const handleAddTeamMember = (member: { name: string; email: string; designation: string; mobileNumber: string }) => {
     setTeam(prev => [...prev, member]);
   };
-
-  const getFundNames = (ids: string[]) =>
-    ids.length === 0
-      ? "None"
-      : ids.map(id => funds.find(f => f.id === id)?.name).filter(Boolean).join(", ");
 
   return (
     <div className="container max-w-2xl mx-auto py-8">
@@ -108,10 +79,6 @@ export default function Team() {
                   <div className="text-xs text-muted-foreground">Mobile: {member.mobileNumber}</div>
                 )}
               </div>
-              <div>
-                <span className="text-xs font-semibold">Assigned Funds: </span>
-                <span className="text-xs">{getFundNames(member.fundIds) || "None"}</span>
-              </div>
             </Card>
           ))
         )}
@@ -121,7 +88,7 @@ export default function Team() {
 
       <div className="mt-8 text-sm text-muted-foreground">
         <ul className="list-disc ml-6">
-          <li>Admins can add team members, assign them to funds, and each new member receives an email invite.</li>
+          <li>Admins can add team members and each new member will receive an email invite.</li>
           <li>This is a demo. No actual invite emails will be sent.</li>
         </ul>
       </div>

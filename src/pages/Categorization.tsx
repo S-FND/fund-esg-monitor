@@ -60,7 +60,7 @@ export default function Categorization() {
       preliminaryCategorisation:preliminaryCategorisation
     }
     console.log('payloadObj',payloadObj)
-      const res = await fetch(`http://localhost:3002` + `/investor/categorisation`, {
+      const res = await fetch(`http://localhost:3003` + `/investor/categorisation`, {
         method: "POST",
         body: JSON.stringify({...payloadObj}),
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },

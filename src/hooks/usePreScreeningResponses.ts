@@ -26,7 +26,7 @@ export function usePreScreeningResponses(initialQuestions: Question[], companyIn
 
   const getPrescreeningData = async (companyInfoId) => {
     try {
-      const res = await fetch(`http://localhost:3002` + `/investor/pre-screening/${companyInfoId}`, {
+      const res = await fetch(`http://localhost:3003` + `/investor/pre-screening/${companyInfoId}`, {
         method: "GET",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
       });
