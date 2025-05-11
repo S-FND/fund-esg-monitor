@@ -1,3 +1,3 @@
 
 // Re-export the refactored Sidebar component
-export { Sidebar } from "./sidebar";
+export { Sidebar } from "./sidebar/index";
