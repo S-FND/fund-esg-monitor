@@ -99,36 +99,44 @@ export default function NewFund() {
       try {
         // Check if portfolio_companies table exists and fetch companies
         try {
-          // Use type assertion to bypass TypeScript's strict checking
+          // Try to fetch from portfolio_companies table
           const { data: companiesData, error: companiesError } = await supabase
-            .from('portfolio_companies' as any)
-            .select('id, name');
+            .from('portfolio_companies')
+            .select('*') as { data: any[] | null, error: any };
           
           if (companiesError) {
             console.error('Error fetching companies:', companiesError);
             // Try with alternate table name "companies" if available
             const { data: altCompaniesData, error: altCompaniesError } = await supabase
-              .from('companies' as any)
-              .select('id, name');
+              .from('companies')
+              .select('*') as { data: any[] | null, error: any };
             
             if (altCompaniesError) {
               console.error('Error fetching from alternate companies table:', altCompaniesError);
             } else if (altCompaniesData && Array.isArray(altCompaniesData) && altCompaniesData.length > 0) {
-              // Check if data has the required structure before using it
-              if ('id' in altCompaniesData[0] && 'name' in altCompaniesData[0]) {
-                const typedCompanies: Company[] = altCompaniesData.map(c => ({
-                  id: c.id.toString(),
-                  name: c.name.toString()
+              // Safely check if each item has necessary properties before converting
+              const validCompanies = altCompaniesData.filter(c => 
+                c && typeof c === 'object' && 'id' in c && 'name' in c
+              );
+              
+              if (validCompanies.length > 0) {
+                const typedCompanies: Company[] = validCompanies.map(c => ({
+                  id: String(c.id),
+                  name: String(c.name)
                 }));
                 setCompanies(typedCompanies);
               }
             }
           } else if (companiesData && Array.isArray(companiesData) && companiesData.length > 0) {
-            // Check if data has the required structure before using it
-            if ('id' in companiesData[0] && 'name' in companiesData[0]) {
-              const typedCompanies: Company[] = companiesData.map(c => ({
-                id: c.id.toString(),
-                name: c.name.toString()
+            // Safely check if each item has necessary properties before converting
+            const validCompanies = companiesData.filter(c => 
+              c && typeof c === 'object' && 'id' in c && 'name' in c
+            );
+            
+            if (validCompanies.length > 0) {
+              const typedCompanies: Company[] = validCompanies.map(c => ({
+                id: String(c.id),
+                name: String(c.name)
               }));
               setCompanies(typedCompanies);
             }
@@ -142,18 +150,24 @@ export default function NewFund() {
         try {
           const { data: teamData, error: teamError } = await supabase
             .from('team_members')
-            .select('id, name, designation');
+            .select('*') as { data: any[] | null, error: any };
           
           if (teamError) {
             console.error('Error fetching team members:', teamError);
           } else if (teamData && Array.isArray(teamData)) {
-            // Ensure proper type conversion
-            const typedTeamMembers: TeamMember[] = teamData.map(t => ({
-              id: t.id.toString(),
-              name: t.name,
-              designation: t.designation || ''
-            }));
-            setTeamMembers(typedTeamMembers);
+            // Ensure proper type conversion and validate the data
+            const validTeamMembers = teamData.filter(t => 
+              t && typeof t === 'object' && 'id' in t && 'name' in t
+            );
+            
+            if (validTeamMembers.length > 0) {
+              const typedTeamMembers: TeamMember[] = validTeamMembers.map(t => ({
+                id: String(t.id),
+                name: String(t.name),
+                designation: t.designation ? String(t.designation) : ''
+              }));
+              setTeamMembers(typedTeamMembers);
+            }
           }
         } catch (teamError) {
           console.error('Error fetching team members:', teamError);
@@ -239,7 +253,7 @@ export default function NewFund() {
       if (fundData?.id) {
         const fundId = fundData.id;
         
-        // Insert company associations using RPC to bypass strict table typing
+        // Insert company associations
         if (selectedCompanies.length > 0) {
           const companyAssociations = selectedCompanies.map(company => ({
             fund_id: fundId,
@@ -247,11 +261,10 @@ export default function NewFund() {
           }));
           
           try {
-            // Use an unsafe approach to handle unknown table names
-            // Try with different possible table names
+            // Try multiple approaches to save fund-company relationships
             let companySaveSuccess = false;
             
-            // Try first with fund_companies table
+            // Option 1: Try using an RPC function if available
             try {
               const { error } = await (supabase as any)
                 .rpc('save_fund_companies', { 
@@ -267,16 +280,17 @@ export default function NewFund() {
               console.error("RPC method not available, trying direct insert", rpcError);
             }
 
-            // If RPC failed, try direct inserts to possible tables
+            // Option 2: If RPC failed, try direct inserts to possible tables
             if (!companySaveSuccess) {
-              const possibleTables = ['fund_companies', 'portfolio_fund_companies', 'fund_portfolio_companies'];
+              // List of possible table names for fund-company relationships
+              const possibleTables = ['fund_companies', 'portfolio_fund_companies', 'fund_portfolio_companies', 'fund_company'];
               
               for (const tableName of possibleTables) {
                 if (companySaveSuccess) break;
                 
                 try {
-                  const { error } = await (supabase as any)
-                    .from(tableName)
+                  // Use type assertion to bypass type checking for the dynamic table name
+                  const { error } = await (supabase.from(tableName as any) as any)
                     .insert(companyAssociations);
                   
                   if (!error) {
@@ -290,7 +304,9 @@ export default function NewFund() {
               }
             }
 
+            // Option 3: As a last resort, try using a raw SQL query (supabase doesn't support this directly in client)
             if (!companySaveSuccess) {
+              // We can't use raw SQL with the client, so we'll just log a warning
               console.error("Could not save company associations to any table");
               toast.error("Warning: Could not associate companies with fund");
             }
@@ -309,9 +325,9 @@ export default function NewFund() {
           }));
           
           try {
-            const { error: teamError } = await supabase
-              .from('team_member_funds' as any)
-              .insert(teamAssociations as any);
+            // Use type assertion to bypass TypeScript's strict table checking
+            const { error: teamError } = await (supabase.from('team_member_funds') as any)
+              .insert(teamAssociations);
             
             if (teamError) {
               console.error("Error associating team members:", teamError);
