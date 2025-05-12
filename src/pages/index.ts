@@ -11,3 +11,5 @@ export { default as ESGRiskMatrix } from './ESGRiskMatrix';
 export { default as EditFund } from './EditFund';
 export { default as TeamMemberDetail } from './TeamMemberDetail';
 export { default as TeamMemberEdit } from './TeamMemberEdit';
+export { default as Login } from './Login';
+

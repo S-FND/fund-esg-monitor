@@ -4,6 +4,7 @@ import {
   Route,
   Routes,
   useNavigate,
+  useLocation,
 } from "react-router-dom";
 import {
   Dashboard,
@@ -17,7 +18,8 @@ import {
   ESGRiskMatrix,
   EditFund,
   TeamMemberDetail,
-  TeamMemberEdit
+  TeamMemberEdit,
+  Login
 } from "./pages";
 import { Sidebar } from "@/components/sidebar";
 import { Button } from "@/components/ui/button";
@@ -41,27 +43,35 @@ import { supabase } from "./integrations/supabase/client";
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const location = useLocation();
 
   useEffect(() => {
     const checkAuth = async () => {
       const { data } = await supabase.auth.getSession();
       setIsLoggedIn(!!data.session);
-      if (!data.session) {
+      setAuthChecked(true);
+      
+      if (!data.session && location.pathname !== "/login") {
         navigate("/login");
       }
     };
 
     checkAuth();
 
-    supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setIsLoggedIn(!!session);
-      if (!session) {
+      if (!session && location.pathname !== "/login") {
         navigate("/login");
       }
     });
-  }, [navigate]);
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [navigate, location.pathname]);
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
@@ -80,6 +90,16 @@ function App() {
       navigate("/login");
     }
   };
+
+  // If we're still checking authentication or not logged in and already on login page
+  if (!authChecked || (!isLoggedIn && location.pathname === "/login")) {
+    return (
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="*" element={<Login />} />
+      </Routes>
+    );
+  }
 
   return (
     <Shell>
@@ -108,6 +128,7 @@ function App() {
           <ModeToggle />
         </div>
         <Routes>
+          <Route path="/login" element={<Login />} />
           <Route path="/" element={<Dashboard />} />
           <Route path="/investor-info" element={<InvestorInfo />} />
           <Route path="/funds" element={<Funds />} />
