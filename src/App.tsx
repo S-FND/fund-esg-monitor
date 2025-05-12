@@ -17,12 +17,14 @@ import {
   Valuation,
   ESGRiskMatrix,
   EditFund,
-} from "@/pages";
+  TeamMemberDetail,
+  TeamMemberEdit
+} from "./pages";
 import { Sidebar } from "@/components/sidebar";
 import { Button } from "@/components/ui/button";
-import { ModeToggle } from "@/components/ui/mode-toggle";
-import { Shell } from "@/components/Shell";
-import { EditPortfolioCompany } from "@/features/edit-portfolio-company";
+import { ModeToggle } from "./components/ui/mode-toggle";
+import { Shell } from "./components/Shell";
+import { EditPortfolioCompany } from "./features/edit-portfolio-company";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { Toast } from "@/components/ui/toast";
@@ -39,8 +41,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { supabase } from "./integrations/supabase/client";
 import { useEffect } from "react";
-import TeamMemberDetail from "./pages/TeamMemberDetail";
-import TeamMemberEdit from "./pages/TeamMemberEdit";
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);

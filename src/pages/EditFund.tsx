@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -328,8 +327,8 @@ export default function EditFund() {
                           >
                             {company.name}
                           </Label>
-                          <p className="text-sm text-muted-foreground">{company.industry}</p>
-                          <p className="text-xs text-muted-foreground">{company.location}</p>
+                          <p className="text-sm text-muted-foreground">{company.sector}</p>
+                          <p className="text-xs text-muted-foreground">{company.type}</p>
                         </div>
                       </div>
                     ))}
