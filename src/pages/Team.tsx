@@ -4,47 +4,66 @@ import { TeamAddDialog } from "@/components/TeamAddDialog";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+import { Pencil, Eye } from "lucide-react";
 
 type TeamMember = {
+  id: string;
   name: string;
   email: string;
   designation?: string;
   mobileNumber?: string;
+  accessRights?: string[];
 };
 
 export default function Team() {
   const [team, setTeam] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [addingDialogOpen, setAddingDialogOpen] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Fetch team members when component mounts
     const fetchData = async () => {
       setLoading(true);
 
-      // Fetch team members
-      const { data: teamData, error: teamError } = await supabase
-        .from('team_members')
-        .select(`
-          id, 
-          name, 
-          email, 
-          designation,
-          mobile_number
-        `);
-
-      if (teamError) {
-        console.error('Error fetching team members:', teamError);
-      } else if (teamData) {
-        const formattedTeam = teamData.map(member => ({
-          name: member.name,
-          email: member.email,
-          designation: member.designation ?? "",
-          mobileNumber: member.mobile_number ?? "",
-        }));
-        setTeam(formattedTeam);
-      }
+      // For demo purposes, let's use some sample data instead of fetching from Supabase
+      const sampleTeamMembers = [
+        {
+          id: "1",
+          name: "John Smith",
+          email: "john.smith@example.com",
+          designation: "Fund Manager",
+          mobileNumber: "+1 (555) 123-4567",
+          accessRights: ["Dashboard", "Funds", "Team", "Portfolio Companies", "ESG DD"]
+        },
+        {
+          id: "2",
+          name: "Sarah Johnson",
+          email: "sarah.johnson@example.com",
+          designation: "ESG Analyst",
+          mobileNumber: "+1 (555) 987-6543",
+          accessRights: ["ESG DD", "ESG CAP", "Valuation"]
+        },
+        {
+          id: "3",
+          name: "Michael Wong",
+          email: "michael.wong@example.com",
+          designation: "Investment Analyst",
+          mobileNumber: "+1 (555) 456-7890",
+          accessRights: ["Portfolio Companies", "Valuation"]
+        },
+        {
+          id: "4",
+          name: "Lisa Chen",
+          email: "lisa.chen@example.com",
+          designation: "Chief Investment Officer",
+          mobileNumber: "+1 (555) 567-8901",
+          accessRights: ["Dashboard", "Funds", "Team", "Portfolio Companies", "ESG DD", "ESG CAP", "Valuation"]
+        }
+      ];
       
+      setTeam(sampleTeamMembers);
       setLoading(false);
     };
 
@@ -52,11 +71,24 @@ export default function Team() {
   }, []);
 
   const handleAddTeamMember = (member: { name: string; email: string; designation: string; mobileNumber: string }) => {
-    setTeam(prev => [...prev, member]);
+    const newMember = {
+      id: Math.random().toString(36).substr(2, 9),
+      ...member,
+      accessRights: ["Dashboard"]
+    };
+    setTeam(prev => [...prev, newMember]);
+  };
+
+  const handleViewMember = (id: string) => {
+    navigate(`/team/${id}`);
+  };
+
+  const handleEditMember = (id: string) => {
+    navigate(`/team/edit/${id}`);
   };
 
   return (
-    <div className="container max-w-2xl mx-auto py-8">
+    <div className="container max-w-4xl mx-auto py-8">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold">Team Management</h1>
         <Button onClick={() => setAddingDialogOpen(true)}>Add New Team Member</Button>
@@ -67,8 +99,8 @@ export default function Team() {
         ) : team.length === 0 ? (
           <div className="text-muted-foreground">No team members yet.</div>
         ) : (
-          team.map((member, idx) => (
-            <Card key={member.email + idx} className="p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+          team.map((member) => (
+            <Card key={member.id} className="p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
               <div>
                 <div className="font-medium">{member.name}</div>
                 <div className="text-muted-foreground text-sm">{member.email}</div>
@@ -78,6 +110,22 @@ export default function Team() {
                 {member.mobileNumber && (
                   <div className="text-xs text-muted-foreground">Mobile: {member.mobileNumber}</div>
                 )}
+                {member.accessRights && member.accessRights.length > 0 && (
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Access: {member.accessRights.slice(0, 2).join(", ")}
+                    {member.accessRights.length > 2 && ` +${member.accessRights.length - 2} more`}
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-2 shrink-0 mt-2 md:mt-0">
+                <Button variant="outline" size="sm" onClick={() => handleViewMember(member.id)}>
+                  <Eye className="h-4 w-4 mr-1" />
+                  Details
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => handleEditMember(member.id)}>
+                  <Pencil className="h-4 w-4 mr-1" />
+                  Edit
+                </Button>
               </div>
             </Card>
           ))
