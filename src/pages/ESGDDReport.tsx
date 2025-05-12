@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, Download, Eye, Link } from "lucide-react";
@@ -15,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface Report {
   id: string;
@@ -53,6 +53,8 @@ export default function ESGDDReport() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [viewingReport, setViewingReport] = useState<Report | null>(null);
   const [loadingProgress, setLoadingProgress] = useState(0);
+  const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
+  const [currentReport, setCurrentReport] = useState<Report | null>(null);
 
   const handleSearch = (startDate: Date | undefined, endDate: Date | undefined) => {
     if (!startDate || !endDate) {
@@ -134,7 +136,8 @@ export default function ESGDDReport() {
       }
       else {
         const jsondata = await res.json();
-        setViewingReport(jsondata['data'][0])
+        // setViewingReport(jsondata['data'][0])
+        setFilteredReports(jsondata['data'])
 
       }
     } catch (error) {
@@ -153,7 +156,7 @@ export default function ESGDDReport() {
   const handleViewReport = (report: Report) => {
     setIsLoading(true);
     setViewingReport(report);
-
+    setCurrentReport(report)
     // Simulate loading progress
     let progress = 0;
     const interval = setInterval(() => {
@@ -163,6 +166,7 @@ export default function ESGDDReport() {
       if (progress >= 100) {
         clearInterval(interval);
         setIsLoading(false);
+        setPdfDialogOpen(true);
         toast({
           title: "Report Loaded",
           description: `${report.title} for ${getCompanyName(report.entityId)} is ready to view`,
@@ -176,9 +180,15 @@ export default function ESGDDReport() {
       title: "Downloading Report",
       description: `Downloading ${report.title} for ${getCompanyName(report.entityId)}`,
     });
-
-    // In a real application, this would initiate a file download
-    // For now we just simulate it with a toast notification
+    
+    // Create an anchor element and trigger download
+    const link = document.createElement('a');
+    link.href = getS3FilePath(report.file_path);
+    link.download = `${getCompanyName(report.entityId)}-ESG-Report.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
     setTimeout(() => {
       toast({
         title: "Download Complete",
@@ -261,6 +271,10 @@ export default function ESGDDReport() {
                 </Link>
               </div>
               <div className="flex gap-2 mt-4">
+                <Button onClick={() => handleViewReport(viewingReport)} className="mt-2">
+                  <Eye className="mr-2 h-4 w-4" />
+                  View Report
+                </Button>
                 <Button onClick={() => handleDownloadReport(viewingReport)} className="mt-2">
                   <Download className="mr-2 h-4 w-4" />
                   Download Report
@@ -318,6 +332,35 @@ export default function ESGDDReport() {
           </p>
         </div>
       )}
+
+      <Dialog open={pdfDialogOpen} onOpenChange={setPdfDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle>
+              {currentReport?.title} - {currentReport && getCompanyName(currentReport.entityId)}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="mt-4 h-[70vh] overflow-hidden">
+            <iframe
+              src={getS3FilePath(currentReport?.file_path)}
+              className="w-full h-full"
+              title={`PDF Viewer for ${currentReport?.title}`}
+            />
+          </div>
+          <div className="flex justify-end mt-4">
+            <Button 
+              onClick={() => currentReport && handleDownloadReport(currentReport)} 
+              className="mr-2"
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Download
+            </Button>
+            <Button variant="outline" onClick={() => setPdfDialogOpen(false)}>
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
