@@ -4,7 +4,8 @@ import {
   Sidebar as ShadcnSidebar, 
   SidebarContent, 
   SidebarHeader, 
-  SidebarFooter 
+  SidebarFooter, 
+  SidebarProvider
 } from "@/components/ui/sidebar";
 import { SidebarNavigation } from "./SidebarNavigation";
 
