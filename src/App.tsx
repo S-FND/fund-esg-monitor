@@ -1,9 +1,8 @@
+
 import { useState } from "react";
 import {
-  BrowserRouter as Router,
   Route,
   Routes,
-  Link,
   useNavigate,
 } from "react-router-dom";
 import {
@@ -23,11 +22,10 @@ import {
 import { Sidebar } from "@/components/sidebar";
 import { Button } from "@/components/ui/button";
 import { ModeToggle } from "@/components/ui/mode-toggle";
-import { Shell } from "./components/Shell";
-import { EditPortfolioCompany } from "./features/edit-portfolio-company";
+import { Shell } from "@/components/Shell";
+import { EditPortfolioCompany } from "@/features/edit-portfolio-company";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
-import { Toast } from "@/components/ui/toast";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -129,7 +127,6 @@ function App() {
           <Route path="/team/:id" element={<TeamMemberDetail />} />
           <Route path="/team/edit/:id" element={<TeamMemberEdit />} />
         </Routes>
-        <Toast />
       </ScrollArea>
     </Shell>
   );
