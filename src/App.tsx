@@ -22,7 +22,7 @@ import {
 } from "./pages";
 import { Sidebar } from "@/components/sidebar";
 import { Button } from "@/components/ui/button";
-import { ModeToggle } from "./components/ui/mode-toggle";
+import { ModeToggle } from "@/components/ui/mode-toggle";
 import { Shell } from "./components/Shell";
 import { EditPortfolioCompany } from "./features/edit-portfolio-company";
 import { ScrollArea } from "@/components/ui/scroll-area";
