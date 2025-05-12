@@ -10,8 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 
 interface Company {
-  id: number;
-  name: string;
+  _id: number;
+  companyName: string;
 }
 
 interface FilterControlsProps {
@@ -38,8 +38,8 @@ export function FilterControls({
               <SelectContent>
                 <SelectItem value="all">All Companies</SelectItem>
                 {companies.map(company => (
-                  <SelectItem key={company.id} value={company.id.toString()}>
-                    {company.name}
+                  <SelectItem key={company._id} value={company._id.toString()}>
+                    {company.companyName}
                   </SelectItem>
                 ))}
               </SelectContent>

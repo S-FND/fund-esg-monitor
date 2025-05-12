@@ -1,49 +1,52 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, Download, Eye } from "lucide-react";
+import { FileText, Download, Eye, Link } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { DateRangeSearch } from "@/components/esg-dd/DateRangeSearch";
-import { useState } from "react";
-import { portfolioCompanies } from "@/features/edit-portfolio-company/portfolioCompanies";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import { useEffect, useState } from "react";
+// import { portfolioCompanies } from "@/features/edit-portfolio-company/portfolioCompanies";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 
 interface Report {
   id: string;
-  companyId: number;
+  entityId: number;
   title: string;
-  date: string;
+  createdAt: string;
   consultant: string;
-  fileUrl: string;
+  file_path: string;
 }
 
 export default function ESGDDReport() {
+  const getS3FilePath = (file_path) =>
+    `https://fandoro-sustainability-saas.s3.ap-south-1.amazonaws.com/${file_path}`;
+  const [portfolioCompanies, setPortfolioCompanies] = useState([])
   const allReports: Report[] = [
     {
       id: "report-1",
-      companyId: 1,
+      entityId: 1,
       title: "ESG Due Diligence Report - Q1 2025",
-      date: "2025-01-15",
+      createdAt: "2025-01-15",
       consultant: "EcoConsult Partners",
-      fileUrl: "#"
+      file_path: "#"
     },
     {
       id: "report-2",
-      companyId: 2,
+      entityId: 2,
       title: "ESG Due Diligence Report - Q4 2024",
-      date: "2024-10-10",
+      createdAt: "2024-10-10",
       consultant: "Sustainable Future Advisors",
-      fileUrl: "#"
+      file_path: "#"
     }
-  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   const [filteredReports, setFilteredReports] = useState(allReports);
   const [selectedCompany, setSelectedCompany] = useState<string>("all");
@@ -61,6 +64,8 @@ export default function ESGDDReport() {
   };
 
   const handleCompanyChange = (companyId: string) => {
+    console.log('companyId', companyId)
+    getReportList(companyId)
     setSelectedCompany(companyId);
     applyFilters(companyId, null, null);
   };
@@ -69,20 +74,20 @@ export default function ESGDDReport() {
     let filtered = [...allReports];
 
     // Filter by company if specified
-    if (companyId !== "all") {
-      filtered = filtered.filter(report => report.companyId === parseInt(companyId));
-    }
+    // if (companyId !== "all") {
+    //   filtered = filtered.filter(report => report.entityId === entityId);
+    // }
 
     // Filter by date range if provided
     if (startDate && endDate) {
       filtered = filtered.filter(report => {
-        const reportDate = new Date(report.date);
+        const reportDate = new Date(report.createdAt);
         return reportDate >= startDate && reportDate <= endDate;
       });
     }
 
     setFilteredReports(filtered);
-    
+
     if (filtered.length === 0) {
       toast({
         title: "No Reports Found",
@@ -91,33 +96,87 @@ export default function ESGDDReport() {
     }
   };
 
+  const getCompanyInfoList = async () => {
+    try {
+      const res = await fetch(`http://localhost:3003` + `/investor/companyInfo`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
+      });
+      if (!res.ok) {
+        // toast.error("Invalid credentials");
+        // setIsLoading(false);
+        return;
+      }
+      else {
+        const jsondata = await res.json();
+        console.log('getCompanyInfoList ::jsondata', jsondata)
+        setPortfolioCompanies(jsondata['data'])
+      }
+    } catch (error) {
+      console.error("Api call:", error);
+      // toast.error("API Call failed. Please try again.");
+    } finally {
+      // setIsLoading(false);
+    }
+
+  };
+
+  const getReportList = async (email) => {
+    try {
+      const res = await fetch(`http://localhost:3003` + `/investor/esdd-reports/${email}`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
+      });
+      if (!res.ok) {
+        // toast.error("Invalid credentials");
+        // setIsLoading(false);
+        return;
+      }
+      else {
+        const jsondata = await res.json();
+        setViewingReport(jsondata['data'][0])
+
+      }
+    } catch (error) {
+      console.error("Api call:", error);
+      // toast.error("API Call failed. Please try again.");
+    } finally {
+      // setIsLoading(false);
+    }
+
+  };
+
+  useEffect(() => {
+    getCompanyInfoList()
+  }, [])
+
   const handleViewReport = (report: Report) => {
     setIsLoading(true);
     setViewingReport(report);
-    
+
     // Simulate loading progress
     let progress = 0;
     const interval = setInterval(() => {
       progress += Math.floor(Math.random() * 15) + 5;
       setLoadingProgress(progress > 100 ? 100 : progress);
-      
+
       if (progress >= 100) {
         clearInterval(interval);
         setIsLoading(false);
         toast({
           title: "Report Loaded",
-          description: `${report.title} for ${getCompanyName(report.companyId)} is ready to view`,
+          description: `${report.title} for ${getCompanyName(report.entityId)} is ready to view`,
         });
       }
     }, 500);
   };
-  
+
   const handleDownloadReport = (report: Report) => {
     toast({
       title: "Downloading Report",
-      description: `Downloading ${report.title} for ${getCompanyName(report.companyId)}`,
+      description: `Downloading ${report.title} for ${getCompanyName(report.entityId)}`,
     });
-    
+
     // In a real application, this would initiate a file download
     // For now we just simulate it with a toast notification
     setTimeout(() => {
@@ -159,9 +218,9 @@ export default function ESGDDReport() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Companies</SelectItem>
-                {portfolioCompanies.map(company => (
-                  <SelectItem key={company.id} value={company.id.toString()}>
-                    {company.name}
+                {portfolioCompanies.filter((c) => c.companytype == 'Invited').map(company => (
+                  <SelectItem key={company.email} value={company.email.toString()}>
+                    {company.companyName}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -173,10 +232,10 @@ export default function ESGDDReport() {
       {viewingReport ? (
         <div className="bg-white rounded-lg border border-gray-200 shadow-md p-6 space-y-4">
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold">{viewingReport.title}</h2>
+            <h2 className="text-xl font-semibold">{viewingReport.file_path}</h2>
             <Button variant="outline" onClick={closeReportViewer}>Close</Button>
           </div>
-          
+
           {isLoading ? (
             <div className="space-y-2 py-8">
               <p className="text-center text-muted-foreground">Loading report...</p>
@@ -186,10 +245,20 @@ export default function ESGDDReport() {
             <div className="flex flex-col items-center justify-center gap-4 py-8">
               <FileText className="h-16 w-16 text-primary" />
               <div className="text-center">
-                <p className="font-medium">{getCompanyName(viewingReport.companyId)}</p>
+                <p className="font-medium">{getCompanyName(viewingReport.entityId)}</p>
                 <p className="text-sm text-muted-foreground">
-                  Created on {new Date(viewingReport.date).toLocaleDateString()} by {viewingReport.consultant}
+                  Created on {new Date(viewingReport.createdAt).toLocaleDateString()} by {viewingReport.entityId}
                 </p>
+                <Link
+                  href={getS3FilePath(viewingReport.file_path)}
+                  target="_blank"
+                >
+                  {
+                    viewingReport.file_path
+                      ?.split("/")
+                      ?.reverse()?.[0]
+                  }
+                </Link>
               </div>
               <div className="flex gap-2 mt-4">
                 <Button onClick={() => handleDownloadReport(viewingReport)} className="mt-2">
@@ -206,10 +275,10 @@ export default function ESGDDReport() {
             <Card key={report.id}>
               <CardHeader>
                 <CardTitle className="line-clamp-1">
-                  {getCompanyName(report.companyId)}
+                  {getCompanyName(report.entityId)}
                 </CardTitle>
                 <CardDescription>
-                  Uploaded on {new Date(report.date).toLocaleDateString()} by {report.consultant}
+                  Uploaded on {new Date(report.createdAt).toLocaleDateString()} by {report.consultant}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -217,16 +286,16 @@ export default function ESGDDReport() {
                   {report.title}
                 </p>
                 <div className="flex flex-col sm:flex-row gap-2">
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     onClick={() => handleViewReport(report)}
                     className="flex-1"
                   >
                     <Eye className="mr-2 h-4 w-4" />
                     View Report
                   </Button>
-                  <Button 
-                    variant="secondary" 
+                  <Button
+                    variant="secondary"
                     onClick={() => handleDownloadReport(report)}
                     className="flex-1"
                   >

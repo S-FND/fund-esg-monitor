@@ -1,13 +1,14 @@
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { CAPItem, CAPStatus, CAPType, CAPTable } from "@/components/esg-cap/CAPTable";
 import { ReviewDialog } from "@/components/esg-cap/ReviewDialog";
 import { FilterControls } from "@/components/esg-cap/FilterControls";
-import { portfolioCompanies } from "@/features/edit-portfolio-company/portfolioCompanies";
+// import { portfolioCompanies } from "@/features/edit-portfolio-company/portfolioCompanies";
 
 export default function ESGCAP() {
+  const [portfolioCompanies,setPortfolioCompanies]=useState([])
   const [selectedItem, setSelectedItem] = useState<CAPItem | null>(null);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<string>("all");
@@ -93,6 +94,35 @@ export default function ESGCAP() {
       description: `Reminder sent for "${item.item}"`,
     });
   };
+
+  const getCompanyInfoList = async () => {
+    try {
+      const res = await fetch(`http://localhost:3003` + `/investor/companyInfo`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
+      });
+      if (!res.ok) {
+        // toast.error("Invalid credentials");
+        // setIsLoading(false);
+        return;
+      }
+      else {
+        const jsondata = await res.json();
+        console.log('getCompanyInfoList ::jsondata',jsondata)
+        setPortfolioCompanies(jsondata['data'])
+      }
+    } catch (error) {
+      console.error("Api call:", error);
+      // toast.error("API Call failed. Please try again.");
+    } finally {
+      // setIsLoading(false);
+    }
+
+  };
+
+  useEffect(() => {
+    getCompanyInfoList()  
+  }, [])
 
   return (
     <div className="space-y-6">
