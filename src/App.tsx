@@ -3,8 +3,6 @@ import { useState, useEffect } from "react";
 import {
   Route,
   Routes,
-  useNavigate,
-  useLocation,
 } from "react-router-dom";
 import {
   Dashboard,
@@ -19,7 +17,6 @@ import {
   EditFund,
   TeamMemberDetail,
   TeamMemberEdit,
-  Login
 } from "./pages";
 import { Sidebar } from "@/components/sidebar";
 import { Button } from "@/components/ui/button";
@@ -39,67 +36,16 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { supabase } from "./integrations/supabase/client";
 
 function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [authChecked, setAuthChecked] = useState(false);
-  const navigate = useNavigate();
   const { toast } = useToast();
-  const location = useLocation();
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data } = await supabase.auth.getSession();
-      setIsLoggedIn(!!data.session);
-      setAuthChecked(true);
-      
-      if (!data.session && location.pathname !== "/login") {
-        navigate("/login");
-      }
-    };
-
-    checkAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setIsLoggedIn(!!session);
-      if (!session && location.pathname !== "/login") {
-        navigate("/login");
-      }
+  const handleLogout = () => {
+    toast({
+      title: "Logged out",
+      description: "You have been successfully logged out.",
     });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [navigate, location.pathname]);
-
-  const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut();
-
-    if (error) {
-      toast({
-        title: "Error logging out",
-        description: "There was an error logging you out. Please try again.",
-        variant: "destructive",
-      });
-    } else {
-      toast({
-        title: "Logged out",
-        description: "You have been successfully logged out.",
-      });
-      navigate("/login");
-    }
   };
-
-  // If we're still checking authentication or not logged in and already on login page
-  if (!authChecked || (!isLoggedIn && location.pathname === "/login")) {
-    return (
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="*" element={<Login />} />
-      </Routes>
-    );
-  }
 
   return (
     <Shell>
@@ -128,7 +74,6 @@ function App() {
           <ModeToggle />
         </div>
         <Routes>
-          <Route path="/login" element={<Login />} />
           <Route path="/" element={<Dashboard />} />
           <Route path="/investor-info" element={<InvestorInfo />} />
           <Route path="/funds" element={<Funds />} />
