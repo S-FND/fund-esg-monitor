@@ -4,7 +4,8 @@ import {
   Sidebar as ShadcnSidebar, 
   SidebarContent, 
   SidebarHeader, 
-  SidebarFooter 
+  SidebarFooter,
+  SidebarProvider
 } from "@/components/ui/sidebar";
 import { SidebarNavigation } from "./SidebarNavigation";
 
@@ -46,5 +47,5 @@ export function Sidebar() {
   );
 }
 
-// Re-export for backward compatibility
-export { Sidebar as default } from "./index";
+// Remove the incorrect re-export as it's causing confusion
+// export { Sidebar as default } from "./index";
