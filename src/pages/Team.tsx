@@ -3,7 +3,6 @@ import React, { useState, useEffect } from "react";
 import { TeamAddDialog } from "@/components/TeamAddDialog";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
 
 type TeamMember = {
   name: string;
@@ -17,42 +16,40 @@ export default function Team() {
   const [loading, setLoading] = useState(true);
   const [addingDialogOpen, setAddingDialogOpen] = useState(false);
 
+  const getTeamList=async ()=>{
+    try {
+      const res = await fetch(`http://localhost:3003` + `/subuser`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
+      });
+      if (!res.ok) {
+        // toast.error("Invalid credentials");
+        // setIsLoading(false);
+        return;
+      }
+      else {
+        const jsondata = await res.json();
+        // setViewingReport(jsondata['data'][0])
+        setTeam(jsondata['data'][0]['subuser'])
+        setLoading(false)
+
+      }
+    } catch (error) {
+      
+    }
+    finally{
+
+    }
+  }
+
   useEffect(() => {
     // Fetch team members when component mounts
-    const fetchData = async () => {
-      setLoading(true);
-
-      // Fetch team members
-      const { data: teamData, error: teamError } = await supabase
-        .from('team_members')
-        .select(`
-          id, 
-          name, 
-          email, 
-          designation,
-          mobile_number
-        `);
-
-      if (teamError) {
-        console.error('Error fetching team members:', teamError);
-      } else if (teamData) {
-        const formattedTeam = teamData.map(member => ({
-          name: member.name,
-          email: member.email,
-          designation: member.designation ?? "",
-          mobileNumber: member.mobile_number ?? "",
-        }));
-        setTeam(formattedTeam);
-      }
-      
-      setLoading(false);
-    };
-
-    fetchData();
+    getTeamList()
   }, []);
 
-  const handleAddTeamMember = (member: { name: string; email: string; designation: string; mobileNumber: string }) => {
-    setTeam(prev => [...prev, member]);
+  const handleAddTeamMember = async (member: { name: string; email: string; designation: string; mobileNumber: string }) => {
+    // setTeam(prev => [...prev, member]);
+    
   };
 
   return (

@@ -34,19 +34,25 @@ export function useTeamAddForm({ onAdd, onClose }: UseTeamAddFormProps) {
 
     try {
       // Insert team member
-      const { data: memberData, error: memberError } = await supabase
-        .from("team_members")
-        .insert({
-          name,
+      const res = await fetch(`http://localhost:3003` + `/subuser`, {
+        method: "POST",
+        body:JSON.stringify({employeeList:[{name,
           email,
-          fund_admin_id: (await supabase.auth.getUser()).data.user?.id,
           designation,
-          mobile_number: mobileNumber,
-        })
-        .select("id")
-        .single();
+          mobileNumber}]}),
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
+      });
+      if (!res.ok) {
+        // toast.error("Invalid credentials");
+        // setIsLoading(false);
+        return;
+      }
+      else {
+        const jsondata = await res.json();
+        // setViewingReport(jsondata['data'][0])
+        // setLoading(false)
 
-      if (memberError) throw memberError;
+      }
 
       onAdd({
         name,

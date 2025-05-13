@@ -12,8 +12,8 @@ export interface CAPItem {
   id: string;
   companyId: number;
   item: string;
-  actions: string;
-  responsibility: string;
+  measures: string;
+  resource: string;
   deliverable: string;
   targetDate: string;
   type: CAPType;
@@ -74,8 +74,8 @@ export function CAPTable({ items, onReview, onSendReminder }: CAPTableProps) {
               <TableCell>{index + 1}</TableCell>
               <TableCell>{getCompanyName(item.companyId)}</TableCell>
               <TableCell className="font-medium">{item.item}</TableCell>
-              <TableCell>{item.actions}</TableCell>
-              <TableCell>{item.responsibility}</TableCell>
+              <TableCell>{item.measures}</TableCell>
+              <TableCell>{item.resource}</TableCell>
               <TableCell>{item.deliverable}</TableCell>
               <TableCell>{item.targetDate}</TableCell>
               <TableCell>{item.type}</TableCell>

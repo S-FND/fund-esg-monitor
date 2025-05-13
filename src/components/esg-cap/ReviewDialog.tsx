@@ -17,6 +17,7 @@ interface ReviewDialogProps {
   onApprove: () => void;
   onReject: () => void;
   onOpenChange: (open: boolean) => void;
+  finalPlan:boolean;
 }
 
 export function ReviewDialog({
@@ -25,6 +26,7 @@ export function ReviewDialog({
   onApprove,
   onReject,
   onOpenChange,
+  finalPlan
 }: ReviewDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -42,11 +44,11 @@ export function ReviewDialog({
           </div>
           <div>
             <h4 className="font-semibold">Corrective Actions</h4>
-            <p>{item?.actions}</p>
+            <p>{item?.measures}</p>
           </div>
           <div>
             <h4 className="font-semibold">Responsibility</h4>
-            <p>{item?.responsibility}</p>
+            <p>{item?.resource}</p>
           </div>
           <div>
             <h4 className="font-semibold">Target Date</h4>
@@ -62,14 +64,16 @@ export function ReviewDialog({
           </div>
         </div>
         <DialogFooter className="flex space-x-2 sm:justify-end">
-          <Button variant="destructive" onClick={onReject}>
+          {finalPlan && <p>Plan is already accepted</p>}
+          {!finalPlan && <Button variant="destructive" onClick={onReject}>
             <X className="mr-2 h-4 w-4" />
             Reject
-          </Button>
-          <Button onClick={onApprove}>
+          </Button>}
+          {!finalPlan && <Button onClick={onApprove}>
             <Check className="mr-2 h-4 w-4" />
             Approve
-          </Button>
+          </Button>}
+          
         </DialogFooter>
       </DialogContent>
     </Dialog>

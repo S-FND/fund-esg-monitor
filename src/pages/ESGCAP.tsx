@@ -13,14 +13,17 @@ export default function ESGCAP() {
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<string>("all");
 
+  const [filteredCAPItems,setFilteredCAPItems]=useState([])
+  const [finalPlan,setFinalPlan]=useState(false);
+
   // Mock data for CAP items with company IDs
   const mockCAPItems: CAPItem[] = [
     {
       id: "cap-1",
       companyId: 1,
       item: "Environmental Policy",
-      actions: "Develop and implement a comprehensive environmental policy",
-      responsibility: "Company ESG Manager",
+      measures: "Develop and implement a comprehensive environmental policy",
+      resource: "Company ESG Manager",
       deliverable: "Environmental Policy Document",
       targetDate: "2025-06-30",
       type: "CP",
@@ -30,8 +33,8 @@ export default function ESGCAP() {
       id: "cap-2",
       companyId: 2,
       item: "Waste Management",
-      actions: "Implement waste segregation and recycling program",
-      responsibility: "Operations Team",
+      measures: "Implement waste segregation and recycling program",
+      resource: "Operations Team",
       deliverable: "Waste Management Reports",
       targetDate: "2025-05-15",
       type: "CS",
@@ -41,8 +44,8 @@ export default function ESGCAP() {
       id: "cap-3",
       companyId: 1,
       item: "Energy Audit",
-      actions: "Conduct energy audit and implement efficiency measures",
-      responsibility: "External Consultant & Facilities",
+      measures: "Conduct energy audit and implement efficiency measures",
+      resource: "External Consultant & Facilities",
       deliverable: "Energy Audit Report",
       targetDate: "2025-04-30",
       type: "CP",
@@ -53,8 +56,8 @@ export default function ESGCAP() {
       id: "cap-4",
       companyId: 3,
       item: "Diversity Policy",
-      actions: "Develop and implement diversity and inclusion policy",
-      responsibility: "HR Department",
+      measures: "Develop and implement diversity and inclusion policy",
+      resource: "HR Department",
       deliverable: "D&I Policy Document",
       targetDate: "2025-03-15",
       type: "CS",
@@ -63,9 +66,12 @@ export default function ESGCAP() {
   ];
 
   // Filter CAP items by selected company
-  const filteredCAPItems = selectedCompany === "all"
-    ? mockCAPItems
-    : mockCAPItems.filter(item => item.companyId === parseInt(selectedCompany));
+  // const filteredCAPItems = selectedCompany === "all"
+  //   ? mockCAPItems
+  //   : mockCAPItems.filter(item => item.companyId === parseInt(selectedCompany));
+  // setFilteredCAPItems(selectedCompany === "all"
+  //   ? mockCAPItems
+  //   : mockCAPItems.filter(item => item.companyId === parseInt(selectedCompany)))
 
   const handleReview = (item: CAPItem) => {
     setSelectedItem(item);
@@ -120,9 +126,42 @@ export default function ESGCAP() {
 
   };
 
+  const getReportList = async (email) => {
+    try {
+      const res = await fetch(`http://localhost:3003` + `/investor/esgdd/escap/${email}`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
+      });
+      if (!res.ok) {
+        // toast.error("Invalid credentials");
+        // setIsLoading(false);
+        return;
+      }
+      else {
+        const jsondata = await res.json();
+        // setViewingReport(jsondata['data'][0])
+        setFilteredCAPItems(jsondata['plan'])
+        setFinalPlan(jsondata['finalPlan'])
+
+      }
+    } catch (error) {
+      console.error("Api call:", error);
+      // toast.error("API Call failed. Please try again.");
+    } finally {
+      // setIsLoading(false);
+    }
+
+  };
+
   useEffect(() => {
     getCompanyInfoList()  
   }, [])
+
+  useEffect(()=>{
+    if(selectedCompany !== 'all'){
+      getReportList(selectedCompany)
+    }
+  },[selectedCompany])
 
   return (
     <div className="space-y-6">
@@ -167,6 +206,7 @@ export default function ESGCAP() {
         onApprove={handleApprove}
         onReject={handleReject}
         onOpenChange={setReviewDialogOpen}
+        finalPlan={finalPlan}
       />
     </div>
   );
