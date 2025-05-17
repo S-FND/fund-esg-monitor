@@ -9,10 +9,12 @@ import { mainNavItems, esgDDNavItem, valuationNavItem } from "@/components/sideb
 import { ArrowLeft, Pencil } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
+import { http } from "@/utils/httpInterceptor";
 
 interface AccessRight {
   moduleName: string;
   level: "read" | "write" | "admin" | "none";
+  href:string;
 }
 
 interface TeamMember {
@@ -37,6 +39,7 @@ export default function TeamMemberDetail() {
   const [member, setMember] = useState<TeamMember | null>(null);
   const [loading, setLoading] = useState(true);
   const [accessRights, setAccessRights] = useState<AccessRight[]>([]);
+  const [sampleRights,setSampleRights]=useState([])
   const { toast } = useToast();
 
   const allNavItems = [
@@ -48,7 +51,7 @@ export default function TeamMemberDetail() {
   useEffect(() => {
     // Simulate fetching member details
     setLoading(true);
-    
+
     // Sample data - in a real app, this would be fetched from the database
     const sampleTeamMembers = [
       {
@@ -108,43 +111,72 @@ export default function TeamMemberDetail() {
         ]
       } as TeamMember
     ];
-    
+
     const foundMember = sampleTeamMembers.find(m => m._id === id);
-    
-    if (foundMember) {
-      setMember(foundMember);
-      
+
+    if (member) {
+      // setMember(foundMember);
+
       // Initialize access rights for all modules
       const initialAccessRights: AccessRight[] = allNavItems.map(item => {
-        const existingRight = foundMember.accessRights.find(r => r.moduleName === item.title);
-        return existingRight || { moduleName: item.title, level: "none" as const };
+        const existingRight = member?.accessRights?.find(r => r.moduleName === item.title);
+        return existingRight || { moduleName: item.title, level: "none" as const,href:item.href };
       });
-      
+      // console.log('initialAccessRights',initialAccessRights)
       setAccessRights(initialAccessRights);
     }
-    
+
     setLoading(false);
-  }, [id, allNavItems]);
+  }, [id]);
 
   const handleAccessChange = (moduleName: string, level: "read" | "write" | "admin" | "none") => {
-    setAccessRights(prev => 
-      prev.map(right => 
-        right.moduleName === moduleName ? { ...right, level } : right
-      )
-    );
+    let accessData = accessRights.map((right) => {
+      if (right['moduleName'] == moduleName) {
+        right['level'] = level;
+        return right;
+      }
+      else {
+        return right;
+      }
+    }
+    )
+    setAccessRights(accessData)
+    // setAccessRights(prev => 
+    //   prev.map(right => 
+    //     right.moduleName === moduleName ? { ...right, level } : right
+    //   )
+    // );
   };
+
 
   const handleSaveAccess = () => {
     // In a real app, this would update the database
     if (member) {
       // Update the member with the new access rights
       setMember({ ...member, accessRights });
-      
+      //accessUrls
       toast({
         title: "Access rights updated",
         description: "User access permissions have been updated successfully."
       });
+
     }
+    let payload={
+      accessList:{
+        urls:accessRights
+      },
+      subUserId:id
+    }
+    try {
+      let response=http.post(`subuser/role`,payload)
+      console.log('response',response)
+    } catch (error) {
+      
+    }
+    
+    console.log('member', member)
+    console.log('allNavItems', allNavItems)
+    console.log('accessRights', accessRights)
   };
 
   // if (loading) {
@@ -155,7 +187,7 @@ export default function TeamMemberDetail() {
   //   return <div className="container py-8">Team member not found</div>;
   // }
 
-  const getTeamList=async ()=>{
+  const getTeamList = async () => {
 
     try {
       const res = await fetch(`http://localhost:3003` + `/subuser?id=${id}`, {
@@ -175,31 +207,36 @@ export default function TeamMemberDetail() {
 
       }
     } catch (error) {
-      
+
     }
-    finally{
+    finally {
 
     }
   }
 
-  useEffect(()=>{
+  useEffect(() => {
+    console.log('accessRights',accessRights)
+    setSampleRights(accessRights)
+  }, [accessRights])
+
+  useEffect(() => {
     getTeamList()
-  },[])
+  }, [])
 
   return (
     <div className="container max-w-4xl mx-auto py-8">
       <div className="flex items-center mb-6">
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           size="sm"
-          onClick={() => navigate('/team')} 
+          onClick={() => navigate('/team')}
           className="mr-2"
         >
           <ArrowLeft className="h-4 w-4 mr-1" />
           Back
         </Button>
         <h1 className="text-2xl font-semibold flex-1">Team Member Details</h1>
-        <Button 
+        <Button
           onClick={() => navigate(`/team/edit/${id}`)}
           variant="outline"
         >
@@ -238,12 +275,12 @@ export default function TeamMemberDetail() {
               <div className="space-y-6">
                 {allNavItems.map((item) => {
                   const currentAccess = accessRights.find(r => r.moduleName === item.title)?.level || "none";
-                  
+
                   return (
                     <div key={item.title} className="p-4 border rounded-md">
                       <div className="font-medium mb-3">{item.title}</div>
-                      <RadioGroup 
-                        value={currentAccess} 
+                      <RadioGroup
+                        value={currentAccess}
                         onValueChange={(value) => handleAccessChange(item.title, value as "read" | "write" | "admin" | "none")}
                         className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-4"
                       >

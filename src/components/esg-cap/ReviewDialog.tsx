@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useState, useEffect } from "react";
 import { CAPItem, CAPStatus, CAPType } from "./CAPTable";
 import { useToast } from "@/hooks/use-toast";
+import { http } from "@/utils/httpInterceptor";
 
 interface ReviewDialogProps {
   item: CAPItem | null;
@@ -42,6 +43,7 @@ export function ReviewDialog({
   const [editedItem, setEditedItem] = useState<CAPItem | null>(null);
   const [originalItem, setOriginalItem] = useState<CAPItem | null>(null);
   const { toast } = useToast();
+
 
   useEffect(() => {
     if (item) {
@@ -248,7 +250,7 @@ export function ReviewDialog({
           <Button onClick={onApprove} disabled={!canEdit}>
             <Check className="mr-2 h-4 w-4" />
             Approve
-          </Button>}
+          </Button>
           
         </DialogFooter>
       </DialogContent>
