@@ -2,7 +2,8 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Clock } from "lucide-react";
+import { Clock, Eye } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { portfolioCompanies } from "@/features/edit-portfolio-company/portfolioCompanies";
 
 export type CAPStatus = "Pending" | "In Progress" | "Completed" | "Delayed" | "Rejected";
@@ -25,6 +26,8 @@ interface CAPTableProps {
   items: CAPItem[];
   onReview: (item: CAPItem) => void;
   onSendReminder: (item: CAPItem) => void;
+  isHistoryView?: boolean;
+  originalItems?: CAPItem[];
 }
 
 const getStatusBadge = (status: CAPStatus) => {
@@ -49,7 +52,44 @@ const getCompanyName = (companyId: number) => {
   return company ? company.name : "Unknown Company";
 };
 
-export function CAPTable({ items, onReview, onSendReminder }: CAPTableProps) {
+// Function to check if a field has changed and wrap it appropriately
+const RenderChangedField = ({ 
+  currentValue, 
+  originalValue, 
+  isHistoryView
+}: { 
+  currentValue: string; 
+  originalValue: string; 
+  isHistoryView: boolean;
+}) => {
+  const hasChanged = currentValue !== originalValue;
+
+  if (!hasChanged || isHistoryView) {
+    return <span>{isHistoryView ? originalValue : currentValue}</span>;
+  }
+
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="border-b-2 border-amber-400 pb-0.5">
+            {currentValue}
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p className="text-sm">Original: {originalValue}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+};
+
+export function CAPTable({ items, onReview, onSendReminder, isHistoryView = false, originalItems = [] }: CAPTableProps) {
+  // Function to find the original item by ID
+  const getOriginalItem = (id: string) => {
+    return originalItems.find(item => item.id === id) || null;
+  };
+
   return (
     <div className="rounded-md border">
       <Table>
@@ -69,30 +109,92 @@ export function CAPTable({ items, onReview, onSendReminder }: CAPTableProps) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {items.map((item, index) => (
-            <TableRow key={item.id}>
-              <TableCell>{index + 1}</TableCell>
-              <TableCell>{getCompanyName(item.companyId)}</TableCell>
-              <TableCell className="font-medium">{item.item}</TableCell>
-              <TableCell>{item.actions}</TableCell>
-              <TableCell>{item.responsibility}</TableCell>
-              <TableCell>{item.deliverable}</TableCell>
-              <TableCell>{item.targetDate}</TableCell>
-              <TableCell>{item.type}</TableCell>
-              <TableCell>{item.actualDate || "-"}</TableCell>
-              <TableCell>{getStatusBadge(item.status)}</TableCell>
-              <TableCell className="text-right">
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline" size="sm" onClick={() => onReview(item)}>
-                    Review
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={() => onSendReminder(item)}>
-                    <Clock className="h-4 w-4" />
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
+          {items.map((item, index) => {
+            const originalItem = getOriginalItem(item.id);
+            
+            return (
+              <TableRow key={item.id} className={isHistoryView ? "bg-muted/30" : ""}>
+                <TableCell>{index + 1}</TableCell>
+                <TableCell>{getCompanyName(item.companyId)}</TableCell>
+                <TableCell className="font-medium">
+                  {originalItem ? (
+                    <RenderChangedField 
+                      currentValue={item.item} 
+                      originalValue={originalItem.item} 
+                      isHistoryView={isHistoryView}
+                    />
+                  ) : item.item}
+                </TableCell>
+                <TableCell>
+                  {originalItem ? (
+                    <RenderChangedField 
+                      currentValue={item.actions} 
+                      originalValue={originalItem.actions} 
+                      isHistoryView={isHistoryView}
+                    />
+                  ) : item.actions}
+                </TableCell>
+                <TableCell>
+                  {originalItem ? (
+                    <RenderChangedField 
+                      currentValue={item.responsibility} 
+                      originalValue={originalItem.responsibility} 
+                      isHistoryView={isHistoryView}
+                    />
+                  ) : item.responsibility}
+                </TableCell>
+                <TableCell>
+                  {originalItem ? (
+                    <RenderChangedField 
+                      currentValue={item.deliverable} 
+                      originalValue={originalItem.deliverable} 
+                      isHistoryView={isHistoryView}
+                    />
+                  ) : item.deliverable}
+                </TableCell>
+                <TableCell>
+                  {originalItem ? (
+                    <RenderChangedField 
+                      currentValue={item.targetDate} 
+                      originalValue={originalItem.targetDate} 
+                      isHistoryView={isHistoryView}
+                    />
+                  ) : item.targetDate}
+                </TableCell>
+                <TableCell>
+                  {originalItem ? (
+                    <RenderChangedField 
+                      currentValue={item.type} 
+                      originalValue={originalItem.type} 
+                      isHistoryView={isHistoryView}
+                    />
+                  ) : item.type}
+                </TableCell>
+                <TableCell>
+                  {item.actualDate || "-"}
+                </TableCell>
+                <TableCell>
+                  {getStatusBadge(item.status)}
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-2">
+                    <Button variant="outline" size="sm" onClick={() => onReview(item)}>
+                      {isHistoryView ? <Eye className="h-4 w-4 mr-1" /> : null}
+                      Review
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => onSendReminder(item)}
+                      disabled={isHistoryView}
+                    >
+                      <Clock className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </div>

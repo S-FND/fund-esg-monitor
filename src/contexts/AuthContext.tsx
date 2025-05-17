@@ -67,7 +67,7 @@ const DUMMY_USERS = {
     ],
     isActive: true
   }
-} as const;
+};
 
 const DUMMY_USER_ID = '1'; // Default to admin
 const DUMMY_ROLE = 'admin';
@@ -101,7 +101,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Get the user data based on userId
       const currentUser = DUMMY_USERS[userId as keyof typeof DUMMY_USERS];
       if (currentUser) {
-        setUser(currentUser as User);
+        // Convert to User type with correct level typing
+        const userData: User = {
+          id: currentUser.id,
+          email: currentUser.email,
+          name: currentUser.name,
+          accessRights: currentUser.accessRights.map(right => ({
+            moduleName: right.moduleName,
+            level: right.level
+          })),
+          isActive: currentUser.isActive
+        };
+        
+        setUser(userData);
         setUserRole(storedRole as AuthContextType['userRole']);
       }
     } else {

@@ -7,6 +7,8 @@ import { ReviewDialog } from "@/components/esg-cap/ReviewDialog";
 import { FilterControls } from "@/components/esg-cap/FilterControls";
 import { portfolioCompanies } from "@/features/edit-portfolio-company/portfolioCompanies";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function ESGCAP() {
@@ -15,9 +17,10 @@ export default function ESGCAP() {
   const [selectedCompany, setSelectedCompany] = useState<string>("all");
   const [canEdit, setCanEdit] = useState(true);
   const { user, userRole } = useAuth();
+  const [showHistory, setShowHistory] = useState(false);
 
   // Mock data for CAP items with company IDs
-  const [capItems, setCapItems] = useState<CAPItem[]>([
+  const [originalCapItems] = useState<CAPItem[]>([
     {
       id: "cap-1",
       companyId: 1,
@@ -64,17 +67,21 @@ export default function ESGCAP() {
       status: "Delayed"
     }
   ]);
+  
+  // Current working copy of CAP items
+  const [capItems, setCapItems] = useState<CAPItem[]>(originalCapItems);
 
   // Filter CAP items by selected company
   const filteredCAPItems = selectedCompany === "all"
-    ? capItems
-    : capItems.filter(item => item.companyId === parseInt(selectedCompany));
+    ? (showHistory ? originalCapItems : capItems)
+    : (showHistory ? originalCapItems : capItems).filter(item => item.companyId === parseInt(selectedCompany));
 
   const handleReview = (item: CAPItem) => {
-    setSelectedItem(item);
+    const currentItem = capItems.find(i => i.id === item.id);
+    setSelectedItem(currentItem || null);
     setReviewDialogOpen(true);
     // Check if the item is completed - if so, don't allow editing
-    setCanEdit(item.status !== "Completed");
+    setCanEdit(currentItem?.status !== "Completed");
   };
 
   const handleApprove = () => {
@@ -138,6 +145,10 @@ export default function ESGCAP() {
     console.log("Submitting CAP items:", filteredCAPItems);
   };
 
+  const toggleHistoryView = () => {
+    setShowHistory(!showHistory);
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -147,17 +158,31 @@ export default function ESGCAP() {
         </p>
       </div>
 
-      <FilterControls 
-        companies={portfolioCompanies}
-        selectedCompany={selectedCompany}
-        onCompanyChange={setSelectedCompany}
-      />
+      <div className="flex items-center justify-between">
+        <FilterControls 
+          companies={portfolioCompanies}
+          selectedCompany={selectedCompany}
+          onCompanyChange={setSelectedCompany}
+        />
+        
+        <div className="flex items-center space-x-2">
+          <Switch 
+            id="history-mode" 
+            checked={showHistory} 
+            onCheckedChange={toggleHistoryView}
+          />
+          <Label htmlFor="history-mode">
+            {showHistory ? "Viewing Original Version" : "Viewing Current Version"}
+          </Label>
+        </div>
+      </div>
 
       <Card>
         <CardHeader>
           <CardTitle>Corrective Action Plan Items</CardTitle>
           <CardDescription>
             Review and approve items in the ESG Corrective Action Plan
+            {showHistory && <span className="ml-2 text-amber-500 font-medium">(Viewing Original Version)</span>}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -166,6 +191,8 @@ export default function ESGCAP() {
               items={filteredCAPItems}
               onReview={handleReview}
               onSendReminder={handleSendReminder}
+              isHistoryView={showHistory}
+              originalItems={originalCapItems}
             />
           ) : (
             <div className="text-center py-8">
@@ -174,7 +201,7 @@ export default function ESGCAP() {
           )}
         </CardContent>
         <CardFooter className="flex justify-end">
-          <Button onClick={handleSubmitAllCap} size="lg">
+          <Button onClick={handleSubmitAllCap} size="lg" disabled={showHistory}>
             Submit Complete CAP
           </Button>
         </CardFooter>
@@ -183,11 +210,12 @@ export default function ESGCAP() {
       <ReviewDialog
         item={selectedItem}
         open={reviewDialogOpen}
-        canEdit={canEdit}
+        canEdit={canEdit && !showHistory}
         onApprove={handleApprove}
         onReject={handleReject}
         onSaveChanges={handleSaveChanges}
         onOpenChange={setReviewDialogOpen}
+        originalItems={originalCapItems}
       />
     </div>
   );

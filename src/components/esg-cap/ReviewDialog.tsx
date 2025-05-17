@@ -24,6 +24,7 @@ interface ReviewDialogProps {
   onReject: () => void;
   onSaveChanges: (updatedItem: CAPItem) => void;
   onOpenChange: (open: boolean) => void;
+  originalItems?: CAPItem[];
 }
 
 export function ReviewDialog({
@@ -34,6 +35,7 @@ export function ReviewDialog({
   onReject,
   onSaveChanges,
   onOpenChange,
+  originalItems = [],
 }: ReviewDialogProps) {
   const [editedItem, setEditedItem] = useState<CAPItem | null>(null);
   const [originalItem, setOriginalItem] = useState<CAPItem | null>(null);
@@ -42,9 +44,12 @@ export function ReviewDialog({
   useEffect(() => {
     if (item) {
       setEditedItem({ ...item });
-      setOriginalItem({ ...item });
+      
+      // Find the corresponding original item
+      const foundOriginal = originalItems.find(orig => orig.id === item.id);
+      setOriginalItem(foundOriginal || { ...item });
     }
-  }, [item]);
+  }, [item, originalItems]);
 
   const handleInputChange = (field: keyof CAPItem, value: any) => {
     if (editedItem) {
@@ -91,7 +96,7 @@ export function ReviewDialog({
             )}
             {isFieldChanged('item') && (
               <p className="text-xs text-amber-600 mt-1">
-                Previous: {originalItem?.item}
+                Original: {originalItem?.item}
               </p>
             )}
           </div>
@@ -109,7 +114,7 @@ export function ReviewDialog({
             )}
             {isFieldChanged('actions') && (
               <p className="text-xs text-amber-600 mt-1">
-                Previous: {originalItem?.actions}
+                Original: {originalItem?.actions}
               </p>
             )}
           </div>
@@ -145,7 +150,7 @@ export function ReviewDialog({
             )}
             {isFieldChanged('deliverable') && (
               <p className="text-xs text-amber-600 mt-1">
-                Previous: {originalItem?.deliverable}
+                Original: {originalItem?.deliverable}
               </p>
             )}
           </div>
@@ -164,7 +169,7 @@ export function ReviewDialog({
             )}
             {isFieldChanged('targetDate') && (
               <p className="text-xs text-amber-600 mt-1">
-                Previous: {originalItem?.targetDate}
+                Original: {originalItem?.targetDate}
               </p>
             )}
           </div>
@@ -189,7 +194,7 @@ export function ReviewDialog({
             )}
             {isFieldChanged('type') && (
               <p className="text-xs text-amber-600 mt-1">
-                Previous: {originalItem?.type}
+                Original: {originalItem?.type}
               </p>
             )}
           </div>
@@ -217,7 +222,7 @@ export function ReviewDialog({
             )}
             {isFieldChanged('status') && (
               <p className="text-xs text-amber-600 mt-1">
-                Previous: {originalItem?.status}
+                Original: {originalItem?.status}
               </p>
             )}
           </div>
@@ -234,11 +239,11 @@ export function ReviewDialog({
               Save Changes
             </Button>
           )}
-          <Button variant="destructive" onClick={onReject}>
+          <Button variant="destructive" onClick={onReject} disabled={!canEdit}>
             <X className="mr-2 h-4 w-4" />
             Reject
           </Button>
-          <Button onClick={onApprove}>
+          <Button onClick={onApprove} disabled={!canEdit}>
             <Check className="mr-2 h-4 w-4" />
             Approve
           </Button>
