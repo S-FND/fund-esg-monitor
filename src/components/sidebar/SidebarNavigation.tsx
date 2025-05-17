@@ -13,10 +13,17 @@ import { esgDDNavItem, valuationNavItem } from "./navigation-items";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
 
+// Define the AssignedPage type to match the structure in the user's array
+interface AssignedPage {
+  moduleName: string;
+  level: "read" | "write" | "admin" | "none";
+  href: string;
+}
+
 export function SidebarNavigation() {
   const location = useLocation();
   const { user } = useAuth();
-  const [accessibleMenus, setAccessibleMenus] = useState<string[]>([]);
+  const [accessibleMenus, setAccessibleMenus] = useState<AssignedPage[]>([]);
 
   // Check if any path starts with /esg-dd but is not /esg-dd/risk-matrix
   const isEsgSubmenuOpen = location.pathname.startsWith("/esg-dd") && !location.pathname.includes("risk-matrix");
@@ -28,33 +35,68 @@ export function SidebarNavigation() {
     // In a real app, this would come from the backend based on user roles
     // For demo purposes, we'll use mock data
     const fetchUserAccess = async () => {
-      // Default mock accesses for demo purposes
-      const mockUserAccess = {
-        // Simulating different access patterns
-        "1": ["Dashboard", "Funds", "Team", "Portfolio Companies", "ESG DD"],
-        "2": ["ESG DD", "ESG CAP", "Valuation"],
-        "3": ["Dashboard", "Portfolio Companies", "Valuation"],
-        "4": ["Dashboard", "Funds", "Team", "Portfolio Companies", "ESG DD", "ESG CAP", "Valuation"]
-      };
+      // This would eventually come from an API or user context
+      // For now, we'll use the sample data provided by the user
+      const sampleAccessData: AssignedPage[] = [
+        {
+          moduleName: "Funds",
+          level: "read",
+          href: "/funds"
+        },
+        {
+          moduleName: "Portfolio Companies",
+          level: "read",
+          href: "/portfolio"
+        },
+        {
+          moduleName: "ESG DD",
+          level: "none",
+          href: "/esg-dd"
+        },
+        {
+          moduleName: "ESG DD Report",
+          level: "read",
+          href: "/esg-dd/report"
+        }
+      ];
 
-      const userId = user?.id || "1"; // Default to user 1 if no user ID
-      const accessList = mockUserAccess[userId as keyof typeof mockUserAccess] || ["Dashboard"];
-      setAccessibleMenus(accessList);
+      setAccessibleMenus(sampleAccessData);
     };
 
     fetchUserAccess();
   }, [user]);
 
-  // Filter menu items based on user access
-  const filteredMainNavItems = mainNavItems.filter(item => 
-    accessibleMenus.includes(item.title)
-  );
+  // Filter main navigation items based on access level
+  const filteredMainNavItems = mainNavItems.filter(item => {
+    const matchedAccess = accessibleMenus.find(access => access.moduleName === item.title);
+    return matchedAccess && matchedAccess.level !== "none";
+  });
 
   // Check if user has access to ESG DD submenu
-  const hasEsgAccess = accessibleMenus.includes(esgDDNavItem.title);
+  const hasEsgAccess = accessibleMenus.some(access => 
+    (access.moduleName === "ESG DD" && access.level !== "none") ||
+    access.moduleName.startsWith("ESG DD") && access.level !== "none"
+  );
 
   // Check if user has access to Valuation submenu
-  const hasValuationAccess = accessibleMenus.includes(valuationNavItem.title);
+  const hasValuationAccess = accessibleMenus.some(access => 
+    (access.moduleName === "Valuation" && access.level !== "none") ||
+    access.moduleName.startsWith("Valuation") && access.level !== "none"
+  );
+
+  // Filter ESG DD subitems based on access
+  const filteredEsgDDSubItems = hasEsgAccess ? esgDDNavItem.subItems.filter(subItem => {
+    const matchedAccess = accessibleMenus.find(
+      access => access.moduleName === subItem.title && access.level !== "none"
+    );
+    return matchedAccess;
+  }) : [];
+
+  // Create a modified ESG DD navigation item with filtered subitems
+  const filteredEsgDDNavItem = {
+    ...esgDDNavItem,
+    subItems: filteredEsgDDSubItems
+  };
 
   return (
     <SidebarMenu>
@@ -73,9 +115,9 @@ export function SidebarNavigation() {
         </SidebarMenuItem>
       ))}
 
-      {hasEsgAccess && (
+      {hasEsgAccess && filteredEsgDDSubItems.length > 0 && (
         <SidebarSubmenuItem 
-          item={esgDDNavItem} 
+          item={filteredEsgDDNavItem} 
           isInitiallyOpen={isEsgSubmenuOpen} 
         />
       )}
