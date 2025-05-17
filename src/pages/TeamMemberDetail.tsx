@@ -7,6 +7,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { mainNavItems, esgDDNavItem, valuationNavItem } from "@/components/sidebar/navigation-items";
 import { ArrowLeft, Pencil } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { useToast } from "@/hooks/use-toast";
+
+interface AccessRight {
+  moduleName: string;
+  level: "read" | "write" | "admin" | "none";
+}
 
 interface TeamMember {
   id: string;
@@ -14,15 +21,23 @@ interface TeamMember {
   email: string;
   designation?: string;
   mobileNumber?: string;
-  accessRights?: string[];
+  accessRights: AccessRight[];
 }
+
+const accessLevels = [
+  { value: "none", label: "No Access" },
+  { value: "read", label: "Read" },
+  { value: "write", label: "Write" },
+  { value: "admin", label: "Admin" }
+];
 
 export default function TeamMemberDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [member, setMember] = useState<TeamMember | null>(null);
   const [loading, setLoading] = useState(true);
-  const [accessRights, setAccessRights] = useState<Record<string, boolean>>({});
+  const [accessRights, setAccessRights] = useState<AccessRight[]>([]);
+  const { toast } = useToast();
 
   const allNavItems = [
     ...mainNavItems.map((item) => ({ title: item.title, href: item.href })),
@@ -42,32 +57,56 @@ export default function TeamMemberDetail() {
         email: "john.smith@example.com",
         designation: "Fund Manager",
         mobileNumber: "+1 (555) 123-4567",
-        accessRights: ["Dashboard", "Funds", "Team", "Portfolio Companies", "ESG DD"]
-      },
+        accessRights: [
+          { moduleName: "Dashboard", level: "admin" },
+          { moduleName: "Funds", level: "write" },
+          { moduleName: "Team", level: "write" },
+          { moduleName: "Portfolio Companies", level: "write" },
+          { moduleName: "ESG DD", level: "read" },
+          { moduleName: "Valuation", level: "read" }
+        ]
+      } as TeamMember,
       {
         id: "2",
         name: "Sarah Johnson",
         email: "sarah.johnson@example.com",
         designation: "ESG Analyst",
         mobileNumber: "+1 (555) 987-6543",
-        accessRights: ["ESG DD", "ESG CAP", "Valuation"]
-      },
+        accessRights: [
+          { moduleName: "Dashboard", level: "read" },
+          { moduleName: "ESG DD", level: "admin" },
+          { moduleName: "ESG CAP", level: "write" },
+          { moduleName: "Valuation", level: "read" }
+        ]
+      } as TeamMember,
       {
         id: "3",
         name: "Michael Wong",
         email: "michael.wong@example.com",
         designation: "Investment Analyst",
         mobileNumber: "+1 (555) 456-7890",
-        accessRights: ["Portfolio Companies", "Valuation"]
-      },
+        accessRights: [
+          { moduleName: "Dashboard", level: "read" },
+          { moduleName: "Portfolio Companies", level: "write" },
+          { moduleName: "Valuation", level: "admin" }
+        ]
+      } as TeamMember,
       {
         id: "4",
         name: "Lisa Chen",
         email: "lisa.chen@example.com",
         designation: "Chief Investment Officer",
         mobileNumber: "+1 (555) 567-8901",
-        accessRights: ["Dashboard", "Funds", "Team", "Portfolio Companies", "ESG DD", "ESG CAP", "Valuation"]
-      }
+        accessRights: [
+          { moduleName: "Dashboard", level: "admin" },
+          { moduleName: "Funds", level: "admin" },
+          { moduleName: "Team", level: "admin" },
+          { moduleName: "Portfolio Companies", level: "admin" },
+          { moduleName: "ESG DD", level: "admin" },
+          { moduleName: "ESG CAP", level: "admin" },
+          { moduleName: "Valuation", level: "admin" }
+        ]
+      } as TeamMember
     ];
     
     const foundMember = sampleTeamMembers.find(m => m.id === id);
@@ -75,28 +114,37 @@ export default function TeamMemberDetail() {
     if (foundMember) {
       setMember(foundMember);
       
-      // Initialize access rights checkboxes
-      const accessMap: Record<string, boolean> = {};
-      allNavItems.forEach(item => {
-        accessMap[item.title] = foundMember.accessRights?.includes(item.title) || false;
+      // Initialize access rights for all modules
+      const initialAccessRights: AccessRight[] = allNavItems.map(item => {
+        const existingRight = foundMember.accessRights.find(r => r.moduleName === item.title);
+        return existingRight || { moduleName: item.title, level: "none" as const };
       });
-      setAccessRights(accessMap);
+      
+      setAccessRights(initialAccessRights);
     }
     
     setLoading(false);
-  }, [id]);
+  }, [id, allNavItems]);
+
+  const handleAccessChange = (moduleName: string, level: "read" | "write" | "admin" | "none") => {
+    setAccessRights(prev => 
+      prev.map(right => 
+        right.moduleName === moduleName ? { ...right, level } : right
+      )
+    );
+  };
 
   const handleSaveAccess = () => {
     // In a real app, this would update the database
-    const updatedAccessRights = Object.entries(accessRights)
-      .filter(([_, value]) => value)
-      .map(([key]) => key);
-    
-    setMember(prev => 
-      prev ? { ...prev, accessRights: updatedAccessRights } : null
-    );
-    
-    alert("Access rights updated successfully");
+    if (member) {
+      // Update the member with the new access rights
+      setMember({ ...member, accessRights });
+      
+      toast({
+        title: "Access rights updated",
+        description: "User access permissions have been updated successfully."
+      });
+    }
   };
 
   if (loading) {
@@ -156,24 +204,30 @@ export default function TeamMemberDetail() {
               <CardTitle>Access Rights</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {allNavItems.map((item) => (
-                    <div key={item.title} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`access-${item.title}`}
-                        checked={accessRights[item.title] || false}
-                        onCheckedChange={(checked) => 
-                          setAccessRights(prev => ({ 
-                            ...prev, 
-                            [item.title]: checked === true 
-                          }))
-                        }
-                      />
-                      <Label htmlFor={`access-${item.title}`}>{item.title}</Label>
+              <div className="space-y-6">
+                {allNavItems.map((item) => {
+                  const currentAccess = accessRights.find(r => r.moduleName === item.title)?.level || "none";
+                  
+                  return (
+                    <div key={item.title} className="p-4 border rounded-md">
+                      <div className="font-medium mb-3">{item.title}</div>
+                      <RadioGroup 
+                        value={currentAccess} 
+                        onValueChange={(value) => handleAccessChange(item.title, value as "read" | "write" | "admin" | "none")}
+                        className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-4"
+                      >
+                        {accessLevels.map((level) => (
+                          <div key={level.value} className="flex items-center space-x-2">
+                            <RadioGroupItem value={level.value} id={`${item.title}-${level.value}`} />
+                            <Label htmlFor={`${item.title}-${level.value}`} className="text-sm">
+                              {level.label}
+                            </Label>
+                          </div>
+                        ))}
+                      </RadioGroup>
                     </div>
-                  ))}
-                </div>
+                  );
+                })}
 
                 <div className="flex justify-end mt-6">
                   <Button onClick={handleSaveAccess}>Save Access Rights</Button>

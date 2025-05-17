@@ -1,19 +1,23 @@
 
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { CAPItem, CAPStatus, CAPType, CAPTable } from "@/components/esg-cap/CAPTable";
 import { ReviewDialog } from "@/components/esg-cap/ReviewDialog";
 import { FilterControls } from "@/components/esg-cap/FilterControls";
 import { portfolioCompanies } from "@/features/edit-portfolio-company/portfolioCompanies";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function ESGCAP() {
   const [selectedItem, setSelectedItem] = useState<CAPItem | null>(null);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<string>("all");
+  const [canEdit, setCanEdit] = useState(true);
+  const { user, userRole } = useAuth();
 
   // Mock data for CAP items with company IDs
-  const mockCAPItems: CAPItem[] = [
+  const [capItems, setCapItems] = useState<CAPItem[]>([
     {
       id: "cap-1",
       companyId: 1,
@@ -59,19 +63,30 @@ export default function ESGCAP() {
       type: "CS",
       status: "Delayed"
     }
-  ];
+  ]);
 
   // Filter CAP items by selected company
   const filteredCAPItems = selectedCompany === "all"
-    ? mockCAPItems
-    : mockCAPItems.filter(item => item.companyId === parseInt(selectedCompany));
+    ? capItems
+    : capItems.filter(item => item.companyId === parseInt(selectedCompany));
 
   const handleReview = (item: CAPItem) => {
     setSelectedItem(item);
     setReviewDialogOpen(true);
+    // Check if the item is completed - if so, don't allow editing
+    setCanEdit(item.status !== "Completed");
   };
 
   const handleApprove = () => {
+    if (selectedItem) {
+      const updatedItems = capItems.map(item => {
+        if (item.id === selectedItem.id) {
+          return { ...item, status: "Completed" as CAPStatus, actualDate: new Date().toISOString().split('T')[0] };
+        }
+        return item;
+      });
+      setCapItems(updatedItems);
+    }
     toast({
       title: "Item Approved",
       description: `You've approved "${selectedItem?.item}"`,
@@ -80,6 +95,15 @@ export default function ESGCAP() {
   };
 
   const handleReject = () => {
+    if (selectedItem) {
+      const updatedItems = capItems.map(item => {
+        if (item.id === selectedItem.id) {
+          return { ...item, status: "Rejected" as CAPStatus };
+        }
+        return item;
+      });
+      setCapItems(updatedItems);
+    }
     toast({
       title: "Item Rejected",
       description: `You've rejected "${selectedItem?.item}"`,
@@ -92,6 +116,26 @@ export default function ESGCAP() {
       title: "Reminder Sent",
       description: `Reminder sent for "${item.item}"`,
     });
+  };
+
+  const handleSaveChanges = (updatedItem: CAPItem) => {
+    const updatedItems = capItems.map(item => {
+      if (item.id === updatedItem.id) {
+        return updatedItem;
+      }
+      return item;
+    });
+    setCapItems(updatedItems);
+    setSelectedItem(updatedItem);
+  };
+
+  const handleSubmitAllCap = () => {
+    toast({
+      title: "CAP Submitted",
+      description: "All CAP items have been submitted successfully.",
+    });
+    // Here you would typically send the data to a backend API
+    console.log("Submitting CAP items:", filteredCAPItems);
   };
 
   return (
@@ -129,13 +173,20 @@ export default function ESGCAP() {
             </div>
           )}
         </CardContent>
+        <CardFooter className="flex justify-end">
+          <Button onClick={handleSubmitAllCap} size="lg">
+            Submit Complete CAP
+          </Button>
+        </CardFooter>
       </Card>
 
       <ReviewDialog
         item={selectedItem}
         open={reviewDialogOpen}
+        canEdit={canEdit}
         onApprove={handleApprove}
         onReject={handleReject}
+        onSaveChanges={handleSaveChanges}
         onOpenChange={setReviewDialogOpen}
       />
     </div>
