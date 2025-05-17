@@ -7,6 +7,13 @@ interface UserAccessRight {
   level: 'read' | 'write' | 'admin' | 'none';
 }
 
+// Define the structure for assigned pages
+export interface AssignedPage {
+  moduleName: string;
+  level: 'read' | 'write' | 'admin' | 'none';
+  href: string;
+}
+
 interface User {
   id: string;
   email: string;
@@ -19,6 +26,8 @@ interface AuthContextType {
   session: boolean;
   user: User | null;
   userRole: 'investor' | 'admin' | 'investor_admin' | null;
+  assignedPages: AssignedPage[];
+  firstAccessibleRoute: string;
   signOut: () => void;
   hasAccess: (moduleName: string, level?: 'read' | 'write' | 'admin') => boolean;
 }
@@ -85,6 +94,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<boolean>(false);
   const [user, setUser] = useState<User | null>(null);
   const [userRole, setUserRole] = useState<'investor' | 'admin' | 'investor_admin' | null>(null);
+  const [assignedPages, setAssignedPages] = useState<AssignedPage[]>([]);
+  const [firstAccessibleRoute, setFirstAccessibleRoute] = useState<string>("/");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -115,6 +126,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         setUser(userData);
         setUserRole(storedRole as AuthContextType['userRole']);
+        
+        // Setup assigned pages based on user access rights
+        const pages: AssignedPage[] = [
+          {
+            moduleName: "Funds",
+            level: hasAccessHelper(userData, "Funds", "read"),
+            href: "/funds"
+          },
+          {
+            moduleName: "Portfolio Companies",
+            level: hasAccessHelper(userData, "Portfolio Companies", "read"),
+            href: "/portfolio"
+          },
+          {
+            moduleName: "ESG DD",
+            level: hasAccessHelper(userData, "ESG DD", "read"),
+            href: "/esg-dd"
+          },
+          {
+            moduleName: "ESG DD Report",
+            level: hasAccessHelper(userData, "ESG DD", "read"),
+            href: "/esg-dd/report"
+          },
+          {
+            moduleName: "ESG CAP",
+            level: hasAccessHelper(userData, "ESG CAP", "read"),
+            href: "/esg-dd/cap"
+          },
+          {
+            moduleName: "Team",
+            level: hasAccessHelper(userData, "Team", "read"),
+            href: "/team"
+          },
+          {
+            moduleName: "Valuation",
+            level: hasAccessHelper(userData, "Valuation", "read"),
+            href: "/valuation"
+          }
+        ];
+        
+        setAssignedPages(pages);
+        
+        // Determine first accessible route
+        const accessibleRoutes = pages.filter(page => page.level !== "none");
+        if (accessibleRoutes.length > 0) {
+          setFirstAccessibleRoute(accessibleRoutes[0].href);
+        }
       }
     } else {
       setSession(false);
@@ -122,6 +180,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUserRole(null);
     }
   }, []);
+
+  // Helper function to check if user has access to a module
+  const hasAccessHelper = (user: User, moduleName: string, level: 'read' | 'write' | 'admin' = 'read'): 'read' | 'write' | 'admin' | 'none' => {
+    if (!user) return 'none';
+
+    const moduleAccess = user.accessRights.find(right => right.moduleName === moduleName);
+    if (!moduleAccess) return 'none';
+
+    switch (level) {
+      case 'read':
+        return ['read', 'write', 'admin'].includes(moduleAccess.level) ? moduleAccess.level : 'none';
+      case 'write':
+        return ['write', 'admin'].includes(moduleAccess.level) ? moduleAccess.level : 'none';
+      case 'admin':
+        return moduleAccess.level === 'admin' ? 'admin' : 'none';
+      default:
+        return 'none';
+    }
+  };
 
   const signOut = () => {
     localStorage.removeItem('auth_token');
@@ -156,7 +233,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, userRole, signOut, hasAccess }}>
+    <AuthContext.Provider value={{ session, user, userRole, assignedPages, firstAccessibleRoute, signOut, hasAccess }}>
       {children}
     </AuthContext.Provider>
   );
