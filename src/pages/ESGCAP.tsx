@@ -10,6 +10,15 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
+import { Diff, Compare } from "lucide-react";
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 export default function ESGCAP() {
   const [selectedItem, setSelectedItem] = useState<CAPItem | null>(null);
@@ -18,6 +27,7 @@ export default function ESGCAP() {
   const [canEdit, setCanEdit] = useState(true);
   const { user, userRole } = useAuth();
   const [showHistory, setShowHistory] = useState(false);
+  const [showComparisonView, setShowComparisonView] = useState(false);
 
   // Mock data for CAP items with company IDs
   const [originalCapItems] = useState<CAPItem[]>([
@@ -147,6 +157,34 @@ export default function ESGCAP() {
 
   const toggleHistoryView = () => {
     setShowHistory(!showHistory);
+    if (showComparisonView) {
+      setShowComparisonView(false);
+    }
+  };
+
+  const toggleComparisonView = () => {
+    setShowComparisonView(!showComparisonView);
+    if (showHistory) {
+      setShowHistory(false);
+    }
+  };
+
+  const handleRevertToOriginal = (itemId: string) => {
+    const originalItem = originalCapItems.find(item => item.id === itemId);
+    if (originalItem) {
+      const updatedItems = capItems.map(item => {
+        if (item.id === itemId) {
+          return { ...originalItem };
+        }
+        return item;
+      });
+      setCapItems(updatedItems);
+      
+      toast({
+        title: "Item Reverted",
+        description: `Item "${originalItem.item}" has been reverted to its original state.`,
+      });
+    }
   };
 
   return (
@@ -165,15 +203,27 @@ export default function ESGCAP() {
           onCompanyChange={setSelectedCompany}
         />
         
-        <div className="flex items-center space-x-2">
-          <Switch 
-            id="history-mode" 
-            checked={showHistory} 
-            onCheckedChange={toggleHistoryView}
-          />
-          <Label htmlFor="history-mode">
-            {showHistory ? "Viewing Original Version" : "Viewing Current Version"}
-          </Label>
+        <div className="flex items-center gap-6">
+          <div className="flex items-center space-x-2">
+            <Switch 
+              id="history-mode" 
+              checked={showHistory} 
+              onCheckedChange={toggleHistoryView}
+              disabled={showComparisonView}
+            />
+            <Label htmlFor="history-mode">
+              {showHistory ? "Viewing Original Version" : "View Original Version"}
+            </Label>
+          </div>
+          
+          <Button 
+            variant="outline" 
+            onClick={toggleComparisonView}
+            className={showComparisonView ? "border-purple-500 text-purple-500" : ""}
+          >
+            <Compare className="h-4 w-4 mr-2" />
+            {showComparisonView ? "Exit Comparison View" : "Compare Changes"}
+          </Button>
         </div>
       </div>
 
@@ -183,16 +233,19 @@ export default function ESGCAP() {
           <CardDescription>
             Review and approve items in the ESG Corrective Action Plan
             {showHistory && <span className="ml-2 text-amber-500 font-medium">(Viewing Original Version)</span>}
+            {showComparisonView && <span className="ml-2 text-purple-500 font-medium">(Comparing Changes)</span>}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {filteredCAPItems.length > 0 ? (
             <CAPTable 
-              items={filteredCAPItems}
+              items={capItems}
               onReview={handleReview}
               onSendReminder={handleSendReminder}
               isHistoryView={showHistory}
               originalItems={originalCapItems}
+              isComparisonView={showComparisonView}
+              onRevert={showComparisonView ? handleRevertToOriginal : undefined}
             />
           ) : (
             <div className="text-center py-8">
@@ -201,7 +254,7 @@ export default function ESGCAP() {
           )}
         </CardContent>
         <CardFooter className="flex justify-end">
-          <Button onClick={handleSubmitAllCap} size="lg" disabled={showHistory}>
+          <Button onClick={handleSubmitAllCap} size="lg" disabled={showHistory || showComparisonView}>
             Submit Complete CAP
           </Button>
         </CardFooter>
@@ -210,7 +263,7 @@ export default function ESGCAP() {
       <ReviewDialog
         item={selectedItem}
         open={reviewDialogOpen}
-        canEdit={canEdit && !showHistory}
+        canEdit={canEdit && !showHistory && !showComparisonView}
         onApprove={handleApprove}
         onReject={handleReject}
         onSaveChanges={handleSaveChanges}

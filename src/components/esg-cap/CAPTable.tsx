@@ -2,7 +2,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Clock, Eye } from "lucide-react";
+import { Clock, Eye, ArrowLeft, ArrowRight } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { portfolioCompanies } from "@/features/edit-portfolio-company/portfolioCompanies";
 
@@ -28,6 +28,8 @@ interface CAPTableProps {
   onSendReminder: (item: CAPItem) => void;
   isHistoryView?: boolean;
   originalItems?: CAPItem[];
+  isComparisonView?: boolean;
+  onRevert?: (itemId: string) => void;
 }
 
 const getStatusBadge = (status: CAPStatus) => {
@@ -56,16 +58,32 @@ const getCompanyName = (companyId: number) => {
 const RenderChangedField = ({ 
   currentValue, 
   originalValue, 
-  isHistoryView
+  isHistoryView,
+  isComparisonView = false
 }: { 
   currentValue: string; 
   originalValue: string; 
   isHistoryView: boolean;
+  isComparisonView?: boolean;
 }) => {
   const hasChanged = currentValue !== originalValue;
 
-  if (!hasChanged || isHistoryView) {
-    return <span>{isHistoryView ? originalValue : currentValue}</span>;
+  if (!hasChanged || (!isHistoryView && !isComparisonView)) {
+    return <span>{currentValue}</span>;
+  }
+
+  if (isComparisonView) {
+    return (
+      <div className="flex items-center">
+        <div className="bg-red-100 p-1 rounded text-red-800 line-through">
+          {originalValue}
+        </div>
+        <ArrowRight className="mx-1 h-4 w-4" />
+        <div className="bg-green-100 p-1 rounded text-green-800">
+          {currentValue}
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -73,7 +91,7 @@ const RenderChangedField = ({
       <Tooltip>
         <TooltipTrigger asChild>
           <span className="border-b-2 border-amber-400 pb-0.5">
-            {currentValue}
+            {isHistoryView ? originalValue : currentValue}
           </span>
         </TooltipTrigger>
         <TooltipContent>
@@ -84,7 +102,15 @@ const RenderChangedField = ({
   );
 };
 
-export function CAPTable({ items, onReview, onSendReminder, isHistoryView = false, originalItems = [] }: CAPTableProps) {
+export function CAPTable({ 
+  items, 
+  onReview, 
+  onSendReminder, 
+  isHistoryView = false, 
+  originalItems = [],
+  isComparisonView = false,
+  onRevert
+}: CAPTableProps) {
   // Function to find the original item by ID
   const getOriginalItem = (id: string) => {
     return originalItems.find(item => item.id === id) || null;
@@ -113,7 +139,7 @@ export function CAPTable({ items, onReview, onSendReminder, isHistoryView = fals
             const originalItem = getOriginalItem(item.id);
             
             return (
-              <TableRow key={item.id} className={isHistoryView ? "bg-muted/30" : ""}>
+              <TableRow key={item.id} className={isHistoryView || isComparisonView ? "bg-muted/30" : ""}>
                 <TableCell>{index + 1}</TableCell>
                 <TableCell>{getCompanyName(item.companyId)}</TableCell>
                 <TableCell className="font-medium">
@@ -122,6 +148,7 @@ export function CAPTable({ items, onReview, onSendReminder, isHistoryView = fals
                       currentValue={item.item} 
                       originalValue={originalItem.item} 
                       isHistoryView={isHistoryView}
+                      isComparisonView={isComparisonView}
                     />
                   ) : item.item}
                 </TableCell>
@@ -131,6 +158,7 @@ export function CAPTable({ items, onReview, onSendReminder, isHistoryView = fals
                       currentValue={item.actions} 
                       originalValue={originalItem.actions} 
                       isHistoryView={isHistoryView}
+                      isComparisonView={isComparisonView}
                     />
                   ) : item.actions}
                 </TableCell>
@@ -140,6 +168,7 @@ export function CAPTable({ items, onReview, onSendReminder, isHistoryView = fals
                       currentValue={item.responsibility} 
                       originalValue={originalItem.responsibility} 
                       isHistoryView={isHistoryView}
+                      isComparisonView={isComparisonView}
                     />
                   ) : item.responsibility}
                 </TableCell>
@@ -149,6 +178,7 @@ export function CAPTable({ items, onReview, onSendReminder, isHistoryView = fals
                       currentValue={item.deliverable} 
                       originalValue={originalItem.deliverable} 
                       isHistoryView={isHistoryView}
+                      isComparisonView={isComparisonView}
                     />
                   ) : item.deliverable}
                 </TableCell>
@@ -158,6 +188,7 @@ export function CAPTable({ items, onReview, onSendReminder, isHistoryView = fals
                       currentValue={item.targetDate} 
                       originalValue={originalItem.targetDate} 
                       isHistoryView={isHistoryView}
+                      isComparisonView={isComparisonView}
                     />
                   ) : item.targetDate}
                 </TableCell>
@@ -167,6 +198,7 @@ export function CAPTable({ items, onReview, onSendReminder, isHistoryView = fals
                       currentValue={item.type} 
                       originalValue={originalItem.type} 
                       isHistoryView={isHistoryView}
+                      isComparisonView={isComparisonView}
                     />
                   ) : item.type}
                 </TableCell>
@@ -178,18 +210,32 @@ export function CAPTable({ items, onReview, onSendReminder, isHistoryView = fals
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
-                    <Button variant="outline" size="sm" onClick={() => onReview(item)}>
-                      {isHistoryView ? <Eye className="h-4 w-4 mr-1" /> : null}
-                      Review
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => onSendReminder(item)}
-                      disabled={isHistoryView}
-                    >
-                      <Clock className="h-4 w-4" />
-                    </Button>
+                    {isComparisonView && onRevert ? (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => onRevert(item.id)}
+                        className="text-amber-600 border-amber-600"
+                      >
+                        <ArrowLeft className="h-4 w-4 mr-1" />
+                        Revert
+                      </Button>
+                    ) : (
+                      <>
+                        <Button variant="outline" size="sm" onClick={() => onReview(item)}>
+                          {isHistoryView ? <Eye className="h-4 w-4 mr-1" /> : null}
+                          Review
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => onSendReminder(item)}
+                          disabled={isHistoryView || isComparisonView}
+                        >
+                          <Clock className="h-4 w-4" />
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>
