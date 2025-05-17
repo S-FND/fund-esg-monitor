@@ -6,7 +6,6 @@ import {
   SidebarMenuButton 
 } from "@/components/ui/sidebar";
 import { Link } from "react-router-dom";
-import { cn } from "@/lib/utils";
 import { mainNavItems } from "./navigation-items";
 import { SidebarSubmenuItem } from "./SidebarSubmenuItem";
 import { esgDDNavItem, valuationNavItem } from "./navigation-items";
@@ -24,6 +23,7 @@ export function SidebarNavigation() {
   const location = useLocation();
   const { user } = useAuth();
   const [accessibleMenus, setAccessibleMenus] = useState<AssignedPage[]>([]);
+  const [firstAccessibleRoute, setFirstAccessibleRoute] = useState<string>("/");
 
   // Check if any path starts with /esg-dd but is not /esg-dd/risk-matrix
   const isEsgSubmenuOpen = location.pathname.startsWith("/esg-dd") && !location.pathname.includes("risk-matrix");
@@ -61,6 +61,12 @@ export function SidebarNavigation() {
       ];
 
       setAccessibleMenus(sampleAccessData);
+      
+      // Determine the first accessible route for default redirection
+      const accessibleRoutes = sampleAccessData.filter(item => item.level !== "none");
+      if (accessibleRoutes.length > 0) {
+        setFirstAccessibleRoute(accessibleRoutes[0].href);
+      }
     };
 
     fetchUserAccess();
