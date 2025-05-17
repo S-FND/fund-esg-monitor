@@ -38,8 +38,8 @@ export function FilterControls({
               <SelectContent>
                 <SelectItem value="all">All Companies</SelectItem>
                 {companies.map(company => (
-                  <SelectItem key={company.email} value={company.email.toString()}>
-                    {company.companyName}
+                  <SelectItem key={company?.email} value={company?.email?.toString()}>
+                    {company?.companyName}
                   </SelectItem>
                 ))}
               </SelectContent>

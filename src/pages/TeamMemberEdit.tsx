@@ -9,7 +9,7 @@ import { ArrowLeft, Save } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface TeamMember {
-  id: string;
+  _id: string;
   name: string;
   email: string;
   designation?: string;
@@ -22,6 +22,13 @@ export default function TeamMemberEdit() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+
+  const [initialFormData, setInitialFormData] = useState({
+    name: "",
+    email: "",
+    designation: "",
+    mobileNumber: "",
+  });
   
   const [formData, setFormData] = useState({
     name: "",
@@ -30,59 +37,59 @@ export default function TeamMemberEdit() {
     mobileNumber: "",
   });
 
-  useEffect(() => {
-    // Simulate fetching member details
-    setLoading(true);
+  // useEffect(() => {
+  //   // Simulate fetching member details
+  //   setLoading(true);
     
-    // Sample data - in a real app, this would be fetched from the database
-    const sampleTeamMembers = [
-      {
-        id: "1",
-        name: "John Smith",
-        email: "john.smith@example.com",
-        designation: "Fund Manager",
-        mobileNumber: "+1 (555) 123-4567",
-        accessRights: ["Dashboard", "Funds", "Team", "Portfolio Companies", "ESG DD"]
-      },
-      {
-        id: "2",
-        name: "Sarah Johnson",
-        email: "sarah.johnson@example.com",
-        designation: "ESG Analyst",
-        mobileNumber: "+1 (555) 987-6543",
-        accessRights: ["ESG DD", "ESG CAP", "Valuation"]
-      },
-      {
-        id: "3",
-        name: "Michael Wong",
-        email: "michael.wong@example.com",
-        designation: "Investment Analyst",
-        mobileNumber: "+1 (555) 456-7890",
-        accessRights: ["Portfolio Companies", "Valuation"]
-      },
-      {
-        id: "4",
-        name: "Lisa Chen",
-        email: "lisa.chen@example.com",
-        designation: "Chief Investment Officer",
-        mobileNumber: "+1 (555) 567-8901",
-        accessRights: ["Dashboard", "Funds", "Team", "Portfolio Companies", "ESG DD", "ESG CAP", "Valuation"]
-      }
-    ];
+  //   // Sample data - in a real app, this would be fetched from the database
+  //   const sampleTeamMembers = [
+  //     {
+  //       id: "1",
+  //       name: "John Smith",
+  //       email: "john.smith@example.com",
+  //       designation: "Fund Manager",
+  //       mobileNumber: "+1 (555) 123-4567",
+  //       accessRights: ["Dashboard", "Funds", "Team", "Portfolio Companies", "ESG DD"]
+  //     },
+  //     {
+  //       id: "2",
+  //       name: "Sarah Johnson",
+  //       email: "sarah.johnson@example.com",
+  //       designation: "ESG Analyst",
+  //       mobileNumber: "+1 (555) 987-6543",
+  //       accessRights: ["ESG DD", "ESG CAP", "Valuation"]
+  //     },
+  //     {
+  //       id: "3",
+  //       name: "Michael Wong",
+  //       email: "michael.wong@example.com",
+  //       designation: "Investment Analyst",
+  //       mobileNumber: "+1 (555) 456-7890",
+  //       accessRights: ["Portfolio Companies", "Valuation"]
+  //     },
+  //     {
+  //       id: "4",
+  //       name: "Lisa Chen",
+  //       email: "lisa.chen@example.com",
+  //       designation: "Chief Investment Officer",
+  //       mobileNumber: "+1 (555) 567-8901",
+  //       accessRights: ["Dashboard", "Funds", "Team", "Portfolio Companies", "ESG DD", "ESG CAP", "Valuation"]
+  //     }
+  //   ];
     
-    const foundMember = sampleTeamMembers.find(m => m.id === id);
+  //   const foundMember = sampleTeamMembers.find(m => m.id === id);
     
-    if (foundMember) {
-      setFormData({
-        name: foundMember.name,
-        email: foundMember.email,
-        designation: foundMember.designation || "",
-        mobileNumber: foundMember.mobileNumber || "",
-      });
-    }
+  //   if (foundMember) {
+  //     setFormData({
+  //       name: foundMember.name,
+  //       email: foundMember.email,
+  //       designation: foundMember.designation || "",
+  //       mobileNumber: foundMember.mobileNumber || "",
+  //     });
+  //   }
     
-    setLoading(false);
-  }, [id]);
+  //   setLoading(false);
+  // }, [id]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -92,20 +99,84 @@ export default function TeamMemberEdit() {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
-    
-    // Simulate API call to update user
+
+    console.log('formData',formData)
+    try {
+      // Insert team member
+      const res = await fetch(`http://localhost:3003` + `/subuser`, {
+        method: "POST",
+        body:JSON.stringify({...formData}),
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
+      });
+      if (!res.ok) {
+        // toast.error("Invalid credentials");
+        // setIsLoading(false);
+        return;
+      }
+      else {
+
+      }
+
+       // Simulate API call to update user
     setTimeout(() => {
       toast({
         title: "Team member updated",
         description: `${formData.name}'s information has been updated successfully.`
       });
       setSubmitting(false);
-      navigate(`/team/${id}`);
+      // navigate(`/team/${id}`);
     }, 1000);
+    } catch (error) {
+      console.error("Error adding team member:", error);
+      toast({
+        title: "Error",
+        description: "Could not add team member. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+   
   };
+
+  const getTeamList=async ()=>{
+
+    try {
+      const res = await fetch(`http://localhost:3003` + `/subuser?id=${id}`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
+      });
+      if (!res.ok) {
+        // toast.error("Invalid credentials");
+        // setIsLoading(false);
+        return;
+      }
+      else {
+        const jsondata = await res.json();
+        // setViewingReport(jsondata['data'][0])
+        setFormData(jsondata['data'][0]['subuser'][0]);
+        setInitialFormData({
+          name:jsondata['data'][0]['subuser'][0]['name'],
+          email:jsondata['data'][0]['subuser'][0]['email'],
+          designation:jsondata['data'][0]['subuser'][0]['designation'],
+          mobileNumber:jsondata['data'][0]['subuser'][0]['mobileNumber']})
+        setLoading(false)
+
+      }
+    } catch (error) {
+      
+    }
+    finally{
+
+    }
+  }
+
+  useEffect(()=>{
+    getTeamList()
+  },[])
 
   if (loading) {
     return <div className="container py-8">Loading team member data...</div>;
@@ -156,6 +227,7 @@ export default function TeamMemberEdit() {
                   required
                   placeholder="Email Address"
                   disabled={submitting}
+                  readOnly={true}
                 />
               </div>
             </div>

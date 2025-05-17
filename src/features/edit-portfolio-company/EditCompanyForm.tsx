@@ -32,7 +32,7 @@ interface Company {
 export default function EditCompanyForm({ company }: { company: Company }) {
   const navigate = useNavigate();
   const [editData, setEditData] = useState({ ...company });
-
+  console.log('EditCompanyForm',company)
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setEditData((prev: any) => ({
@@ -81,7 +81,7 @@ export default function EditCompanyForm({ company }: { company: Company }) {
               <Label>Company Name</Label>
               <Input
                 name="name"
-                value={editData.name}
+                value={editData?.name}
                 onChange={handleChange}
               />
             </div>
@@ -89,7 +89,7 @@ export default function EditCompanyForm({ company }: { company: Company }) {
               <Label>Type</Label>
               <Input
                 name="type"
-                value={editData.type}
+                value={editData?.type}
                 onChange={handleChange}
               />
             </div>
@@ -97,7 +97,7 @@ export default function EditCompanyForm({ company }: { company: Company }) {
               <Label>Sector</Label>
               <Input
                 name="sector"
-                value={editData.sector}
+                value={editData?.sector}
                 onChange={handleChange}
               />
             </div>
@@ -105,7 +105,7 @@ export default function EditCompanyForm({ company }: { company: Company }) {
               <Label>Fund Name</Label>
               <Input
                 name="fundName"
-                value={editData.fundName}
+                value={editData?.fundName}
                 onChange={handleChange}
               />
             </div>
@@ -113,7 +113,7 @@ export default function EditCompanyForm({ company }: { company: Company }) {
               <Label>CEO</Label>
               <Input
                 name="ceo"
-                value={editData.ceo}
+                value={editData?.ceo}
                 onChange={handleChange}
               />
             </div>
@@ -122,7 +122,7 @@ export default function EditCompanyForm({ company }: { company: Company }) {
               <Input
                 name="investmentDate"
                 type="date"
-                value={editData.investmentDate}
+                value={editData?.investmentDate}
                 onChange={handleChange}
               />
             </div>
@@ -130,7 +130,7 @@ export default function EditCompanyForm({ company }: { company: Company }) {
               <Label>Stage</Label>
               <Input
                 name="stage"
-                value={editData.stage}
+                value={editData?.stage}
                 onChange={handleChange}
               />
             </div>
@@ -139,7 +139,7 @@ export default function EditCompanyForm({ company }: { company: Company }) {
               <Input
                 name="shareholding"
                 type="number"
-                value={editData.shareholding}
+                value={editData?.shareholding}
                 onChange={handleChange}
               />
             </div>
@@ -147,7 +147,7 @@ export default function EditCompanyForm({ company }: { company: Company }) {
               <Label>ESG Category</Label>
               <Input
                 name="esgCategory"
-                value={editData.esgCategory}
+                value={editData?.esgCategory}
                 onChange={handleChange}
               />
             </div>
@@ -156,7 +156,7 @@ export default function EditCompanyForm({ company }: { company: Company }) {
               <Input
                 name="esgScore"
                 type="number"
-                value={editData.esgScore}
+                value={editData?.esgScore}
                 onChange={handleChange}
               />
             </div>
@@ -168,7 +168,7 @@ export default function EditCompanyForm({ company }: { company: Company }) {
                 <Input
                   name="employees_founders_male"
                   type="number"
-                  value={editData.employees.founders.male}
+                  value={editData?.employees?.founders?.male}
                   onChange={e =>
                     handleNestedChange("employees", "founders", "male", e.target.value)
                   }
@@ -177,7 +177,7 @@ export default function EditCompanyForm({ company }: { company: Company }) {
                 <Input
                   name="employees_founders_female"
                   type="number"
-                  value={editData.employees.founders.female}
+                  value={editData?.employees?.founders?.female}
                   onChange={e =>
                     handleNestedChange("employees", "founders", "female", e.target.value)
                   }
@@ -186,7 +186,7 @@ export default function EditCompanyForm({ company }: { company: Company }) {
                 <Input
                   name="employees_founders_others"
                   type="number"
-                  value={editData.employees.founders.others}
+                  value={editData?.employees?.founders?.others}
                   onChange={e =>
                     handleNestedChange("employees", "founders", "others", e.target.value)
                   }
@@ -199,7 +199,7 @@ export default function EditCompanyForm({ company }: { company: Company }) {
                 <Input
                   name="employees_others_male"
                   type="number"
-                  value={editData.employees.others.male}
+                  value={editData?.employees?.others?.male}
                   onChange={e =>
                     handleNestedChange("employees", "others", "male", e.target.value)
                   }
@@ -208,7 +208,7 @@ export default function EditCompanyForm({ company }: { company: Company }) {
                 <Input
                   name="employees_others_female"
                   type="number"
-                  value={editData.employees.others.female}
+                  value={editData?.employees?.others?.female}
                   onChange={e =>
                     handleNestedChange("employees", "others", "female", e.target.value)
                   }
@@ -217,7 +217,7 @@ export default function EditCompanyForm({ company }: { company: Company }) {
                 <Input
                   name="employees_others_others"
                   type="number"
-                  value={editData.employees.others.others}
+                  value={editData?.employees?.others?.others}
                   onChange={e =>
                     handleNestedChange("employees", "others", "others", e.target.value)
                   }
@@ -233,7 +233,7 @@ export default function EditCompanyForm({ company }: { company: Company }) {
                 <Input
                   name="workers_direct_male"
                   type="number"
-                  value={editData.workers.direct.male}
+                  value={editData?.workers?.direct?.male}
                   onChange={e =>
                     handleNestedChange("workers", "direct", "male", e.target.value)
                   }
@@ -242,7 +242,7 @@ export default function EditCompanyForm({ company }: { company: Company }) {
                 <Input
                   name="workers_direct_female"
                   type="number"
-                  value={editData.workers.direct.female}
+                  value={editData?.workers?.direct?.female}
                   onChange={e =>
                     handleNestedChange("workers", "direct", "female", e.target.value)
                   }
@@ -251,7 +251,7 @@ export default function EditCompanyForm({ company }: { company: Company }) {
                 <Input
                   name="workers_direct_others"
                   type="number"
-                  value={editData.workers.direct.others}
+                  value={editData?.workers?.direct?.others}
                   onChange={e =>
                     handleNestedChange("workers", "direct", "others", e.target.value)
                   }
@@ -264,7 +264,7 @@ export default function EditCompanyForm({ company }: { company: Company }) {
                 <Input
                   name="workers_indirect_male"
                   type="number"
-                  value={editData.workers.indirect.male}
+                  value={editData?.workers?.indirect?.male}
                   onChange={e =>
                     handleNestedChange("workers", "indirect", "male", e.target.value)
                   }
@@ -273,7 +273,7 @@ export default function EditCompanyForm({ company }: { company: Company }) {
                 <Input
                   name="workers_indirect_female"
                   type="number"
-                  value={editData.workers.indirect.female}
+                  value={editData?.workers?.indirect?.female}
                   onChange={e =>
                     handleNestedChange("workers", "indirect", "female", e.target.value)
                   }
@@ -282,7 +282,7 @@ export default function EditCompanyForm({ company }: { company: Company }) {
                 <Input
                   name="workers_indirect_others"
                   type="number"
-                  value={editData.workers.indirect.others}
+                  value={editData?.workers?.indirect?.others}
                   onChange={e =>
                     handleNestedChange("workers", "indirect", "others", e.target.value)
                   }

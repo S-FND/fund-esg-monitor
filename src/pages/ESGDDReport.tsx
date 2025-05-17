@@ -29,26 +29,26 @@ export default function ESGDDReport() {
   const getS3FilePath = (file_path) =>
     `https://fandoro-sustainability-saas.s3.ap-south-1.amazonaws.com/${file_path}`;
   const [portfolioCompanies, setPortfolioCompanies] = useState([])
-  const allReports: Report[] = [
-    {
-      id: "report-1",
-      entityId: 1,
-      title: "ESG Due Diligence Report - Q1 2025",
-      createdAt: "2025-01-15",
-      consultant: "EcoConsult Partners",
-      file_path: "#"
-    },
-    {
-      id: "report-2",
-      entityId: 2,
-      title: "ESG Due Diligence Report - Q4 2024",
-      createdAt: "2024-10-10",
-      consultant: "Sustainable Future Advisors",
-      file_path: "#"
-    }
-  ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  // const allReports: Report[] = [
+  //   {
+  //     id: "report-1",
+  //     entityId: 1,
+  //     title: "ESG Due Diligence Report - Q1 2025",
+  //     createdAt: "2025-01-15",
+  //     consultant: "EcoConsult Partners",
+  //     file_path: "#"
+  //   },
+  //   {
+  //     id: "report-2",
+  //     entityId: 2,
+  //     title: "ESG Due Diligence Report - Q4 2024",
+  //     createdAt: "2024-10-10",
+  //     consultant: "Sustainable Future Advisors",
+  //     file_path: "#"
+  //   }
+  // ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-  const [filteredReports, setFilteredReports] = useState(allReports);
+  const [filteredReports, setFilteredReports] = useState([]);
   const [selectedCompany, setSelectedCompany] = useState<string>("all");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [viewingReport, setViewingReport] = useState<Report | null>(null);
@@ -67,18 +67,26 @@ export default function ESGDDReport() {
 
   const handleCompanyChange = (companyId: string) => {
     console.log('companyId', companyId)
-    getReportList(companyId)
+    if (companyId == 'all') {
+      getAllReportList()
+    }
+    else {
+      getReportList(companyId)
+    }
+
     setSelectedCompany(companyId);
+    let filteredCompany=portfolioCompanies.filter((p)=>p.email == companyId)[0];
+    console.log('filteredCompany',filteredCompany)
     applyFilters(companyId, null, null);
   };
 
   const applyFilters = (companyId: string, startDate: Date | null, endDate: Date | null) => {
-    let filtered = [...allReports];
+    let filtered = [...filteredReports];
 
     // Filter by company if specified
-    // if (companyId !== "all") {
-    //   filtered = filtered.filter(report => report.entityId === entityId);
-    // }
+    if (companyId !== "all") {
+      filtered = filtered.filter(report => report.entityId === companyId);
+    }
 
     // Filter by date range if provided
     if (startDate && endDate) {
@@ -136,6 +144,31 @@ export default function ESGDDReport() {
       }
       else {
         const jsondata = await res.json();
+        setFilteredReports(jsondata['data'])
+
+      }
+    } catch (error) {
+      console.error("Api call:", error);
+      // toast.error("API Call failed. Please try again.");
+    } finally {
+      // setIsLoading(false);
+    }
+
+  };
+
+  const getAllReportList = async () => {
+    try {
+      const res = await fetch(`http://localhost:3003` + `/investor/esdd-reports`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
+      });
+      if (!res.ok) {
+        // toast.error("Invalid credentials");
+        // setIsLoading(false);
+        return;
+      }
+      else {
+        const jsondata = await res.json();
         // setViewingReport(jsondata['data'][0])
         setFilteredReports(jsondata['data'])
 
@@ -151,6 +184,7 @@ export default function ESGDDReport() {
 
   useEffect(() => {
     getCompanyInfoList()
+    getAllReportList()
   }, [])
 
   const handleViewReport = (report: Report) => {
@@ -180,7 +214,7 @@ export default function ESGDDReport() {
       title: "Downloading Report",
       description: `Downloading ${report.title} for ${getCompanyName(report.entityId)}`,
     });
-    
+
     // Create an anchor element and trigger download
     const link = document.createElement('a');
     link.href = getS3FilePath(report.file_path);
@@ -188,7 +222,7 @@ export default function ESGDDReport() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
+
     setTimeout(() => {
       toast({
         title: "Download Complete",
@@ -242,7 +276,7 @@ export default function ESGDDReport() {
       {viewingReport ? (
         <div className="bg-white rounded-lg border border-gray-200 shadow-md p-6 space-y-4">
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold">{viewingReport.file_path}</h2>
+            <h2 className="text-xl font-semibold">{viewingReport.file_path.split('/').reverse()[0]}</h2>
             <Button variant="outline" onClick={closeReportViewer}>Close</Button>
           </div>
 
@@ -255,20 +289,10 @@ export default function ESGDDReport() {
             <div className="flex flex-col items-center justify-center gap-4 py-8">
               <FileText className="h-16 w-16 text-primary" />
               <div className="text-center">
-                <p className="font-medium">{getCompanyName(viewingReport.entityId)}</p>
+                {/* <p className="font-medium">{getCompanyName(viewingReport.entityId)}</p> */}
                 <p className="text-sm text-muted-foreground">
-                  Created on {new Date(viewingReport.createdAt).toLocaleDateString()} by {viewingReport.entityId}
+                  Created on {new Date(viewingReport.createdAt).toLocaleDateString()} by Fandoro
                 </p>
-                <Link
-                  href={getS3FilePath(viewingReport.file_path)}
-                  target="_blank"
-                >
-                  {
-                    viewingReport.file_path
-                      ?.split("/")
-                      ?.reverse()?.[0]
-                  }
-                </Link>
               </div>
               <div className="flex gap-2 mt-4">
                 <Button onClick={() => handleViewReport(viewingReport)} className="mt-2">
@@ -289,10 +313,11 @@ export default function ESGDDReport() {
             <Card key={report.id}>
               <CardHeader>
                 <CardTitle className="line-clamp-1">
-                  {getCompanyName(report.entityId)}
+                  {report.file_path.split('/').reverse()[0]}
+                  {/* {getCompanyName(report.entityId)} */}
                 </CardTitle>
                 <CardDescription>
-                  Uploaded on {new Date(report.createdAt).toLocaleDateString()} by {report.consultant}
+                  Uploaded on {new Date(report.createdAt).toLocaleDateString()} by Fandoro
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -337,7 +362,8 @@ export default function ESGDDReport() {
         <DialogContent className="max-w-4xl max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>
-              {currentReport?.title} - {currentReport && getCompanyName(currentReport.entityId)}
+              {currentReport?.file_path.split('/').reverse()[0]}
+              {/* {currentReport?.title} - {currentReport && getCompanyName(currentReport.entityId)} */}
             </DialogTitle>
           </DialogHeader>
           <div className="mt-4 h-[70vh] overflow-hidden">
@@ -348,8 +374,8 @@ export default function ESGDDReport() {
             />
           </div>
           <div className="flex justify-end mt-4">
-            <Button 
-              onClick={() => currentReport && handleDownloadReport(currentReport)} 
+            <Button
+              onClick={() => currentReport && handleDownloadReport(currentReport)}
               className="mr-2"
             >
               <Download className="mr-2 h-4 w-4" />

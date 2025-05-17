@@ -21,25 +21,36 @@ interface InvestorFormData {
   designation: string;
   address: string;
   esgPolicy?: string;
-  _id?:string
+  _id?: string
 }
 
 // Dummy data for testing
-const dummyInvestorData: InvestorFormData = {
-  investorName: "Global Sustainable Ventures",
-  companyName: "GSV Holdings Ltd.",
-  email: "contact@gsventures.com",
-  panNumber: "AAAAA1234A",
-  gstNumber: "29AAAAA1234A1Z5",
-  esgManagerEmail: "esg@gsventures.com",
-  sdgGoal: "SDG 7 (Clean Energy), SDG 13 (Climate Action)",
-  sdgTarget: "50% reduction in portfolio carbon emissions by 2030",
-  designation: "Investment Director",
-  address: "123 Green Street, Eco Park, Sustainable City - 560001"
-};
+// const dummyInvestorData: InvestorFormData = {
+//   investorName: "Global Sustainable Ventures",
+//   companyName: "GSV Holdings Ltd.",
+//   email: "contact@gsventures.com",
+//   panNumber: "AAAAA1234A",
+//   gstNumber: "29AAAAA1234A1Z5",
+//   esgManagerEmail: "esg@gsventures.com",
+//   sdgGoal: "SDG 7 (Clean Energy), SDG 13 (Climate Action)",
+//   sdgTarget: "50% reduction in portfolio carbon emissions by 2030",
+//   designation: "Investment Director",
+//   address: "123 Green Street, Eco Park, Sustainable City - 560001"
+// };
 
 export default function EditInvestorProfile() {
-  const [formData, setFormData] = useState<InvestorFormData>(dummyInvestorData);
+  const [formData, setFormData] = useState<InvestorFormData>(
+   { investorName: "",
+    companyName: "",
+    email: "",
+    panNumber: "",
+    gstNumber: "",
+    esgManagerEmail: "",
+    sdgGoal: "",
+    sdgTarget: "",
+    designation: "",
+    address: ""}
+  );
   const [uploading, setUploading] = useState(false);
   const [submittedData, setSubmittedData] = useState<InvestorFormData | null>(null);
   const [submittedFile, setSubmittedFile] = useState<string | null>(null);
@@ -64,8 +75,8 @@ export default function EditInvestorProfile() {
     fileInputRef.current?.click();
   };
 
-  const getInvestorInfo= async()=>{
-    
+  const getInvestorInfo = async () => {
+
     try {
       const res = await fetch(`http://localhost:3003` + "/investor/general-info/", {
         method: "GET",
@@ -79,7 +90,7 @@ export default function EditInvestorProfile() {
       else {
         const jsondata = await res.json();
         console.log('jsondata', jsondata)
-        let investorInfo:InvestorFormData = {
+        let investorInfo: InvestorFormData = {
           investorName: jsondata['data']['investorName'],
           companyName: jsondata['data']['companyName'],
           email: jsondata['data']['email'],
@@ -90,7 +101,7 @@ export default function EditInvestorProfile() {
           sdgTarget: jsondata['data']['sdgTarget'],
           designation: jsondata['data']['designation'],
           address: jsondata['data']['address'],
-          _id:jsondata['data']['_id']
+          _id: jsondata['data']['_id']
         };
         setFormData(investorInfo)
       }
@@ -102,9 +113,9 @@ export default function EditInvestorProfile() {
     }
   }
 
-  useEffect(()=>{
+  useEffect(() => {
     getInvestorInfo()
-  },[])
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -117,11 +128,27 @@ export default function EditInvestorProfile() {
     }
 
     try {
-      const res = await fetch(`http://localhost:3003` + "/investor/general-info/", {
-        method: "PUT",
-        body:JSON.stringify(formData),
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
-      });
+      console.log('formData', formData)
+      let res;
+      if(formData['_id']){
+         res = await fetch(`http://localhost:3003` + "/investor/general-info/", {
+          method: "PUT",
+          body: JSON.stringify(formData),
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
+        });
+      }
+      else{
+         res = await fetch(`http://localhost:3003` + "/investor/general-info/", {
+          method: "POST",
+          body: JSON.stringify(formData),
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
+        });
+      }
+      // const res = await fetch(`http://localhost:3003` + "/investor/general-info/", {
+      //   method: "PUT",
+      //   body: JSON.stringify(formData),
+      //   headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
+      // });
       if (!res.ok) {
         // toast.error("Invalid credentials");
         // setIsLoading(false);
@@ -153,7 +180,7 @@ export default function EditInvestorProfile() {
 
   return (
     <div className="container mx-auto p-6">
-      <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Edit Investor Profile</CardTitle>
@@ -193,15 +220,16 @@ export default function EditInvestorProfile() {
                   value={formData.email}
                   onChange={handleFieldChange}
                   placeholder="Enter email"
+                  readOnly={true}
                   required
                 />
               </div>
 
               <div>
-                <Label htmlFor="pan">PAN</Label>
+                <Label htmlFor="panNumber">PAN</Label>
                 <Input
-                  id="pan"
-                  name="pan"
+                  id="panNumber"
+                  name="panNumber"
                   value={formData.panNumber}
                   onChange={handleFieldChange}
                   placeholder="Enter PAN"
@@ -210,10 +238,10 @@ export default function EditInvestorProfile() {
               </div>
 
               <div>
-                <Label htmlFor="gst">GST</Label>
+                <Label htmlFor="gstNumber">GST</Label>
                 <Input
-                  id="gst"
-                  name="gst"
+                  id="gstNumber"
+                  name="gstNumber"
                   value={formData.gstNumber}
                   onChange={handleFieldChange}
                   placeholder="Enter GST"
@@ -256,10 +284,10 @@ export default function EditInvestorProfile() {
               </div>
 
               <div>
-                <Label htmlFor="sdgGoals">SDG Goals</Label>
+                <Label htmlFor="sdgGoal">SDG Goals</Label>
                 <Textarea
-                  id="sdgGoals"
-                  name="sdgGoals"
+                  id="sdgGoal"
+                  name="sdgGoal"
                   value={formData.sdgGoal}
                   onChange={handleFieldChange}
                   placeholder="List SDG goals"
@@ -269,10 +297,10 @@ export default function EditInvestorProfile() {
               </div>
 
               <div>
-                <Label htmlFor="sdgTargets">SDG Targets</Label>
+                <Label htmlFor="sdgTarget">SDG Targets</Label>
                 <Textarea
-                  id="sdgTargets"
-                  name="sdgTargets"
+                  id="sdgTarget"
+                  name="sdgTarget"
                   value={formData.sdgTarget}
                   onChange={handleFieldChange}
                   placeholder="List SDG targets"
@@ -294,10 +322,10 @@ export default function EditInvestorProfile() {
               </div>
 
               <div>
-                <Label htmlFor="companyAddress">Company Address</Label>
+                <Label htmlFor="address">Company Address</Label>
                 <Textarea
-                  id="companyAddress"
-                  name="companyAddress"
+                  id="address"
+                  name="address"
                   value={formData.address}
                   onChange={handleFieldChange}
                   placeholder="Enter company address"
@@ -328,7 +356,7 @@ export default function EditInvestorProfile() {
           </CardContent>
         </Card>
 
-        {submittedData && (
+        {/* {submittedData && (
           <Card>
             <CardHeader>
               <CardTitle>Submitted Data</CardTitle>
@@ -352,7 +380,7 @@ export default function EditInvestorProfile() {
               </div>
             </CardContent>
           </Card>
-        )}
+        )} */}
       </div>
     </div>
   );

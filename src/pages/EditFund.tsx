@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { funds as dummyFunds } from "./fundsData";
-import { portfolioCompanies } from "@/features/edit-portfolio-company/portfolioCompanies";
+// import { portfolioCompanies } from "@/features/edit-portfolio-company/portfolioCompanies";
 import { BarChart2, Building, Users } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -39,32 +39,32 @@ const investmentStages = [
 ];
 
 // Sample team members data
-const teamMembers = [
-  {
-    id: "1",
-    name: "John Smith",
-    email: "john.smith@example.com",
-    designation: "Fund Manager"
-  },
-  {
-    id: "2",
-    name: "Sarah Johnson",
-    email: "sarah.johnson@example.com",
-    designation: "ESG Analyst"
-  },
-  {
-    id: "3",
-    name: "Michael Wong",
-    email: "michael.wong@example.com",
-    designation: "Investment Analyst"
-  },
-  {
-    id: "4",
-    name: "Lisa Chen",
-    email: "lisa.chen@example.com",
-    designation: "Chief Investment Officer"
-  }
-];
+// const teamMembers = [
+//   {
+//     id: "1",
+//     name: "John Smith",
+//     email: "john.smith@example.com",
+//     designation: "Fund Manager"
+//   },
+//   {
+//     id: "2",
+//     name: "Sarah Johnson",
+//     email: "sarah.johnson@example.com",
+//     designation: "ESG Analyst"
+//   },
+//   {
+//     id: "3",
+//     name: "Michael Wong",
+//     email: "michael.wong@example.com",
+//     designation: "Investment Analyst"
+//   },
+//   {
+//     id: "4",
+//     name: "Lisa Chen",
+//     email: "lisa.chen@example.com",
+//     designation: "Chief Investment Officer"
+//   }
+// ];
 
 export default function EditFund() {
   const navigate = useNavigate();
@@ -72,6 +72,8 @@ export default function EditFund() {
   // const fund = dummyFunds.find(f => f.id === Number(id));
 
   const [fund,setFund]=useState([])
+  const [portfolioCompanies,setPortfolioCompanies]=useState([])
+  const [teamMembers,setTeamMembers]=useState([])
   
 
   // If fund not found (bad URL), return to list
@@ -81,24 +83,19 @@ export default function EditFund() {
   }
 
   const [formData, setFormData] = useState({
-    name: fund['name'],
-    size: fund['size'],
-    currency: fund['currency'],
-    focus: fund['focus'],
-    stage: fund['stage'],
+    name: '',
+    size: '',
+    currency: '',
+    focus: [],
+    stage: '',
 
-    inclusionTerms: fund['inclusionTerms'],
-    exclusionTerms: fund['exclusionTerms'],
+    inclusion: [],
+    exclusion: [],
   });
 
   const [selectedTeamMembers, setSelectedTeamMembers] = useState<string[]>([]);
-  const [selectedCompanies, setSelectedCompanies] = useState<number[]>([]);
+  const [selectedCompanies, setSelectedCompanies] = useState<string[]>([]);
 
-  // Initialize with some sample selections
-  useEffect(() => {
-    setSelectedTeamMembers(["1", "4"]);
-    setSelectedCompanies([1, 3]);
-  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -129,20 +126,54 @@ export default function EditFund() {
     );
   };
 
-  const handleCompanyToggle = (id: number) => {
+  const handleCompanyToggle = (id: string) => {
+    console.log('handleCompanyToggle :: setSelectedCompanies',selectedCompanies)
     setSelectedCompanies(prev => 
       prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]
     );
   };
 
+  const updateFundData=async ()=>{
+    try {
+      const res = await fetch(`http://localhost:3003` + `/investor/fund`, {
+        method: "PUT",
+        body:JSON.stringify({...formData,sectorFocus:formData.focus.join(","),stageOfInvestment:formData.stage}),
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
+      });
+      if (!res.ok) {
+        // toast.error("Invalid credentials");
+        // setIsLoading(false);
+        return;
+      }
+      else {
+        const jsondata = await res.json();
+        console.log('jsondata', jsondata)
+        // setFormData(jsondata['data'][0])
+        setFormData({...jsondata['data'][0],focus:jsondata['data'][0]['sectorFocus'].split(",")})
+        setFund(jsondata['data'][0])
+        console.log(`jsondata['data'][0]?.fundedCompany?.map((c)=> c._id) companyInfo`,jsondata['data'][0]?.fundedCompany?.map((c)=> c._id))
+        setSelectedCompanies(jsondata['data'][0]?.fundedCompany?.map((c)=> c.companyInfo.companyInfoId))
+      }
+    } catch (error) {
+      console.error("Api call:", error);
+      // toast.error("API Call failed. Please try again.");
+    } finally {
+      // setIsLoading(false);
+    }
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // Would save changes here; currently dummy data only
+    console.log('setSelectedCompanies',selectedCompanies)
+    addCompanyToFund();
+    updateFundData()
+
     toast({
       title: "Fund Updated",
       description: `${formData.name} has been updated successfully.`
     });
-    navigate("/funds");
+    // navigate("/funds");
   };
 
   const getFundDetail= async()=>{
@@ -161,6 +192,9 @@ export default function EditFund() {
         console.log('jsondata', jsondata)
         // setFormData(jsondata['data'][0])
         setFormData({...jsondata['data'][0],focus:jsondata['data'][0]['sectorFocus'].split(",")})
+        setFund(jsondata['data'][0])
+        console.log(`jsondata['data'][0]?.fundedCompany?.map((c)=> c._id) companyInfo`,jsondata['data'][0]?.fundedCompany?.map((c)=> c._id))
+        setSelectedCompanies(jsondata['data'][0]?.fundedCompany?.map((c)=> c.companyInfo.companyInfoId))
       }
     } catch (error) {
       console.error("Api call:", error);
@@ -170,8 +204,89 @@ export default function EditFund() {
     }
   }
 
+  const getCompanyList= async()=>{
+    
+    try {
+      const res = await fetch(`http://localhost:3003` + "/investor/companyInfo/", {
+        method: "GET",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
+      });
+      if (!res.ok) {
+        // toast.error("Invalid credentials");
+        // setIsLoading(false);
+        return;
+      }
+      else {
+        const jsondata = await res.json();
+        console.log('jsondata', jsondata)
+        setPortfolioCompanies(jsondata['data'])
+      }
+    } catch (error) {
+      console.error("Api call:", error);
+      // toast.error("API Call failed. Please try again.");
+    } finally {
+      // setIsLoading(false);
+    }
+  }
+
+  const getTeamList=async ()=>{
+    try {
+      const res = await fetch(`http://localhost:3003` + `/subuser`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
+      });
+      if (!res.ok) {
+        // toast.error("Invalid credentials");
+        // setIsLoading(false);
+        return;
+      }
+      else {
+        const jsondata = await res.json();
+        // setViewingReport(jsondata['data'][0])
+        setTeamMembers(jsondata['data'][0]['subuser'])
+
+      }
+    } catch (error) {
+      
+    }
+    finally{
+
+    }
+  }
+
+  const addCompanyToFund=async ()=>{
+    try {
+      const res = await fetch(`http://localhost:3003` + `/investor/companyInfo/company/addtoFund`, {
+        method: "POST",
+        body:JSON.stringify({
+          companyInfoId: selectedCompanies,
+          fundId: id,
+        }),
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
+      });
+      if (!res.ok) {
+        // toast.error("Invalid credentials");
+        // setIsLoading(false);
+        return;
+      }
+      else {
+        const jsondata = await res.json();
+        // setViewingReport(jsondata['data'][0])
+        setTeamMembers(jsondata['data'][0]['subuser'])
+
+      }
+    } catch (error) {
+      
+    }
+    finally{
+
+    }
+  }
+
   useEffect(()=>{
     getFundDetail()
+    getCompanyList()
+    getTeamList()
   },[])
 
   return (
@@ -279,7 +394,7 @@ export default function EditFund() {
                   <div>
                     <Label>Inclusion Terms</Label>
                     <textarea
-                      value={formData.inclusionTerms.join(", ")}
+                      value={formData.inclusion}
                       readOnly
                       className="w-full mt-1 text-sm bg-muted rounded"
                       rows={2}
@@ -288,7 +403,7 @@ export default function EditFund() {
                   <div>
                     <Label>Exclusion Terms</Label>
                     <textarea
-                      value={formData.exclusionTerms.join(", ")}
+                      value={formData.exclusion}
                       readOnly
                       className="w-full mt-1 text-sm bg-muted rounded"
                       rows={2}
@@ -311,7 +426,7 @@ export default function EditFund() {
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {teamMembers.map(member => (
-                      <div key={member.id} className="flex items-start space-x-3 p-3 border rounded-md">
+                      <div key={member._id} className="flex items-start space-x-3 p-3 border rounded-md">
                         <Checkbox 
                           id={`team-member-${member.id}`} 
                           checked={selectedTeamMembers.includes(member.id)}
@@ -343,25 +458,25 @@ export default function EditFund() {
               <CardContent>
                 <div className="space-y-4">
                   <p className="text-sm text-muted-foreground">
-                    Select companies that are part of this fund's portfolio.
+                    Select companies that are part of this fund's portfolio.{selectedCompanies}
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {portfolioCompanies.map(company => (
-                      <div key={company.id} className="flex items-start space-x-3 p-3 border rounded-md">
+                      <div key={company._id} className="flex items-start space-x-3 p-3 border rounded-md">
                         <Checkbox 
-                          id={`company-${company.id}`} 
-                          checked={selectedCompanies.includes(company.id)}
-                          onCheckedChange={() => handleCompanyToggle(company.id)}
+                          id={`company-${company._id}`} 
+                          checked={selectedCompanies.includes(company._id)}
+                          onCheckedChange={() => handleCompanyToggle(company._id)}
                         />
                         <div className="space-y-1">
                           <Label 
-                            htmlFor={`company-${company.id}`}
+                            htmlFor={`company-${company._id}`}
                             className="font-medium cursor-pointer"
                           >
-                            {company.name}
+                            {company.companyName}
                           </Label>
                           <p className="text-sm text-muted-foreground">{company.sector}</p>
-                          <p className="text-xs text-muted-foreground">{company.type}</p>
+                          <p className="text-xs text-muted-foreground">{company.companytype}</p>
                         </div>
                       </div>
                     ))}

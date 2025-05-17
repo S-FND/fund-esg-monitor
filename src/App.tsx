@@ -18,7 +18,7 @@ import {
   TeamMemberDetail,
   TeamMemberEdit,
 } from "./pages";
-import { Sidebar } from "@/components/sidebar";
+// import { Sidebar } from "@/components/sidebar";
 import { Button } from "@/components/ui/button";
 import { ModeToggle } from "@/components/ui/mode-toggle";
 import { Shell } from "@/components/Shell";
@@ -36,15 +36,25 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Sidebar } from "./components/sidebar";
+import EditInvestorProfile from "./pages/EditInvestorProfile";
+import NewCompany from "./pages/NewCompany";
+import PreScreening from "./pages/PreScreening";
+import Categorization from "./pages/Categorization";
 
 function App() {
   const { toast } = useToast();
 
   const handleLogout = () => {
+    localStorage.removeItem('auth_token')
+    localStorage.removeItem('user')
     toast({
       title: "Logged out",
       description: "You have been successfully logged out.",
     });
+    setTimeout(() => {
+      window.location.href = "http://localhost:3000"
+    }, 3000)
   };
 
   return (
@@ -76,9 +86,13 @@ function App() {
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/investor-info" element={<InvestorInfo />} />
+          <Route path="investor-info/edit" element={<EditInvestorProfile />} />
           <Route path="/funds" element={<Funds />} />
           <Route path="/funds/:id" element={<EditFund />} />
           <Route path="/portfolio" element={<PortfolioCompanies />} />
+          <Route path="portfolio/new" element={<NewCompany />} />
+          <Route path="portfolio/pre-screening" element={<PreScreening />} />
+          <Route path="portfolio/categorization" element={<Categorization />} />
           <Route
             path="/portfolio/:id"
             element={<EditPortfolioCompany />}

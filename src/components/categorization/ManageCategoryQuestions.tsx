@@ -12,8 +12,9 @@ export function ManageCategoryQuestions({
   questions, 
   onQuestionUpdate 
 }: ManageCategoryQuestionsProps) {
-  const { userRole } = useAuth();
-  const canManageQuestions = userRole === 'admin' || userRole === 'investor_admin' || userRole === 'investor';
+  // const { userRole } = useAuth();
+  const canManageQuestions = true
+  // userRole === 'admin' || userRole === 'investor_admin' || userRole === 'investor';
 
   return (
     <ManageCategoryQuestionsDialog

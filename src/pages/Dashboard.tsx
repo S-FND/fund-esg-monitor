@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,8 @@ import { TopNonCompliancesCard } from "@/components/dashboard/TopNonCompliancesC
 import { ESGRisksCard } from "@/components/dashboard/ESGRisksCard";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
+import { useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
 
 const funds = [
   { id: 1, name: "Green Tech Fund I", size: "$50M", focus: "ClimateTech", stage: "Series A" },
@@ -61,6 +63,37 @@ export default function Dashboard() {
   const [selectedCompany, setSelectedCompany] = useState<string>("all");
   const [selectedYear, setSelectedYear] = useState<string>("2025");
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  console.log('searchParam',searchParams.get('token'))
+  let token=searchParams.get('token');
+  let getUserDetails=async()=>{
+    try {
+      // Insert team member
+      const res = await fetch(`http://localhost:3003` + `/investor/general-info/verify-token`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${JSON.parse(token)}` },
+      });
+      if (!res.ok) {
+        toast.error("Invalid credentials");
+        // setIsLoading(false);
+        setTimeout(()=>{
+          window.location.href="http://localhost:3000"
+        },100000)
+        
+      }
+      else {
+        const jsonData=await res.json();
+        localStorage.setItem('auth_token',JSON.parse(token))
+        localStorage.setItem('user',JSON.stringify(jsonData['data']))
+      }
+    }
+    catch(error){
+
+    }
+  }
+  useEffect(()=>{
+    getUserDetails()
+  },[token])
   
   const filteredCompanies = selectedFund === "all"
     ? companies

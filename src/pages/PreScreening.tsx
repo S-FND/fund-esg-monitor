@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,7 +47,7 @@ const initialQuestions = [
 
 export default function PreScreening() {
   const navigate = useNavigate();
-  const { userRole } = useAuth();
+  // const { userRole } = useAuth();
   const [questions, setQuestions] = useState(initialQuestions);
   const [searchParams, setSearchParams] = useSearchParams();
   console.log('companyInfoId',searchParams.get('companyInfoId'))
@@ -61,6 +61,7 @@ export default function PreScreening() {
   
   const handleQuestionsUpdate = (updatedQuestions: any[]) => {
     setQuestions(updatedQuestions);
+    saveQuestions(updatedQuestions)
     updateResponsesForQuestions(updatedQuestions);
   };
   
@@ -113,7 +114,76 @@ export default function PreScreening() {
   const totalScore = getTotalScore();
   
   // Determine if user can manage questions
-  const canManageQuestions = userRole === 'admin' || userRole === 'investor_admin' || userRole === 'investor';
+  const canManageQuestions = true
+  // userRole === 'admin' || userRole === 'investor_admin' || userRole === 'investor';
+
+  const saveQuestions = async(questions)=>{
+    try {
+      let postPayload={
+        companyInfoId:searchParams.get('companyInfoId'),
+        questions:questions,
+        type:'Prescreening'
+      }
+      const res = await fetch(`http://localhost:3003` + `/investor/pre-screening/questions`, {
+        method: "POST",
+        body: JSON.stringify({...postPayload}),
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
+      });
+      if (!res.ok) {
+        // toast.error("Invalid credentials");
+        // setIsLoading(false);
+        return;
+      }
+      else {
+        const jsondata = await res.json();
+        console.log('jsondata', jsondata)
+        getQuestions()
+      }
+    } catch (error) {
+      
+    }
+    finally{
+
+    }
+  }
+
+  const getQuestions = async()=>{
+    try {
+      const res = await fetch(`http://localhost:3003` + `/investor/pre-screening/questions/${searchParams.get('companyInfoId')}/Prescreening`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
+      });
+      if (!res.ok) {
+        // toast.error("Invalid credentials");
+        // setIsLoading(false);
+        setQuestions(initialQuestions)
+        return;
+      }
+      else {
+        const jsondata = await res.json();
+        console.log('jsondata', jsondata)
+        setQuestions(jsondata['data'])
+        
+      }
+    } catch (error) {
+      
+    }
+    finally{
+
+    }
+  }
+
+  // useEffect(()=>{
+  //   console.log('handleQuestionsUpdate :: prescreening :: questions',questions)
+  //   if(questions.length>0){
+  //     saveQuestions(questions)
+  //   }
+    
+  // },[questions])
+
+  useEffect(()=>{
+    getQuestions()
+  },[])
   
   return (
     <div className="space-y-6">

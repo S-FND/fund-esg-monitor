@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { Pencil, Eye } from "lucide-react";
 
 type TeamMember = {
-  id: string;
+  _id: string;
   name: string;
   email: string;
   designation?: string;
@@ -55,7 +55,7 @@ export default function Team() {
       // For demo purposes, let's use some sample data instead of fetching from Supabase
       const sampleTeamMembers = [
         {
-          id: "1",
+          _id: "1",
           name: "John Smith",
           email: "john.smith@example.com",
           designation: "Fund Manager",
@@ -63,7 +63,7 @@ export default function Team() {
           accessRights: ["Dashboard", "Funds", "Team", "Portfolio Companies", "ESG DD"]
         },
         {
-          id: "2",
+          _id: "2",
           name: "Sarah Johnson",
           email: "sarah.johnson@example.com",
           designation: "ESG Analyst",
@@ -71,7 +71,7 @@ export default function Team() {
           accessRights: ["ESG DD", "ESG CAP", "Valuation"]
         },
         {
-          id: "3",
+          _id: "3",
           name: "Michael Wong",
           email: "michael.wong@example.com",
           designation: "Investment Analyst",
@@ -79,7 +79,7 @@ export default function Team() {
           accessRights: ["Portfolio Companies", "Valuation"]
         },
         {
-          id: "4",
+          _id: "4",
           name: "Lisa Chen",
           email: "lisa.chen@example.com",
           designation: "Chief Investment Officer",
@@ -98,7 +98,7 @@ export default function Team() {
 
   const handleAddTeamMember = (member: { name: string; email: string; designation: string; mobileNumber: string }) => {
     const newMember = {
-      id: Math.random().toString(36).substr(2, 9),
+      _id: Math.random().toString(36).substr(2, 9),
       ...member,
       accessRights: ["Dashboard"]
     };
@@ -126,7 +126,7 @@ export default function Team() {
           <div className="text-muted-foreground">No team members yet.</div>
         ) : (
           team.map((member) => (
-            <Card key={member.id} className="p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+            <Card key={member._id} className="p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
               <div>
                 <div className="font-medium">{member.name}</div>
                 <div className="text-muted-foreground text-sm">{member.email}</div>
@@ -144,11 +144,11 @@ export default function Team() {
                 )}
               </div>
               <div className="flex gap-2 shrink-0 mt-2 md:mt-0">
-                <Button variant="outline" size="sm" onClick={() => handleViewMember(member.id)}>
+                <Button variant="outline" size="sm" onClick={() => handleViewMember(member._id)}>
                   <Eye className="h-4 w-4 mr-1" />
                   Details
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => handleEditMember(member.id)}>
+                <Button variant="outline" size="sm" onClick={() => handleEditMember(member._id)}>
                   <Pencil className="h-4 w-4 mr-1" />
                   Edit
                 </Button>

@@ -22,6 +22,7 @@ import { useSearchParams } from "react-router-dom";
 export function useCategorization(companyInfoId: string): CategorizationHookResult {
   const [questions, setQuestions] = useState<CategoriesData>(categorizationQuestions);
   const [activeTab, setActiveTab] = useState<string>("policy");
+  const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   
   // Initialize responses with default values
@@ -92,6 +93,61 @@ export function useCategorization(companyInfoId: string): CategorizationHookResu
       }
     }));
   };
+
+  const saveQuestions = async(questions)=>{
+    try {
+      let postPayload={
+        companyInfoId:searchParams.get('companyInfoId'),
+        questions:questions,
+        type:'Categorization'
+      }
+      const res = await fetch(`http://localhost:3003` + `/investor/pre-screening/questions`, {
+        method: "POST",
+        body: JSON.stringify({...postPayload}),
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
+      });
+      if (!res.ok) {
+        // toast.error("Invalid credentials");
+        // setIsLoading(false);
+        return;
+      }
+      else {
+        const jsondata = await res.json();
+        console.log('jsondata', jsondata)
+        getQuestions()
+      }
+    } catch (error) {
+      
+    }
+    finally{
+
+    }
+  }
+
+  const getQuestions = async()=>{
+    try {
+      const res = await fetch(`http://localhost:3003` + `/investor/pre-screening/questions/${searchParams.get('companyInfoId')}/Categorization`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
+      });
+      if (!res.ok) {
+        // toast.error("Invalid credentials");
+        // setIsLoading(false);
+        setQuestions(categorizationQuestions)
+        return;
+      }
+      else {
+        const jsondata = await res.json();
+        setQuestions(jsondata['data'][0])
+        
+      }
+    } catch (error) {
+      
+    }
+    finally{
+
+    }
+  }
   
   // Update questions for a section
   const handleQuestionUpdate = (section: string, updatedQuestions: CategoryQuestion[]) => {
@@ -99,6 +155,10 @@ export function useCategorization(companyInfoId: string): CategorizationHookResu
       ...prev,
       [section]: updatedQuestions
     }));
+    
+    let cloneQuestions={...questions}
+    cloneQuestions[section]=updatedQuestions
+    saveQuestions(cloneQuestions)
     
     // Update responses to include any new questions and remove deleted ones
     setResponses(prev => {
@@ -187,9 +247,15 @@ export function useCategorization(companyInfoId: string): CategorizationHookResu
 
   useEffect(() => {
     console.log("Inside useEffect companyInfoId", companyInfoId)
+    getQuestions()
     getCategorisationData(companyInfoId)
     
   }, [])
+
+  useEffect(() => {
+    console.log("Inside useEffect questions", questions)
+    
+  }, [questions])
 
   return {
     questions,

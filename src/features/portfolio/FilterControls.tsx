@@ -3,7 +3,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 
 interface Fund {
-  id: number;
+  _id: number;
   name: string;
 }
 interface FilterControlsProps {
@@ -33,7 +33,7 @@ export function FilterControls({
           <SelectContent>
             <SelectItem value="all">All Funds</SelectItem>
             {funds.map(fund => (
-              <SelectItem key={fund.id} value={fund.id.toString()}>
+              <SelectItem key={fund._id} value={fund._id.toString()}>
                 {fund.name}
               </SelectItem>
             ))}
@@ -48,7 +48,7 @@ export function FilterControls({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Sectors</SelectItem>
-            {sectors.map(sector => (
+            {sectors?.map(sector => (
               <SelectItem key={sector} value={sector}>
                 {sector}
               </SelectItem>

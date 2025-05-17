@@ -15,7 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 export default function Categorization() {
   const navigate = useNavigate();
-  const { userRole } = useAuth();
+  // const { userRole } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const {
@@ -31,7 +31,8 @@ export default function Categorization() {
   } = useCategorization(searchParams.get('companyInfoId'));
 
   const category = getCategory(totalScore);
-  const canManageQuestions = userRole === 'admin' || userRole === 'investor_admin' || userRole === 'investor';
+  const canManageQuestions = true
+  // userRole === 'admin' || userRole === 'investor_admin' || userRole === 'investor';
 
   const submitCategorizationData = async () => {
     // navigate("/portfolio")
@@ -59,7 +60,6 @@ export default function Categorization() {
       categories:questionResponse,
       preliminaryCategorisation:preliminaryCategorisation
     }
-    console.log('payloadObj',payloadObj)
       const res = await fetch(`http://localhost:3003` + `/investor/categorisation`, {
         method: "POST",
         body: JSON.stringify({...payloadObj}),
@@ -74,7 +74,7 @@ export default function Categorization() {
         const jsondata = await res.json();
         console.log('jsondata', jsondata)
         // Navigate to pre-screening page
-        // navigate("/portfolio/categorization?companyInfoId="+searchParams.get('companyInfoId'))
+        navigate("/portfolio")
       }
     } catch (error) {
       

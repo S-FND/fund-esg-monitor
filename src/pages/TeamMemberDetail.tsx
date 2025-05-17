@@ -9,7 +9,7 @@ import { mainNavItems, esgDDNavItem, valuationNavItem } from "@/components/sideb
 import { ArrowLeft, Pencil } from "lucide-react";
 
 interface TeamMember {
-  id: string;
+  _id: string;
   name: string;
   email: string;
   designation?: string;
@@ -30,61 +30,61 @@ export default function TeamMemberDetail() {
     { title: valuationNavItem.title, href: valuationNavItem.href }
   ];
 
-  useEffect(() => {
-    // Simulate fetching member details
-    setLoading(true);
+  // useEffect(() => {
+  //   // Simulate fetching member details
+  //   setLoading(true);
     
-    // Sample data - in a real app, this would be fetched from the database
-    const sampleTeamMembers = [
-      {
-        id: "1",
-        name: "John Smith",
-        email: "john.smith@example.com",
-        designation: "Fund Manager",
-        mobileNumber: "+1 (555) 123-4567",
-        accessRights: ["Dashboard", "Funds", "Team", "Portfolio Companies", "ESG DD"]
-      },
-      {
-        id: "2",
-        name: "Sarah Johnson",
-        email: "sarah.johnson@example.com",
-        designation: "ESG Analyst",
-        mobileNumber: "+1 (555) 987-6543",
-        accessRights: ["ESG DD", "ESG CAP", "Valuation"]
-      },
-      {
-        id: "3",
-        name: "Michael Wong",
-        email: "michael.wong@example.com",
-        designation: "Investment Analyst",
-        mobileNumber: "+1 (555) 456-7890",
-        accessRights: ["Portfolio Companies", "Valuation"]
-      },
-      {
-        id: "4",
-        name: "Lisa Chen",
-        email: "lisa.chen@example.com",
-        designation: "Chief Investment Officer",
-        mobileNumber: "+1 (555) 567-8901",
-        accessRights: ["Dashboard", "Funds", "Team", "Portfolio Companies", "ESG DD", "ESG CAP", "Valuation"]
-      }
-    ];
+  //   // Sample data - in a real app, this would be fetched from the database
+  //   const sampleTeamMembers = [
+  //     {
+  //       id: "1",
+  //       name: "John Smith",
+  //       email: "john.smith@example.com",
+  //       designation: "Fund Manager",
+  //       mobileNumber: "+1 (555) 123-4567",
+  //       accessRights: ["Dashboard", "Funds", "Team", "Portfolio Companies", "ESG DD"]
+  //     },
+  //     {
+  //       id: "2",
+  //       name: "Sarah Johnson",
+  //       email: "sarah.johnson@example.com",
+  //       designation: "ESG Analyst",
+  //       mobileNumber: "+1 (555) 987-6543",
+  //       accessRights: ["ESG DD", "ESG CAP", "Valuation"]
+  //     },
+  //     {
+  //       id: "3",
+  //       name: "Michael Wong",
+  //       email: "michael.wong@example.com",
+  //       designation: "Investment Analyst",
+  //       mobileNumber: "+1 (555) 456-7890",
+  //       accessRights: ["Portfolio Companies", "Valuation"]
+  //     },
+  //     {
+  //       id: "4",
+  //       name: "Lisa Chen",
+  //       email: "lisa.chen@example.com",
+  //       designation: "Chief Investment Officer",
+  //       mobileNumber: "+1 (555) 567-8901",
+  //       accessRights: ["Dashboard", "Funds", "Team", "Portfolio Companies", "ESG DD", "ESG CAP", "Valuation"]
+  //     }
+  //   ];
     
-    const foundMember = sampleTeamMembers.find(m => m.id === id);
+  //   const foundMember = sampleTeamMembers.find(m => m.id === id);
     
-    if (foundMember) {
-      setMember(foundMember);
+  //   if (foundMember) {
+  //     setMember(foundMember);
       
-      // Initialize access rights checkboxes
-      const accessMap: Record<string, boolean> = {};
-      allNavItems.forEach(item => {
-        accessMap[item.title] = foundMember.accessRights?.includes(item.title) || false;
-      });
-      setAccessRights(accessMap);
-    }
+  //     // Initialize access rights checkboxes
+  //     const accessMap: Record<string, boolean> = {};
+  //     allNavItems.forEach(item => {
+  //       accessMap[item.title] = foundMember.accessRights?.includes(item.title) || false;
+  //     });
+  //     setAccessRights(accessMap);
+  //   }
     
-    setLoading(false);
-  }, [id]);
+  //   setLoading(false);
+  // }, [id]);
 
   const handleSaveAccess = () => {
     // In a real app, this would update the database
@@ -99,13 +99,44 @@ export default function TeamMemberDetail() {
     alert("Access rights updated successfully");
   };
 
-  if (loading) {
-    return <div className="container py-8">Loading team member details...</div>;
+  // if (loading) {
+  //   return <div className="container py-8">Loading team member details...</div>;
+  // }
+
+  // if (!member) {
+  //   return <div className="container py-8">Team member not found</div>;
+  // }
+
+  const getTeamList=async ()=>{
+
+    try {
+      const res = await fetch(`http://localhost:3003` + `/subuser?id=${id}`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
+      });
+      if (!res.ok) {
+        // toast.error("Invalid credentials");
+        // setIsLoading(false);
+        return;
+      }
+      else {
+        const jsondata = await res.json();
+        // setViewingReport(jsondata['data'][0])
+        setMember(jsondata['data'][0]['subuser'][0])
+        setLoading(false)
+
+      }
+    } catch (error) {
+      
+    }
+    finally{
+
+    }
   }
 
-  if (!member) {
-    return <div className="container py-8">Team member not found</div>;
-  }
+  useEffect(()=>{
+    getTeamList()
+  },[])
 
   return (
     <div className="container max-w-4xl mx-auto py-8">
@@ -137,13 +168,13 @@ export default function TeamMemberDetail() {
             </CardHeader>
             <CardContent className="space-y-2">
               <div>
-                <h3 className="font-semibold text-lg">{member.name}</h3>
-                <p className="text-muted-foreground">{member.designation}</p>
+                <h3 className="font-semibold text-lg">{member?.name}</h3>
+                <p className="text-muted-foreground">{member?.designation}</p>
               </div>
               <div className="pt-2">
-                <p className="text-sm"><span className="font-medium">Email:</span> {member.email}</p>
-                {member.mobileNumber && (
-                  <p className="text-sm"><span className="font-medium">Mobile:</span> {member.mobileNumber}</p>
+                <p className="text-sm"><span className="font-medium">Email:</span> {member?.email}</p>
+                {member?.mobileNumber && (
+                  <p className="text-sm"><span className="font-medium">Mobile:</span> {member?.mobileNumber}</p>
                 )}
               </div>
             </CardContent>

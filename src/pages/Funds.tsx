@@ -24,19 +24,6 @@ export default function Funds() {
         const jsondata = await res.json();
         console.log('jsondata', jsondata)
         setFunds(jsondata['data'])
-        // let investorInfo:InvestorFormData = {
-        //   investorName: jsondata['data']['investorName'],
-        //   companyName: jsondata['data']['companyName'],
-        //   email: jsondata['data']['email'],
-        //   pan: jsondata['data']['panNumber'],
-        //   gst: jsondata['data']['gstNumber'],
-        //   esgManagerEmail: jsondata['data']['esgManagerEmail'],
-        //   sdgGoals: jsondata['data']['sdgGoal'],
-        //   sdgTargets: jsondata['data']['sdgTarget'],
-        //   designation: jsondata['data']['designation'],
-        //   companyAddress: jsondata['data']['address'],
-        // };
-        // setFormData(investorInfo)
       }
     } catch (error) {
       console.error("Api call:", error);

@@ -91,7 +91,7 @@ export function CompanyCard({ company }: CompanyCardProps) {
         </div>
       </CardContent>
       <CardFooter className="border-t bg-muted/50 flex justify-end py-3">
-        <Button variant="outline" onClick={() => navigate(`/portfolio/${company.id}`)}>
+        <Button variant="outline" onClick={() => navigate(`/portfolio/${company._id}`)}>
           View Details
         </Button>
       </CardFooter>
