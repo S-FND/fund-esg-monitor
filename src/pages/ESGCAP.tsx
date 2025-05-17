@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
@@ -10,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
-import { Diff, Compare } from "lucide-react";
+import { Diff, ArrowLeft, ArrowRight } from "lucide-react";
 import { 
   Dialog,
   DialogContent,
@@ -221,7 +220,8 @@ export default function ESGCAP() {
             onClick={toggleComparisonView}
             className={showComparisonView ? "border-purple-500 text-purple-500" : ""}
           >
-            <Compare className="h-4 w-4 mr-2" />
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            <ArrowRight className="h-4 w-4 mr-1" />
             {showComparisonView ? "Exit Comparison View" : "Compare Changes"}
           </Button>
         </div>
