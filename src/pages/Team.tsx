@@ -4,7 +4,8 @@ import { TeamAddDialog } from "@/components/TeamAddDialog";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { Pencil, Eye } from "lucide-react";
+import { Pencil, Eye, UserCheck, Shield } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 type TeamMember = {
   _id: string;
@@ -13,6 +14,7 @@ type TeamMember = {
   designation?: string;
   mobileNumber?: string;
   accessRights?: string[];
+  isActive: boolean;
 };
 
 export default function Team() {
@@ -20,6 +22,7 @@ export default function Team() {
   const [loading, setLoading] = useState(true);
   const [addingDialogOpen, setAddingDialogOpen] = useState(false);
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const getTeamList=async ()=>{
     try {
@@ -60,7 +63,8 @@ export default function Team() {
           email: "john.smith@example.com",
           designation: "Fund Manager",
           mobileNumber: "+1 (555) 123-4567",
-          accessRights: ["Dashboard", "Funds", "Team", "Portfolio Companies", "ESG DD"]
+          accessRights: ["Dashboard", "Funds", "Team", "Portfolio Companies", "ESG DD"],
+          isActive: true
         },
         {
           _id: "2",
@@ -68,7 +72,8 @@ export default function Team() {
           email: "sarah.johnson@example.com",
           designation: "ESG Analyst",
           mobileNumber: "+1 (555) 987-6543",
-          accessRights: ["ESG DD", "ESG CAP", "Valuation"]
+          accessRights: ["ESG DD", "ESG CAP", "Valuation"],
+          isActive: true
         },
         {
           _id: "3",
@@ -76,7 +81,8 @@ export default function Team() {
           email: "michael.wong@example.com",
           designation: "Investment Analyst",
           mobileNumber: "+1 (555) 456-7890",
-          accessRights: ["Portfolio Companies", "Valuation"]
+          accessRights: ["Portfolio Companies", "Valuation"],
+          isActive: false
         },
         {
           _id: "4",
@@ -84,7 +90,8 @@ export default function Team() {
           email: "lisa.chen@example.com",
           designation: "Chief Investment Officer",
           mobileNumber: "+1 (555) 567-8901",
-          accessRights: ["Dashboard", "Funds", "Team", "Portfolio Companies", "ESG DD", "ESG CAP", "Valuation"]
+          accessRights: ["Dashboard", "Funds", "Team", "Portfolio Companies", "ESG DD", "ESG CAP", "Valuation"],
+          isActive: true
         }
       ];
       
@@ -100,7 +107,8 @@ export default function Team() {
     const newMember = {
       _id: Math.random().toString(36).substr(2, 9),
       ...member,
-      accessRights: ["Dashboard"]
+      accessRights: ["Dashboard"],
+      isActive: false
     };
     setTeam(prev => [...prev, newMember]);
   };
@@ -111,6 +119,22 @@ export default function Team() {
 
   const handleEditMember = (id: string) => {
     navigate(`/team/edit/${id}`);
+  };
+
+  const toggleActivateUser = (id: string) => {
+    setTeam(prevTeam => 
+      prevTeam.map(member => {
+        if (member._id === id) {
+          const newState = !member.isActive;
+          toast({
+            title: newState ? "User Activated" : "User Deactivated",
+            description: `${member.name} has been ${newState ? "activated" : "deactivated"}.`
+          });
+          return { ...member, isActive: newState };
+        }
+        return member;
+      })
+    );
   };
 
   return (
@@ -127,23 +151,34 @@ export default function Team() {
         ) : (
           team.map((member) => (
             <Card key={member._id} className="p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-              <div>
-                <div className="font-medium">{member.name}</div>
-                <div className="text-muted-foreground text-sm">{member.email}</div>
-                {member.designation && (
-                  <div className="text-xs text-muted-foreground">Designation: {member.designation}</div>
-                )}
-                {member.mobileNumber && (
-                  <div className="text-xs text-muted-foreground">Mobile: {member.mobileNumber}</div>
-                )}
-                {member.accessRights && member.accessRights.length > 0 && (
-                  <div className="text-xs text-muted-foreground mt-1">
-                    Access: {member.accessRights.slice(0, 2).join(", ")}
-                    {member.accessRights.length > 2 && ` +${member.accessRights.length - 2} more`}
-                  </div>
-                )}
+              <div className="flex items-center gap-3">
+                <div className={`w-2 h-2 rounded-full ${member.isActive ? "bg-green-500" : "bg-gray-300"}`}></div>
+                <div>
+                  <div className="font-medium">{member.name}</div>
+                  <div className="text-muted-foreground text-sm">{member.email}</div>
+                  {member.designation && (
+                    <div className="text-xs text-muted-foreground">Designation: {member.designation}</div>
+                  )}
+                  {member.mobileNumber && (
+                    <div className="text-xs text-muted-foreground">Mobile: {member.mobileNumber}</div>
+                  )}
+                  {member.accessRights && member.accessRights.length > 0 && (
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Access: {member.accessRights.slice(0, 2).join(", ")}
+                      {member.accessRights.length > 2 && ` +${member.accessRights.length - 2} more`}
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="flex gap-2 shrink-0 mt-2 md:mt-0">
+                <Button 
+                  variant={member.isActive ? "outline" : "default"} 
+                  size="sm" 
+                  onClick={() => toggleActivateUser(member._id)}
+                >
+                  <UserCheck className="h-4 w-4 mr-1" />
+                  {member.isActive ? "Deactivate" : "Activate"}
+                </Button>
                 <Button variant="outline" size="sm" onClick={() => handleViewMember(member._id)}>
                   <Eye className="h-4 w-4 mr-1" />
                   Details
@@ -163,6 +198,7 @@ export default function Team() {
       <div className="mt-8 text-sm text-muted-foreground">
         <ul className="list-disc ml-6">
           <li>Admins can add team members and each new member will receive an email invite.</li>
+          <li>New members are added with inactive status until they complete their registration.</li>
           <li>This is a demo. No actual invite emails will be sent.</li>
         </ul>
       </div>
