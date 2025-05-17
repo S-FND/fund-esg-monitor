@@ -147,7 +147,7 @@ export class HttpClient {
 
   // Convenience methods
   public async get<T = any>(url: string, config?: Omit<RequestConfig, 'url' | 'method'>): Promise<ApiResponse<T>> {
-    return this.request<T>({ url:`http://localhost:3003/${url}`, method: 'GET', ...config });
+    return this.request<T>({ url:`http://localhost:3003/${url}`, method: 'GET', headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` }  });
   }
 
   public async post<T = any>(url: string, data?: any, config?: Omit<RequestConfig, 'url' | 'method' | 'body'>): Promise<ApiResponse<T>> {
@@ -164,12 +164,12 @@ export class HttpClient {
       url:`http://localhost:3003/${url}`, 
       method: 'PUT',
       body: data ? JSON.stringify(data) : undefined, 
-      ...config 
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` }  
     });
   }
 
   public async delete<T = any>(url: string, config?: Omit<RequestConfig, 'url' | 'method'>): Promise<ApiResponse<T>> {
-    return this.request<T>({ url:`http://localhost:3003/${url}`, method: 'DELETE', ...config });
+    return this.request<T>({ url:`http://localhost:3003/${url}`, method: 'DELETE', headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` }  });
   }
 }
 

@@ -156,7 +156,7 @@ export default function TeamMemberDetail() {
         // Add submodules if any
         if (item.subItems && item.subItems.length > 0) {
           item.subItems.forEach(subItem => {
-            const subRight = member.accessRights.find(r => r.moduleName === subItem.title);
+            const subRight = member.accessRights?.find(r => r.moduleName === subItem.title);
             initialAccessRights.push(subRight || { 
               moduleName: subItem.title, 
               level: "none" as const ,
@@ -257,13 +257,29 @@ export default function TeamMemberDetail() {
     }
   }
 
+  const getUserAccess=async ()=>{
+    try {
+      let response=await http.get(`subuser/access?id=${id}`);
+      console.log('response',response)
+      if(response.data && response.data.status){
+        setAccessRights(response.data.data)
+      }
+      else if(response.error){
+        throw new Error(response.error.message)
+      }
+    } catch (error) {
+      
+    }
+  }
+
   useEffect(() => {
     console.log('accessRights',accessRights)
     setSampleRights(accessRights)
   }, [accessRights])
 
   useEffect(() => {
-    getTeamList()
+    getTeamList();
+    getUserAccess()
   }, [])
 
   return (
@@ -329,7 +345,7 @@ export default function TeamMemberDetail() {
                           onValueChange={(value) => handleAccessChange(item.title, value as "read" | "write" | "admin" | "none")}
                           className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-4"
                         >
-                          {accessLevels.map((level) => (
+                          {(!item.subItems || item.subItems.length == 0) && accessLevels.map((level) => (
                             <div key={level.value} className="flex items-center space-x-2">
                               <RadioGroupItem value={level.value} id={`${item.title}-${level.value}`} />
                               <Label htmlFor={`${item.title}-${level.value}`} className="text-sm">
