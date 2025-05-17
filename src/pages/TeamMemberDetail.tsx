@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { mainNavItems, esgDDNavItem, valuationNavItem } from "@/components/sidebar/navigation-items";
-import { ArrowLeft, Pencil } from "lucide-react";
+import { ArrowLeft, Pencil, UserCheck } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
+import { Switch } from "@/components/ui/switch";
 
 interface AccessRight {
   moduleName: string;
@@ -22,6 +22,7 @@ interface TeamMember {
   designation?: string;
   mobileNumber?: string;
   accessRights: AccessRight[];
+  isActive?: boolean;
 }
 
 const accessLevels = [
@@ -37,6 +38,7 @@ export default function TeamMemberDetail() {
   const [member, setMember] = useState<TeamMember | null>(null);
   const [loading, setLoading] = useState(true);
   const [accessRights, setAccessRights] = useState<AccessRight[]>([]);
+  const [isActive, setIsActive] = useState(false);
   const { toast } = useToast();
 
   // Create a comprehensive navigation items list that includes main items and their submenus
@@ -87,7 +89,8 @@ export default function TeamMemberDetail() {
           { moduleName: "ESG DD", level: "read" },
           { moduleName: "ESG CAP", level: "read" },
           { moduleName: "Valuation", level: "read" }
-        ]
+        ],
+        isActive: true
       } as TeamMember,
       {
         id: "2",
@@ -100,7 +103,8 @@ export default function TeamMemberDetail() {
           { moduleName: "ESG DD", level: "admin" },
           { moduleName: "ESG CAP", level: "write" },
           { moduleName: "Valuation", level: "read" }
-        ]
+        ],
+        isActive: true
       } as TeamMember,
       {
         id: "3",
@@ -112,7 +116,8 @@ export default function TeamMemberDetail() {
           { moduleName: "Dashboard", level: "read" },
           { moduleName: "Portfolio Companies", level: "write" },
           { moduleName: "Valuation", level: "admin" }
-        ]
+        ],
+        isActive: false
       } as TeamMember,
       {
         id: "4",
@@ -128,7 +133,8 @@ export default function TeamMemberDetail() {
           { moduleName: "ESG DD", level: "admin" },
           { moduleName: "ESG CAP", level: "admin" },
           { moduleName: "Valuation", level: "admin" }
-        ]
+        ],
+        isActive: true
       } as TeamMember
     ];
     
@@ -136,6 +142,7 @@ export default function TeamMemberDetail() {
     
     if (foundMember) {
       setMember(foundMember);
+      setIsActive(foundMember.isActive || false);
       
       // Initialize access rights for all modules and submodules
       const initialAccessRights: AccessRight[] = [];
@@ -188,6 +195,21 @@ export default function TeamMemberDetail() {
     }
   };
 
+  const toggleMemberStatus = () => {
+    const newStatus = !isActive;
+    setIsActive(newStatus);
+    
+    if (member) {
+      // Update the member with the new status
+      setMember({ ...member, isActive: newStatus });
+      
+      toast({
+        title: newStatus ? "User Activated" : "User Deactivated",
+        description: `${member.name} has been ${newStatus ? "activated" : "deactivated"}.`
+      });
+    }
+  };
+
   if (loading) {
     return <div className="container py-8">Loading team member details...</div>;
   }
@@ -212,6 +234,7 @@ export default function TeamMemberDetail() {
         <Button 
           onClick={() => navigate(`/team/edit/${id}`)}
           variant="outline"
+          className="mr-2"
         >
           <Pencil className="h-4 w-4 mr-1" />
           Edit
@@ -234,6 +257,17 @@ export default function TeamMemberDetail() {
                 {member.mobileNumber && (
                   <p className="text-sm"><span className="font-medium">Mobile:</span> {member.mobileNumber}</p>
                 )}
+              </div>
+              <div className="pt-4 flex items-center space-x-2">
+                <Switch
+                  id="user-active"
+                  checked={isActive}
+                  onCheckedChange={toggleMemberStatus}
+                />
+                <Label htmlFor="user-active" className="cursor-pointer">
+                  {isActive ? "Active" : "Inactive"}
+                </Label>
+                <span className={`ml-2 inline-block w-2 h-2 rounded-full ${isActive ? "bg-green-500" : "bg-gray-300"}`}></span>
               </div>
             </CardContent>
           </Card>
