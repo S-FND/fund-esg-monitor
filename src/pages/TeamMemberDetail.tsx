@@ -39,10 +39,32 @@ export default function TeamMemberDetail() {
   const [accessRights, setAccessRights] = useState<AccessRight[]>([]);
   const { toast } = useToast();
 
+  // Create a comprehensive navigation items list that includes main items and their submenus
   const allNavItems = [
-    ...mainNavItems.map((item) => ({ title: item.title, href: item.href })),
-    { title: esgDDNavItem.title, href: esgDDNavItem.href },
-    { title: valuationNavItem.title, href: valuationNavItem.href }
+    ...mainNavItems.map((item) => ({ 
+      title: item.title, 
+      href: item.href,
+      isParent: true,
+      subItems: []
+    })),
+    { 
+      title: esgDDNavItem.title, 
+      href: esgDDNavItem.href,
+      isParent: true,
+      subItems: esgDDNavItem.subItems.map(subItem => ({
+        title: subItem.title,
+        href: subItem.href
+      }))
+    },
+    { 
+      title: valuationNavItem.title, 
+      href: valuationNavItem.href,
+      isParent: true,
+      subItems: valuationNavItem.subItems.map(subItem => ({
+        title: subItem.title,
+        href: subItem.href
+      }))
+    }
   ];
 
   useEffect(() => {
@@ -63,6 +85,7 @@ export default function TeamMemberDetail() {
           { moduleName: "Team", level: "write" },
           { moduleName: "Portfolio Companies", level: "write" },
           { moduleName: "ESG DD", level: "read" },
+          { moduleName: "ESG CAP", level: "read" },
           { moduleName: "Valuation", level: "read" }
         ]
       } as TeamMember,
@@ -114,10 +137,28 @@ export default function TeamMemberDetail() {
     if (foundMember) {
       setMember(foundMember);
       
-      // Initialize access rights for all modules
-      const initialAccessRights: AccessRight[] = allNavItems.map(item => {
-        const existingRight = foundMember.accessRights.find(r => r.moduleName === item.title);
-        return existingRight || { moduleName: item.title, level: "none" as const };
+      // Initialize access rights for all modules and submodules
+      const initialAccessRights: AccessRight[] = [];
+      
+      // Process parent modules and their submodules
+      allNavItems.forEach(item => {
+        // Add the parent module
+        const parentRight = foundMember.accessRights.find(r => r.moduleName === item.title);
+        initialAccessRights.push(parentRight || { 
+          moduleName: item.title, 
+          level: "none" as const 
+        });
+        
+        // Add submodules if any
+        if (item.subItems && item.subItems.length > 0) {
+          item.subItems.forEach(subItem => {
+            const subRight = foundMember.accessRights.find(r => r.moduleName === subItem.title);
+            initialAccessRights.push(subRight || { 
+              moduleName: subItem.title, 
+              level: "none" as const 
+            });
+          });
+        }
       });
       
       setAccessRights(initialAccessRights);
@@ -209,22 +250,54 @@ export default function TeamMemberDetail() {
                   const currentAccess = accessRights.find(r => r.moduleName === item.title)?.level || "none";
                   
                   return (
-                    <div key={item.title} className="p-4 border rounded-md">
-                      <div className="font-medium mb-3">{item.title}</div>
-                      <RadioGroup 
-                        value={currentAccess} 
-                        onValueChange={(value) => handleAccessChange(item.title, value as "read" | "write" | "admin" | "none")}
-                        className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-4"
-                      >
-                        {accessLevels.map((level) => (
-                          <div key={level.value} className="flex items-center space-x-2">
-                            <RadioGroupItem value={level.value} id={`${item.title}-${level.value}`} />
-                            <Label htmlFor={`${item.title}-${level.value}`} className="text-sm">
-                              {level.label}
-                            </Label>
-                          </div>
-                        ))}
-                      </RadioGroup>
+                    <div key={item.title} className="p-4 border rounded-md space-y-4">
+                      <div className="font-medium border-b pb-2">{item.title}</div>
+                      
+                      <div>
+                        <RadioGroup 
+                          value={currentAccess} 
+                          onValueChange={(value) => handleAccessChange(item.title, value as "read" | "write" | "admin" | "none")}
+                          className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-4"
+                        >
+                          {accessLevels.map((level) => (
+                            <div key={level.value} className="flex items-center space-x-2">
+                              <RadioGroupItem value={level.value} id={`${item.title}-${level.value}`} />
+                              <Label htmlFor={`${item.title}-${level.value}`} className="text-sm">
+                                {level.label}
+                              </Label>
+                            </div>
+                          ))}
+                        </RadioGroup>
+                      </div>
+                      
+                      {/* Render subItems if any */}
+                      {item.subItems && item.subItems.length > 0 && (
+                        <div className="pl-6 space-y-4 border-l-2 border-gray-200 mt-2">
+                          {item.subItems.map((subItem) => {
+                            const subItemAccess = accessRights.find(r => r.moduleName === subItem.title)?.level || "none";
+                            
+                            return (
+                              <div key={subItem.title} className="p-2 bg-gray-50 rounded-md">
+                                <div className="text-sm font-medium mb-2">{subItem.title}</div>
+                                <RadioGroup 
+                                  value={subItemAccess} 
+                                  onValueChange={(value) => handleAccessChange(subItem.title, value as "read" | "write" | "admin" | "none")}
+                                  className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-4"
+                                >
+                                  {accessLevels.map((level) => (
+                                    <div key={level.value} className="flex items-center space-x-2">
+                                      <RadioGroupItem value={level.value} id={`${subItem.title}-${level.value}`} />
+                                      <Label htmlFor={`${subItem.title}-${level.value}`} className="text-xs">
+                                        {level.label}
+                                      </Label>
+                                    </div>
+                                  ))}
+                                </RadioGroup>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
