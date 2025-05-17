@@ -2,7 +2,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Clock, Eye, ArrowLeft, ArrowRight } from "lucide-react";
+import { Clock, Eye, ArrowLeft, ArrowRight, Undo } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { portfolioCompanies } from "@/features/edit-portfolio-company/portfolioCompanies";
 
@@ -30,6 +30,7 @@ interface CAPTableProps {
   originalItems?: CAPItem[];
   isComparisonView?: boolean;
   onRevert?: (itemId: string) => void;
+  onRevertField?: (itemId: string, field: keyof CAPItem) => void;
 }
 
 const getStatusBadge = (status: CAPStatus) => {
@@ -59,12 +60,18 @@ const RenderChangedField = ({
   currentValue, 
   originalValue, 
   isHistoryView,
-  isComparisonView = false
+  isComparisonView = false,
+  itemId,
+  fieldName,
+  onRevertField
 }: { 
   currentValue: string; 
   originalValue: string; 
-  isHistoryView: boolean;
+  isHistoryView?: boolean;
   isComparisonView?: boolean;
+  itemId?: string;
+  fieldName?: keyof CAPItem;
+  onRevertField?: (itemId: string, field: keyof CAPItem) => void;
 }) => {
   const hasChanged = currentValue !== originalValue;
 
@@ -74,14 +81,26 @@ const RenderChangedField = ({
 
   if (isComparisonView) {
     return (
-      <div className="flex items-center">
-        <div className="bg-red-100 p-1 rounded text-red-800 line-through">
-          {originalValue}
+      <div className="flex flex-col">
+        <div className="flex items-center">
+          <div className="bg-red-100 p-1 rounded text-red-800 line-through">
+            {originalValue}
+          </div>
+          <ArrowRight className="mx-1 h-4 w-4" />
+          <div className="bg-green-100 p-1 rounded text-green-800">
+            {currentValue}
+          </div>
         </div>
-        <ArrowRight className="mx-1 h-4 w-4" />
-        <div className="bg-green-100 p-1 rounded text-green-800">
-          {currentValue}
-        </div>
+        {onRevertField && itemId && fieldName && (
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => onRevertField(itemId, fieldName)}
+            className="mt-1 text-xs text-amber-600 hover:text-amber-800 py-0 h-6"
+          >
+            <Undo className="h-3 w-3 mr-1" /> Revert
+          </Button>
+        )}
       </div>
     );
   }
@@ -91,7 +110,7 @@ const RenderChangedField = ({
       <Tooltip>
         <TooltipTrigger asChild>
           <span className="border-b-2 border-amber-400 pb-0.5">
-            {isHistoryView ? originalValue : currentValue}
+            {currentValue}
           </span>
         </TooltipTrigger>
         <TooltipContent>
@@ -109,7 +128,8 @@ export function CAPTable({
   isHistoryView = false, 
   originalItems = [],
   isComparisonView = false,
-  onRevert
+  onRevert,
+  onRevertField
 }: CAPTableProps) {
   // Function to find the original item by ID
   const getOriginalItem = (id: string) => {
@@ -149,6 +169,9 @@ export function CAPTable({
                       originalValue={originalItem.item} 
                       isHistoryView={isHistoryView}
                       isComparisonView={isComparisonView}
+                      itemId={item.id}
+                      fieldName="item"
+                      onRevertField={onRevertField}
                     />
                   ) : item.item}
                 </TableCell>
@@ -159,6 +182,9 @@ export function CAPTable({
                       originalValue={originalItem.actions} 
                       isHistoryView={isHistoryView}
                       isComparisonView={isComparisonView}
+                      itemId={item.id}
+                      fieldName="actions"
+                      onRevertField={onRevertField}
                     />
                   ) : item.actions}
                 </TableCell>
@@ -169,6 +195,9 @@ export function CAPTable({
                       originalValue={originalItem.responsibility} 
                       isHistoryView={isHistoryView}
                       isComparisonView={isComparisonView}
+                      itemId={item.id}
+                      fieldName="responsibility"
+                      onRevertField={onRevertField}
                     />
                   ) : item.responsibility}
                 </TableCell>
@@ -179,6 +208,9 @@ export function CAPTable({
                       originalValue={originalItem.deliverable} 
                       isHistoryView={isHistoryView}
                       isComparisonView={isComparisonView}
+                      itemId={item.id}
+                      fieldName="deliverable"
+                      onRevertField={onRevertField}
                     />
                   ) : item.deliverable}
                 </TableCell>
@@ -189,6 +221,9 @@ export function CAPTable({
                       originalValue={originalItem.targetDate} 
                       isHistoryView={isHistoryView}
                       isComparisonView={isComparisonView}
+                      itemId={item.id}
+                      fieldName="targetDate"
+                      onRevertField={onRevertField}
                     />
                   ) : item.targetDate}
                 </TableCell>
@@ -199,6 +234,9 @@ export function CAPTable({
                       originalValue={originalItem.type} 
                       isHistoryView={isHistoryView}
                       isComparisonView={isComparisonView}
+                      itemId={item.id}
+                      fieldName="type"
+                      onRevertField={onRevertField}
                     />
                   ) : item.type}
                 </TableCell>
@@ -218,7 +256,7 @@ export function CAPTable({
                         className="text-amber-600 border-amber-600"
                       >
                         <ArrowLeft className="h-4 w-4 mr-1" />
-                        Revert
+                        Revert All
                       </Button>
                     ) : (
                       <>

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
@@ -9,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
-import { Diff, ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { 
   Dialog,
   DialogContent,
@@ -23,9 +24,7 @@ export default function ESGCAP() {
   const [selectedItem, setSelectedItem] = useState<CAPItem | null>(null);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<string>("all");
-  const [canEdit, setCanEdit] = useState(true);
   const { user, userRole } = useAuth();
-  const [showHistory, setShowHistory] = useState(false);
   const [showComparisonView, setShowComparisonView] = useState(false);
 
   // Mock data for CAP items with company IDs
@@ -82,16 +81,20 @@ export default function ESGCAP() {
 
   // Filter CAP items by selected company
   const filteredCAPItems = selectedCompany === "all"
-    ? (showHistory ? originalCapItems : capItems)
-    : (showHistory ? originalCapItems : capItems).filter(item => item.companyId === parseInt(selectedCompany));
+    ? capItems
+    : capItems.filter(item => item.companyId === parseInt(selectedCompany));
 
   const handleReview = (item: CAPItem) => {
     const currentItem = capItems.find(i => i.id === item.id);
     setSelectedItem(currentItem || null);
     setReviewDialogOpen(true);
-    // Check if the item is completed - if so, don't allow editing
-    setCanEdit(currentItem?.status !== "Completed");
+    // Always allow editing for items that are not completed
+    const isCompleted = currentItem?.status === "Completed";
+    setCanEdit(!isCompleted);
   };
+
+  // Added state for edit capability
+  const [canEdit, setCanEdit] = useState(true);
 
   const handleApprove = () => {
     if (selectedItem) {
@@ -154,18 +157,8 @@ export default function ESGCAP() {
     console.log("Submitting CAP items:", filteredCAPItems);
   };
 
-  const toggleHistoryView = () => {
-    setShowHistory(!showHistory);
-    if (showComparisonView) {
-      setShowComparisonView(false);
-    }
-  };
-
   const toggleComparisonView = () => {
     setShowComparisonView(!showComparisonView);
-    if (showHistory) {
-      setShowHistory(false);
-    }
   };
 
   const handleRevertToOriginal = (itemId: string) => {
@@ -182,6 +175,25 @@ export default function ESGCAP() {
       toast({
         title: "Item Reverted",
         description: `Item "${originalItem.item}" has been reverted to its original state.`,
+      });
+    }
+  };
+
+  // New function to handle reverting a specific field of an item
+  const handleRevertField = (itemId: string, field: keyof CAPItem) => {
+    const originalItem = originalCapItems.find(item => item.id === itemId);
+    if (originalItem && field in originalItem) {
+      const updatedItems = capItems.map(item => {
+        if (item.id === itemId) {
+          return { ...item, [field]: originalItem[field] };
+        }
+        return item;
+      });
+      setCapItems(updatedItems);
+      
+      toast({
+        title: "Field Reverted",
+        description: `Field "${field}" has been reverted to its original value.`,
       });
     }
   };
@@ -203,18 +215,6 @@ export default function ESGCAP() {
         />
         
         <div className="flex items-center gap-6">
-          <div className="flex items-center space-x-2">
-            <Switch 
-              id="history-mode" 
-              checked={showHistory} 
-              onCheckedChange={toggleHistoryView}
-              disabled={showComparisonView}
-            />
-            <Label htmlFor="history-mode">
-              {showHistory ? "Viewing Original Version" : "View Original Version"}
-            </Label>
-          </div>
-          
           <Button 
             variant="outline" 
             onClick={toggleComparisonView}
@@ -232,7 +232,6 @@ export default function ESGCAP() {
           <CardTitle>Corrective Action Plan Items</CardTitle>
           <CardDescription>
             Review and approve items in the ESG Corrective Action Plan
-            {showHistory && <span className="ml-2 text-amber-500 font-medium">(Viewing Original Version)</span>}
             {showComparisonView && <span className="ml-2 text-purple-500 font-medium">(Comparing Changes)</span>}
           </CardDescription>
         </CardHeader>
@@ -242,10 +241,10 @@ export default function ESGCAP() {
               items={capItems}
               onReview={handleReview}
               onSendReminder={handleSendReminder}
-              isHistoryView={showHistory}
-              originalItems={originalCapItems}
               isComparisonView={showComparisonView}
-              onRevert={showComparisonView ? handleRevertToOriginal : undefined}
+              originalItems={originalCapItems}
+              onRevert={handleRevertToOriginal}
+              onRevertField={handleRevertField}
             />
           ) : (
             <div className="text-center py-8">
@@ -254,7 +253,7 @@ export default function ESGCAP() {
           )}
         </CardContent>
         <CardFooter className="flex justify-end">
-          <Button onClick={handleSubmitAllCap} size="lg" disabled={showHistory || showComparisonView}>
+          <Button onClick={handleSubmitAllCap} size="lg" disabled={showComparisonView}>
             Submit Complete CAP
           </Button>
         </CardFooter>
@@ -263,7 +262,7 @@ export default function ESGCAP() {
       <ReviewDialog
         item={selectedItem}
         open={reviewDialogOpen}
-        canEdit={canEdit && !showHistory && !showComparisonView}
+        canEdit={canEdit && !showComparisonView}
         onApprove={handleApprove}
         onReject={handleReject}
         onSaveChanges={handleSaveChanges}
