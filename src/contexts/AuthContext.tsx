@@ -33,13 +33,13 @@ const DUMMY_USERS = {
     email: 'admin@example.com',
     name: 'Admin User',
     accessRights: [
-      { moduleName: "Dashboard", level: "admin" },
-      { moduleName: "Funds", level: "admin" },
-      { moduleName: "Team", level: "admin" },
-      { moduleName: "Portfolio Companies", level: "admin" },
-      { moduleName: "ESG DD", level: "admin" },
-      { moduleName: "ESG CAP", level: "admin" },
-      { moduleName: "Valuation", level: "admin" }
+      { moduleName: "Dashboard", level: "admin" as const },
+      { moduleName: "Funds", level: "admin" as const },
+      { moduleName: "Team", level: "admin" as const },
+      { moduleName: "Portfolio Companies", level: "admin" as const },
+      { moduleName: "ESG DD", level: "admin" as const },
+      { moduleName: "ESG CAP", level: "admin" as const },
+      { moduleName: "Valuation", level: "admin" as const }
     ],
     isActive: true
   },
@@ -48,10 +48,10 @@ const DUMMY_USERS = {
     email: 'esg@example.com',
     name: 'ESG Analyst',
     accessRights: [
-      { moduleName: "Dashboard", level: "read" },
-      { moduleName: "ESG DD", level: "admin" },
-      { moduleName: "ESG CAP", level: "write" },
-      { moduleName: "Valuation", level: "read" }
+      { moduleName: "Dashboard", level: "read" as const },
+      { moduleName: "ESG DD", level: "admin" as const },
+      { moduleName: "ESG CAP", level: "write" as const },
+      { moduleName: "Valuation", level: "read" as const }
     ],
     isActive: true
   },
@@ -60,14 +60,15 @@ const DUMMY_USERS = {
     email: 'investor@example.com',
     name: 'Investor',
     accessRights: [
-      { moduleName: "Dashboard", level: "read" },
-      { moduleName: "Funds", level: "read" },
-      { moduleName: "Portfolio Companies", level: "read" },
-      { moduleName: "Valuation", level: "read" }
+      { moduleName: "Dashboard", level: "read" as const },
+      { moduleName: "Funds", level: "read" as const },
+      { moduleName: "Portfolio Companies", level: "read" as const },
+      { moduleName: "Valuation", level: "read" as const }
     ],
     isActive: true
   }
-};
+} as const;
+
 const DUMMY_USER_ID = '1'; // Default to admin
 const DUMMY_ROLE = 'admin';
 
@@ -100,7 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Get the user data based on userId
       const currentUser = DUMMY_USERS[userId as keyof typeof DUMMY_USERS];
       if (currentUser) {
-        setUser(currentUser);
+        setUser(currentUser as User);
         setUserRole(storedRole as AuthContextType['userRole']);
       }
     } else {
