@@ -347,156 +347,157 @@ export default function TeamMemberDetail() {
         <div className="md:col-span-2">
           <Card>
             <CardHeader>
+              <CardTitle>User Management</CardTitle>
+            </CardHeader>
+            <CardContent>
               <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList>
                   <TabsTrigger value="access">Access Rights</TabsTrigger>
                   <TabsTrigger value="funds">Funds</TabsTrigger>
                   <TabsTrigger value="companies">Companies</TabsTrigger>
                 </TabsList>
-              </Tabs>
-            </CardHeader>
-            <CardContent>
-              <TabsContent value="access">
-                <div className="space-y-6">
-                  {allNavItems.map((item) => {
-                    const currentAccess = accessRights.find(r => r.moduleName === item.title)?.level || "none";
-                    
-                    return (
-                      <div key={item.title} className="p-4 border rounded-md space-y-4">
-                        <div className="font-medium border-b pb-2">{item.title}</div>
-                        
-                        <div>
-                          <RadioGroup 
-                            value={currentAccess} 
-                            onValueChange={(value) => handleAccessChange(item.title, value as "read" | "write" | "admin" | "none")}
-                            className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-4"
-                          >
-                            {accessLevels.map((level) => (
-                              <div key={level.value} className="flex items-center space-x-2">
-                                <RadioGroupItem value={level.value} id={`${item.title}-${level.value}`} />
-                                <Label htmlFor={`${item.title}-${level.value}`} className="text-sm">
-                                  {level.label}
-                                </Label>
-                              </div>
-                            ))}
-                          </RadioGroup>
-                        </div>
-                        
-                        {/* Render subItems if any */}
-                        {item.subItems && item.subItems.length > 0 && (
-                          <div className="pl-6 space-y-4 border-l-2 border-gray-200 mt-2">
-                            {item.subItems.map((subItem) => {
-                              const subItemAccess = accessRights.find(r => r.moduleName === subItem.title)?.level || "none";
-                              
-                              return (
-                                <div key={subItem.title} className="p-2 bg-gray-50 rounded-md">
-                                  <div className="text-sm font-medium mb-2">{subItem.title}</div>
-                                  <RadioGroup 
-                                    value={subItemAccess} 
-                                    onValueChange={(value) => handleAccessChange(subItem.title, value as "read" | "write" | "admin" | "none")}
-                                    className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-4"
-                                  >
-                                    {accessLevels.map((level) => (
-                                      <div key={level.value} className="flex items-center space-x-2">
-                                        <RadioGroupItem value={level.value} id={`${subItem.title}-${level.value}`} />
-                                        <Label htmlFor={`${subItem.title}-${level.value}`} className="text-xs">
-                                          {level.label}
-                                        </Label>
-                                      </div>
-                                    ))}
-                                  </RadioGroup>
+                <TabsContent value="access">
+                  <div className="space-y-6">
+                    {allNavItems.map((item) => {
+                      const currentAccess = accessRights.find(r => r.moduleName === item.title)?.level || "none";
+                      
+                      return (
+                        <div key={item.title} className="p-4 border rounded-md space-y-4">
+                          <div className="font-medium border-b pb-2">{item.title}</div>
+                          
+                          <div>
+                            <RadioGroup 
+                              value={currentAccess} 
+                              onValueChange={(value) => handleAccessChange(item.title, value as "read" | "write" | "admin" | "none")}
+                              className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-4"
+                            >
+                              {accessLevels.map((level) => (
+                                <div key={level.value} className="flex items-center space-x-2">
+                                  <RadioGroupItem value={level.value} id={`${item.title}-${level.value}`} />
+                                  <Label htmlFor={`${item.title}-${level.value}`} className="text-sm">
+                                    {level.label}
+                                  </Label>
                                 </div>
-                              );
-                            })}
+                              ))}
+                            </RadioGroup>
                           </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                          
+                          {/* Render subItems if any */}
+                          {item.subItems && item.subItems.length > 0 && (
+                            <div className="pl-6 space-y-4 border-l-2 border-gray-200 mt-2">
+                              {item.subItems.map((subItem) => {
+                                const subItemAccess = accessRights.find(r => r.moduleName === subItem.title)?.level || "none";
+                                
+                                return (
+                                  <div key={subItem.title} className="p-2 bg-gray-50 rounded-md">
+                                    <div className="text-sm font-medium mb-2">{subItem.title}</div>
+                                    <RadioGroup 
+                                      value={subItemAccess} 
+                                      onValueChange={(value) => handleAccessChange(subItem.title, value as "read" | "write" | "admin" | "none")}
+                                      className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-4"
+                                    >
+                                      {accessLevels.map((level) => (
+                                        <div key={level.value} className="flex items-center space-x-2">
+                                          <RadioGroupItem value={level.value} id={`${subItem.title}-${level.value}`} />
+                                          <Label htmlFor={`${subItem.title}-${level.value}`} className="text-xs">
+                                            {level.label}
+                                          </Label>
+                                        </div>
+                                      ))}
+                                    </RadioGroup>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
 
-                  <div className="flex justify-end mt-6">
-                    <Button onClick={handleSaveAccess}>Save Access Rights</Button>
+                    <div className="flex justify-end mt-6">
+                      <Button onClick={handleSaveAccess}>Save Access Rights</Button>
+                    </div>
                   </div>
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="funds">
-                <div className="space-y-4">
-                  <h3 className="font-medium text-lg">Assign Funds</h3>
-                  <p className="text-muted-foreground mb-4">Select the funds that this team member should have access to:</p>
-                  
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-12"></TableHead>
-                        <TableHead>Fund Name</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {mockFunds.map((fund) => (
-                        <TableRow key={fund.id}>
-                          <TableCell className="w-12">
-                            <Checkbox 
-                              checked={selectedFunds.includes(fund.id)} 
-                              onCheckedChange={() => toggleFundSelection(fund.id)} 
-                              id={`fund-${fund.id}`}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Label htmlFor={`fund-${fund.id}`} className="cursor-pointer">
-                              {fund.name}
-                            </Label>
-                          </TableCell>
+                </TabsContent>
+                
+                <TabsContent value="funds">
+                  <div className="space-y-4">
+                    <h3 className="font-medium text-lg">Assign Funds</h3>
+                    <p className="text-muted-foreground mb-4">Select the funds that this team member should have access to:</p>
+                    
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-12"></TableHead>
+                          <TableHead>Fund Name</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                  
-                  <div className="flex justify-end mt-6">
-                    <Button onClick={handleSaveAssignments}>Save Fund Assignments</Button>
+                      </TableHeader>
+                      <TableBody>
+                        {mockFunds.map((fund) => (
+                          <TableRow key={fund.id}>
+                            <TableCell className="w-12">
+                              <Checkbox 
+                                checked={selectedFunds.includes(fund.id)} 
+                                onCheckedChange={() => toggleFundSelection(fund.id)} 
+                                id={`fund-${fund.id}`}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Label htmlFor={`fund-${fund.id}`} className="cursor-pointer">
+                                {fund.name}
+                              </Label>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                    
+                    <div className="flex justify-end mt-6">
+                      <Button onClick={handleSaveAssignments}>Save Fund Assignments</Button>
+                    </div>
                   </div>
-                </div>
-              </TabsContent>
+                </TabsContent>
 
-              <TabsContent value="companies">
-                <div className="space-y-4">
-                  <h3 className="font-medium text-lg">Assign Companies</h3>
-                  <p className="text-muted-foreground mb-4">Select the portfolio companies that this team member should have access to:</p>
-                  
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-12"></TableHead>
-                        <TableHead>Company Name</TableHead>
-                        <TableHead>Sector</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {mockCompanies.map((company) => (
-                        <TableRow key={company.id}>
-                          <TableCell className="w-12">
-                            <Checkbox 
-                              checked={selectedCompanies.includes(company.id)} 
-                              onCheckedChange={() => toggleCompanySelection(company.id)} 
-                              id={`company-${company.id}`}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Label htmlFor={`company-${company.id}`} className="cursor-pointer">
-                              {company.name}
-                            </Label>
-                          </TableCell>
-                          <TableCell>{company.sector}</TableCell>
+                <TabsContent value="companies">
+                  <div className="space-y-4">
+                    <h3 className="font-medium text-lg">Assign Companies</h3>
+                    <p className="text-muted-foreground mb-4">Select the portfolio companies that this team member should have access to:</p>
+                    
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-12"></TableHead>
+                          <TableHead>Company Name</TableHead>
+                          <TableHead>Sector</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                  
-                  <div className="flex justify-end mt-6">
-                    <Button onClick={handleSaveAssignments}>Save Company Assignments</Button>
+                      </TableHeader>
+                      <TableBody>
+                        {mockCompanies.map((company) => (
+                          <TableRow key={company.id}>
+                            <TableCell className="w-12">
+                              <Checkbox 
+                                checked={selectedCompanies.includes(company.id)} 
+                                onCheckedChange={() => toggleCompanySelection(company.id)} 
+                                id={`company-${company.id}`}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Label htmlFor={`company-${company.id}`} className="cursor-pointer">
+                                {company.name}
+                              </Label>
+                            </TableCell>
+                            <TableCell>{company.sector}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                    
+                    <div className="flex justify-end mt-6">
+                      <Button onClick={handleSaveAssignments}>Save Company Assignments</Button>
+                    </div>
                   </div>
-                </div>
-              </TabsContent>
+                </TabsContent>
+              </Tabs>
             </CardContent>
           </Card>
         </div>
