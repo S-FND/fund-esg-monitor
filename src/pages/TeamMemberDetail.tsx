@@ -43,6 +43,7 @@ export default function TeamMemberDetail() {
   const [sampleRights,setSampleRights]=useState([])
   const [isActive, setIsActive] = useState(false);
   const { toast } = useToast();
+  console.log("Team member ID from params:", id);
 
   // Create a comprehensive navigation items list that includes main items and their submenus
   const allNavItems = [
@@ -72,112 +73,112 @@ export default function TeamMemberDetail() {
     }
   ];
 
-  useEffect(() => {
-    // Simulate fetching member details
-    setLoading(true);
+  // useEffect(() => {
+  //   // Simulate fetching member details
+  //   setLoading(true);
 
-    // Sample data - in a real app, this would be fetched from the database
-    const sampleTeamMembers = [
-      {
-        _id: "1",
-        name: "John Smith",
-        email: "john.smith@example.com",
-        designation: "Fund Manager",
-        mobileNumber: "+1 (555) 123-4567",
-        accessRights: [
-          { moduleName: "Dashboard", level: "admin" },
-          { moduleName: "Funds", level: "write" },
-          { moduleName: "Team", level: "write" },
-          { moduleName: "Portfolio Companies", level: "write" },
-          { moduleName: "ESG DD", level: "read" },
-          { moduleName: "ESG CAP", level: "read" },
-          { moduleName: "Valuation", level: "read" }
-        ],
-        active: true
-      } as TeamMember,
-      {
-        _id: "2",
-        name: "Sarah Johnson",
-        email: "sarah.johnson@example.com",
-        designation: "ESG Analyst",
-        mobileNumber: "+1 (555) 987-6543",
-        accessRights: [
-          { moduleName: "Dashboard", level: "read" },
-          { moduleName: "ESG DD", level: "admin" },
-          { moduleName: "ESG CAP", level: "write" },
-          { moduleName: "Valuation", level: "read" }
-        ],
-        active: true
-      } as TeamMember,
-      {
-        _id: "3",
-        name: "Michael Wong",
-        email: "michael.wong@example.com",
-        designation: "Investment Analyst",
-        mobileNumber: "+1 (555) 456-7890",
-        accessRights: [
-          { moduleName: "Dashboard", level: "read" },
-          { moduleName: "Portfolio Companies", level: "write" },
-          { moduleName: "Valuation", level: "admin" }
-        ],
-        active: false
-      } as TeamMember,
-      {
-        _id: "4",
-        name: "Lisa Chen",
-        email: "lisa.chen@example.com",
-        designation: "Chief Investment Officer",
-        mobileNumber: "+1 (555) 567-8901",
-        accessRights: [
-          { moduleName: "Dashboard", level: "admin" },
-          { moduleName: "Funds", level: "admin" },
-          { moduleName: "Team", level: "admin" },
-          { moduleName: "Portfolio Companies", level: "admin" },
-          { moduleName: "ESG DD", level: "admin" },
-          { moduleName: "ESG CAP", level: "admin" },
-          { moduleName: "Valuation", level: "admin" }
-        ],
-        active: true
-      } as TeamMember
-    ];
+  //   // Sample data - in a real app, this would be fetched from the database
+  //   const sampleTeamMembers = [
+  //     {
+  //       _id: "1",
+  //       name: "John Smith",
+  //       email: "john.smith@example.com",
+  //       designation: "Fund Manager",
+  //       mobileNumber: "+1 (555) 123-4567",
+  //       accessRights: [
+  //         { moduleName: "Dashboard", level: "admin" },
+  //         { moduleName: "Funds", level: "write" },
+  //         { moduleName: "Team", level: "write" },
+  //         { moduleName: "Portfolio Companies", level: "write" },
+  //         { moduleName: "ESG DD", level: "read" },
+  //         { moduleName: "ESG CAP", level: "read" },
+  //         { moduleName: "Valuation", level: "read" }
+  //       ],
+  //       active: true
+  //     } as TeamMember,
+  //     {
+  //       _id: "2",
+  //       name: "Sarah Johnson",
+  //       email: "sarah.johnson@example.com",
+  //       designation: "ESG Analyst",
+  //       mobileNumber: "+1 (555) 987-6543",
+  //       accessRights: [
+  //         { moduleName: "Dashboard", level: "read" },
+  //         { moduleName: "ESG DD", level: "admin" },
+  //         { moduleName: "ESG CAP", level: "write" },
+  //         { moduleName: "Valuation", level: "read" }
+  //       ],
+  //       active: true
+  //     } as TeamMember,
+  //     {
+  //       _id: "3",
+  //       name: "Michael Wong",
+  //       email: "michael.wong@example.com",
+  //       designation: "Investment Analyst",
+  //       mobileNumber: "+1 (555) 456-7890",
+  //       accessRights: [
+  //         { moduleName: "Dashboard", level: "read" },
+  //         { moduleName: "Portfolio Companies", level: "write" },
+  //         { moduleName: "Valuation", level: "admin" }
+  //       ],
+  //       active: false
+  //     } as TeamMember,
+  //     {
+  //       _id: "4",
+  //       name: "Lisa Chen",
+  //       email: "lisa.chen@example.com",
+  //       designation: "Chief Investment Officer",
+  //       mobileNumber: "+1 (555) 567-8901",
+  //       accessRights: [
+  //         { moduleName: "Dashboard", level: "admin" },
+  //         { moduleName: "Funds", level: "admin" },
+  //         { moduleName: "Team", level: "admin" },
+  //         { moduleName: "Portfolio Companies", level: "admin" },
+  //         { moduleName: "ESG DD", level: "admin" },
+  //         { moduleName: "ESG CAP", level: "admin" },
+  //         { moduleName: "Valuation", level: "admin" }
+  //       ],
+  //       active: true
+  //     } as TeamMember
+  //   ];
     
-    // const foundMember = sampleTeamMembers.find(m => m.id === id);
+  //   // const foundMember = sampleTeamMembers.find(m => m.id === id);
     
-    if (member) {
-      setMember(member);
-      setIsActive(member.active || false);
+  //   if (member) {
+  //     setMember(member);
+  //     setIsActive(member.active || false);
       
-      // Initialize access rights for all modules and submodules
-      const initialAccessRights: AccessRight[] = [];
+  //     // Initialize access rights for all modules and submodules
+  //     const initialAccessRights: AccessRight[] = [];
       
-      // Process parent modules and their submodules
-      allNavItems.forEach(item => {
-        // Add the parent module
-        const parentRight = member?.accessRights?.find(r => r.moduleName === item.title);
-        initialAccessRights.push(parentRight || { 
-          moduleName: item.title, 
-          level: "none" as const ,
-          href:item.href
-        });
+  //     // Process parent modules and their submodules
+  //     allNavItems.forEach(item => {
+  //       // Add the parent module
+  //       const parentRight = member?.accessRights?.find(r => r.moduleName === item.title);
+  //       initialAccessRights.push(parentRight || { 
+  //         moduleName: item.title, 
+  //         level: "none" as const ,
+  //         href:item.href
+  //       });
         
-        // Add submodules if any
-        if (item.subItems && item.subItems.length > 0) {
-          item.subItems.forEach(subItem => {
-            const subRight = member.accessRights?.find(r => r.moduleName === subItem.title);
-            initialAccessRights.push(subRight || { 
-              moduleName: subItem.title, 
-              level: "none" as const ,
-              href:subItem.href
-            });
-          });
-        }
-      });
-      // console.log('initialAccessRights',initialAccessRights)
-      setAccessRights(initialAccessRights);
-    }
+  //       // Add submodules if any
+  //       if (item.subItems && item.subItems.length > 0) {
+  //         item.subItems.forEach(subItem => {
+  //           const subRight = member.accessRights?.find(r => r.moduleName === subItem.title);
+  //           initialAccessRights.push(subRight || { 
+  //             moduleName: subItem.title, 
+  //             level: "none" as const ,
+  //             href:subItem.href
+  //           });
+  //         });
+  //       }
+  //     });
+  //     // console.log('initialAccessRights',initialAccessRights)
+  //     setAccessRights(initialAccessRights);
+  //   }
 
-    setLoading(false);
-  }, [id]);
+  //   setLoading(false);
+  // }, [id]);
 
   const handleAccessChange = (moduleName: string, level: "read" | "write" | "admin" | "none") => {
     let accessData = accessRights.map((right) => {
@@ -211,14 +212,19 @@ export default function TeamMemberDetail() {
       });
 
     }
+    //accessList
+
     let payload={
-      accessList:{
+      accessUrls:{
         urls:accessRights
       },
-      subUserId:id
+      subUserId:id,
+      active:isActive,
+      email:member.email
     }
+    console.log('payload',payload)
     try {
-      let response=http.post(`subuser/role`,payload)
+      let response=http.post(`subuser/activate`,payload)
       console.log('response',response)
     } catch (error) {
       
@@ -237,32 +243,55 @@ export default function TeamMemberDetail() {
   //   return <div className="container py-8">Team member not found</div>;
   // }
 
-  const getTeamList = async () => {
-
+  const getTeamDetails = async () => {
     try {
-      const res = await fetch(`http://localhost:3003` + `/subuser?id=${id}`, {
+      const res = await fetch(`http://localhost:3003/subuser?id=${id}`, {
         method: "GET",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("auth_token")}`
+        }
       });
-      if (!res.ok) {
-        // toast.error("Invalid credentials");
-        // setIsLoading(false);
-        return;
+  
+      if (!res.ok) return;
+  
+      const jsondata = await res.json();
+      const memberData = jsondata['data'][0]['subuser'][0];
+  
+      if (memberData) {
+        setMember(memberData);
+        setIsActive(memberData.active || false);
+  
+        // Build initialAccessRights from nav items
+        const initialAccessRights: AccessRight[] = [];
+        allNavItems.forEach(item => {
+          const parentRight = memberData.accessRights?.find(r => r.moduleName === item.title);
+          initialAccessRights.push(parentRight || {
+            moduleName: item.title,
+            level: "none",
+            href: item.href
+          });
+  
+          item.subItems?.forEach(subItem => {
+            const subRight = memberData.accessRights?.find(r => r.moduleName === subItem.title);
+            initialAccessRights.push(subRight || {
+              moduleName: subItem.title,
+              level: "none",
+              href: subItem.href
+            });
+          });
+        });
+  
+        setAccessRights(initialAccessRights);
       }
-      else {
-        const jsondata = await res.json();
-        // setViewingReport(jsondata['data'][0])
-        setMember(jsondata['data'][0]['subuser'][0])
-        setLoading(false)
-
-      }
+  
+      setLoading(false);
     } catch (error) {
-
+      console.error("Error fetching member details:", error);
     }
-    finally {
+  };
 
-    }
-  }
+  
   const toggleMemberStatus = () => {
     const newStatus = !isActive;
     setIsActive(newStatus);
@@ -278,9 +307,7 @@ export default function TeamMemberDetail() {
     }
   };
 
-  if (loading) {
-    return <div className="container py-8">Loading team member details...</div>;
-  }
+  
 
   const getUserAccess=async ()=>{
     try {
@@ -297,15 +324,29 @@ export default function TeamMemberDetail() {
     }
   }
 
-  useEffect(() => {
-    console.log('accessRights',accessRights)
-    setSampleRights(accessRights)
-  }, [accessRights])
+ useEffect(() => {
+  if (id) {
+    console.log("Triggered by ID:", id);
+    getTeamDetails();
+    getUserAccess();
+  }
+}, [id]);
 
-  useEffect(() => {
-    getTeamList();
-    getUserAccess()
-  }, [])
+useEffect(() => {
+  console.log("Component mounted");
+}, []);
+if (loading) {
+  return <div className="container py-8">Loading team member details...</div>;
+}
+  // useEffect(() => {
+  //   console.log('accessRights',accessRights)
+  //   setSampleRights(accessRights)
+  // }, [accessRights])
+
+  // useEffect(() => {
+  //   // getTeamList();
+  //   // getUserAccess()
+  // }, [])
 
   return (
     <div className="container max-w-4xl mx-auto py-8">
