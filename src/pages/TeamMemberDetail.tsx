@@ -71,6 +71,7 @@ export default function TeamMemberDetail() {
   const [selectedFunds, setSelectedFunds] = useState<string[]>([]);
   const [selectedCompanies, setSelectedCompanies] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState("access");
+  const [funds,setFunds]=useState([])
 
   // Create a comprehensive navigation items list that includes main items and their submenus
   const allNavItems = [
@@ -352,7 +353,7 @@ export default function TeamMemberDetail() {
 
   const getTeamDetails = async () => {
     try {
-      const res = await fetch(`http://localhost:3003/subuser?id=${id}`, {
+      const res = await fetch(`https://preprod-api.fandoro.com/subuser?id=${id}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -424,6 +425,9 @@ export default function TeamMemberDetail() {
       console.log('response', response)
       if (response.data && response.data.status) {
         setAccessRights(response.data.data)
+        if(response.data.funds && response.data.funds.length>0){
+          setSelectedFunds(response.data.funds)
+        }
       }
       else if (response.error) {
         throw new Error(response.error.message)
@@ -438,6 +442,7 @@ export default function TeamMemberDetail() {
         ? prev.filter(id => id !== fundId)
         : [...prev, fundId]
     );
+    console.log('selectedFunds',selectedFunds)
   };
 
   const toggleCompanySelection = (companyId: string) => {
@@ -448,7 +453,7 @@ export default function TeamMemberDetail() {
     );
   };
 
-  const handleSaveAssignments = () => {
+  const handleSaveAssignments = async() => {
     if (member) {
       // Update the member with the new assignments
       const updatedMember = {
@@ -456,34 +461,71 @@ export default function TeamMemberDetail() {
         assignedFunds: selectedFunds,
         assignedCompanies: selectedCompanies
       };
-
+      console.log('updatedMember',updatedMember)
       setMember(updatedMember);
+      let payload = {
+        accessUrls: {
+          funds:selectedFunds
+        },
+        subUserId: id,
+        active: member.active,
+        email: member.email
+      }
+      console.log('payload', payload)
+      try {
+        let response = await http.post(`subuser/activate`, payload)
+        if(response.data){
+          toast({
+            title: "Assignments updated",
+            description: "Fund and company assignments have been updated successfully."
+          });
+        }
+      } catch (error) {
+  
+      }
 
-      toast({
-        title: "Assignments updated",
-        description: "Fund and company assignments have been updated successfully."
-      });
+      
     }
   };
-
-  if (loading) {
-    return <div className="container py-8">Loading team member details...</div>;
+  const getFundList= async()=>{
+    try {
+      const res = await fetch(`https://preprod-api.fandoro.com` + `/investor/fund`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
+      });
+      if (!res.ok) {
+        // toast.error("Invalid credentials");
+        // setIsLoading(false);
+        return;
+      }
+      else {
+        const jsondata = await res.json();
+        console.log('jsondata', jsondata)
+        setFunds(jsondata['data'])
+      }
+    } catch (error) {
+      console.error("Api call:", error);
+      // toast.error("API Call failed. Please try again.");
+    } finally {
+      // setIsLoading(false);
+    }
   }
+
+  
 
   useEffect(() => {
     if (id) {
       console.log("Triggered by ID:", id);
       getTeamDetails();
       getUserAccess();
+      getFundList()
     }
   }, [id]);
 
   useEffect(() => {
     console.log("Component mounted");
   }, []);
-  if (loading) {
-    return <div className="container py-8">Loading team member details...</div>;
-  }
+ 
   // useEffect(() => {
   //   console.log('accessRights',accessRights)
   //   setSampleRights(accessRights)
@@ -493,6 +535,9 @@ export default function TeamMemberDetail() {
   //   // getTeamList();
   //   // getUserAccess()
   // }, [])
+  if (loading) {
+    return <div className="container py-8">Loading team member details...</div>;
+  }
 
   return (
     <div className="container max-w-4xl mx-auto py-8">
@@ -638,17 +683,17 @@ export default function TeamMemberDetail() {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {mockFunds.map((fund) => (
-                              <TableRow key={fund.id}>
+                            {funds.map((fund) => (
+                              <TableRow key={fund._id}>
                                 <TableCell className="w-12">
                                   <Checkbox
-                                    checked={selectedFunds.includes(fund.id)}
-                                    onCheckedChange={() => toggleFundSelection(fund.id)}
-                                    id={`fund-${fund.id}`}
+                                    checked={selectedFunds.includes(fund._id)}
+                                    onCheckedChange={() => toggleFundSelection(fund._id)}
+                                    id={`fund-${fund._id}`}
                                   />
                                 </TableCell>
                                 <TableCell>
-                                  <Label htmlFor={`fund-${fund.id}`} className="cursor-pointer">
+                                  <Label htmlFor={`fund-${fund._id}`} className="cursor-pointer">
                                     {fund.name}
                                   </Label>
                                 </TableCell>

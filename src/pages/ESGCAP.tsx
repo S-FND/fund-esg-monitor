@@ -41,7 +41,7 @@ export default function ESGCAP() {
       resource: "Company ESG Manager",
       deliverable: "Environmental Policy Document",
       targetDate: "2025-06-30",
-      type: "CP",
+      CS: "CP",
       status: "Pending"
     },
     {
@@ -52,7 +52,7 @@ export default function ESGCAP() {
       resource: "Operations Team",
       deliverable: "Waste Management Reports",
       targetDate: "2025-05-15",
-      type: "CS",
+      CS: "CS",
       status: "In Progress"
     },
     {
@@ -63,7 +63,7 @@ export default function ESGCAP() {
       resource: "External Consultant & Facilities",
       deliverable: "Energy Audit Report",
       targetDate: "2025-04-30",
-      type: "CP",
+      CS: "CP",
       actualDate: "2025-04-25",
       status: "Completed"
     },
@@ -75,13 +75,13 @@ export default function ESGCAP() {
       resource: "HR Department",
       deliverable: "D&I Policy Document",
       targetDate: "2025-03-15",
-      type: "CS",
+      CS: "CS",
       status: "Delayed"
     }
   ]);
   
   // Current working copy of CAP items
-  const [capItems, setCapItems] = useState<CAPItem[]>(originalCapItems);
+  const [capItems, setCapItems] = useState<CAPItem[]>([]);
 
   // Filter CAP items by selected company
   // const filteredCAPItems = selectedCompany === "all"
@@ -146,7 +146,7 @@ export default function ESGCAP() {
 
   const getCompanyInfoList = async () => {
     try {
-      const res = await fetch(`http://localhost:3003` + `/investor/companyInfo`, {
+      const res = await fetch(`https://preprod-api.fandoro.com` + `/investor/companyInfo`, {
         method: "GET",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
       });
@@ -171,7 +171,7 @@ export default function ESGCAP() {
 
   const getReportList = async (email) => {
     try {
-      const res = await fetch(`http://localhost:3003` + `/investor/esgdd/escap/${email}`, {
+      const res = await fetch(`https://preprod-api.fandoro.com` + `/investor/esgdd/escap/${email}`, {
         method: "GET",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
       });
@@ -184,6 +184,7 @@ export default function ESGCAP() {
         const jsondata = await res.json();
         // setViewingReport(jsondata['data'][0])
         setFilteredCAPItems(jsondata['plan'])
+        setCapItems(jsondata['plan'])
         setFinalPlan(jsondata['finalPlan'])
 
       }
@@ -223,6 +224,7 @@ export default function ESGCAP() {
     });
     // Here you would typically send the data to a backend API
     console.log("Submitting CAP items:", filteredCAPItems);
+    console.log("Submitting CAP items ::  capItems :", capItems);
   };
 
   const toggleComparisonView = () => {

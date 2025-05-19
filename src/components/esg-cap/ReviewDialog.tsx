@@ -109,16 +109,16 @@ export function ReviewDialog({
             <h4 className="font-semibold mb-1">Corrective Actions</h4>
             {canEdit ? (
               <Textarea 
-                value={editedItem.actions} 
-                onChange={(e) => handleInputChange('actions', e.target.value)}
-                className={isFieldChanged('actions') ? "border-orange-400" : ""}
+                value={editedItem.measures} 
+                onChange={(e) => handleInputChange('measures', e.target.value)}
+                className={isFieldChanged('measures') ? "border-orange-400" : ""}
               />
             ) : (
-              <p>{editedItem.actions}</p>
+              <p>{editedItem.measures}</p>
             )}
             {isFieldChanged('actions') && (
               <p className="text-xs text-amber-600 mt-1">
-                Original: {originalItem?.actions}
+                Original: {originalItem?.measures}
               </p>
             )}
           </div>
@@ -182,10 +182,10 @@ export function ReviewDialog({
             <h4 className="font-semibold mb-1">Type</h4>
             {canEdit ? (
               <Select 
-                value={editedItem.type} 
-                onValueChange={(value) => handleInputChange('type', value as CAPType)}
+                value={editedItem.CS} 
+                onValueChange={(value) => handleInputChange('CS', value as CAPType)}
               >
-                <SelectTrigger className={isFieldChanged('type') ? "border-orange-400" : ""}>
+                <SelectTrigger className={isFieldChanged('CS') ? "border-orange-400" : ""}>
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -194,11 +194,11 @@ export function ReviewDialog({
                 </SelectContent>
               </Select>
             ) : (
-              <p>{editedItem.type}</p>
+              <p>{editedItem.CS}</p>
             )}
-            {isFieldChanged('type') && (
+            {isFieldChanged('CS') && (
               <p className="text-xs text-amber-600 mt-1">
-                Original: {originalItem?.type}
+                Original: {originalItem?.CS}
               </p>
             )}
           </div>

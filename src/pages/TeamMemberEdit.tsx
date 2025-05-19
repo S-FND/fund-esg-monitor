@@ -106,7 +106,7 @@ export default function TeamMemberEdit() {
     console.log('formData',formData)
     try {
       // Insert team member
-      const res = await fetch(`http://localhost:3003` + `/subuser`, {
+      const res = await fetch(`https://preprod-api.fandoro.com` + `/subuser`, {
         method: "POST",
         body:JSON.stringify({...formData}),
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
@@ -145,7 +145,7 @@ export default function TeamMemberEdit() {
   const getTeamList=async ()=>{
 
     try {
-      const res = await fetch(`http://localhost:3003` + `/subuser?id=${id}`, {
+      const res = await fetch(`https://preprod-api.fandoro.com` + `/subuser?id=${id}`, {
         method: "GET",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
       });

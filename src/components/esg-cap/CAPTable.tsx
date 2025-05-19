@@ -18,7 +18,7 @@ export interface CAPItem {
   resource: string;
   deliverable: string;
   targetDate: string;
-  type: CAPType;
+  CS: CAPType;
   actualDate?: string;
   status: CAPStatus;
 }
@@ -143,7 +143,7 @@ export function CAPTable({
         <TableHeader>
           <TableRow>
             <TableHead className="w-[50px]">S. No</TableHead>
-            <TableHead>Company</TableHead>
+            {/* <TableHead>Company</TableHead> */}
             <TableHead>Item</TableHead>
             <TableHead>Measures and/or Corrective Actions</TableHead>
             <TableHead>Resource & Responsibility</TableHead>
@@ -162,7 +162,7 @@ export function CAPTable({
             return (
               <TableRow key={item.id} className={isHistoryView || isComparisonView ? "bg-muted/30" : ""}>
                 <TableCell>{index + 1}</TableCell>
-                <TableCell>{getCompanyName(item.companyId)}</TableCell>
+                {/* <TableCell>{getCompanyName(item.companyId)}</TableCell> */}
                 <TableCell className="font-medium">
                   {originalItem ? (
                     <RenderChangedField 
@@ -179,15 +179,15 @@ export function CAPTable({
                 <TableCell>
                   {originalItem ? (
                     <RenderChangedField 
-                      currentValue={item.actions} 
-                      originalValue={originalItem.actions} 
+                      currentValue={item.measures} 
+                      originalValue={originalItem.measures} 
                       isHistoryView={isHistoryView}
                       isComparisonView={isComparisonView}
                       itemId={item.id}
                       fieldName="actions"
                       onRevertField={onRevertField}
                     />
-                  ) : item.actions}
+                  ) : item.measures}
                 </TableCell>
                 <TableCell>
                   {originalItem ? (
@@ -231,15 +231,15 @@ export function CAPTable({
                 <TableCell>
                   {originalItem ? (
                     <RenderChangedField 
-                      currentValue={item.type} 
-                      originalValue={originalItem.type} 
+                      currentValue={item.CS} 
+                      originalValue={originalItem.CS} 
                       isHistoryView={isHistoryView}
                       isComparisonView={isComparisonView}
                       itemId={item.id}
-                      fieldName="type"
+                      fieldName="CS"
                       onRevertField={onRevertField}
                     />
-                  ) : item.type}
+                  ) : item.CS}
                 </TableCell>
                 <TableCell>
                   {item.actualDate || "-"}

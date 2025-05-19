@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from "react";
 import {
+  Navigate,
   Route,
   Routes,
 } from "react-router-dom";
@@ -43,10 +44,11 @@ import NewCompany from "./pages/NewCompany";
 import PreScreening from "./pages/PreScreening";
 import Categorization from "./pages/Categorization";
 import { http } from "@/utils/httpInterceptor";
+import Login from "./pages/Login";
 
 function App() {
   const { toast } = useToast();
-  const { signOut } = useAuth();
+  const { signOut,session } = useAuth();
 
   const handleLogout = () => {
     // localStorage.removeItem('auth_token')
@@ -57,7 +59,7 @@ function App() {
       description: "You have been successfully logged out.",
     });
     setTimeout(() => {
-      window.location.href = "http://localhost:3000"
+      window.location.href = "https://preprod-enterprise.fandoro.com/"
     }, 3000)
   };
 

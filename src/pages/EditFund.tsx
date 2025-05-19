@@ -135,7 +135,7 @@ export default function EditFund() {
 
   const updateFundData=async ()=>{
     try {
-      const res = await fetch(`http://localhost:3003` + `/investor/fund`, {
+      const res = await fetch(`https://preprod-api.fandoro.com` + `/investor/fund`, {
         method: "PUT",
         body:JSON.stringify({...formData,sectorFocus:formData.focus.join(","),stageOfInvestment:formData.stage}),
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
@@ -178,7 +178,7 @@ export default function EditFund() {
 
   const getFundDetail= async()=>{
     try {
-      const res = await fetch(`http://localhost:3003` + `/investor/fund/${id}`, {
+      const res = await fetch(`https://preprod-api.fandoro.com` + `/investor/fund/${id}`, {
         method: "GET",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
       });
@@ -207,7 +207,7 @@ export default function EditFund() {
   const getCompanyList= async()=>{
     
     try {
-      const res = await fetch(`http://localhost:3003` + "/investor/companyInfo/", {
+      const res = await fetch(`https://preprod-api.fandoro.com` + "/investor/companyInfo/", {
         method: "GET",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
       });
@@ -231,7 +231,7 @@ export default function EditFund() {
 
   const getTeamList=async ()=>{
     try {
-      const res = await fetch(`http://localhost:3003` + `/subuser`, {
+      const res = await fetch(`https://preprod-api.fandoro.com` + `/subuser`, {
         method: "GET",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
       });
@@ -256,7 +256,7 @@ export default function EditFund() {
 
   const addCompanyToFund=async ()=>{
     try {
-      const res = await fetch(`http://localhost:3003` + `/investor/companyInfo/company/addtoFund`, {
+      const res = await fetch(`https://preprod-api.fandoro.com` + `/investor/companyInfo/company/addtoFund`, {
         method: "POST",
         body:JSON.stringify({
           companyInfoId: selectedCompanies,
@@ -301,10 +301,10 @@ export default function EditFund() {
               <BarChart2 className="h-4 w-4 mr-2" />
               Fund Details
             </TabsTrigger>
-            <TabsTrigger value="team">
+            {/* <TabsTrigger value="team">
               <Users className="h-4 w-4 mr-2" />
               Team Members
-            </TabsTrigger>
+            </TabsTrigger> */}
             <TabsTrigger value="companies">
               <Building className="h-4 w-4 mr-2" />
               Portfolio Companies
@@ -414,7 +414,7 @@ export default function EditFund() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="team">
+          {/* <TabsContent value="team">
             <Card>
               <CardHeader>
                 <CardTitle>Team Members</CardTitle>
@@ -448,7 +448,7 @@ export default function EditFund() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+          </TabsContent> */}
 
           <TabsContent value="companies">
             <Card>

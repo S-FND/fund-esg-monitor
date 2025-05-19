@@ -231,7 +231,7 @@ export default function NewFund() {
     e.preventDefault();
     console.log("Submitting fund data:", formData);
     try {
-      const res = await fetch(`http://localhost:3003` + `/investor/fund`, {
+      const res = await fetch(`https://preprod-api.fandoro.com` + `/investor/fund`, {
         method: "POST",
         body:JSON.stringify({...formData,sectorFocus:formData.sectors.join(","),inclusion:formData.inclusionTerms,exclusion:formData.exclusionTerms,stageOfInvestment:formData.stage}),
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },

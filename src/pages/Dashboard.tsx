@@ -69,7 +69,7 @@ export default function Dashboard() {
   let getUserDetails=async()=>{
     try {
       // Insert team member
-      const res = await fetch(`http://localhost:3003` + `/investor/general-info/verify-token`, {
+      const res = await fetch(`https://preprod-api.fandoro.com` + `/investor/general-info/verify-token`, {
         method: "GET",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${JSON.parse(token)}` },
       });
@@ -77,8 +77,8 @@ export default function Dashboard() {
         toast.error("Invalid credentials");
         // setIsLoading(false);
         setTimeout(()=>{
-          window.location.href="http://localhost:3000"
-        },100000)
+          window.location.href="https://preprod-enterprise.fandoro.com/"
+        },1000)
         
       }
       else {

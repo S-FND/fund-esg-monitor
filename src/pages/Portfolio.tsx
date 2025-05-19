@@ -154,7 +154,7 @@ export default function Portfolio() {
   };
   const getFundList = async () => {
     try {
-      const res = await fetch(`http://localhost:3003` + `/investor/fund`, {
+      const res = await fetch(`https://preprod-api.fandoro.com` + `/investor/fund`, {
         method: "GET",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
       });
@@ -179,7 +179,7 @@ export default function Portfolio() {
   const getCompanyList = async () => {
 
     try {
-      const res = await fetch(`http://localhost:3003` + "/investor/companyInfo/", {
+      const res = await fetch(`https://preprod-api.fandoro.com` + "/investor/companyInfo/", {
         method: "GET",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
       });
