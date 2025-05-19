@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -14,12 +15,51 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { signInWithCredentials } = useAuth();
+
+  // Dummy API response for assigned modules
+  const fetchAssignedPages = async () => {
+    // Simulating API delay
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    return [
+      {
+        moduleName: "Dashboard",
+        level: "read",
+        href: "/"
+      },
+      {
+        moduleName: "Funds",
+        level: "read",
+        href: "/funds"
+      },
+      {
+        moduleName: "Portfolio Companies",
+        level: "read",
+        href: "/portfolio"
+      },
+      {
+        moduleName: "ESG DD",
+        level: "none",
+        href: "/esg-dd"
+      },
+      {
+        moduleName: "ESG DD Report",
+        level: "read",
+        href: "/esg-dd/report"
+      }
+    ];
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     
     try {
+      // Fetch assigned pages from "API"
+      const assignedPages = await fetchAssignedPages();
+      
+      // Use Supabase for authentication
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -32,6 +72,13 @@ export default function Login() {
           variant: "destructive",
         });
       } else {
+        // Call our custom sign-in function with the assigned pages
+        signInWithCredentials({
+          email,
+          id: data.user?.id || '1',
+          assignedPages
+        });
+        
         toast({
           title: "Login successful",
           description: "Welcome back!",
@@ -89,7 +136,7 @@ export default function Login() {
         </CardContent>
         <CardFooter className="flex justify-center">
           <p className="text-sm text-muted-foreground">
-            For development: Test user available in Supabase dashboard
+            For testing: Use any email and password
           </p>
         </CardFooter>
       </Card>

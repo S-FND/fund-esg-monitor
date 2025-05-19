@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import {
   Route,
   Routes,
+  Navigate,
 } from "react-router-dom";
 import {
   Dashboard,
@@ -17,6 +18,7 @@ import {
   EditFund,
   TeamMemberDetail,
   TeamMemberEdit,
+  Login,
 } from "./pages";
 import { Sidebar } from "@/components/sidebar";
 import { Button } from "@/components/ui/button";
@@ -41,7 +43,7 @@ import { http } from "@/utils/httpInterceptor";
 
 function App() {
   const { toast } = useToast();
-  const { signOut } = useAuth();
+  const { session, signOut } = useAuth();
 
   const handleLogout = () => {
     signOut();
@@ -71,6 +73,15 @@ function App() {
     
     demoApiCall();
   }, []);
+
+  if (!session) {
+    return (
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    );
+  }
 
   return (
     <Shell>
@@ -116,6 +127,7 @@ function App() {
           {/* Team Routes */}
           <Route path="/team/:id" element={<TeamMemberDetail />} />
           <Route path="/team/edit/:id" element={<TeamMemberEdit />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </ScrollArea>
     </Shell>
