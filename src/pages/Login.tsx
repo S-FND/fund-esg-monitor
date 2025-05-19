@@ -97,49 +97,51 @@ export default function Login() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-background">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">Login</CardTitle>
-          <CardDescription className="text-center">
-            Enter your credentials to access your account
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input 
-                id="email"
-                type="email"
-                placeholder="name@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input 
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Logging in..." : "Login"}
-            </Button>
-          </form>
-        </CardContent>
-        <CardFooter className="flex justify-center">
-          <p className="text-sm text-muted-foreground">
-            For testing: Use any email and password
-          </p>
-        </CardFooter>
-      </Card>
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-indigo-50 via-blue-50 to-cyan-50">
+      <div className="w-full max-w-md p-6">
+        <Card className="w-full shadow-lg border-opacity-50 backdrop-blur-sm bg-white/70">
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-2xl font-bold text-center">Login</CardTitle>
+            <CardDescription className="text-center">
+              Enter your credentials to access your account
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input 
+                  id="email"
+                  type="email"
+                  placeholder="name@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input 
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Logging in..." : "Login"}
+              </Button>
+            </form>
+          </CardContent>
+          <CardFooter className="flex justify-center">
+            <p className="text-sm text-muted-foreground">
+              For testing: Use any email and password
+            </p>
+          </CardFooter>
+        </Card>
+      </div>
     </div>
   );
 }
