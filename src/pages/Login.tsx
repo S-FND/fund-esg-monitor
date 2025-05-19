@@ -25,27 +25,27 @@ export default function Login() {
     return [
       {
         moduleName: "Dashboard",
-        level: "read",
+        level: "read" as const,
         href: "/"
       },
       {
         moduleName: "Funds",
-        level: "read",
+        level: "read" as const,
         href: "/funds"
       },
       {
         moduleName: "Portfolio Companies",
-        level: "read",
+        level: "read" as const,
         href: "/portfolio"
       },
       {
         moduleName: "ESG DD",
-        level: "none",
+        level: "none" as const,
         href: "/esg-dd"
       },
       {
         moduleName: "ESG DD Report",
-        level: "read",
+        level: "read" as const,
         href: "/esg-dd/report"
       }
     ];
