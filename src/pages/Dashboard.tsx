@@ -66,9 +66,9 @@ export default function Dashboard() {
   const [searchParams, setSearchParams] = useSearchParams();
   console.log(`localStorage.getItem('auth_token')`, localStorage.getItem('auth_token'))
   console.log('searchParam', searchParams.get('token'))
-  let token = JSON.parse((searchParams.get('token')));
+  // let token = JSON.parse((searchParams.get('token')));
   
-  let getUserDetails = async () => {
+  let getUserDetails = async (token) => {
     try {
       // Insert team member
       console.log('token',token)
@@ -101,7 +101,11 @@ export default function Dashboard() {
     }
   }
   useEffect(() => {
-    if (!searchParams.get('token') && !localStorage.getItem('auth_token')) {
+    let token;
+    if(searchParams.get('token')){
+      token=JSON.parse((searchParams.get('token')));
+    }
+    else if (!searchParams.get('token') && !localStorage.getItem('auth_token')) {
       console.log("Inside if statement")
       toast.error("Invalid credentials");
       // setIsLoading(false);
@@ -113,8 +117,8 @@ export default function Dashboard() {
       console.log("Inside else if statement")
       token=localStorage.getItem('auth_token')
     }
-    getUserDetails()
-  }, [token])
+    getUserDetails(token)
+  }, [searchParams])
 
   const filteredCompanies = selectedFund === "all"
     ? companies
