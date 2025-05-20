@@ -71,6 +71,7 @@ export default function Dashboard() {
   let getUserDetails = async (token) => {
     try {
       // Insert team member
+      console.log("Strt getUserDetails")
       console.log('token',token)
       const res = await fetch(`https://preprod-api.fandoro.com` + `/investor/general-info/verify-token`, {
         method: "GET",
@@ -82,7 +83,7 @@ export default function Dashboard() {
         // setIsLoading(false);
         setTimeout(() => {
           window.location.href = "https://preprod-enterprise.fandoro.com/"
-        }, 10000)
+        }, 100000)
 
       }
       else {
@@ -102,11 +103,13 @@ export default function Dashboard() {
   }
   useEffect(() => {
     let token;
+    console.log("Start entry")
     if(searchParams.get('token')){
+      console.log("Inside if")
       token=JSON.parse((searchParams.get('token')));
     }
     else if (!searchParams.get('token') && !localStorage.getItem('auth_token')) {
-      console.log("Inside if statement")
+      console.log("Inside else if 1 statement")
       toast.error("Invalid credentials");
       // setIsLoading(false);
       setTimeout(() => {
@@ -114,9 +117,10 @@ export default function Dashboard() {
       }, 10000)
     }
     else if(localStorage.getItem('auth_token') && !searchParams.get('token')){
-      console.log("Inside else if statement")
+      console.log("Inside else if 2 statement")
       token=localStorage.getItem('auth_token')
     }
+    console.log("exit from useeffct")
     getUserDetails(token)
   }, [searchParams])
 
