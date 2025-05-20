@@ -87,41 +87,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userRole, setUserRole] = useState<'investor' | 'admin' | 'investor_admin' | null>(null);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    // Set dummy data for testing
-    setDummyAuthData();
+  // useEffect(() => {
+  //   // Set dummy data for testing
+  //   setDummyAuthData();
     
-    // Check for auth token in localStorage or sessionStorage
-    const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
-    const userId = localStorage.getItem('user_id') || sessionStorage.getItem('user_id');
-    const storedRole = localStorage.getItem('userRole') || sessionStorage.getItem('userRole');
+  //   // Check for auth token in localStorage or sessionStorage
+  //   const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+  //   const userId = localStorage.getItem('user_id') || sessionStorage.getItem('user_id');
+  //   const storedRole = localStorage.getItem('userRole') || sessionStorage.getItem('userRole');
     
-    if (token && userId) {
-      setSession(true);
-      // Get the user data based on userId
-      const currentUser = DUMMY_USERS[userId as keyof typeof DUMMY_USERS];
-      if (currentUser) {
-        // Convert to User type with correct level typing
-        const userData: User = {
-          id: currentUser.id,
-          email: currentUser.email,
-          name: currentUser.name,
-          accessRights: currentUser.accessRights.map(right => ({
-            moduleName: right.moduleName,
-            level: right.level
-          })),
-          isActive: currentUser.isActive
-        };
+  //   if (token && userId) {
+  //     setSession(true);
+  //     // Get the user data based on userId
+  //     const currentUser = DUMMY_USERS[userId as keyof typeof DUMMY_USERS];
+  //     if (currentUser) {
+  //       // Convert to User type with correct level typing
+  //       const userData: User = {
+  //         id: currentUser.id,
+  //         email: currentUser.email,
+  //         name: currentUser.name,
+  //         accessRights: currentUser.accessRights.map(right => ({
+  //           moduleName: right.moduleName,
+  //           level: right.level
+  //         })),
+  //         isActive: currentUser.isActive
+  //       };
         
-        setUser(userData);
-        setUserRole(storedRole as AuthContextType['userRole']);
-      }
-    } else {
-      setSession(false);
-      setUser(null);
-      setUserRole(null);
-    }
-  }, []);
+  //       setUser(userData);
+  //       setUserRole(storedRole as AuthContextType['userRole']);
+  //     }
+  //   } else {
+  //     setSession(false);
+  //     setUser(null);
+  //     setUserRole(null);
+  //   }
+  // }, []);
 
   const signOut = () => {
     localStorage.removeItem('auth_token');

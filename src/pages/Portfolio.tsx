@@ -239,6 +239,9 @@ export default function Portfolio() {
         portfolioCompanyList.filter((p)=>p.sector == selectedSector)
       )
     }
+    else if(selectedFund == 'all' && selectedSector == 'all'){
+      setFilteredCompanies(portfolioCompanyList)
+    }
   }, [selectedFund, selectedSector])
 
   useEffect(() => {

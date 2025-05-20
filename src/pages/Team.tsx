@@ -26,13 +26,14 @@ export default function Team() {
 
   const getTeamList=async ()=>{
     try {
+      setLoading(true);
       const res = await fetch(`https://preprod-api.fandoro.com` + `/subuser`, {
         method: "GET",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
       });
       if (!res.ok) {
         // toast.error("Invalid credentials");
-        // setIsLoading(false);
+        setLoading(false);
         return;
       }
       else {
@@ -51,55 +52,6 @@ export default function Team() {
   }
 
   useEffect(() => {
-    // Fetch team members when component mounts
-    const fetchData = async () => {
-      setLoading(true);
-
-      // For demo purposes, let's use some sample data instead of fetching from Supabase
-      const sampleTeamMembers = [
-        {
-          _id: "1",
-          name: "John Smith",
-          email: "john.smith@example.com",
-          designation: "Fund Manager",
-          mobileNumber: "+1 (555) 123-4567",
-          accessRights: ["Dashboard", "Funds", "Team", "Portfolio Companies", "ESG DD"],
-          isActive: true
-        },
-        {
-          _id: "2",
-          name: "Sarah Johnson",
-          email: "sarah.johnson@example.com",
-          designation: "ESG Analyst",
-          mobileNumber: "+1 (555) 987-6543",
-          accessRights: ["ESG DD", "ESG CAP", "Valuation"],
-          isActive: true
-        },
-        {
-          _id: "3",
-          name: "Michael Wong",
-          email: "michael.wong@example.com",
-          designation: "Investment Analyst",
-          mobileNumber: "+1 (555) 456-7890",
-          accessRights: ["Portfolio Companies", "Valuation"],
-          isActive: false
-        },
-        {
-          _id: "4",
-          name: "Lisa Chen",
-          email: "lisa.chen@example.com",
-          designation: "Chief Investment Officer",
-          mobileNumber: "+1 (555) 567-8901",
-          accessRights: ["Dashboard", "Funds", "Team", "Portfolio Companies", "ESG DD", "ESG CAP", "Valuation"],
-          isActive: true
-        }
-      ];
-      
-      setTeam(sampleTeamMembers);
-      setLoading(false);
-    };
-
-    fetchData();
     getTeamList()
   }, []);
 

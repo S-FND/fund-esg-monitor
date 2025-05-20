@@ -32,6 +32,7 @@ interface CAPTableProps {
   isComparisonView?: boolean;
   onRevert?: (itemId: string) => void;
   onRevertField?: (itemId: string, field: keyof CAPItem) => void;
+  finalPlan:Boolean
 }
 
 const getStatusBadge = (status: CAPStatus) => {
@@ -130,7 +131,8 @@ export function CAPTable({
   originalItems = [],
   isComparisonView = false,
   onRevert,
-  onRevertField
+  onRevertField,
+  finalPlan
 }: CAPTableProps) {
   // Function to find the original item by ID
   const getOriginalItem = (id: string) => {
@@ -261,10 +263,10 @@ export function CAPTable({
                       </Button>
                     ) : (
                       <>
-                        <Button variant="outline" size="sm" onClick={() => onReview(item)}>
+                        {!finalPlan && <Button variant="outline" size="sm" onClick={() => onReview(item)}>
                           {isHistoryView ? <Eye className="h-4 w-4 mr-1" /> : null}
                           Review
-                        </Button>
+                        </Button>}
                         <Button 
                           variant="ghost" 
                           size="sm" 

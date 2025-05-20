@@ -15,12 +15,36 @@ function getCategoryColor(category: string) {
 }
 
 interface CompanyCardProps {
-  company: any;
+  company:{
+    companyName:string;
+    sector:string;
+    esgCategory:string;
+    companytype:string;
+    founder:string;
+    opportunityStatus:string;
+    dateofScreening:string;
+    fundShareholding:string;
+    esgScore:string;
+    foundersPromotorsMale:string;
+    foundersPromotorsFemale:string;
+    otherEmpMale:string;
+    otherEmpFemale:string;
+    otherEmpOther:string;
+    foundersPromotorsOther:string;
+    directContractMale:string;
+    indirectlyMale:string;
+    directContractFemale:string;
+    indirectlyFemale:string;
+    directContractOther:string;
+    indirectlyOther:string;
+    _id:string;
+    fundCompany:{fundName:string}[];
+  };
 }
 
 export function CompanyCard({ company }: CompanyCardProps) {
   const navigate = useNavigate();
-
+  let fundName=company.fundCompany.map((f)=>f.fundName).join(',')
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -46,7 +70,7 @@ export function CompanyCard({ company }: CompanyCardProps) {
                 <span className="font-medium">CEO:</span> {company.founder}
               </p>
               <p className="text-sm">
-                <span className="font-medium">Fund:</span> {company.fundName}
+                <span className="font-medium">Fund:</span> {fundName}
               </p>
               <p className="text-sm">
                 <span className="font-medium">Stage:</span> {company.opportunityStatus}

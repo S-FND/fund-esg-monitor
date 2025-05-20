@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { ArrowLeft, ArrowRight } from "lucide-react";
-import { 
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -19,17 +19,19 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { http } from "@/utils/httpInterceptor";
 
 export default function ESGCAP() {
-  const [portfolioCompanies,setPortfolioCompanies]=useState([])
+  const [portfolioCompanies, setPortfolioCompanies] = useState([])
   const [selectedItem, setSelectedItem] = useState<CAPItem | null>(null);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<string>("all");
   const { user, userRole } = useAuth();
   const [showComparisonView, setShowComparisonView] = useState(false);
+  const [planData, setPlanData] = useState<{ entityId: string; plan: []; finalPlan: Boolean; }>()
 
-  const [filteredCAPItems,setFilteredCAPItems]=useState([])
-  const [finalPlan,setFinalPlan]=useState(false);
+  const [filteredCAPItems, setFilteredCAPItems] = useState([])
+  const [finalPlan, setFinalPlan] = useState(false);
 
   // Mock data for CAP items with company IDs
   const [originalCapItems] = useState<CAPItem[]>([
@@ -79,7 +81,7 @@ export default function ESGCAP() {
       status: "Delayed"
     }
   ]);
-  
+
   // Current working copy of CAP items
   const [capItems, setCapItems] = useState<CAPItem[]>([]);
 
@@ -107,7 +109,7 @@ export default function ESGCAP() {
     if (selectedItem) {
       const updatedItems = capItems.map(item => {
         if (item.id === selectedItem.id) {
-          return { ...item, status: "Completed" as CAPStatus, actualDate: new Date().toISOString().split('T')[0] };
+          return { ...item};
         }
         return item;
       });
@@ -124,7 +126,7 @@ export default function ESGCAP() {
     if (selectedItem) {
       const updatedItems = capItems.map(item => {
         if (item.id === selectedItem.id) {
-          return { ...item, status: "Rejected" as CAPStatus };
+          return { ...item };
         }
         return item;
       });
@@ -157,7 +159,7 @@ export default function ESGCAP() {
       }
       else {
         const jsondata = await res.json();
-        console.log('getCompanyInfoList ::jsondata',jsondata)
+        console.log('getCompanyInfoList ::jsondata', jsondata)
         setPortfolioCompanies(jsondata['data'])
       }
     } catch (error) {
@@ -169,7 +171,7 @@ export default function ESGCAP() {
 
   };
 
-  const getReportList = async (email) => {
+  const getPlanList = async (email) => {
     try {
       const res = await fetch(`https://preprod-api.fandoro.com` + `/investor/esgdd/escap/${email}`, {
         method: "GET",
@@ -182,7 +184,7 @@ export default function ESGCAP() {
       }
       else {
         const jsondata = await res.json();
-        // setViewingReport(jsondata['data'][0])
+        setPlanData(jsondata)
         setFilteredCAPItems(jsondata['plan'])
         setCapItems(jsondata['plan'])
         setFinalPlan(jsondata['finalPlan'])
@@ -198,14 +200,14 @@ export default function ESGCAP() {
   };
 
   useEffect(() => {
-    getCompanyInfoList()  
+    getCompanyInfoList()
   }, [])
 
-  useEffect(()=>{
-    if(selectedCompany !== 'all'){
-      getReportList(selectedCompany)
+  useEffect(() => {
+    if (selectedCompany !== 'all') {
+      getPlanList(selectedCompany)
     }
-  },[selectedCompany])
+  }, [selectedCompany])
   const handleSaveChanges = (updatedItem: CAPItem) => {
     const updatedItems = capItems.map(item => {
       if (item.id === updatedItem.id) {
@@ -217,14 +219,30 @@ export default function ESGCAP() {
     setSelectedItem(updatedItem);
   };
 
-  const handleSubmitAllCap = () => {
-    toast({
-      title: "CAP Submitted",
-      description: "All CAP items have been submitted successfully.",
-    });
-    // Here you would typically send the data to a backend API
-    console.log("Submitting CAP items:", filteredCAPItems);
-    console.log("Submitting CAP items ::  capItems :", capItems);
+  const handleSubmitAllCap = async () => {
+    try {
+      //esgdd/escap/change-request
+      let payload = {
+        changeRequest: { plan: capItems },
+        comment: 'Change Request',
+        entityId: planData?.entityId
+      }
+      console.log('payload', payload)
+      let response = await http.post('esgdd/escap/change-request', payload)
+      if (response.data) {
+        toast({
+          title: "CAP Submitted",
+          description: "All CAP items have been submitted successfully.",
+        });
+        // Here you would typically send the data to a backend API
+        console.log("Submitting CAP items:", filteredCAPItems);
+        console.log("Submitting CAP items ::  capItems :", capItems);
+      }
+    } catch (error) {
+
+    }
+
+
   };
 
   const toggleComparisonView = () => {
@@ -241,7 +259,7 @@ export default function ESGCAP() {
         return item;
       });
       setCapItems(updatedItems);
-      
+
       toast({
         title: "Item Reverted",
         description: `Item "${originalItem.item}" has been reverted to its original state.`,
@@ -260,7 +278,7 @@ export default function ESGCAP() {
         return item;
       });
       setCapItems(updatedItems);
-      
+
       toast({
         title: "Field Reverted",
         description: `Field "${field}" has been reverted to its original value.`,
@@ -278,15 +296,15 @@ export default function ESGCAP() {
       </div>
 
       <div className="flex items-center justify-between">
-        <FilterControls 
+        <FilterControls
           companies={portfolioCompanies}
           selectedCompany={selectedCompany}
           onCompanyChange={setSelectedCompany}
         />
-        
-        <div className="flex items-center gap-6">
-          <Button 
-            variant="outline" 
+
+        {!finalPlan && <div className="flex items-center gap-6">
+          <Button
+            variant="outline"
             onClick={toggleComparisonView}
             className={showComparisonView ? "border-purple-500 text-purple-500" : ""}
           >
@@ -294,7 +312,7 @@ export default function ESGCAP() {
             <ArrowRight className="h-4 w-4 mr-1" />
             {showComparisonView ? "Exit Comparison View" : "Compare Changes"}
           </Button>
-        </div>
+        </div>}
       </div>
 
       <Card>
@@ -307,7 +325,7 @@ export default function ESGCAP() {
         </CardHeader>
         <CardContent>
           {filteredCAPItems.length > 0 ? (
-            <CAPTable 
+            <CAPTable
               items={capItems}
               onReview={handleReview}
               onSendReminder={handleSendReminder}
@@ -315,6 +333,7 @@ export default function ESGCAP() {
               originalItems={originalCapItems}
               onRevert={handleRevertToOriginal}
               onRevertField={handleRevertField}
+              finalPlan={finalPlan}
             />
           ) : (
             <div className="text-center py-8">
@@ -323,16 +342,20 @@ export default function ESGCAP() {
           )}
         </CardContent>
         <CardFooter className="flex justify-end">
-          <Button onClick={handleSubmitAllCap} size="lg" disabled={showComparisonView}>
-            Submit Complete CAP
-          </Button>
+          {!finalPlan && <Button onClick={handleSubmitAllCap} style={{"marginRight":"2px"}} size="lg" disabled={showComparisonView}>
+            Request CAP Change
+          </Button>}
+          {!finalPlan && <Button onClick={handleSubmitAllCap}  size="lg" disabled={showComparisonView}>
+            Accept CAP 
+          </Button>}
+          {finalPlan && <mark>Plan already accepted</mark>}
         </CardFooter>
       </Card>
 
       <ReviewDialog
         item={selectedItem}
         open={reviewDialogOpen}
-        canEdit={canEdit && !showComparisonView}
+        canEdit={!finalPlan &&  canEdit && !showComparisonView}
         onApprove={handleApprove}
         onReject={handleReject}
         onSaveChanges={handleSaveChanges}
