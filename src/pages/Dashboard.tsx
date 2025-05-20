@@ -74,7 +74,7 @@ export default function Dashboard() {
       window.location.href = "https://preprod-enterprise.fandoro.com/"
     }, 10000)
   }
-  else if(localStorage.getItem('auth_token')){
+  else if(localStorage.getItem('auth_token') && !searchParams){
     console.log("Inside else if statement")
     token=localStorage.getItem('auth_token')
   }
