@@ -101,12 +101,12 @@ export default function Dashboard() {
       }
     }
     catch (error) {
-      console.log("inisde catch")
+      console.log("inisde catch",error.message)
       toast.error("Invalid credentials :: ",error.message);
         // setIsLoading(false);
         setTimeout(() => {
           window.location.href = "https://preprod-enterprise.fandoro.com/"
-        }, 10000)
+        }, 50000)
     }
   }
   useEffect(() => {
