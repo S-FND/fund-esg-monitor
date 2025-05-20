@@ -67,15 +67,15 @@ export default function Dashboard() {
   console.log('searchParam', searchParams.get('token'))
   let token = searchParams.get('token');
   if (!searchParams && !localStorage.getItem('auth_token')) {
-    // console.log("Inside if statement")
+    console.log("Inside if statement")
     toast.error("Invalid credentials");
     // setIsLoading(false);
     setTimeout(() => {
       window.location.href = "https://preprod-enterprise.fandoro.com/"
-    }, 1000)
+    }, 10000)
   }
   else if(localStorage.getItem('auth_token')){
-    // console.log("Inside else if statement")
+    console.log("Inside else if statement")
     token=localStorage.getItem('auth_token')
   }
   let getUserDetails = async () => {
@@ -86,12 +86,12 @@ export default function Dashboard() {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${JSON.parse(token)}` },
       });
       if (!res.ok) {
-        // console.log("inisde res not ok")
+        console.log("inisde res not ok")
         toast.error("Invalid credentials");
         // setIsLoading(false);
         setTimeout(() => {
           window.location.href = "https://preprod-enterprise.fandoro.com/"
-        }, 1000)
+        }, 10000)
 
       }
       else {
@@ -101,12 +101,12 @@ export default function Dashboard() {
       }
     }
     catch (error) {
-      // console.log("inisde catch")
+      console.log("inisde catch")
       toast.error("Invalid credentials :: ",error.message);
         // setIsLoading(false);
         setTimeout(() => {
           window.location.href = "https://preprod-enterprise.fandoro.com/"
-        }, 1000)
+        }, 10000)
     }
   }
   useEffect(() => {
