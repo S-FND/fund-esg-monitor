@@ -67,18 +67,7 @@ export default function Dashboard() {
   console.log(`localStorage.getItem('auth_token')`, localStorage.getItem('auth_token'))
   console.log('searchParam', searchParams.get('token'))
   let token = JSON.parse((searchParams.get('token')));
-  if (!searchParams && !localStorage.getItem('auth_token')) {
-    console.log("Inside if statement")
-    toast.error("Invalid credentials");
-    // setIsLoading(false);
-    setTimeout(() => {
-      window.location.href = "https://preprod-enterprise.fandoro.com/"
-    }, 10000)
-  }
-  else if(localStorage.getItem('auth_token') && !searchParams){
-    console.log("Inside else if statement")
-    token=localStorage.getItem('auth_token')
-  }
+  
   let getUserDetails = async () => {
     try {
       // Insert team member
@@ -112,6 +101,18 @@ export default function Dashboard() {
     }
   }
   useEffect(() => {
+    if (!searchParams.get('token') && !localStorage.getItem('auth_token')) {
+      console.log("Inside if statement")
+      toast.error("Invalid credentials");
+      // setIsLoading(false);
+      setTimeout(() => {
+        window.location.href = "https://preprod-enterprise.fandoro.com/"
+      }, 10000)
+    }
+    else if(localStorage.getItem('auth_token') && !searchParams.get('token')){
+      console.log("Inside else if statement")
+      token=localStorage.getItem('auth_token')
+    }
     getUserDetails()
   }, [token])
 
