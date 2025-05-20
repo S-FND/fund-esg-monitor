@@ -341,7 +341,7 @@ export default function ESGCAP() {
             </div>
           )}
         </CardContent>
-        <CardFooter className="flex justify-end">
+        {filteredCAPItems.length > 0 && <CardFooter className="flex justify-end">
           {!finalPlan && <Button onClick={handleSubmitAllCap} style={{"marginRight":"2px"}} size="lg" disabled={showComparisonView}>
             Request CAP Change
           </Button>}
@@ -349,7 +349,7 @@ export default function ESGCAP() {
             Accept CAP 
           </Button>}
           {finalPlan && <mark>Plan already accepted</mark>}
-        </CardFooter>
+        </CardFooter>}
       </Card>
 
       <ReviewDialog

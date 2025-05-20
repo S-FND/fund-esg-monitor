@@ -97,7 +97,7 @@ export default function Dashboard() {
       }
       else {
         const jsonData = await res.json();
-        localStorage.setItem('auth_token', JSON.parse(token))
+        localStorage.setItem('auth_token', token)
         localStorage.setItem('user', JSON.stringify(jsonData['data']))
       }
     }
