@@ -65,7 +65,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   console.log('searchParam', searchParams.get('token'))
-  let token = searchParams.get('token');
+  let token = JSON.parse((searchParams.get('token')));
   if (!searchParams && !localStorage.getItem('auth_token')) {
     console.log("Inside if statement")
     toast.error("Invalid credentials");
@@ -81,9 +81,10 @@ export default function Dashboard() {
   let getUserDetails = async () => {
     try {
       // Insert team member
+      console.log('token',token)
       const res = await fetch(`https://preprod-api.fandoro.com` + `/investor/general-info/verify-token`, {
         method: "GET",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${JSON.parse(token)}` },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       });
       if (!res.ok) {
         console.log("inisde res not ok")
