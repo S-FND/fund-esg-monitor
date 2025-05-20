@@ -64,6 +64,7 @@ export default function Dashboard() {
   const [selectedYear, setSelectedYear] = useState<string>("2025");
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  console.log(`localStorage.getItem('auth_token')`, localStorage.getItem('auth_token'))
   console.log('searchParam', searchParams.get('token'))
   let token = JSON.parse((searchParams.get('token')));
   if (!searchParams && !localStorage.getItem('auth_token')) {
