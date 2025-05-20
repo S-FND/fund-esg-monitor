@@ -64,9 +64,21 @@ export default function Dashboard() {
   const [selectedYear, setSelectedYear] = useState<string>("2025");
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  console.log('searchParam',searchParams.get('token'))
-  let token=searchParams.get('token');
-  let getUserDetails=async()=>{
+  console.log('searchParam', searchParams.get('token'))
+  let token = searchParams.get('token');
+  if (!searchParams && !localStorage.getItem('auth_token')) {
+    // console.log("Inside if statement")
+    toast.error("Invalid credentials");
+    // setIsLoading(false);
+    setTimeout(() => {
+      window.location.href = "https://preprod-enterprise.fandoro.com/"
+    }, 1000)
+  }
+  else if(localStorage.getItem('auth_token')){
+    // console.log("Inside else if statement")
+    token=localStorage.getItem('auth_token')
+  }
+  let getUserDetails = async () => {
     try {
       // Insert team member
       const res = await fetch(`https://preprod-api.fandoro.com` + `/investor/general-info/verify-token`, {
@@ -74,31 +86,37 @@ export default function Dashboard() {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${JSON.parse(token)}` },
       });
       if (!res.ok) {
+        // console.log("inisde res not ok")
         toast.error("Invalid credentials");
         // setIsLoading(false);
-        setTimeout(()=>{
-          window.location.href="https://preprod-enterprise.fandoro.com/"
-        },1000)
-        
+        setTimeout(() => {
+          window.location.href = "https://preprod-enterprise.fandoro.com/"
+        }, 1000)
+
       }
       else {
-        const jsonData=await res.json();
-        localStorage.setItem('auth_token',JSON.parse(token))
-        localStorage.setItem('user',JSON.stringify(jsonData['data']))
+        const jsonData = await res.json();
+        localStorage.setItem('auth_token', JSON.parse(token))
+        localStorage.setItem('user', JSON.stringify(jsonData['data']))
       }
     }
-    catch(error){
-
+    catch (error) {
+      // console.log("inisde catch")
+      toast.error("Invalid credentials :: ",error.message);
+        // setIsLoading(false);
+        setTimeout(() => {
+          window.location.href = "https://preprod-enterprise.fandoro.com/"
+        }, 1000)
     }
   }
-  useEffect(()=>{
+  useEffect(() => {
     getUserDetails()
-  },[token])
-  
+  }, [token])
+
   const filteredCompanies = selectedFund === "all"
     ? companies
     : companies.filter(company => company.fundId === parseInt(selectedFund));
-  
+
   const selectedCompanyId =
     selectedCompany !== "all"
       ? companies.find((c) => c.id.toString() === selectedCompany)?.id?.toString() ?? ""
@@ -128,7 +146,7 @@ export default function Dashboard() {
               </div>
             </DialogContent>
           </Dialog>
-          
+
           <Dialog>
             <DialogTrigger asChild>
               <Button variant="outline" className="gap-2">
@@ -150,7 +168,7 @@ export default function Dashboard() {
           </Dialog>
         </div>
       </div>
-      
+
       <DashboardFilters
         funds={funds}
         companies={companies}
@@ -162,7 +180,7 @@ export default function Dashboard() {
         selectedYear={selectedYear}
         setSelectedYear={setSelectedYear}
       />
-      
+
       <Tabs defaultValue="overview">
         <TabsList className="grid grid-cols-4 mb-4">
           <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -170,58 +188,58 @@ export default function Dashboard() {
           <TabsTrigger value="sdg-performance">SDG Performance</TabsTrigger>
           <TabsTrigger value="trends">Trends</TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="overview" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <FundsStatsCard totalFunds={funds.length} />
             <CompaniesStatsCard totalCompanies={companies.length} numFunds={funds.length} />
             <ESGStatsCard />
           </div>
-          
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <FundPerformanceCard />
             <TopPerformersCard companies={companies} />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <TopNonCompliancesCard 
-              selectedFund={selectedFund} 
-              selectedCompany={selectedCompany} 
-              selectedYear={selectedYear} 
+            <TopNonCompliancesCard
+              selectedFund={selectedFund}
+              selectedCompany={selectedCompany}
+              selectedYear={selectedYear}
             />
-            <ESGRisksCard 
-              selectedFund={selectedFund} 
-              selectedCompany={selectedCompany} 
-              selectedYear={selectedYear} 
+            <ESGRisksCard
+              selectedFund={selectedFund}
+              selectedCompany={selectedCompany}
+              selectedYear={selectedYear}
             />
           </div>
         </TabsContent>
-        
+
         <TabsContent value="esg-scores">
           <ESGKPIsSection selectedCompany={selectedCompany} selectedCompanyId={selectedCompanyId} selectedYear={selectedYear} />
         </TabsContent>
-        
+
         <TabsContent value="sdg-performance" className="space-y-4">
-          <SDGPerformanceCard 
-            selectedFund={selectedFund} 
-            selectedCompany={selectedCompany} 
-            selectedYear={selectedYear} 
+          <SDGPerformanceCard
+            selectedFund={selectedFund}
+            selectedCompany={selectedCompany}
+            selectedYear={selectedYear}
           />
-          
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <TopSDGsCard 
-              selectedFund={selectedFund} 
-              selectedCompany={selectedCompany} 
-              selectedYear={selectedYear} 
+            <TopSDGsCard
+              selectedFund={selectedFund}
+              selectedCompany={selectedCompany}
+              selectedYear={selectedYear}
             />
-            <TopInitiativesCard 
-              selectedFund={selectedFund} 
-              selectedCompany={selectedCompany} 
-              selectedYear={selectedYear} 
+            <TopInitiativesCard
+              selectedFund={selectedFund}
+              selectedCompany={selectedCompany}
+              selectedYear={selectedYear}
             />
           </div>
         </TabsContent>
-        
+
         <TabsContent value="trends">
           <Card>
             <CardHeader>
@@ -239,37 +257,37 @@ export default function Dashboard() {
                     <YAxis domain={[0, 100]} label={{ value: 'Score', angle: -90, position: 'insideLeft', offset: -5 }} />
                     <Tooltip content={<ChartTooltipContent />} />
                     <Legend />
-                    <Line 
-                      type="monotone" 
-                      dataKey="environmental" 
-                      name="Environmental" 
-                      stroke="#22c55e" 
-                      strokeWidth={2} 
-                      activeDot={{ r: 8 }} 
+                    <Line
+                      type="monotone"
+                      dataKey="environmental"
+                      name="Environmental"
+                      stroke="#22c55e"
+                      strokeWidth={2}
+                      activeDot={{ r: 8 }}
                     />
-                    <Line 
-                      type="monotone" 
-                      dataKey="social" 
-                      name="Social" 
-                      stroke="#3b82f6" 
-                      strokeWidth={2} 
-                      activeDot={{ r: 8 }} 
+                    <Line
+                      type="monotone"
+                      dataKey="social"
+                      name="Social"
+                      stroke="#3b82f6"
+                      strokeWidth={2}
+                      activeDot={{ r: 8 }}
                     />
-                    <Line 
-                      type="monotone" 
-                      dataKey="governance" 
-                      name="Governance" 
-                      stroke="#8b5cf6" 
-                      strokeWidth={2} 
-                      activeDot={{ r: 8 }} 
+                    <Line
+                      type="monotone"
+                      dataKey="governance"
+                      name="Governance"
+                      stroke="#8b5cf6"
+                      strokeWidth={2}
+                      activeDot={{ r: 8 }}
                     />
-                    <Line 
-                      type="monotone" 
-                      dataKey="overall" 
-                      name="Overall ESG" 
-                      stroke="#f43f5e" 
-                      strokeWidth={3} 
-                      activeDot={{ r: 8 }} 
+                    <Line
+                      type="monotone"
+                      dataKey="overall"
+                      name="Overall ESG"
+                      stroke="#f43f5e"
+                      strokeWidth={3}
+                      activeDot={{ r: 8 }}
                     />
                   </LineChart>
                 </ResponsiveContainer>
