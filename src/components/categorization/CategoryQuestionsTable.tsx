@@ -7,24 +7,27 @@ import { CategoryQuestion, Response } from "@/types/categorization";
 interface CategoryQuestionsTableProps {
   questions: CategoryQuestion[];
   responses: Record<string, Response>;
-  responseOptions: string[];
   onResponseChange: (questionId: string, value: string) => void;
   onObservationsChange: (questionId: string, value: string) => void;
+  section: string;
 }
 
 export function CategoryQuestionsTable({
   questions,
   responses,
-  responseOptions,
   onResponseChange,
-  onObservationsChange
+  onObservationsChange,
+  section
 }: CategoryQuestionsTableProps) {
-  // Get available response options for a question (either from the question's responses or from the general options)
+  // Default response options
+  const defaultResponseOptions = ["Yes", "No", "Partial", "N/A"];
+  
+  // Get available response options for a question (either from the question's responses or from the default options)
   const getQuestionResponseOptions = (question: CategoryQuestion): string[] => {
     if (question.responses && question.responses.length > 0) {
       return question.responses.map(r => r.response);
     }
-    return responseOptions;
+    return defaultResponseOptions;
   };
   
   return (
@@ -62,7 +65,7 @@ export function CategoryQuestionsTable({
                 </SelectContent>
               </Select>
             </TableCell>
-            <TableCell>{responses[question.id]?.score}</TableCell>
+            <TableCell>{responses[question.id]?.score || 0}</TableCell>
             <TableCell>{question.scoringCriteria}</TableCell>
             <TableCell>
               <Textarea 
