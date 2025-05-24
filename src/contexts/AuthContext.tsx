@@ -2,13 +2,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-// Interface for assigned page/module
-interface AssignedPage {
-  moduleName: string;
-  level: 'read' | 'write' | 'admin' | 'none';
-  href: string;
-}
-
 interface UserAccessRight {
   moduleName: string;
   level: 'read' | 'write' | 'admin' | 'none';
@@ -17,9 +10,8 @@ interface UserAccessRight {
 interface User {
   id: string;
   email: string;
-  name?: string;
+  name: string;
   accessRights: UserAccessRight[];
-  assignedPages?: AssignedPage[];
   isActive: boolean;
 }
 
@@ -28,112 +20,120 @@ interface AuthContextType {
   user: User | null;
   userRole: 'investor' | 'admin' | 'investor_admin' | null;
   signOut: () => void;
-  signInWithCredentials: (userData: { email: string; id: string; assignedPages: AssignedPage[] }) => void;
   hasAccess: (moduleName: string, level?: 'read' | 'write' | 'admin') => boolean;
-  assignedPages: AssignedPage[];
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-// Helper function to convert AssignedPage to UserAccessRight
-const convertToAccessRights = (pages: AssignedPage[]): UserAccessRight[] => {
-  return pages.map(page => ({
-    moduleName: page.moduleName,
-    level: page.level
-  }));
+// Dummy data for testing
+const DUMMY_TOKEN = 'dummy_test_token_123';
+const DUMMY_USERS = {
+  "1": {
+    id: '1',
+    email: 'admin@example.com',
+    name: 'Admin User',
+    accessRights: [
+      { moduleName: "Dashboard", level: "admin" as const },
+      { moduleName: "Funds", level: "admin" as const },
+      { moduleName: "Team", level: "admin" as const },
+      { moduleName: "Portfolio Companies", level: "admin" as const },
+      { moduleName: "ESG DD", level: "admin" as const },
+      { moduleName: "ESG CAP", level: "admin" as const },
+      { moduleName: "Valuation", level: "admin" as const }
+    ],
+    isActive: true
+  },
+  "2": {
+    id: '2',
+    email: 'esg@example.com',
+    name: 'ESG Analyst',
+    accessRights: [
+      { moduleName: "Dashboard", level: "read" as const },
+      { moduleName: "ESG DD", level: "admin" as const },
+      { moduleName: "ESG CAP", level: "write" as const },
+      { moduleName: "Valuation", level: "read" as const }
+    ],
+    isActive: true
+  },
+  "3": {
+    id: '3',
+    email: 'investor@example.com',
+    name: 'Investor',
+    accessRights: [
+      { moduleName: "Dashboard", level: "read" as const },
+      { moduleName: "Funds", level: "read" as const },
+      { moduleName: "Portfolio Companies", level: "read" as const },
+      { moduleName: "Valuation", level: "read" as const }
+    ],
+    isActive: true
+  }
+};
+
+const DUMMY_USER_ID = '1'; // Default to admin
+const DUMMY_ROLE = 'admin';
+
+// Helper function to set dummy data
+const setDummyAuthData = () => {
+  if (!localStorage.getItem('auth_token') && !sessionStorage.getItem('auth_token')) {
+    localStorage.setItem('auth_token', DUMMY_TOKEN);
+    localStorage.setItem('user_id', DUMMY_USER_ID);
+    localStorage.setItem('userRole', DUMMY_ROLE);
+  }
 };
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<boolean>(false);
   const [user, setUser] = useState<User | null>(null);
   const [userRole, setUserRole] = useState<'investor' | 'admin' | 'investor_admin' | null>(null);
-  const [assignedPages, setAssignedPages] = useState<AssignedPage[]>([]);
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Set dummy data for testing
+    setDummyAuthData();
+    
     // Check for auth token in localStorage or sessionStorage
     const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
     const userId = localStorage.getItem('user_id') || sessionStorage.getItem('user_id');
     const storedRole = localStorage.getItem('userRole') || sessionStorage.getItem('userRole');
-    const storedAssignedPages = localStorage.getItem('assignedPages');
     
     if (token && userId) {
       setSession(true);
-      
-      if (storedAssignedPages) {
-        const pages = JSON.parse(storedAssignedPages) as AssignedPage[];
-        setAssignedPages(pages);
-        
-        // Create user from assigned pages
+      // Get the user data based on userId
+      const currentUser = DUMMY_USERS[userId as keyof typeof DUMMY_USERS];
+      if (currentUser) {
+        // Convert to User type with correct level typing
         const userData: User = {
-          id: userId,
-          email: localStorage.getItem('user_email') || 'user@example.com',
-          accessRights: convertToAccessRights(pages),
-          assignedPages: pages,
-          isActive: true
+          id: currentUser.id,
+          email: currentUser.email,
+          name: currentUser.name,
+          accessRights: currentUser.accessRights.map(right => ({
+            moduleName: right.moduleName,
+            level: right.level
+          })),
+          isActive: currentUser.isActive
         };
         
         setUser(userData);
-        setUserRole(storedRole as AuthContextType['userRole'] || 'investor');
-      } else {
-        // Fallback to default if no assigned pages
-        setUser({
-          id: userId,
-          email: 'user@example.com',
-          accessRights: [{ moduleName: "Dashboard", level: "read" }],
-          isActive: true
-        });
-        setUserRole(storedRole as AuthContextType['userRole'] || 'investor');
+        setUserRole(storedRole as AuthContextType['userRole']);
       }
     } else {
       setSession(false);
       setUser(null);
       setUserRole(null);
-      setAssignedPages([]);
     }
   }, []);
-
-  const signInWithCredentials = (userData: { email: string; id: string; assignedPages: AssignedPage[] }) => {
-    // Set auth token
-    localStorage.setItem('auth_token', 'dummy_token');
-    localStorage.setItem('user_id', userData.id);
-    localStorage.setItem('user_email', userData.email);
-    localStorage.setItem('userRole', 'investor');
-    localStorage.setItem('assignedPages', JSON.stringify(userData.assignedPages));
-    
-    // Update state
-    setSession(true);
-    setUserRole('investor');
-    setAssignedPages(userData.assignedPages);
-    
-    // Create user from assigned pages
-    const newUser: User = {
-      id: userData.id,
-      email: userData.email,
-      accessRights: convertToAccessRights(userData.assignedPages),
-      assignedPages: userData.assignedPages,
-      isActive: true
-    };
-    
-    setUser(newUser);
-  };
 
   const signOut = () => {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('user_id');
-    localStorage.removeItem('user_email');
     localStorage.removeItem('userRole');
-    localStorage.removeItem('assignedPages');
     sessionStorage.removeItem('auth_token');
     sessionStorage.removeItem('user_id');
     sessionStorage.removeItem('userRole');
-    sessionStorage.removeItem('assignedPages');
-    
     setSession(false);
     setUser(null);
     setUserRole(null);
-    setAssignedPages([]);
-    navigate('/login');
+    navigate('/');
   };
 
   // Function to check if user has access to a module at the specified level
@@ -156,15 +156,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      session, 
-      user, 
-      userRole, 
-      signOut, 
-      signInWithCredentials, 
-      hasAccess, 
-      assignedPages 
-    }}>
+    <AuthContext.Provider value={{ session, user, userRole, signOut, hasAccess }}>
       {children}
     </AuthContext.Provider>
   );
