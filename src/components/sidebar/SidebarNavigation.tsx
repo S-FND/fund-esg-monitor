@@ -31,10 +31,10 @@ export function SidebarNavigation() {
       // Default mock accesses for demo purposes
       const mockUserAccess = {
         // Simulating different access patterns
-        "1": ["Dashboard", "Funds", "Team", "Portfolio Companies", "ESG DD"],
+        "1": ["Dashboard","Investor General Info", "Funds", "Team", "Portfolio Companies", "ESG DD"],
         "2": ["ESG DD", "ESG CAP", "Valuation"],
         "3": ["Dashboard", "Portfolio Companies", "Valuation"],
-        "4": ["Dashboard", "Funds", "Team", "Portfolio Companies", "ESG DD", "ESG CAP", "Valuation"]
+        "4": ["Dashboard","Investor General Info", "Funds", "Team", "Portfolio Companies", "ESG DD", "ESG CAP", "Valuation"]
       };
 
       const userId = user?.id || "1"; // Default to user 1 if no user ID

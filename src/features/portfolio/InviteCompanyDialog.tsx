@@ -16,7 +16,7 @@ export function InviteCompanyDialog({ onInvite }: InviteCompanyDialogProps) {
   const handleSend = async () => {
     // /investor/fund/company/invite
     try {
-      const res = await fetch(`https://preprod-api.fandoro.com` + `/investor/fund/company/invite`, {
+      const res = await fetch(`http://localhost:3002` + `/investor/fund/company/invite`, {
         method: "POST",
         body:JSON.stringify({email:email}),
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },

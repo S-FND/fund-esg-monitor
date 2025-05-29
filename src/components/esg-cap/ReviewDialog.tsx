@@ -23,10 +23,20 @@ interface ReviewDialogProps {
   canEdit: boolean;
   onApprove: () => void;
   onReject: () => void;
+  onSetEdit?: () => void;
+  onCancelEdit?: () => void;
   onSaveChanges: (updatedItem: CAPItem) => void;
   onOpenChange: (open: boolean) => void;
-  finalPlan:boolean;
+  finalPlan: boolean;
   originalItems?: CAPItem[];
+  comparePlanData: ComparePlan
+}
+
+export interface ComparePlan{
+  founderPlanLastUpdate: Number;
+  investorPlanLastUpdate: Number;
+  founderPlan:CAPItem[];
+  investorPlan:CAPItem[]
 }
 
 export function ReviewDialog({
@@ -35,20 +45,24 @@ export function ReviewDialog({
   canEdit = true,
   onApprove,
   onReject,
+  onSetEdit,
+  onCancelEdit,
   onSaveChanges,
   onOpenChange,
+
   finalPlan,
   originalItems = [],
+  comparePlanData
 }: ReviewDialogProps) {
   const [editedItem, setEditedItem] = useState<CAPItem | null>(null);
   const [originalItem, setOriginalItem] = useState<CAPItem | null>(null);
+  const [dataEditStatus, setDataEditStatus] = useState(false)
   const { toast } = useToast();
-
 
   useEffect(() => {
     if (item) {
       setEditedItem({ ...item });
-      
+
       // Find the corresponding original item
       const foundOriginal = originalItems.find(orig => orig.id === item.id);
       setOriginalItem(foundOriginal || { ...item });
@@ -63,6 +77,7 @@ export function ReviewDialog({
 
   const handleSaveChanges = () => {
     if (editedItem) {
+      setDataEditStatus(true)
       onSaveChanges(editedItem);
       toast({
         title: "Changes saved",
@@ -72,7 +87,24 @@ export function ReviewDialog({
   };
 
   const isFieldChanged = (field: keyof CAPItem): boolean => {
+
     return originalItem && editedItem ? originalItem[field] !== editedItem[field] : false;
+  };
+
+  const isApproveRejectVisible = (comparePlan,finalPlan): boolean => {
+    // comparePlanData?.founderPlanLastUpdate && comparePlanData?.founderPlanLastUpdate > (comparePlanData.investorPlanLastUpdate || 0)
+    if(finalPlan){
+      return false;
+    }
+    else if(!comparePlan || !comparePlan.founderPlanLastUpdate){
+      return true;
+    }
+    else if(comparePlanData?.founderPlanLastUpdate > (comparePlanData.investorPlanLastUpdate || 0)){
+      return true;
+    }
+    else{
+      return false;
+    }
   };
 
   if (!editedItem) return null;
@@ -90,9 +122,9 @@ export function ReviewDialog({
           <div>
             <h4 className="font-semibold mb-1">Item</h4>
             {canEdit ? (
-              <Input 
-                value={editedItem.item} 
-                onChange={(e) => handleInputChange('item', e.target.value)} 
+              <Input
+                value={editedItem.item}
+                onChange={(e) => handleInputChange('item', e.target.value)}
                 className={isFieldChanged('item') ? "border-orange-400" : ""}
               />
             ) : (
@@ -104,12 +136,12 @@ export function ReviewDialog({
               </p>
             )}
           </div>
-          
+
           <div>
             <h4 className="font-semibold mb-1">Corrective Actions</h4>
             {canEdit ? (
-              <Textarea 
-                value={editedItem.measures} 
+              <Textarea
+                value={editedItem.measures}
                 onChange={(e) => handleInputChange('measures', e.target.value)}
                 className={isFieldChanged('measures') ? "border-orange-400" : ""}
               />
@@ -122,12 +154,12 @@ export function ReviewDialog({
               </p>
             )}
           </div>
-          
+
           <div>
             <h4 className="font-semibold mb-1">Responsibility</h4>
             {canEdit ? (
-              <Input 
-                value={editedItem.resource} 
+              <Input
+                value={editedItem.resource}
                 onChange={(e) => handleInputChange('resource', e.target.value)}
                 className={isFieldChanged('resource') ? "border-orange-400" : ""}
               />
@@ -140,12 +172,12 @@ export function ReviewDialog({
               </p>
             )}
           </div>
-          
+
           <div>
             <h4 className="font-semibold mb-1">Deliverable</h4>
             {canEdit ? (
-              <Input 
-                value={editedItem.deliverable} 
+              <Input
+                value={editedItem.deliverable}
                 onChange={(e) => handleInputChange('deliverable', e.target.value)}
                 className={isFieldChanged('deliverable') ? "border-orange-400" : ""}
               />
@@ -158,13 +190,13 @@ export function ReviewDialog({
               </p>
             )}
           </div>
-          
+
           <div>
             <h4 className="font-semibold mb-1">Target Date</h4>
             {canEdit ? (
-              <Input 
-                type="date" 
-                value={editedItem.targetDate} 
+              <Input
+                type="date"
+                value={editedItem.targetDate}
                 onChange={(e) => handleInputChange('targetDate', e.target.value)}
                 className={isFieldChanged('targetDate') ? "border-orange-400" : ""}
               />
@@ -177,12 +209,12 @@ export function ReviewDialog({
               </p>
             )}
           </div>
-          
+
           <div>
             <h4 className="font-semibold mb-1">Type</h4>
             {canEdit ? (
-              <Select 
-                value={editedItem.CS} 
+              <Select
+                value={editedItem.CS}
                 onValueChange={(value) => handleInputChange('CS', value as CAPType)}
               >
                 <SelectTrigger className={isFieldChanged('CS') ? "border-orange-400" : ""}>
@@ -202,12 +234,12 @@ export function ReviewDialog({
               </p>
             )}
           </div>
-          
+
           <div>
             <h4 className="font-semibold mb-1">Status</h4>
             {canEdit ? (
-              <Select 
-                value={editedItem.status} 
+              <Select
+                value={editedItem.status}
                 onValueChange={(value) => handleInputChange('status', value as CAPStatus)}
               >
                 <SelectTrigger className={isFieldChanged('status') ? "border-orange-400" : ""}>
@@ -230,7 +262,7 @@ export function ReviewDialog({
               </p>
             )}
           </div>
-          
+
           <div>
             <h4 className="font-semibold mb-1">Actual Date</h4>
             <p>{editedItem.actualDate || "Not set"}</p>
@@ -243,15 +275,25 @@ export function ReviewDialog({
               Save Changes
             </Button>
           )}
-          <Button variant="destructive" onClick={onReject} disabled={!canEdit}>
-            <X className="mr-2 h-4 w-4" />
-            Reject
-          </Button>
-          <Button onClick={onApprove} disabled={!canEdit}>
+          {canEdit && (
+            <Button variant="destructive" onClick={onCancelEdit}>
+              <Save className="mr-2 h-4 w-4" />
+              Cancel
+            </Button>
+          )}
+          {!canEdit && <Button onClick={onSetEdit} disabled={canEdit}>
+              <X className="mr-2 h-4 w-4" />
+              Edit
+            </Button>}
+          {!canEdit && isApproveRejectVisible(comparePlanData,finalPlan) && <Button variant="destructive" onClick={onReject} disabled={canEdit}>
+              <X className="mr-2 h-4 w-4" />
+              Reject
+            </Button>}
+          {!canEdit && isApproveRejectVisible(comparePlanData,finalPlan) && <Button onClick={onApprove} disabled={canEdit}>
             <Check className="mr-2 h-4 w-4" />
             Approve
-          </Button>
-          
+          </Button>}
+
         </DialogFooter>
       </DialogContent>
     </Dialog>

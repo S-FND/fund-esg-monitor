@@ -27,7 +27,7 @@ export default function Team() {
   const getTeamList=async ()=>{
     try {
       setLoading(true);
-      const res = await fetch(`https://preprod-api.fandoro.com` + `/subuser`, {
+      const res = await fetch(`http://localhost:3002` + `/subuser`, {
         method: "GET",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
       });

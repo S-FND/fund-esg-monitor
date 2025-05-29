@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { CAPItem, CAPStatus, CAPType, CAPTable } from "@/components/esg-cap/CAPTable";
-import { ReviewDialog } from "@/components/esg-cap/ReviewDialog";
+import { ComparePlan, ReviewDialog } from "@/components/esg-cap/ReviewDialog";
 import { FilterControls } from "@/components/esg-cap/FilterControls";
 // import { portfolioCompanies } from "@/features/edit-portfolio-company/portfolioCompanies";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,9 @@ export default function ESGCAP() {
 
   const [filteredCAPItems, setFilteredCAPItems] = useState([])
   const [finalPlan, setFinalPlan] = useState(false);
+  const [showHistoryChange, setShowHistoryChange] = useState(false)
+
+  const [comparePlanData, SetComparePlanData] = useState<ComparePlan>()
 
   // Mock data for CAP items with company IDs
   const [originalCapItems] = useState<CAPItem[]>([
@@ -44,7 +47,7 @@ export default function ESGCAP() {
       deliverable: "Environmental Policy Document",
       targetDate: "2025-06-30",
       CS: "CP",
-      status: "Pending"
+      changeStatus: "Pending"
     },
     {
       id: "cap-2",
@@ -55,7 +58,7 @@ export default function ESGCAP() {
       deliverable: "Waste Management Reports",
       targetDate: "2025-05-15",
       CS: "CS",
-      status: "In Progress"
+      changeStatus: "In Progress"
     },
     {
       id: "cap-3",
@@ -67,7 +70,7 @@ export default function ESGCAP() {
       targetDate: "2025-04-30",
       CS: "CP",
       actualDate: "2025-04-25",
-      status: "Completed"
+      changeStatus: "Completed"
     },
     {
       id: "cap-4",
@@ -78,7 +81,7 @@ export default function ESGCAP() {
       deliverable: "D&I Policy Document",
       targetDate: "2025-03-15",
       CS: "CS",
-      status: "Delayed"
+      changeStatus: "Delayed"
     }
   ]);
 
@@ -99,17 +102,18 @@ export default function ESGCAP() {
     setReviewDialogOpen(true);
     // Always allow editing for items that are not completed
     const isCompleted = currentItem?.status === "Completed";
-    setCanEdit(!isCompleted);
+    console.log('isCompleted', isCompleted)
+    // setCanEdit(!isCompleted);
   };
 
   // Added state for edit capability
-  const [canEdit, setCanEdit] = useState(true);
+  const [canEdit, setCanEdit] = useState(false);
 
   const handleApprove = () => {
     if (selectedItem) {
       const updatedItems = capItems.map(item => {
         if (item.id === selectedItem.id) {
-          return { ...item};
+          return { ...item, changeStatus: 'Change Approved' };
         }
         return item;
       });
@@ -126,7 +130,7 @@ export default function ESGCAP() {
     if (selectedItem) {
       const updatedItems = capItems.map(item => {
         if (item.id === selectedItem.id) {
-          return { ...item };
+          return { ...item, changeStatus: 'Change Rejected' };
         }
         return item;
       });
@@ -148,7 +152,7 @@ export default function ESGCAP() {
 
   const getCompanyInfoList = async () => {
     try {
-      const res = await fetch(`https://preprod-api.fandoro.com` + `/investor/companyInfo`, {
+      const res = await fetch(`http://localhost:3002` + `/investor/companyInfo`, {
         method: "GET",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
       });
@@ -173,7 +177,7 @@ export default function ESGCAP() {
 
   const getPlanList = async (email) => {
     try {
-      const res = await fetch(`https://preprod-api.fandoro.com` + `/investor/esgdd/escap/${email}`, {
+      const res = await fetch(`http://localhost:3002` + `/investor/esgdd/escap/${email}`, {
         method: "GET",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
       });
@@ -188,6 +192,7 @@ export default function ESGCAP() {
         setFilteredCAPItems(jsondata['plan'])
         setCapItems(jsondata['plan'])
         setFinalPlan(jsondata['finalPlan'])
+        SetComparePlanData(jsondata['comparePlan'])
 
       }
     } catch (error) {
@@ -211,12 +216,30 @@ export default function ESGCAP() {
   const handleSaveChanges = (updatedItem: CAPItem) => {
     const updatedItems = capItems.map(item => {
       if (item.id === updatedItem.id) {
-        return updatedItem;
+
+        return { ...updatedItem, changeStatus: 'Edited' };
       }
       return item;
     });
     setCapItems(updatedItems);
     setSelectedItem(updatedItem);
+    setReviewDialogOpen(false);
+  };
+
+  const isAcceptVisible = (comparePlan, finalPlan): boolean => {
+    // comparePlanData?.founderPlanLastUpdate && comparePlanData?.founderPlanLastUpdate > (comparePlanData.investorPlanLastUpdate || 0)
+    if (!comparePlan || !comparePlan.founderPlanLastUpdate) {
+      return false;
+    }
+    else if (comparePlanData?.founderPlanLastUpdate > (comparePlanData.investorPlanLastUpdate || 0)) {
+      return false;
+    }
+    else if (comparePlanData?.investorPlanLastUpdate > (comparePlanData.founderPlanLastUpdate || 0)) {
+      return true;
+    }
+    else {
+      return true;
+    }
   };
 
   const handleSubmitAllCap = async () => {
@@ -247,6 +270,7 @@ export default function ESGCAP() {
 
   const toggleComparisonView = () => {
     setShowComparisonView(!showComparisonView);
+    setShowHistoryChange(!showHistoryChange)
   };
 
   const handleRevertToOriginal = (itemId: string) => {
@@ -286,6 +310,12 @@ export default function ESGCAP() {
     }
   };
 
+  const handleAcceptCap = () => {
+    if (comparePlanData?.investorPlanLastUpdate > (comparePlanData.founderPlanLastUpdate || 0)) {
+      alert("You have initialted a change which must pe accepted by Founder. You can't accept your changes.")
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -302,7 +332,7 @@ export default function ESGCAP() {
           onCompanyChange={setSelectedCompany}
         />
 
-        {!finalPlan && <div className="flex items-center gap-6">
+        {!finalPlan && filteredCAPItems.length > 0 && comparePlanData.founderPlanLastUpdate > (comparePlanData.investorPlanLastUpdate || 0) && <div className="flex items-center gap-6">
           <Button
             variant="outline"
             onClick={toggleComparisonView}
@@ -315,16 +345,16 @@ export default function ESGCAP() {
         </div>}
       </div>
 
-      <Card>
+      {filteredCAPItems.length > 0 && <Card>
         <CardHeader>
-          <CardTitle>Corrective Action Plan Items</CardTitle>
+          <CardTitle>Corrective Action Plan Items {!finalPlan && <span>(In Approval Phase)</span>} {finalPlan && <span>(Final)</span>}</CardTitle>
           <CardDescription>
             Review and approve items in the ESG Corrective Action Plan
             {showComparisonView && <span className="ml-2 text-purple-500 font-medium">(Comparing Changes)</span>}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {filteredCAPItems.length > 0 ? (
+          {!showHistoryChange && filteredCAPItems.length > 0 &&
             <CAPTable
               items={capItems}
               onReview={handleReview}
@@ -334,34 +364,55 @@ export default function ESGCAP() {
               onRevert={handleRevertToOriginal}
               onRevertField={handleRevertField}
               finalPlan={finalPlan}
+              showChangeStatus={showHistoryChange}
             />
-          ) : (
+          }  
+          {filteredCAPItems.length == 0 && 
             <div className="text-center py-8">
               <p className="text-muted-foreground">No corrective action plan items found for the selected company.</p>
             </div>
+          }
+
+          {showHistoryChange && filteredCAPItems.length > 0 && (
+            <CAPTable
+              items={comparePlanData.founderPlanLastUpdate > (comparePlanData.investorPlanLastUpdate || 0) ? comparePlanData.founderPlan : comparePlanData.investorPlan}
+              onReview={handleReview}
+              onSendReminder={handleSendReminder}
+              isComparisonView={true}
+              originalItems={comparePlanData.investorPlan ? comparePlanData.investorPlan : capItems}
+              onRevert={handleRevertToOriginal}
+              onRevertField={handleRevertField}
+              finalPlan={finalPlan}
+              showChangeStatus={showHistoryChange}
+            />
           )}
         </CardContent>
-        {filteredCAPItems.length > 0 && <CardFooter className="flex justify-end">
-          {!finalPlan && <Button onClick={handleSubmitAllCap} style={{"marginRight":"2px"}} size="lg" disabled={showComparisonView}>
-            Request CAP Change
-          </Button>}
-          {!finalPlan && <Button onClick={handleSubmitAllCap}  size="lg" disabled={showComparisonView}>
-            Accept CAP 
-          </Button>}
-          {finalPlan && <mark>Plan already accepted</mark>}
-        </CardFooter>}
-      </Card>
+        {filteredCAPItems.length > 0 &&
+          <CardFooter className="flex justify-end">
+            {!finalPlan && <Button onClick={handleSubmitAllCap} style={{ "marginRight": "2px" }} size="lg" disabled={showComparisonView}>
+              Request CAP Change
+            </Button>}
+            {!finalPlan && <Button onClick={handleAcceptCap} size="lg" disabled={showComparisonView}>
+              Accept CAP
+            </Button>}
+            {finalPlan && <mark>Plan already accepted</mark>}
+          </CardFooter>
+        }
+      </Card>}
 
       <ReviewDialog
         item={selectedItem}
         open={reviewDialogOpen}
-        canEdit={!finalPlan &&  canEdit && !showComparisonView}
+        canEdit={canEdit && !showComparisonView}
         onApprove={handleApprove}
         onReject={handleReject}
+        onSetEdit={() => setCanEdit(true)}
+        onCancelEdit={() => setCanEdit(false)}
         onSaveChanges={handleSaveChanges}
         onOpenChange={setReviewDialogOpen}
         finalPlan={finalPlan}
         originalItems={originalCapItems}
+        comparePlanData={comparePlanData}
       />
     </div>
   );

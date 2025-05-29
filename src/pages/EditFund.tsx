@@ -135,7 +135,7 @@ export default function EditFund() {
 
   const updateFundData=async ()=>{
     try {
-      const res = await fetch(`https://preprod-api.fandoro.com` + `/investor/fund`, {
+      const res = await fetch(`http://localhost:3002` + `/investor/fund`, {
         method: "PUT",
         body:JSON.stringify({...formData,sectorFocus:formData.focus.join(","),stageOfInvestment:formData.stage}),
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
@@ -178,7 +178,7 @@ export default function EditFund() {
 
   const getFundDetail= async()=>{
     try {
-      const res = await fetch(`https://preprod-api.fandoro.com` + `/investor/fund/${id}`, {
+      const res = await fetch(`http://localhost:3002` + `/investor/fund/${id}`, {
         method: "GET",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
       });
@@ -207,7 +207,7 @@ export default function EditFund() {
   const getCompanyList= async()=>{
     
     try {
-      const res = await fetch(`https://preprod-api.fandoro.com` + "/investor/companyInfo/", {
+      const res = await fetch(`http://localhost:3002` + "/investor/companyInfo/", {
         method: "GET",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
       });
@@ -231,7 +231,7 @@ export default function EditFund() {
 
   const getTeamList=async ()=>{
     try {
-      const res = await fetch(`https://preprod-api.fandoro.com` + `/subuser`, {
+      const res = await fetch(`http://localhost:3002` + `/subuser`, {
         method: "GET",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
       });
@@ -256,7 +256,7 @@ export default function EditFund() {
 
   const addCompanyToFund=async ()=>{
     try {
-      const res = await fetch(`https://preprod-api.fandoro.com` + `/investor/companyInfo/company/addtoFund`, {
+      const res = await fetch(`http://localhost:3002` + `/investor/companyInfo/company/addtoFund`, {
         method: "POST",
         body:JSON.stringify({
           companyInfoId: selectedCompanies,

@@ -92,7 +92,7 @@ export default function EditPortfolioCompany() {
     console.log('editform', editData)
     // Here, you would update the backend!
     try {
-      const res = await fetch(`https://preprod-api.fandoro.com` + `/investor/companyInfo/update`, {
+      const res = await fetch(`http://localhost:3002` + `/investor/companyInfo/update`, {
         method: "POST",
         body: JSON.stringify({ ...editData }),
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
@@ -123,7 +123,7 @@ export default function EditPortfolioCompany() {
   const getCompanyList = async (id) => {
 
     try {
-      const res = await fetch(`https://preprod-api.fandoro.com` + `/investor/companyInfo/${id}`, {
+      const res = await fetch(`http://localhost:3002` + `/investor/companyInfo/${id}`, {
         method: "GET",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
       });

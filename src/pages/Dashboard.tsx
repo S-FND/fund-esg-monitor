@@ -73,7 +73,7 @@ export default function Dashboard() {
       // Insert team member
       console.log("Strt getUserDetails")
       console.log('token',token)
-      const res = await fetch(`https://preprod-api.fandoro.com` + `/investor/general-info/verify-token`, {
+      const res = await fetch(`http://localhost:3002` + `/investor/general-info/verify-token`, {
         method: "GET",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       });

@@ -78,7 +78,7 @@ export default function EditInvestorProfile() {
   const getInvestorInfo = async () => {
 
     try {
-      const res = await fetch(`https://preprod-api.fandoro.com` + "/investor/general-info/", {
+      const res = await fetch(`http://localhost:3002` + "/investor/general-info/", {
         method: "GET",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
       });
@@ -131,20 +131,20 @@ export default function EditInvestorProfile() {
       console.log('formData', formData)
       let res;
       if(formData['_id']){
-         res = await fetch(`https://preprod-api.fandoro.com` + "/investor/general-info/", {
+         res = await fetch(`http://localhost:3002` + "/investor/general-info/", {
           method: "PUT",
           body: JSON.stringify(formData),
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
         });
       }
       else{
-         res = await fetch(`https://preprod-api.fandoro.com` + "/investor/general-info/", {
+         res = await fetch(`http://localhost:3002` + "/investor/general-info/", {
           method: "POST",
           body: JSON.stringify(formData),
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
         });
       }
-      // const res = await fetch(`https://preprod-api.fandoro.com` + "/investor/general-info/", {
+      // const res = await fetch(`http://localhost:3002` + "/investor/general-info/", {
       //   method: "PUT",
       //   body: JSON.stringify(formData),
       //   headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },

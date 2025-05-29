@@ -37,7 +37,7 @@ export default function InvestorInfo() {
   const getInvestorInfo= async()=>{
     
     try {
-      const res = await fetch(`https://preprod-api.fandoro.com` + "/investor/general-info/", {
+      const res = await fetch(`http://localhost:3002` + "/investor/general-info/", {
         method: "GET",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
       });

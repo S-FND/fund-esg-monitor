@@ -34,7 +34,7 @@ export function useTeamAddForm({ onAdd, onClose }: UseTeamAddFormProps) {
 
     try {
       // Insert team member
-      const res = await fetch(`https://preprod-api.fandoro.com` + `/subuser`, {
+      const res = await fetch(`http://localhost:3002` + `/subuser`, {
         method: "POST",
         body:JSON.stringify({employeeList:[{name,
           email,

@@ -11,7 +11,7 @@ export default function Funds() {
   const [funds,setFunds]=useState([])
   const getFundList= async()=>{
     try {
-      const res = await fetch(`https://preprod-api.fandoro.com` + `/investor/fund`, {
+      const res = await fetch(`http://localhost:3002` + `/investor/fund`, {
         method: "GET",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
       });
