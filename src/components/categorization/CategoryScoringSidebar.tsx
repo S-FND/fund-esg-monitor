@@ -5,15 +5,13 @@ import { SectionScores } from "@/types/categorization";
 interface CategoryScoringProps {
   sectionScores: SectionScores;
   totalScore: number;
-  activeTab: string;
-  onTabChange: (section: string) => void;
+  activeSection: string;
 }
 
 export function CategoryScoringSidebar({ 
   sectionScores, 
   totalScore, 
-  activeTab, 
-  onTabChange 
+  activeSection 
 }: CategoryScoringProps) {
   const category = getCategory(totalScore);
 
@@ -24,10 +22,9 @@ export function CategoryScoringSidebar({
         {Object.keys(sectionScores).map((section) => (
           <div 
             key={section} 
-            className={`flex justify-between items-center rounded-md px-3 py-2 text-sm cursor-pointer ${
-              activeTab === section ? "bg-primary text-primary-foreground" : "hover:bg-muted"
+            className={`flex justify-between items-center rounded-md px-3 py-2 text-sm ${
+              activeSection === section ? "bg-primary text-primary-foreground" : "hover:bg-muted"
             }`}
-            onClick={() => onTabChange(section)}
           >
             <span>{getSectionTitle(section)}</span>
             <span className="font-medium">{sectionScores[section]}</span>

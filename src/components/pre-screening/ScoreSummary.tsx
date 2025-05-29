@@ -1,6 +1,7 @@
 
 interface ScoreSummaryProps {
   totalScore: number;
+  maxScore?: number;
 }
 
 // Determine Go/No-Go decision
@@ -25,7 +26,7 @@ export const getAction = (decision: string) => {
   }
 };
 
-export function ScoreSummary({ totalScore }: ScoreSummaryProps) {
+export function ScoreSummary({ totalScore,maxScore }: ScoreSummaryProps) {
   // Determine Go/No-Go decision
   const getDecision = (score: number) => {
     if (score >= 1) {
@@ -57,6 +58,9 @@ export function ScoreSummary({ totalScore }: ScoreSummaryProps) {
         <div>
           <p className="text-sm font-medium">Total Score:</p>
           <p className="text-2xl font-bold">{totalScore.toFixed(2)}</p>
+          {maxScore && (
+            <p className="text-sm text-muted-foreground">Max: {maxScore.toFixed(2)}</p>
+          )}
         </div>
         
         <div>
