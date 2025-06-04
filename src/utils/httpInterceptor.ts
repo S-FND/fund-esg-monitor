@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { config } from "@/config/environment";
 
 interface RequestConfig extends RequestInit {
   url: string;
@@ -18,8 +19,11 @@ interface ApiResponse<T = any> {
  */
 export class HttpClient {
   private static instance: HttpClient;
+  private baseUrl: string;
 
-  private constructor() {}
+  private constructor() {
+    this.baseUrl = config.apiUrl;
+  }
 
   public static getInstance(): HttpClient {
     if (!HttpClient.instance) {
@@ -35,10 +39,13 @@ export class HttpClient {
     try {
       const { url, requiresAuth = true, params, ...options } = config;
       
+      // Build full URL with base URL if it's a relative path
+      const fullUrl = url.startsWith('http') ? url : `${this.baseUrl}${url}`;
+      
       // Build URL with query params if provided
       const finalUrl = params 
-        ? `${url}${url.includes('?') ? '&' : '?'}${new URLSearchParams(params).toString()}` 
-        : url;
+        ? `${fullUrl}${fullUrl.includes('?') ? '&' : '?'}${new URLSearchParams(params).toString()}` 
+        : fullUrl;
 
       // Clone headers to avoid modifying the original
       const headers = new Headers(options.headers || {});

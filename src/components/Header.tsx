@@ -12,10 +12,12 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AdminNav } from "./admin/AdminNav";
 import { useAuth } from "@/contexts/AuthContext";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { config } from "@/config/environment";
 
 export function Header() {
   const { userRole } = useAuth();
@@ -25,12 +27,18 @@ export function Header() {
     <header className="flex h-16 items-center justify-between border-b bg-background px-4">
       <div className="flex items-center gap-4">
         <SidebarTrigger />
-        <div className="flex items-center">
+        <div className="flex items-center gap-2">
           <img 
             src="/fandoro-logo.png" 
             alt="Fandoro Technologies" 
             className="h-8 w-8 mr-2 hidden sm:block" 
           />
+          <span className="font-semibold text-lg hidden sm:block">{config.appName}</span>
+          {config.showEnvInHeader && (
+            <Badge variant="outline" className="text-xs">
+              {config.env.toUpperCase()}
+            </Badge>
+          )}
         </div>
         {(userRole === 'admin' || userRole === 'investor_admin') && <AdminNav />}
       </div>
