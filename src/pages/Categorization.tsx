@@ -10,6 +10,7 @@ import { CategoryQuestionsTable } from "@/components/categorization/CategoryQues
 import { ObjectiveCard } from "@/components/categorization/ObjectiveCard";
 import { useCategorization } from "@/hooks/useCategorization";
 import { getSectionTitle, getCategory } from "@/data/categorizationQuestions";
+import { responseOptions } from "@/data/categorization/responseOptions";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function Categorization() {
@@ -53,7 +54,8 @@ export default function Categorization() {
         <CategoryScoringSidebar 
           sectionScores={sectionScores}
           totalScore={totalScore}
-          activeSection={activeTab}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
         />
         
         <div className="flex-1">
@@ -68,9 +70,9 @@ export default function Categorization() {
               <CategoryQuestionsTable
                 questions={questions[activeTab as keyof typeof questions]}
                 responses={responses[activeTab]}
+                responseOptions={responseOptions[activeTab as keyof typeof responseOptions]}
                 onResponseChange={handleResponseChange}
                 onObservationsChange={handleObservationsChange}
-                section={activeTab}
               />
             </CardContent>
           </Card>
