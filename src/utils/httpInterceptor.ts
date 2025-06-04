@@ -1,11 +1,13 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { config } from "@/config";
 
 interface RequestConfig extends RequestInit {
   url: string;
   requiresAuth?: boolean;
   params?: Record<string, string>;
+  useApiUrl?: boolean;
 }
 
 interface ApiResponse<T = any> {
@@ -18,8 +20,16 @@ interface ApiResponse<T = any> {
  */
 export class HttpClient {
   private static instance: HttpClient;
+  private baseApiUrl: string;
 
-  private constructor() {}
+  private constructor() {
+    this.baseApiUrl = config.apiUrl;
+    
+    if (config.debug) {
+      console.log(`HTTP Client initialized for ${config.environment} environment`);
+      console.log(`Base API URL: ${this.baseApiUrl}`);
+    }
+  }
 
   public static getInstance(): HttpClient {
     if (!HttpClient.instance) {
@@ -33,12 +43,18 @@ export class HttpClient {
    */
   public async request<T = any>(config: RequestConfig): Promise<ApiResponse<T>> {
     try {
-      const { url, requiresAuth = true, params, ...options } = config;
+      const { url, requiresAuth = true, params, useApiUrl = true, ...options } = config;
       
-      // Build URL with query params if provided
-      const finalUrl = params 
-        ? `${url}${url.includes('?') ? '&' : '?'}${new URLSearchParams(params).toString()}` 
-        : url;
+      // Build the final URL - use API base URL if useApiUrl is true and URL is relative
+      let finalUrl = url;
+      if (useApiUrl && !url.startsWith('http')) {
+        finalUrl = `${this.baseApiUrl}${url.startsWith('/') ? '' : '/'}${url}`;
+      }
+      
+      // Add query params if provided
+      if (params) {
+        finalUrl = `${finalUrl}${finalUrl.includes('?') ? '&' : '?'}${new URLSearchParams(params).toString()}`;
+      }
 
       // Clone headers to avoid modifying the original
       const headers = new Headers(options.headers || {});
@@ -50,15 +66,18 @@ export class HttpClient {
 
         if (token) {
           headers.set('Authorization', `Bearer ${token}`);
-        } else {
+        } else if (config.debug) {
           console.warn('Auth token required but not available');
-          // Could redirect to login here
         }
       }
 
       // Set content type if not present and we have a body
       if (options.body && !headers.has('Content-Type')) {
         headers.set('Content-Type', 'application/json');
+      }
+
+      if (config.debug) {
+        console.log(`Making ${options.method || 'GET'} request to: ${finalUrl}`);
       }
 
       // Make the request with modified headers
@@ -74,13 +93,11 @@ export class HttpClient {
         // Handle different error status codes
         switch (response.status) {
           case 401:
-            // Unauthorized - could trigger a sign out
             toast({
               title: "Authentication Error",
               description: "Your session has expired. Please login again.",
               variant: "destructive"
             });
-            // Redirect to login or refresh token logic would go here
             break;
             
           case 403:
@@ -130,7 +147,9 @@ export class HttpClient {
       
     } catch (error) {
       // Handle network or other errors
-      console.error('Request error:', error);
+      if (config.debug) {
+        console.error('Request error:', error);
+      }
       
       toast({
         title: "Connection Error",
