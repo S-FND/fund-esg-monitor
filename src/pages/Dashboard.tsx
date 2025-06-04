@@ -84,7 +84,7 @@ export default function Dashboard() {
         setTimeout(() => {
           window.location.href = import.meta.env.VITE_LOGIN_REVERT_URL
           // "https://preprod-enterprise.fandoro.com/"
-        }, 100000)
+        }, 1000)
 
       }
       else {
