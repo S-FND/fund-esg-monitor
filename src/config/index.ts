@@ -1,4 +1,5 @@
 
+
 // Synchronous config loading based on environment
 const env = import.meta.env.VITE_APP_ENV || 'dev';
 
@@ -54,3 +55,4 @@ export interface AppConfig {
   debug: boolean;
   logLevel: LogLevel;
 }
+
