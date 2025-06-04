@@ -5,18 +5,18 @@ import { CategoryQuestionsTable } from "@/components/categorization/CategoryQues
 import { CategoryScoringSidebar } from "@/components/categorization/CategoryScoringSidebar";
 import { ManageCategoryQuestions } from "@/components/categorization/ManageCategoryQuestions";
 import { useCategorization } from "@/hooks/useCategorization";
-import { getSectionTitle } from "@/data/categorizationQuestions";
+import { getCategory, getSectionTitle } from "@/data/categorizationQuestions";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
 interface CategorizationSectionProps {
-  companyId: number;
+  companyId: string;
 }
 
 export function CategorizationSection({ companyId }: CategorizationSectionProps) {
   const { toast } = useToast();
   const {
-    questions,
+    questions={},
     responses,
     activeTab,
     sectionScores,
@@ -25,11 +25,53 @@ export function CategorizationSection({ companyId }: CategorizationSectionProps)
     handleResponseChange,
     handleObservationsChange,
     handleQuestionUpdate
-  } = useCategorization();
+  } = useCategorization(companyId);
 
-  const handleSaveResponses = () => {
+  const handleSaveResponses = async () => {
     // In a real app, this would save to the backend
     console.log("Saving categorization responses for company", companyId, responses);
+    try {
+      let questionResponse = []
+      Object.keys(questions).map((q, index) => {
+        // let response=responses[q]
+        questionResponse.push({
+          srNumber: index,
+          questionName: q,
+          categoryTotalScore: 0,
+          responses: questions[q].map((ques) => {
+            return { ...ques, selectedResponse: responses[q][ques.id]?.response, score: responses[q][ques.id]?.score, observations: responses[q][ques.id]?.observations }
+          })
+        })
+      })
+
+      let preliminaryCategorisation = {}
+      Object.keys(sectionScores).forEach((section) => {
+        preliminaryCategorisation[section] = getCategory(sectionScores[section])
+      })
+      let payloadObj = {
+        companyInfoId: companyId,
+        grandTotal: totalScore,
+        categories: questionResponse,
+        preliminaryCategorisation: preliminaryCategorisation
+      }
+      const res = await fetch(`http://localhost:3002` + `/investor/categorisation`, {
+        method: "POST",
+        body: JSON.stringify({ ...payloadObj }),
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
+      });
+      if (!res.ok) {
+        // toast.error("Invalid credentials");
+        // setIsLoading(false);
+        return;
+      }
+      else {
+        const jsondata = await res.json();
+        console.log('jsondata', jsondata)
+        // Navigate to pre-screening page
+      }
+    } catch (error) {
+
+    }
     toast({
       title: "Responses Saved", 
       description: "Categorization responses have been saved successfully."

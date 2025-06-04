@@ -29,6 +29,8 @@ export function QuestionsTable({
   onResponseChange,
   onRemarksChange
 }: QuestionsTableProps) {
+  console.log("QuestionsTable :: questions => ",questions)
+  console.log("QuestionsTable :: responses => ",responses)
   return (
     <Table>
       <TableHeader>
@@ -42,9 +44,9 @@ export function QuestionsTable({
         </TableRow>
       </TableHeader>
       <TableBody>
-        {questions.map((question) => (
+        {questions.map((question,index) => (
           <TableRow key={question.id}>
-            <TableCell>{question.id}</TableCell>
+            <TableCell>{`${question.id.split(".")[0]}.${index+1}`}</TableCell>
             <TableCell>{question.question}</TableCell>
             <TableCell>
               <Select 

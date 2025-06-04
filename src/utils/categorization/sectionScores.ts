@@ -21,16 +21,22 @@ export function calculateAllSectionScores(
   questions: Record<string, CategoryQuestion[]>, 
   responses: ResponsesData
 ): SectionScores {
-  return Object.keys(questions).reduce<SectionScores>((acc, section) => {
-    const sectionQuestions = questions[section];
-    acc[section] = calculateSectionScore(section, sectionQuestions, responses[section]);
-    return acc;
-  }, {});
+  console.log("questions",questions)
+  if(questions){
+    return Object.keys(questions).reduce<SectionScores>((acc, section) => {
+      const sectionQuestions = questions[section];
+      acc[section] = calculateSectionScore(section, sectionQuestions, responses[section]);
+      return acc;
+    }, {});
+  }
+  
 }
 
 /**
  * Calculate the total score across all sections
  */
 export function calculateTotalScore(sectionScores: SectionScores): number {
+  if(sectionScores){
   return Object.values(sectionScores).reduce((sum, score) => sum + score, 0);
+  }
 }

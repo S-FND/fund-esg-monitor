@@ -9,17 +9,39 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PreScreeningSection } from "./sections/PreScreeningSection";
 import { CategorizationSection } from "./sections/CategorizationSection";
 
+// interface Company {
+//   _id: number;
+//   name: string;
+//   type: string;
+//   sector: string;
+//   fundId: number;
+//   fundName: string;
+//   ceo: string;
+//   investmentDate: string;
+//   stage: string;
+//   shareholding: number;
+//   employees: {
+//     founders: { male: number; female: number; others: number; };
+//     others: { male: number; female: number; others: number; };
+//   };
+//   workers: {
+//     direct: { male: number; female: number; others: number; };
+//     indirect: { male: number; female: number; others: number; };
+//   };
+//   esgCategory: string;
+//   esgScore: number;
+// }
 interface Company {
-  id: number;
-  name: string;
-  type: string;
+  _id: string;
+  companyName: string;
+  companyType: string;
   sector: string;
   fundId: number;
   fundName: string;
-  ceo: string;
+  founder: string;
   investmentDate: string;
   stage: string;
-  shareholding: number;
+  fundShareholding: number;
   employees: {
     founders: { male: number; female: number; others: number; };
     others: { male: number; female: number; others: number; };
@@ -30,6 +52,18 @@ interface Company {
   };
   esgCategory: string;
   esgScore: number;
+  directContractFemale: string
+  directContractMale: string
+  directContractOther: string
+  foundersPromotorsFemale: number;
+  foundersPromotorsMale: number;
+  foundersPromotorsOther: number;
+  otherEmpFemale: number;
+  otherEmpMale: number;
+  otherEmpOther: number;
+  indirectlyFemale: number;
+  indirectlyMale: number;
+  indirectlyOther: string
 }
 
 export default function EditCompanyForm({ company }: { company: Company }) {
@@ -76,7 +110,7 @@ export default function EditCompanyForm({ company }: { company: Company }) {
     <div className="max-w-5xl mx-auto mt-6">
       <Card>
         <CardHeader>
-          <CardTitle>Edit Portfolio Company: {editData.name}</CardTitle>
+          <CardTitle>Edit Portfolio Company: {editData.companyName}</CardTitle>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="basic" className="w-full">
@@ -87,220 +121,196 @@ export default function EditCompanyForm({ company }: { company: Company }) {
             </TabsList>
             
             <TabsContent value="basic" className="mt-6">
-              <form className="space-y-4" onSubmit={handleSave}>
-                <div>
-                  <Label>Company Name</Label>
-                  <Input
-                    name="name"
-                    value={editData.name}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div>
-                  <Label>Type</Label>
-                  <Input
-                    name="type"
-                    value={editData.type}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div>
-                  <Label>Sector</Label>
-                  <Input
-                    name="sector"
-                    value={editData.sector}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div>
-                  <Label>Fund Name</Label>
-                  <Input
-                    name="fundName"
-                    value={editData.fundName}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div>
-                  <Label>CEO</Label>
-                  <Input
-                    name="ceo"
-                    value={editData.ceo}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div>
-                  <Label>Investment Date</Label>
-                  <Input
-                    name="investmentDate"
-                    type="date"
-                    value={editData.investmentDate}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div>
-                  <Label>Stage</Label>
-                  <Input
-                    name="stage"
-                    value={editData.stage}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div>
-                  <Label>Shareholding (%)</Label>
-                  <Input
-                    name="shareholding"
-                    type="number"
-                    value={editData.shareholding}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div>
-                  <Label>ESG Category</Label>
-                  <Input
-                    name="esgCategory"
-                    value={editData.esgCategory}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div>
-                  <Label>ESG Score</Label>
-                  <Input
-                    name="esgScore"
-                    type="number"
-                    value={editData.esgScore}
-                    onChange={handleChange}
-                  />
-                </div>
+            <form className="space-y-4" onSubmit={handleSave}>
+            <div>
+              <Label>Company Name</Label>
+              <Input
+                name="name"
+                value={editData?.companyName}
+                onChange={handleChange}
+              />
+            </div>
+            <div>
+              <Label>Type</Label>
+              <Input
+                name="type"
+                value={editData?.companyType}
+                onChange={handleChange}
+              />
+            </div>
+            <div>
+              <Label>Sector</Label>
+              <Input
+                name="sector"
+                value={editData?.sector}
+                onChange={handleChange}
+              />
+            </div>
+            <div>
+              <Label>Fund Name</Label>
+              <Input
+                name="fundName"
+                value={editData?.fundName}
+                onChange={handleChange}
+              />
+            </div>
+            <div>
+              <Label>CEO</Label>
+              <Input
+                name="ceo"
+                value={editData?.founder}
+                onChange={handleChange}
+              />
+            </div>
+            <div>
+              <Label>Investment Date</Label>
+              <Input
+                name="investmentDate"
+                type="date"
+                value={editData?.investmentDate}
+                onChange={handleChange}
+              />
+            </div>
+            <div>
+              <Label>Stage</Label>
+              <Input
+                name="stage"
+                value={editData?.stage}
+                onChange={handleChange}
+              />
+            </div>
+            <div>
+              <Label>Shareholding (%)</Label>
+              <Input
+                name="shareholding"
+                type="number"
+                value={editData?.fundShareholding}
+                onChange={handleChange}
+              />
+            </div>
+            <div>
+              <Label>ESG Category</Label>
+              <Input
+                name="esgCategory"
+                value={editData?.esgCategory}
+                onChange={handleChange}
+              />
+            </div>
+            <div>
+              <Label>ESG Score</Label>
+              <Input
+                name="esgScore"
+                type="number"
+                value={editData?.esgScore}
+                onChange={handleChange}
+              />
+            </div>
 
-                {/* Employees */}
-                <div className="border-t pt-4 mt-6">
-                  <div className="font-semibold mb-2">Employees - Founders</div>
-                  <div className="flex gap-2 mb-2">
-                    <Input
-                      name="employees_founders_male"
-                      type="number"
-                      value={editData.employees.founders.male}
-                      onChange={e =>
-                        handleNestedChange("employees", "founders", "male", e.target.value)
-                      }
-                      placeholder="Male"
-                    />
-                    <Input
-                      name="employees_founders_female"
-                      type="number"
-                      value={editData.employees.founders.female}
-                      onChange={e =>
-                        handleNestedChange("employees", "founders", "female", e.target.value)
-                      }
-                      placeholder="Female"
-                    />
-                    <Input
-                      name="employees_founders_others"
-                      type="number"
-                      value={editData.employees.founders.others}
-                      onChange={e =>
-                        handleNestedChange("employees", "founders", "others", e.target.value)
-                      }
-                      placeholder="Others"
-                    />
-                  </div>
+            {/* Employees */}
+            <div className="border-t pt-4 mt-6">
+              <div className="font-semibold mb-2">Employees - Founders</div>
+              <div className="flex gap-2 mb-2">
+                <Input
+                  name="foundersPromotorsMale"
+                  type="number"
+                  value={editData?.foundersPromotorsMale}
+                  onChange={handleChange}
+                  placeholder="Male"
+                />
+                <Input
+                  name="foundersPromotorsFemale"
+                  type="number"
+                  value={editData?.foundersPromotorsFemale}
+                  onChange={handleChange}
+                  placeholder="Female"
+                />
+                <Input
+                  name="foundersPromotorsOther"
+                  type="number"
+                  value={editData?.foundersPromotorsOther}
+                  onChange={handleChange}
+                  placeholder="Others"
+                />
+              </div>
 
-                  <div className="font-semibold mb-2">Employees - Other</div>
-                  <div className="flex gap-2 mb-2">
-                    <Input
-                      name="employees_others_male"
-                      type="number"
-                      value={editData.employees.others.male}
-                      onChange={e =>
-                        handleNestedChange("employees", "others", "male", e.target.value)
-                      }
-                      placeholder="Male"
-                    />
-                    <Input
-                      name="employees_others_female"
-                      type="number"
-                      value={editData.employees.others.female}
-                      onChange={e =>
-                        handleNestedChange("employees", "others", "female", e.target.value)
-                      }
-                      placeholder="Female"
-                    />
-                    <Input
-                      name="employees_others_others"
-                      type="number"
-                      value={editData.employees.others.others}
-                      onChange={e =>
-                        handleNestedChange("employees", "others", "others", e.target.value)
-                      }
-                      placeholder="Others"
-                    />
-                  </div>
-                </div>
+              <div className="font-semibold mb-2">Employees - Other</div>
+              <div className="flex gap-2 mb-2">
+                <Input
+                  name="otherEmpMale"
+                  type="number"
+                  value={editData?.otherEmpMale}
+                  onChange={handleChange}
+                  placeholder="Male"
+                />
+                <Input
+                  name="otherEmpFemale"
+                  type="number"
+                  value={editData?.otherEmpFemale}
+                  onChange={handleChange}
+                  placeholder="Female"
+                />
+                <Input
+                  name="otherEmpOther"
+                  type="number"
+                  value={editData?.otherEmpOther}
+                  onChange={handleChange}
+                  placeholder="Others"
+                />
+              </div>
+            </div>
 
-                {/* Workers */}
-                <div className="border-t pt-4 mt-6">
-                  <div className="font-semibold mb-2">Workers - Direct</div>
-                  <div className="flex gap-2 mb-2">
-                    <Input
-                      name="workers_direct_male"
-                      type="number"
-                      value={editData.workers.direct.male}
-                      onChange={e =>
-                        handleNestedChange("workers", "direct", "male", e.target.value)
-                      }
-                      placeholder="Male"
-                    />
-                    <Input
-                      name="workers_direct_female"
-                      type="number"
-                      value={editData.workers.direct.female}
-                      onChange={e =>
-                        handleNestedChange("workers", "direct", "female", e.target.value)
-                      }
-                      placeholder="Female"
-                    />
-                    <Input
-                      name="workers_direct_others"
-                      type="number"
-                      value={editData.workers.direct.others}
-                      onChange={e =>
-                        handleNestedChange("workers", "direct", "others", e.target.value)
-                      }
-                      placeholder="Others"
-                    />
-                  </div>
+            {/* Workers */}
+            <div className="border-t pt-4 mt-6">
+              <div className="font-semibold mb-2">Workers - Direct</div>
+              <div className="flex gap-2 mb-2">
+                <Input
+                  name="workers_direct_male"
+                  type="number"
+                  value={editData?.directContractMale}
+                  onChange={handleChange}
+                  placeholder="Male"
+                />
+                <Input
+                  name="workers_direct_female"
+                  type="number"
+                  value={editData?.directContractFemale}
+                  onChange={handleChange}
+                  placeholder="Female"
+                />
+                <Input
+                  name="workers_direct_others"
+                  type="number"
+                  value={editData?.directContractOther}
+                  onChange={handleChange}
+                  placeholder="Others"
+                />
+              </div>
 
-                  <div className="font-semibold mb-2">Workers - Indirect</div>
-                  <div className="flex gap-2 mb-2">
-                    <Input
-                      name="workers_indirect_male"
-                      type="number"
-                      value={editData.workers.indirect.male}
-                      onChange={e =>
-                        handleNestedChange("workers", "indirect", "male", e.target.value)
-                      }
-                      placeholder="Male"
-                    />
-                    <Input
-                      name="workers_indirect_female"
-                      type="number"
-                      value={editData.workers.indirect.female}
-                      onChange={e =>
-                        handleNestedChange("workers", "indirect", "female", e.target.value)
-                      }
-                      placeholder="Female"
-                    />
-                    <Input
-                      name="workers_indirect_others"
-                      type="number"
-                      value={editData.workers.indirect.others}
-                      onChange={e =>
-                        handleNestedChange("workers", "indirect", "others", e.target.value)
-                      }
-                      placeholder="Others"
-                    />
-                  </div>
-                </div>
+              <div className="font-semibold mb-2">Workers - Indirect</div>
+              <div className="flex gap-2 mb-2">
+                <Input
+                  name="workers_indirect_male"
+                  type="number"
+                  value={editData?.indirectlyMale}
+                  onChange={handleChange}
+                  placeholder="Male"
+                />
+                <Input
+                  name="workers_indirect_female"
+                  type="number"
+                  value={editData?.indirectlyFemale}
+                  onChange={handleChange}
+                  placeholder="Female"
+                />
+                <Input
+                  name="workers_indirect_others"
+                  type="number"
+                  value={editData?.indirectlyOther}
+                  onChange={handleChange}
+                  placeholder="Others"
+                />
+              </div>
+            </div>
 
                 <div className="flex gap-2 justify-end mt-6">
                   <Button type="submit" variant="default">
@@ -314,11 +324,11 @@ export default function EditCompanyForm({ company }: { company: Company }) {
             </TabsContent>
             
             <TabsContent value="prescreening" className="mt-6">
-              <PreScreeningSection companyId={company.id} />
+              <PreScreeningSection companyId={editData._id} />
             </TabsContent>
             
             <TabsContent value="categorization" className="mt-6">
-              <CategorizationSection companyId={company.id} />
+              <CategorizationSection companyId={editData._id} />
             </TabsContent>
           </Tabs>
         </CardContent>

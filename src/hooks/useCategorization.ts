@@ -97,7 +97,7 @@ export function useCategorization(companyInfoId: string): CategorizationHookResu
   const saveQuestions = async(questions)=>{
     try {
       let postPayload={
-        companyInfoId:searchParams.get('companyInfoId'),
+        companyInfoId:searchParams.get('companyInfoId')?searchParams.get('companyInfoId'):companyInfoId,
         questions:questions,
         type:'Categorization'
       }
@@ -138,7 +138,10 @@ export function useCategorization(companyInfoId: string): CategorizationHookResu
       }
       else {
         const jsondata = await res.json();
-        setQuestions(jsondata['data'][0])
+        if(jsondata['data'] && jsondata['data'].length>0){
+          setQuestions(jsondata['data'][0])
+        }
+        
         
       }
     } catch (error) {

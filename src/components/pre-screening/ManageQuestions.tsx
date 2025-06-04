@@ -59,7 +59,7 @@ export function ManageQuestions({ questions, onQuestionUpdate }: {
     // Renumber the questions to maintain sequential ids
     const renumberedQuestions = updatedQuestions.map((q, index) => ({
       ...q,
-      id: `B.${index + 1}`
+      // id: `B.${index + 1}`
     }));
     
     onQuestionUpdate(renumberedQuestions);

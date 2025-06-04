@@ -5,6 +5,7 @@ type Response = {
   response: string;
   score: number;
   remarks: string;
+  question:string;
 };
 
 type Question = {
@@ -19,7 +20,7 @@ export function usePreScreeningResponses(initialQuestions: Question[], companyIn
   const [responses, setResponses] = useState<Record<string, Response>>(() => {
     const initial: Record<string, Response> = {};
     initialQuestions.forEach(q => {
-      initial[q.id] = { response: "No", score: 0, remarks: "" };
+      initial[q.id] = { response: "No", score: 0, remarks: "",question:q.question };
     });
     return initial;
   });
@@ -43,7 +44,8 @@ export function usePreScreeningResponses(initialQuestions: Question[], companyIn
             parsedResponse[response.id]={
               response: response.selectedResponse,
               score: response.score,
-              remarks: response.remarks
+              remarks: response.remarks,
+              question:response.question
             }
           })
           console.log("parsedResponse",parsedResponse)
@@ -125,6 +127,7 @@ export function usePreScreeningResponses(initialQuestions: Question[], companyIn
   const updateResponsesForQuestions = (questions: Question[]) => {
     // This function ensures that all questions have a response entry
     // And keeps existing responses for questions that are still present
+    console.log("updateResponsesForQuestions :: called")
     setResponses(prev => {
       const newResponses = { ...prev };
       const currentQuestionIds = questions.map(q => q.id);
@@ -132,7 +135,15 @@ export function usePreScreeningResponses(initialQuestions: Question[], companyIn
       // Add entries for new questions
       questions.forEach(q => {
         if (!newResponses[q.id]) {
-          newResponses[q.id] = { response: "No", score: 0, remarks: "" };
+          newResponses[q.id] = { response: "No", score: 0, remarks: "",question:q.question };
+        }
+        else{
+          console.log("yes inside it ")
+          if(responses[q.id] && responses[q.id]['question'] && responses[q.id]['question'] == q.question){
+            console.log(`updateResponsesForQuestions :: called => else if`)
+            newResponses[q.id] = { ...responses[q.id] };
+          }
+          
         }
       });
 
@@ -160,30 +171,4 @@ export function usePreScreeningResponses(initialQuestions: Question[], companyIn
   };
 }
 
-// {
-//   "B.1": {
-//     "response": "No",
-//     "score": 0,
-//     "remarks": "its"
-//   },
-//   "B.2": {
-//     "response": "Yes",
-//     "score": 1,
-//     "remarks": ""
-//   },
-//   "B.3": {
-//     "response": "Yes",
-//     "score": 0.33,
-//     "remarks": ""
-//   },
-//   "B.4": {
-//     "response": "Yes",
-//     "score": 0.33,
-//     "remarks": ""
-//   },
-//   "B.5": {
-//     "response": "Yes",
-//     "score": 0.33,
-//     "remarks": ""
-//   }
-// }
+
