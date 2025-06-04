@@ -101,7 +101,7 @@ export function useCategorization(companyInfoId: string): CategorizationHookResu
         questions:questions,
         type:'Categorization'
       }
-      const res = await fetch(`http://localhost:3002` + `/investor/pre-screening/questions`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}` + `/investor/pre-screening/questions`, {
         method: "POST",
         body: JSON.stringify({...postPayload}),
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
@@ -126,7 +126,7 @@ export function useCategorization(companyInfoId: string): CategorizationHookResu
 
   const getQuestions = async()=>{
     try {
-      const res = await fetch(`http://localhost:3002` + `/investor/pre-screening/questions/${searchParams.get('companyInfoId')}/Categorization`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}` + `/investor/pre-screening/questions/${searchParams.get('companyInfoId')}/Categorization`, {
         method: "GET",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
       });
@@ -208,7 +208,7 @@ export function useCategorization(companyInfoId: string): CategorizationHookResu
 
   const getCategorisationData = async (companyInfoId) => {
     try {
-      const res = await fetch(`http://localhost:3002` + `/investor/categorisation/${companyInfoId}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}` + `/investor/categorisation/${companyInfoId}`, {
         method: "GET",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
       });

@@ -86,7 +86,7 @@ export default function PreScreening() {
           undertakeDetailed:''
         }
       }
-      const res = await fetch(`http://localhost:3002` + `/investor/pre-screening`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}` + `/investor/pre-screening`, {
         method: "POST",
         body: JSON.stringify({...postPayload}),
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
@@ -124,7 +124,7 @@ export default function PreScreening() {
         questions:questions,
         type:'Prescreening'
       }
-      const res = await fetch(`http://localhost:3002` + `/investor/pre-screening/questions`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}` + `/investor/pre-screening/questions`, {
         method: "POST",
         body: JSON.stringify({...postPayload}),
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
@@ -149,7 +149,7 @@ export default function PreScreening() {
 
   const getQuestions = async()=>{
     try {
-      const res = await fetch(`http://localhost:3002` + `/investor/pre-screening/questions/${searchParams.get('companyInfoId')}/Prescreening`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}` + `/investor/pre-screening/questions/${searchParams.get('companyInfoId')}/Prescreening`, {
         method: "GET",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
       });

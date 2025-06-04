@@ -111,7 +111,7 @@ export default function NewCompany() {
     e.preventDefault();
     console.log("Submitting company data:", formData);
     try {
-      const res = await fetch(`http://localhost:3002` + `/investor/companyInfo/update`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}` + `/investor/companyInfo/update`, {
         method: "POST",
         body: JSON.stringify({ ...formData, companytype: 'Portfolio Company' }),
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },

@@ -154,12 +154,12 @@ export class HttpClient {
 
   // Convenience methods
   public async get<T = any>(url: string, config?: Omit<RequestConfig, 'url' | 'method'>): Promise<ApiResponse<T>> {
-    return this.request<T>({ url:`http://localhost:3002/${url}`, method: 'GET', headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` }  });
+    return this.request<T>({ url:`${import.meta.env.VITE_API_URL}/${url}`, method: 'GET', headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` }  });
   }
 
   public async post<T = any>(url: string, data?: any, config?: Omit<RequestConfig, 'url' | 'method' | 'body'>): Promise<ApiResponse<T>> {
     return this.request<T>({ 
-      url:`http://localhost:3002/${url}`, 
+      url:`${import.meta.env.VITE_API_URL}/${url}`, 
       method: 'POST',
       body: data ? JSON.stringify(data) : undefined,
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` } 
@@ -168,7 +168,7 @@ export class HttpClient {
 
   public async put<T = any>(url: string, data?: any, config?: Omit<RequestConfig, 'url' | 'method' | 'body'>): Promise<ApiResponse<T>> {
     return this.request<T>({ 
-      url:`http://localhost:3002/${url}`, 
+      url:`${import.meta.env.VITE_API_URL}/${url}`, 
       method: 'PUT',
       body: data ? JSON.stringify(data) : undefined, 
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` }  
@@ -176,7 +176,7 @@ export class HttpClient {
   }
 
   public async delete<T = any>(url: string, config?: Omit<RequestConfig, 'url' | 'method'>): Promise<ApiResponse<T>> {
-    return this.request<T>({ url:`http://localhost:3002/${url}`, method: 'DELETE', headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` }  });
+    return this.request<T>({ url:`${import.meta.env.VITE_API_URL}/${url}`, method: 'DELETE', headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` }  });
   }
 }
 

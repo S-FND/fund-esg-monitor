@@ -152,7 +152,7 @@ export default function ESGCAP() {
 
   const getCompanyInfoList = async () => {
     try {
-      const res = await fetch(`http://localhost:3002` + `/investor/companyInfo`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}` + `/investor/companyInfo`, {
         method: "GET",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
       });
@@ -177,7 +177,7 @@ export default function ESGCAP() {
 
   const getPlanList = async (email) => {
     try {
-      const res = await fetch(`http://localhost:3002` + `/investor/esgdd/escap/${email}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}` + `/investor/esgdd/escap/${email}`, {
         method: "GET",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
       });

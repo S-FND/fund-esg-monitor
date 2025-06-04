@@ -59,7 +59,7 @@ export default function Categorization() {
         categories: questionResponse,
         preliminaryCategorisation: preliminaryCategorisation
       }
-      const res = await fetch(`http://localhost:3002` + `/investor/categorisation`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}` + `/investor/categorisation`, {
         method: "POST",
         body: JSON.stringify({ ...payloadObj }),
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },

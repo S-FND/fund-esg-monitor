@@ -22,7 +22,8 @@ import { config } from "@/config/environment";
 export function Header() {
   const { userRole } = useAuth();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  
+  console.log('config.env.toUpperCase()',config.env)
+  console.log("import.meta.env.VITE_APP_ENV",import.meta.env.VITE_APP_ENV)
   return (
     <header className="flex h-16 items-center justify-between border-b bg-background px-4">
       <div className="flex items-center gap-4">

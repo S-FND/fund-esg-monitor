@@ -108,7 +108,7 @@ export default function ESGDDReport() {
 
   const getCompanyInfoList = async () => {
     try {
-      const res = await fetch(`http://localhost:3002` + `/investor/companyInfo`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}` + `/investor/companyInfo`, {
         method: "GET",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
       });
@@ -133,7 +133,7 @@ export default function ESGDDReport() {
 
   const getReportList = async (email) => {
     try {
-      const res = await fetch(`http://localhost:3002` + `/investor/esdd-reports/${email}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}` + `/investor/esdd-reports/${email}`, {
         method: "GET",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
       });
@@ -158,7 +158,7 @@ export default function ESGDDReport() {
 
   const getAllReportList = async () => {
     try {
-      const res = await fetch(`http://localhost:3002` + `/investor/esdd-reports`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}` + `/investor/esdd-reports`, {
         method: "GET",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
       });

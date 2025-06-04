@@ -109,7 +109,7 @@ export function PreScreeningSection({ companyId }: PreScreeningSectionProps) {
       if(response.data){
         getQuestions();
       }
-      // const res = await fetch(`http://localhost:3002` + `/investor/pre-screening/questions`, {
+      // const res = await fetch(`${import.meta.env.VITE_API_URL}` + `/investor/pre-screening/questions`, {
       //   method: "POST",
       //   body: JSON.stringify({...postPayload}),
       //   headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },

@@ -353,7 +353,7 @@ export default function TeamMemberDetail() {
 
   const getTeamDetails = async () => {
     try {
-      const res = await fetch(`http://localhost:3002/subuser?id=${id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/subuser?id=${id}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -489,7 +489,7 @@ export default function TeamMemberDetail() {
   };
   const getFundList= async()=>{
     try {
-      const res = await fetch(`http://localhost:3002` + `/investor/fund`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}` + `/investor/fund`, {
         method: "GET",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
       });
