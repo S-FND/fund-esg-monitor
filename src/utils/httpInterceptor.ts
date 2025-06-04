@@ -41,9 +41,9 @@ export class HttpClient {
   /**
    * Makes an HTTP request with interceptor functionality
    */
-  public async request<T = any>(requestConfig: RequestConfig): Promise<ApiResponse<T>> {
+  public async request<T = any>(config: RequestConfig): Promise<ApiResponse<T>> {
     try {
-      const { url, requiresAuth = true, params, useApiUrl = true, ...options } = requestConfig;
+      const { url, requiresAuth = true, params, useApiUrl = true, ...options } = config;
       
       // Build the final URL - use API base URL if useApiUrl is true and URL is relative
       let finalUrl = url;
@@ -165,30 +165,30 @@ export class HttpClient {
   }
 
   // Convenience methods
-  public async get<T = any>(url: string, requestConfig?: Omit<RequestConfig, 'url' | 'method'>): Promise<ApiResponse<T>> {
-    return this.request<T>({ url, method: 'GET', ...requestConfig });
+  public async get<T = any>(url: string, config?: Omit<RequestConfig, 'url' | 'method'>): Promise<ApiResponse<T>> {
+    return this.request<T>({ url, method: 'GET', ...config });
   }
 
-  public async post<T = any>(url: string, data?: any, requestConfig?: Omit<RequestConfig, 'url' | 'method' | 'body'>): Promise<ApiResponse<T>> {
+  public async post<T = any>(url: string, data?: any, config?: Omit<RequestConfig, 'url' | 'method' | 'body'>): Promise<ApiResponse<T>> {
     return this.request<T>({ 
       url, 
       method: 'POST',
       body: data ? JSON.stringify(data) : undefined,
-      ...requestConfig 
+      ...config 
     });
   }
 
-  public async put<T = any>(url: string, data?: any, requestConfig?: Omit<RequestConfig, 'url' | 'method' | 'body'>): Promise<ApiResponse<T>> {
+  public async put<T = any>(url: string, data?: any, config?: Omit<RequestConfig, 'url' | 'method' | 'body'>): Promise<ApiResponse<T>> {
     return this.request<T>({ 
       url, 
       method: 'PUT',
       body: data ? JSON.stringify(data) : undefined, 
-      ...requestConfig 
+      ...config 
     });
   }
 
-  public async delete<T = any>(url: string, requestConfig?: Omit<RequestConfig, 'url' | 'method'>): Promise<ApiResponse<T>> {
-    return this.request<T>({ url, method: 'DELETE', ...requestConfig });
+  public async delete<T = any>(url: string, config?: Omit<RequestConfig, 'url' | 'method'>): Promise<ApiResponse<T>> {
+    return this.request<T>({ url, method: 'DELETE', ...config });
   }
 }
 

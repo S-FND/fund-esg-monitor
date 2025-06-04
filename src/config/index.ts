@@ -1,30 +1,8 @@
 
-// Synchronous config loading based on environment
-const env = import.meta.env.VITE_APP_ENV || 'dev';
-
-// Import configs synchronously
-import { config as devConfig } from './env.dev';
-import { config as stageConfig } from './env.stage';
-import { config as preprodConfig } from './env.preprod';
-import { config as prodConfig } from './env.prod';
-
-const getConfig = () => {
-  switch (env) {
-    case 'stage':
-      return stageConfig;
-    case 'preprod':
-      return preprodConfig;
-    case 'prod':
-      return prodConfig;
-    default:
-      return devConfig;
-  }
-};
-
-export const config = getConfig();
-
-// Async function for dynamic loading if needed
-export const getEnvironmentConfig = async () => {
+// Dynamic import based on environment
+const getEnvironmentConfig = async () => {
+  const env = import.meta.env.VITE_APP_ENV || 'dev';
+  
   try {
     switch (env) {
       case 'stage':
@@ -41,6 +19,29 @@ export const getEnvironmentConfig = async () => {
     return (await import('./env.dev')).config;
   }
 };
+
+// For synchronous access, we'll use a static approach
+const env = import.meta.env.VITE_APP_ENV || 'dev';
+
+let config: any;
+
+switch (env) {
+  case 'stage':
+    config = (await import('./env.stage')).config;
+    break;
+  case 'preprod':
+    config = (await import('./env.preprod')).config;
+    break;
+  case 'prod':
+    config = (await import('./env.prod')).config;
+    break;
+  default:
+    config = (await import('./env.dev')).config;
+    break;
+}
+
+export { config };
+export { getEnvironmentConfig };
 
 // Types for better TypeScript support
 export type Environment = 'development' | 'staging' | 'preproduction' | 'production';
