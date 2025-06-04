@@ -33,6 +33,7 @@ export function Header() {
             alt="Fandoro Technologies" 
             className="h-8 w-8 mr-2 hidden sm:block" 
           />
+          <span className="font-semibold text-lg hidden sm:block">{config.appName}</span>
           {config.showEnvInHeader && (
             <Badge variant="outline" className="text-xs">
               {config.env.toUpperCase()}
