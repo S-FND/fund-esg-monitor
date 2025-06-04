@@ -177,6 +177,7 @@ export default function ESGCAP() {
 
   const getPlanList = async (email) => {
     try {
+      
       const res = await fetch(`http://localhost:3002` + `/investor/esgdd/escap/${email}`, {
         method: "GET",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
@@ -184,6 +185,14 @@ export default function ESGCAP() {
       if (!res.ok) {
         // toast.error("Invalid credentials");
         // setIsLoading(false);
+        setFilteredCAPItems([]);
+        setCapItems([]);
+        setPlanData(null);
+        SetComparePlanData(null);
+        toast({
+          title: "No Reports Found",
+          description: "No reports were found matching your criteria.",
+        });
         return;
       }
       else {
@@ -193,11 +202,16 @@ export default function ESGCAP() {
         setCapItems(jsondata['plan'])
         setFinalPlan(jsondata['finalPlan'])
         SetComparePlanData(jsondata['comparePlan'])
-
+        toast({title: "Loaded!",
+          description: "ESG Reports successfully fetched.",})
       }
     } catch (error) {
       console.error("Api call:", error);
       // toast.error("API Call failed. Please try again.");
+      setFilteredCAPItems([]);
+      setCapItems([]);
+      setPlanData(null);
+      SetComparePlanData(null);
     } finally {
       // setIsLoading(false);
     }
@@ -262,7 +276,10 @@ export default function ESGCAP() {
         console.log("Submitting CAP items ::  capItems :", capItems);
       }
     } catch (error) {
-
+        setFilteredCAPItems([]);
+        setCapItems([]);
+        setPlanData(null);
+        SetComparePlanData(null);
     }
 
 
@@ -332,7 +349,7 @@ export default function ESGCAP() {
           onCompanyChange={setSelectedCompany}
         />
 
-        {!finalPlan && filteredCAPItems.length > 0 && comparePlanData.founderPlanLastUpdate > (comparePlanData.investorPlanLastUpdate || 0) && <div className="flex items-center gap-6">
+        {!finalPlan && filteredCAPItems.length > 0 && comparePlanData?.founderPlanLastUpdate > (comparePlanData?.investorPlanLastUpdate || 0) && <div className="flex items-center gap-6">
           <Button
             variant="outline"
             onClick={toggleComparisonView}
