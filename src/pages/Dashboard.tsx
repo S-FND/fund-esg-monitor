@@ -24,6 +24,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 const funds = [
   { id: 1, name: "Green Tech Fund I", size: "$50M", focus: "ClimateTech", stage: "Series A" },
@@ -64,21 +65,23 @@ export default function Dashboard() {
   const [selectedYear, setSelectedYear] = useState<string>("2025");
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  console.log(`localStorage.getItem('auth_token')`, localStorage.getItem('auth_token'))
-  console.log('searchParam', searchParams.get('token'))
+  // console.log(`localStorage.getItem('auth_token')`, localStorage.getItem('auth_token'))
+  // console.log('searchParam', searchParams.get('token'))
   // let token = JSON.parse((searchParams.get('token')));
+
+  const { setUser } = useAuth();
   
   let getUserDetails = async (token) => {
     try {
       // Insert team member
-      console.log("Strt getUserDetails")
-      console.log('token',token)
+      // console.log("Strt getUserDetails")
+      // console.log('token',token)
       const res = await fetch(`${import.meta.env.VITE_API_URL}` + `/investor/general-info/verify-token`, {
         method: "GET",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       });
       if (!res.ok) {
-        console.log("inisde res not ok")
+        // console.log("inisde res not ok")
         toast.error("Invalid credentials");
         // setIsLoading(false);
         setTimeout(() => {
@@ -91,37 +94,41 @@ export default function Dashboard() {
         const jsonData = await res.json();
         localStorage.setItem('auth_token', token)
         localStorage.setItem('user', JSON.stringify(jsonData['data']))
+        if(!jsonData['data']['isParent'] && jsonData['data'].assignedPages.length>0){
+          navigate(jsonData['data'].assignedPages[0]['href'])
+        }
+        setUser(prev => ({ ...prev, ...jsonData['data'] }));
       }
     }
     catch (error) {
-      console.log("inisde catch",error.message)
+      // console.log("inisde catch",error.message)
       toast.error("Invalid credentials :: ",error.message);
         // setIsLoading(false);
         setTimeout(() => {
-          window.location.href = "https://preprod-enterprise.fandoro.com/"
+          window.location.href = import.meta.env.VITE_LOGIN_REVERT_URL 
         }, 50000)
     }
   }
   useEffect(() => {
     let token;
-    console.log("Start entry")
+    // console.log("Start entry")
     if(searchParams.get('token')){
-      console.log("Inside if")
+      // console.log("Inside if")
       token=JSON.parse((searchParams.get('token')));
     }
     else if (!searchParams.get('token') && !localStorage.getItem('auth_token')) {
-      console.log("Inside else if 1 statement")
+      // console.log("Inside else if 1 statement")
       toast.error("Invalid credentials");
       // setIsLoading(false);
       setTimeout(() => {
-        window.location.href = "https://preprod-enterprise.fandoro.com/"
+        window.location.href = import.meta.env.VITE_LOGIN_REVERT_URL
       }, 10000)
     }
     else if(localStorage.getItem('auth_token') && !searchParams.get('token')){
-      console.log("Inside else if 2 statement")
+      // console.log("Inside else if 2 statement")
       token=localStorage.getItem('auth_token')
     }
-    console.log("exit from useeffct")
+    // console.log("exit from useeffct")
     getUserDetails(token)
   }, [searchParams])
 

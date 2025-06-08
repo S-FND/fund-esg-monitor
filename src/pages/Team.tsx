@@ -14,7 +14,7 @@ type TeamMember = {
   designation?: string;
   mobileNumber?: string;
   accessRights?: string[];
-  isActive: boolean;
+  active: boolean;
 };
 
 export default function Team() {
@@ -60,7 +60,7 @@ export default function Team() {
       _id: Math.random().toString(36).substr(2, 9),
       ...member,
       accessRights: ["Dashboard"],
-      isActive: false
+      active: false
     };
     setTeam(prev => [...prev, newMember]);
   };
@@ -77,12 +77,12 @@ export default function Team() {
     setTeam(prevTeam => 
       prevTeam.map(member => {
         if (member._id === id) {
-          const newState = !member.isActive;
+          const newState = !member.active;
           toast({
             title: newState ? "User Activated" : "User Deactivated",
             description: `${member.name} has been ${newState ? "activated" : "deactivated"}.`
           });
-          return { ...member, isActive: newState };
+          return { ...member, active: newState };
         }
         return member;
       })
@@ -104,7 +104,7 @@ export default function Team() {
           team.map((member) => (
             <Card key={member._id} className="p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
               <div className="flex items-center gap-3">
-                <div className={`w-2 h-2 rounded-full ${member.isActive ? "bg-green-500" : "bg-gray-300"}`}></div>
+                <div className={`w-2 h-2 rounded-full ${member.active ? "bg-green-500" : "bg-gray-300"}`}></div>
                 <div>
                   <div className="font-medium">{member.name}</div>
                   <div className="text-muted-foreground text-sm">{member.email}</div>
@@ -124,12 +124,12 @@ export default function Team() {
               </div>
               <div className="flex gap-2 shrink-0 mt-2 md:mt-0">
                 <Button 
-                  variant={member.isActive ? "outline" : "default"} 
+                  variant={member.active ? "outline" : "default"} 
                   size="sm" 
                   onClick={() => toggleActivateUser(member._id)}
                 >
                   <UserCheck className="h-4 w-4 mr-1" />
-                  {member.isActive ? "Deactivate" : "Activate"}
+                  {member.active ? "Deactivate" : "Activate"}
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => handleViewMember(member._id)}>
                   <Eye className="h-4 w-4 mr-1" />

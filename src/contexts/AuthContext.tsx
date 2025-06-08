@@ -1,5 +1,5 @@
 
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 interface UserAccessRight {
@@ -11,8 +11,9 @@ interface User {
   id: string;
   email: string;
   name: string;
-  accessRights: UserAccessRight[];
+  assignedPages: UserAccessRight[];
   isActive: boolean;
+  isParent:Boolean;
 }
 
 interface AuthContextType {
@@ -21,53 +22,14 @@ interface AuthContextType {
   userRole: 'investor' | 'admin' | 'investor_admin' | null;
   signOut: () => void;
   hasAccess: (moduleName: string, level?: 'read' | 'write' | 'admin') => boolean;
+  setUser: React.Dispatch<React.SetStateAction<User | null>>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
 // Dummy data for testing
 const DUMMY_TOKEN = 'dummy_test_token_123';
-const DUMMY_USERS = {
-  "1": {
-    id: '1',
-    email: 'admin@example.com',
-    name: 'Admin User',
-    accessRights: [
-      { moduleName: "Dashboard", level: "admin" as const },
-      { moduleName: "Funds", level: "admin" as const },
-      { moduleName: "Team", level: "admin" as const },
-      { moduleName: "Portfolio Companies", level: "admin" as const },
-      { moduleName: "ESG DD", level: "admin" as const },
-      { moduleName: "ESG CAP", level: "admin" as const },
-      { moduleName: "Valuation", level: "admin" as const }
-    ],
-    isActive: true
-  },
-  "2": {
-    id: '2',
-    email: 'esg@example.com',
-    name: 'ESG Analyst',
-    accessRights: [
-      { moduleName: "Dashboard", level: "read" as const },
-      { moduleName: "ESG DD", level: "admin" as const },
-      { moduleName: "ESG CAP", level: "write" as const },
-      { moduleName: "Valuation", level: "read" as const }
-    ],
-    isActive: true
-  },
-  "3": {
-    id: '3',
-    email: 'investor@example.com',
-    name: 'Investor',
-    accessRights: [
-      { moduleName: "Dashboard", level: "read" as const },
-      { moduleName: "Funds", level: "read" as const },
-      { moduleName: "Portfolio Companies", level: "read" as const },
-      { moduleName: "Valuation", level: "read" as const }
-    ],
-    isActive: true
-  }
-};
+
 
 const DUMMY_USER_ID = '1'; // Default to admin
 const DUMMY_ROLE = 'admin';
@@ -136,11 +98,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     navigate('/');
   };
 
+  useEffect(()=>{
+    setUser(JSON.parse(localStorage.getItem("user")))
+  },[])
+
   // Function to check if user has access to a module at the specified level
   const hasAccess = (moduleName: string, level: 'read' | 'write' | 'admin' = 'read'): boolean => {
     if (!user) return false;
 
-    const moduleAccess = user.accessRights.find(right => right.moduleName === moduleName);
+    const moduleAccess = user.assignedPages.find(right => right.moduleName === moduleName);
     if (!moduleAccess) return false;
 
     switch (level) {
@@ -156,7 +122,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, userRole, signOut, hasAccess }}>
+    <AuthContext.Provider value={{ session, user, userRole, signOut, hasAccess,setUser }}>
       {children}
     </AuthContext.Provider>
 

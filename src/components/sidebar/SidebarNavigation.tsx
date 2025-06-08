@@ -25,9 +25,10 @@ export function SidebarNavigation() {
   const isValuationSubmenuOpen = location.pathname.includes("risk-matrix");
 
   useEffect(() => {
+    console.log("Inside SidebarNavigation :: user => ",user)
     // In a real app, this would come from the backend based on user roles
     // For demo purposes, we'll use mock data
-    const fetchUserAccess = async () => {
+    const  fetchUserAccess = async () => {
       // Default mock accesses for demo purposes
       const mockUserAccess = {
         // Simulating different access patterns
@@ -36,10 +37,18 @@ export function SidebarNavigation() {
         "3": ["Dashboard", "Portfolio Companies", "Valuation"],
         "4": ["Dashboard","Investor General Info", "Funds", "Team", "Portfolio Companies", "ESG DD", "ESG CAP", "Valuation"]
       };
-
-      const userId = user?.id || "1"; // Default to user 1 if no user ID
-      const accessList = mockUserAccess[userId as keyof typeof mockUserAccess] || ["Dashboard"];
+      let accessList;
+      if(user.isParent && (!user.assignedPages || user.assignedPages.length == 0)){
+        accessList=["Dashboard","Investor General Info", "Funds", "Team", "Portfolio Companies", "ESG DD", "ESG CAP", "Valuation"]
+      }
+      else{
+         accessList = user.assignedPages.map((p)=>p.moduleName) || ["Dashboard"];
+        
+      }
       setAccessibleMenus(accessList);
+      const userId = user?.id || "1"; // Default to user 1 if no user ID
+      // const accessList = mockUserAccess[userId as keyof typeof mockUserAccess] || ["Dashboard"];
+      
     };
 
     fetchUserAccess();

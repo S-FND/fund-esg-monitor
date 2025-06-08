@@ -213,7 +213,6 @@ export default function Portfolio() {
 
   useEffect(() => {
     // Filter companies based on selected filters
-    console.log("Triggered")
     if(selectedFund !== 'all' && selectedSector !== 'all'){
       setFilteredCompanies(
         portfolioCompanyList.filter((p)=>{

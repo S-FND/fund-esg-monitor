@@ -13,6 +13,8 @@ import { http } from "@/utils/httpInterceptor";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { toast as Toast } from "sonner";
+// import { portfolioCompanies } from "@/features/edit-portfolio-company/portfolioCompanies";
 
 interface AccessRight {
   moduleName: string;
@@ -32,24 +34,7 @@ interface TeamMember {
   assignedCompanies?: string[];
 }
 
-// Mock data for funds
-const mockFunds = [
-  { id: "1", name: "Main Fund I" },
-  { id: "2", name: "ESG Growth Fund" },
-  { id: "3", name: "Technology Innovation Fund" },
-  { id: "4", name: "Sustainable Energy Fund" },
-  { id: "5", name: "Healthcare Ventures" }
-];
 
-// Mock data for portfolio companies
-const mockCompanies = [
-  { id: "1", name: "EcoTech Solutions", sector: "Clean Energy" },
-  { id: "2", name: "MedInnovate", sector: "Healthcare" },
-  { id: "3", name: "Digital Systems", sector: "Technology" },
-  { id: "4", name: "Green Buildings Inc", sector: "Sustainable Construction" },
-  { id: "5", name: "AgriTech Innovations", sector: "Agriculture" },
-  { id: "6", name: "Fintech Global", sector: "Financial Services" }
-];
 
 const accessLevels = [
   { value: "none", label: "No Access" },
@@ -72,6 +57,7 @@ export default function TeamMemberDetail() {
   const [selectedCompanies, setSelectedCompanies] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState("access");
   const [funds,setFunds]=useState([])
+  const[portfolioCompanyList,setPortfolioCompanyList]=useState([])
 
   // Create a comprehensive navigation items list that includes main items and their submenus
   const allNavItems = [
@@ -100,193 +86,6 @@ export default function TeamMemberDetail() {
       }))
     }
   ];
-
-  // useEffect(() => {
-  //   // Simulate fetching member details
-  //   setLoading(true);
-
-  //   // Sample data - in a real app, this would be fetched from the database
-  //   const sampleTeamMembers = [
-  //     {
-  //       _id: "1",
-  //       name: "John Smith",
-  //       email: "john.smith@example.com",
-  //       designation: "Fund Manager",
-  //       mobileNumber: "+1 (555) 123-4567",
-  //       accessRights: [
-  //         { moduleName: "Dashboard", level: "admin" },
-  //         { moduleName: "Funds", level: "write" },
-  //         { moduleName: "Team", level: "write" },
-  //         { moduleName: "Portfolio Companies", level: "write" },
-  //         { moduleName: "ESG DD", level: "read" },
-  //         { moduleName: "ESG CAP", level: "read" },
-  //         { moduleName: "Valuation", level: "read" }
-  //       ],
-  //       active: true
-  //     } as TeamMember,
-  //     {
-  //       _id: "2",
-  //       name: "Sarah Johnson",
-  //       email: "sarah.johnson@example.com",
-  //       designation: "ESG Analyst",
-  //       mobileNumber: "+1 (555) 987-6543",
-  //       accessRights: [
-  //         { moduleName: "Dashboard", level: "read" },
-  //         { moduleName: "ESG DD", level: "admin" },
-  //         { moduleName: "ESG CAP", level: "write" },
-  //         { moduleName: "Valuation", level: "read" }
-  //       ],
-  //       active: true
-  //     } as TeamMember,
-  //     {
-  //       _id: "3",
-  //       name: "Michael Wong",
-  //       email: "michael.wong@example.com",
-  //       designation: "Investment Analyst",
-  //       mobileNumber: "+1 (555) 456-7890",
-  //       accessRights: [
-  //         { moduleName: "Dashboard", level: "read" },
-  //         { moduleName: "Portfolio Companies", level: "write" },
-  //         { moduleName: "Valuation", level: "admin" }
-  //       ],
-  //       active: false
-  //     } as TeamMember,
-  //     {
-  //       _id: "4",
-  //       name: "Lisa Chen",
-  //       email: "lisa.chen@example.com",
-  //       designation: "Chief Investment Officer",
-  //       mobileNumber: "+1 (555) 567-8901",
-  //       accessRights: [
-  //         { moduleName: "Dashboard", level: "admin" },
-  //         { moduleName: "Funds", level: "admin" },
-  //         { moduleName: "Team", level: "admin" },
-  //         { moduleName: "Portfolio Companies", level: "admin" },
-  //         { moduleName: "ESG DD", level: "admin" },
-  //         { moduleName: "ESG CAP", level: "admin" },
-  //         { moduleName: "Valuation", level: "admin" }
-  //       ],
-  //       active: true
-  //     } as TeamMember
-  //   ];
-
-  //   // const foundMember = sampleTeamMembers.find(m => m.id === id);
-
-  //   if (member) {
-  //     setMember(member);
-  //     setIsActive(member.active || false);
-  // Sample data - in a real app, this would be fetched from the database
-  // const sampleTeamMembers = [
-  //   {
-  //     id: "1",
-  //     name: "John Smith",
-  //     email: "john.smith@example.com",
-  //     designation: "Fund Manager",
-  //     mobileNumber: "+1 (555) 123-4567",
-  //     accessRights: [
-  //       { moduleName: "Dashboard", level: "admin" },
-  //       { moduleName: "Funds", level: "write" },
-  //       { moduleName: "Team", level: "write" },
-  //       { moduleName: "Portfolio Companies", level: "write" },
-  //       { moduleName: "ESG DD", level: "read" },
-  //       { moduleName: "ESG CAP", level: "read" },
-  //       { moduleName: "Valuation", level: "read" }
-  //     ],
-  //     active: true,
-  //     assignedFunds: ["1", "3"],
-  //     assignedCompanies: ["1", "3", "5"]
-  //   } as TeamMember,
-  //   {
-  //     id: "2",
-  //     name: "Sarah Johnson",
-  //     email: "sarah.johnson@example.com",
-  //     designation: "ESG Analyst",
-  //     mobileNumber: "+1 (555) 987-6543",
-  //     accessRights: [
-  //       { moduleName: "Dashboard", level: "read" },
-  //       { moduleName: "ESG DD", level: "admin" },
-  //       { moduleName: "ESG CAP", level: "write" },
-  //       { moduleName: "Valuation", level: "read" }
-  //     ],
-  //     active: true,
-  //     assignedFunds: ["2", "4"],
-  //     assignedCompanies: ["1", "4", "5"]
-  //   } as TeamMember,
-  //   {
-  //     id: "3",
-  //     name: "Michael Wong",
-  //     email: "michael.wong@example.com",
-  //     designation: "Investment Analyst",
-  //     mobileNumber: "+1 (555) 456-7890",
-  //     accessRights: [
-  //       { moduleName: "Dashboard", level: "read" },
-  //       { moduleName: "Portfolio Companies", level: "write" },
-  //       { moduleName: "Valuation", level: "admin" }
-  //     ],
-  //     active: false,
-  //     assignedFunds: ["1", "5"],
-  //     assignedCompanies: ["2", "3", "6"]
-  //   } as TeamMember,
-  //   {
-  //     id: "4",
-  //     name: "Lisa Chen",
-  //     email: "lisa.chen@example.com",
-  //     designation: "Chief Investment Officer",
-  //     mobileNumber: "+1 (555) 567-8901",
-  //     accessRights: [
-  //       { moduleName: "Dashboard", level: "admin" },
-  //       { moduleName: "Funds", level: "admin" },
-  //       { moduleName: "Team", level: "admin" },
-  //       { moduleName: "Portfolio Companies", level: "admin" },
-  //       { moduleName: "ESG DD", level: "admin" },
-  //       { moduleName: "ESG CAP", level: "admin" },
-  //       { moduleName: "Valuation", level: "admin" }
-  //     ],
-  //     active: true,
-  //     assignedFunds: ["1", "2", "3", "4", "5"],
-  //     assignedCompanies: ["1", "2", "3", "4", "5", "6"]
-  //   } as TeamMember
-  // ];
-
-  // const foundMember = sampleTeamMembers.find(m => m.id === id);
-
-  // if (foundMember) {
-  //   setMember(foundMember);
-  //   setIsActive(foundMember.isActive || false);
-  //   setSelectedFunds(foundMember.assignedFunds || []);
-  //   setSelectedCompanies(foundMember.assignedCompanies || []);
-
-  //     // Initialize access rights for all modules and submodules
-  //     const initialAccessRights: AccessRight[] = [];
-
-  //     // Process parent modules and their submodules
-  //     allNavItems.forEach(item => {
-  //       // Add the parent module
-  //       const parentRight = member?.accessRights?.find(r => r.moduleName === item.title);
-  //       initialAccessRights.push(parentRight || { 
-  //         moduleName: item.title, 
-  //         level: "none" as const ,
-  //         href:item.href
-  //       });
-
-  //       // Add submodules if any
-  //       if (item.subItems && item.subItems.length > 0) {
-  //         item.subItems.forEach(subItem => {
-  //           const subRight = member.accessRights?.find(r => r.moduleName === subItem.title);
-  //           initialAccessRights.push(subRight || { 
-  //             moduleName: subItem.title, 
-  //             level: "none" as const ,
-  //             href:subItem.href
-  //           });
-  //         });
-  //       }
-  //     });
-  //     // console.log('initialAccessRights',initialAccessRights)
-  //     setAccessRights(initialAccessRights);
-  //   }
-
-  //   setLoading(false);
-  // }, [id]);
 
   const handleAccessChange = (moduleName: string, level: "read" | "write" | "admin" | "none") => {
     let accessData = accessRights.map((right) => {
@@ -417,7 +216,32 @@ export default function TeamMemberDetail() {
     }
   };
 
+  const getCompanyList = async () => {
 
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}` + "/investor/companyInfo/", {
+        method: "GET",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
+      });
+      if (!res.ok) {
+        Toast.error("Invalid credentials");
+        setLoading(false);
+        return;
+      }
+      else {
+        const jsondata = await res.json();
+        console.log('jsondata', jsondata)
+        setPortfolioCompanyList(jsondata['data'])
+
+      }
+
+    } catch (error) {
+      console.error("Api call:", error);
+      Toast.error("API Call failed. Please try again.");
+    } finally {
+      // setIsLoading(false);
+    }
+  }
 
   const getUserAccess = async () => {
     try {
@@ -425,8 +249,11 @@ export default function TeamMemberDetail() {
       console.log('response', response)
       if (response.data && response.data.status) {
         setAccessRights(response.data.data)
-        if(response.data.funds && response.data.funds.length>0){
+        if (response.data.funds && response.data.funds.length > 0) {
           setSelectedFunds(response.data.funds)
+        }
+        if (response.data.companies && response.data.companies.length > 0) {
+          setSelectedCompanies(response.data.companies)
         }
       }
       else if (response.error) {
@@ -442,7 +269,7 @@ export default function TeamMemberDetail() {
         ? prev.filter(id => id !== fundId)
         : [...prev, fundId]
     );
-    console.log('selectedFunds',selectedFunds)
+    console.log('selectedFunds', selectedFunds)
   };
 
   const toggleCompanySelection = (companyId: string) => {
@@ -453,7 +280,7 @@ export default function TeamMemberDetail() {
     );
   };
 
-  const handleSaveAssignments = async() => {
+  const handleSaveAssignments = async () => {
     if (member) {
       // Update the member with the new assignments
       const updatedMember = {
@@ -461,11 +288,12 @@ export default function TeamMemberDetail() {
         assignedFunds: selectedFunds,
         assignedCompanies: selectedCompanies
       };
-      console.log('updatedMember',updatedMember)
+      console.log('updatedMember', updatedMember)
       setMember(updatedMember);
       let payload = {
         accessUrls: {
-          funds:selectedFunds
+          funds: selectedFunds,
+          companies:selectedCompanies
         },
         subUserId: id,
         active: member.active,
@@ -474,20 +302,20 @@ export default function TeamMemberDetail() {
       console.log('payload', payload)
       try {
         let response = await http.post(`subuser/activate`, payload)
-        if(response.data){
+        if (response.data) {
           toast({
             title: "Assignments updated",
             description: "Fund and company assignments have been updated successfully."
           });
         }
       } catch (error) {
-  
+
       }
 
-      
+
     }
   };
-  const getFundList= async()=>{
+  const getFundList = async () => {
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}` + `/investor/fund`, {
         method: "GET",
@@ -511,7 +339,7 @@ export default function TeamMemberDetail() {
     }
   }
 
-  
+
 
   useEffect(() => {
     if (id) {
@@ -523,9 +351,9 @@ export default function TeamMemberDetail() {
   }, [id]);
 
   useEffect(() => {
-    console.log("Component mounted");
+    getCompanyList()
   }, []);
- 
+
   // useEffect(() => {
   //   console.log('accessRights',accessRights)
   //   setSampleRights(accessRights)
@@ -601,157 +429,159 @@ export default function TeamMemberDetail() {
             </CardHeader>
             <CardContent>
               <Tabs value={activeTab} onValueChange={setActiveTab}>
-                    <TabsList>
-                      <TabsTrigger value="access">Access Rights</TabsTrigger>
-                      <TabsTrigger value="funds">Funds</TabsTrigger>
-                      <TabsTrigger value="companies">Companies</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="access">
-                      <div className="space-y-6">
-                        {allNavItems.map((item) => {
-                          const currentAccess = accessRights.find(r => r.moduleName === item.title)?.level || "none";
+                <TabsList>
+                  <TabsTrigger value="access">Access Rights</TabsTrigger>
+                  <TabsTrigger value="funds">Funds</TabsTrigger>
+                  <TabsTrigger value="companies">Companies</TabsTrigger>
+                </TabsList>
+                <TabsContent value="access">
+                  <div className="space-y-6">
+                    {allNavItems.map((item) => {
+                      const currentAccess = accessRights.find(r => r.moduleName === item.title)?.level || "none";
 
-                          return (
-                            <div key={item.title} className="p-4 border rounded-md space-y-4">
-                              <div className="font-medium border-b pb-2">{item.title}</div>
+                      return (
+                        <div key={item.title} className="p-4 border rounded-md space-y-4">
+                          <div className="font-medium border-b pb-2">{item.title}</div>
 
-                              <div>
-                                <RadioGroup
-                                  value={currentAccess}
-                                  onValueChange={(value) => handleAccessChange(item.title, value as "read" | "write" | "admin" | "none")}
-                                  className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-4"
-                                >
-                                  {accessLevels.map((level) => (
-                                    <div key={level.value} className="flex items-center space-x-2">
-                                      <RadioGroupItem value={level.value} id={`${item.title}-${level.value}`} />
-                                      <Label htmlFor={`${item.title}-${level.value}`} className="text-sm">
-                                        {level.label}
-                                      </Label>
-                                    </div>
-                                  ))}
-                                </RadioGroup>
-                              </div>
-
-                              {/* Render subItems if any */}
-                              {item.subItems && item.subItems.length > 0 && (
-                                <div className="pl-6 space-y-4 border-l-2 border-gray-200 mt-2">
-                                  {item.subItems.map((subItem) => {
-                                    const subItemAccess = accessRights.find(r => r.moduleName === subItem.title)?.level || "none";
-
-                                    return (
-                                      <div key={subItem.title} className="p-2 bg-gray-50 rounded-md">
-                                        <div className="text-sm font-medium mb-2">{subItem.title}</div>
-                                        <RadioGroup
-                                          value={subItemAccess}
-                                          onValueChange={(value) => handleAccessChange(subItem.title, value as "read" | "write" | "admin" | "none")}
-                                          className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-4"
-                                        >
-                                          {accessLevels.map((level) => (
-                                            <div key={level.value} className="flex items-center space-x-2">
-                                              <RadioGroupItem value={level.value} id={`${subItem.title}-${level.value}`} />
-                                              <Label htmlFor={`${subItem.title}-${level.value}`} className="text-xs">
-                                                {level.label}
-                                              </Label>
-                                            </div>
-                                          ))}
-                                        </RadioGroup>
-                                      </div>
-                                    );
-                                  })}
+                          <div>
+                            <RadioGroup
+                              value={currentAccess}
+                              onValueChange={(value) => handleAccessChange(item.title, value as "read" | "write" | "admin" | "none")}
+                              className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-4"
+                            >
+                              {accessLevels.map((level) => (
+                                <div key={level.value} className="flex items-center space-x-2">
+                                  <RadioGroupItem value={level.value} id={`${item.title}-${level.value}`} />
+                                  <Label htmlFor={`${item.title}-${level.value}`} className="text-sm">
+                                    {level.label}
+                                  </Label>
                                 </div>
-                              )}
+                              ))}
+                            </RadioGroup>
+                          </div>
+
+                          {/* Render subItems if any */}
+                          {item.subItems && item.subItems.length > 0 && (
+                            <div className="pl-6 space-y-4 border-l-2 border-gray-200 mt-2">
+                              {item.subItems.map((subItem) => {
+                                const subItemAccess = accessRights.find(r => r.moduleName === subItem.title)?.level || "none";
+
+                                return (
+                                  <div key={subItem.title} className="p-2 bg-gray-50 rounded-md">
+                                    <div className="text-sm font-medium mb-2">{subItem.title}</div>
+                                    <RadioGroup
+                                      value={subItemAccess}
+                                      onValueChange={(value) => handleAccessChange(subItem.title, value as "read" | "write" | "admin" | "none")}
+                                      className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-4"
+                                    >
+                                      {accessLevels.map((level) => (
+                                        <div key={level.value} className="flex items-center space-x-2">
+                                          <RadioGroupItem value={level.value} id={`${subItem.title}-${level.value}`} />
+                                          <Label htmlFor={`${subItem.title}-${level.value}`} className="text-xs">
+                                            {level.label}
+                                          </Label>
+                                        </div>
+                                      ))}
+                                    </RadioGroup>
+                                  </div>
+                                );
+                              })}
                             </div>
-                          );
-                        })}
-
-                        <div className="flex justify-end mt-6">
-                          <Button onClick={handleSaveAccess}>Save Access Rights</Button>
+                          )}
                         </div>
-                      </div>
-                    </TabsContent>
+                      );
+                    })}
 
-                    <TabsContent value="funds">
-                      <div className="space-y-4">
-                        <h3 className="font-medium text-lg">Assign Funds</h3>
-                        <p className="text-muted-foreground mb-4">Select the funds that this team member should have access to:</p>
+                    <div className="flex justify-end mt-6">
+                      <Button onClick={handleSaveAccess}>Save Access Rights</Button>
+                    </div>
+                  </div>
+                </TabsContent>
 
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead className="w-12"></TableHead>
-                              <TableHead>Fund Name</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {funds.map((fund) => (
-                              <TableRow key={fund._id}>
-                                <TableCell className="w-12">
-                                  <Checkbox
-                                    checked={selectedFunds.includes(fund._id)}
-                                    onCheckedChange={() => toggleFundSelection(fund._id)}
-                                    id={`fund-${fund._id}`}
-                                  />
-                                </TableCell>
-                                <TableCell>
-                                  <Label htmlFor={`fund-${fund._id}`} className="cursor-pointer">
-                                    {fund.name}
-                                  </Label>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
+                <TabsContent value="funds">
+                  <div className="space-y-4">
+                    <h3 className="font-medium text-lg">Assign Funds</h3>
+                    <p className="text-muted-foreground mb-4">Select the funds that this team member should have access to:</p>
 
-                        <div className="flex justify-end mt-6">
-                          <Button onClick={handleSaveAssignments}>Save Fund Assignments</Button>
-                        </div>
-                      </div>
-                    </TabsContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-12"></TableHead>
+                          <TableHead>Fund Name</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {funds.map((fund) => (
+                          <TableRow key={fund._id}>
+                            <TableCell className="w-12">
+                              <Checkbox
+                                checked={selectedFunds.includes(fund._id)}
+                                onCheckedChange={() => toggleFundSelection(fund._id)}
+                                id={`fund-${fund._id}`}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Label htmlFor={`fund-${fund._id}`} className="cursor-pointer">
+                                {fund.name}
+                              </Label>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
 
-                    <TabsContent value="companies">
-                      <div className="space-y-4">
-                        <h3 className="font-medium text-lg">Assign Companies</h3>
-                        <p className="text-muted-foreground mb-4">Select the portfolio companies that this team member should have access to:</p>
+                    <div className="flex justify-end mt-6">
+                      <Button onClick={handleSaveAssignments}>Save Fund Assignments</Button>
+                    </div>
+                  </div>
+                </TabsContent>
 
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead className="w-12"></TableHead>
-                              <TableHead>Company Name</TableHead>
-                              <TableHead>Sector</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {mockCompanies.map((company) => (
-                              <TableRow key={company.id}>
-                                <TableCell className="w-12">
-                                  <Checkbox
-                                    checked={selectedCompanies.includes(company.id)}
-                                    onCheckedChange={() => toggleCompanySelection(company.id)}
-                                    id={`company-${company.id}`}
-                                  />
-                                </TableCell>
-                                <TableCell>
-                                  <Label htmlFor={`company-${company.id}`} className="cursor-pointer">
-                                    {company.name}
-                                  </Label>
-                                </TableCell>
-                                <TableCell>{company.sector}</TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
+                <TabsContent value="companies">
+                  <div className="space-y-4">
+                    <h3 className="font-medium text-lg">Assign Companies</h3>
+                    <p className="text-muted-foreground mb-4">Select the portfolio companies that this team member should have access to:</p>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-12"></TableHead>
+                          <TableHead>Company Name</TableHead>
+                          <TableHead>Sector</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {portfolioCompanyList
+                        .filter(c => c.companyName)
+                        .sort((a, b) => a.companyName.localeCompare(b.companyName))
+                        .map((company) => (
+                          <TableRow key={company._id}>
+                            <TableCell className="w-12">
+                              <Checkbox
+                                checked={selectedCompanies.includes(company._id)}
+                                onCheckedChange={() => toggleCompanySelection(company._id)}
+                                id={`company-${company._id}`}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Label htmlFor={`company-${company._id}`} className="cursor-pointer">
+                                {company.companyName}
+                              </Label>
+                            </TableCell>
+                            <TableCell>{company.sector}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
 
-                        <div className="flex justify-end mt-6">
-                          <Button onClick={handleSaveAssignments}>Save Company Assignments</Button>
-                        </div>
-                      </div>
-                    </TabsContent>
-                  </Tabs>
-                </CardContent>
+                    <div className="flex justify-end mt-6">
+                      <Button onClick={handleSaveAssignments}>Save Company Assignments</Button>
+                    </div>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
           </Card>
-          </div>
         </div>
+      </div>
     </div>
   );
 }
