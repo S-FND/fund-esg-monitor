@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState, useEffect } from "react";
-import { CAPItem, CAPStatus, CAPType } from "./CAPTable";
+import { CAPItem, CAPStatus, CAPType, CAPPriority } from "./CAPTable";
 import { useToast } from "@/hooks/use-toast";
 
 interface ReviewDialogProps {
@@ -195,6 +195,32 @@ export function ReviewDialog({
             {isFieldChanged('type') && (
               <p className="text-xs text-amber-600 mt-1">
                 Original: {originalItem?.type}
+              </p>
+            )}
+          </div>
+          
+          <div>
+            <h4 className="font-semibold mb-1">Priority</h4>
+            {canEdit ? (
+              <Select 
+                value={editedItem.priority} 
+                onValueChange={(value) => handleInputChange('priority', value as CAPPriority)}
+              >
+                <SelectTrigger className={isFieldChanged('priority') ? "border-orange-400" : ""}>
+                  <SelectValue placeholder="Select priority" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="High">High</SelectItem>
+                  <SelectItem value="Medium">Medium</SelectItem>
+                  <SelectItem value="Low">Low</SelectItem>
+                </SelectContent>
+              </Select>
+            ) : (
+              <p>{editedItem.priority}</p>
+            )}
+            {isFieldChanged('priority') && (
+              <p className="text-xs text-amber-600 mt-1">
+                Original: {originalItem?.priority}
               </p>
             )}
           </div>

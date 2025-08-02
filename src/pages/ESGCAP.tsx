@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
-import { CAPItem, CAPStatus, CAPType, CAPTable } from "@/components/esg-cap/CAPTable";
+import { CAPItem, CAPStatus, CAPType, CAPPriority, CAPTable } from "@/components/esg-cap/CAPTable";
 import { ReviewDialog } from "@/components/esg-cap/ReviewDialog";
 import { FilterControls } from "@/components/esg-cap/FilterControls";
 import { portfolioCompanies } from "@/features/edit-portfolio-company/portfolioCompanies";
@@ -38,6 +38,7 @@ export default function ESGCAP() {
       deliverable: "Environmental Policy Document",
       targetDate: "2025-06-30",
       type: "CP",
+      priority: "High",
       status: "Pending"
     },
     {
@@ -49,6 +50,7 @@ export default function ESGCAP() {
       deliverable: "Waste Management Reports",
       targetDate: "2025-05-15",
       type: "CS",
+      priority: "Medium",
       status: "In Progress"
     },
     {
@@ -60,6 +62,7 @@ export default function ESGCAP() {
       deliverable: "Energy Audit Report",
       targetDate: "2025-04-30",
       type: "CP",
+      priority: "High",
       actualDate: "2025-04-25",
       status: "Completed"
     },
@@ -72,6 +75,7 @@ export default function ESGCAP() {
       deliverable: "D&I Policy Document",
       targetDate: "2025-03-15",
       type: "CS",
+      priority: "Low",
       status: "Delayed"
     }
   ]);
@@ -198,6 +202,37 @@ export default function ESGCAP() {
     }
   };
 
+  // Scoring calculation logic
+  const getPriorityWeight = (priority: CAPPriority): number => {
+    switch (priority) {
+      case "High": return 2;
+      case "Medium": return 1;
+      case "Low": return 0.5;
+      default: return 1;
+    }
+  };
+
+  const calculateProgress = () => {
+    const totalItems = filteredCAPItems.length;
+    if (totalItems === 0) return 0;
+
+    // Calculate total possible weightage
+    const totalWeightage = filteredCAPItems.reduce((sum, item) => {
+      return sum + (100 / totalItems) * getPriorityWeight(item.priority);
+    }, 0);
+
+    // Calculate weightage of completed items
+    const completedWeightage = filteredCAPItems
+      .filter(item => item.status === "Completed")
+      .reduce((sum, item) => {
+        return sum + (100 / totalItems) * getPriorityWeight(item.priority);
+      }, 0);
+
+    return Math.round((completedWeightage / totalWeightage) * 100) || 0;
+  };
+
+  const progressPercentage = calculateProgress();
+
   return (
     <div className="space-y-6">
       <div>
@@ -238,13 +273,14 @@ export default function ESGCAP() {
         <CardContent>
           {filteredCAPItems.length > 0 ? (
             <CAPTable 
-              items={capItems}
+              items={filteredCAPItems}
               onReview={handleReview}
               onSendReminder={handleSendReminder}
               isComparisonView={showComparisonView}
               originalItems={originalCapItems}
               onRevert={handleRevertToOriginal}
               onRevertField={handleRevertField}
+              progressPercentage={progressPercentage}
             />
           ) : (
             <div className="text-center py-8">
