@@ -35,7 +35,7 @@ export function Sidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="bg-white text-black border border-gray-300">
+      <SidebarContent className="mt-4">
         <SidebarNavigation />
       </SidebarContent>
 
