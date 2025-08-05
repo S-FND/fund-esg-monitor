@@ -49,8 +49,8 @@ export function SidebarSubmenuItem({ item, isInitiallyOpen }: SidebarSubmenuItem
                   asChild
                   isActive={isSubActive}
                 >
-                  <Link to={subItem.href} className="text-black">
-                    <subItem.icon className="h-4 w-4 !text-black" />
+                  <Link to={subItem.href}>
+                    <subItem.icon className="h-4 w-4" />
                     <span>{subItem.title}</span>
                   </Link>
                 </SidebarMenuSubButton>
