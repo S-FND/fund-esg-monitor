@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { PortfolioCompanyKPIs } from "@/components/PortfolioCompanyKPIs";
 import { DashboardFilters } from "@/components/dashboard/DashboardFilters";
+import { portfolioCompanies } from "@/features/edit-portfolio-company/portfolioCompanies";
 import { FundsStatsCard } from "@/components/dashboard/FundsStatsCard";
 import { CompaniesStatsCard } from "@/components/dashboard/CompaniesStatsCard";
 import { ESGStatsCard } from "@/components/dashboard/ESGStatsCard";
@@ -29,12 +30,19 @@ const funds = [
   { id: 3, name: "Impact Ventures", size: "$25M", focus: "EdTech, FinTech", stage: "Seed" },
 ];
 
-const companies = [
-  { id: 1, name: "EcoSolutions Inc.", sector: "ClimateTech", fundId: 1, esgScore: 85 },
-  { id: 2, name: "GreenHarvest", sector: "AgriTech", fundId: 2, esgScore: 78 },
-  { id: 3, name: "MediTech Innovations", sector: "HealthTech", fundId: 2, esgScore: 92 },
-  { id: 4, name: "EduForward", sector: "EdTech", fundId: 3, esgScore: 80 },
-  { id: 5, name: "FinSecure", sector: "FinTech", fundId: 3, esgScore: 75 },
+const companies = portfolioCompanies.map(company => ({
+  id: company.id,
+  name: company.name,
+  sector: company.sector,
+  fundId: company.fundId,
+  esgScore: company.esgScore,
+  boardObserverId: company.boardObserverId
+}));
+
+// Board Observers data
+const boardObservers = [
+  { id: "5", name: "Robert Taylor", designation: "Board Observer" },
+  { id: "6", name: "Jennifer Davis", designation: "BO (Board Observer)" },
 ];
 
 const financialYears = ["2021", "2022", "2023", "2024", "2025"];
@@ -60,11 +68,19 @@ export default function Dashboard() {
   const [selectedFund, setSelectedFund] = useState<string>("all");
   const [selectedCompany, setSelectedCompany] = useState<string>("all");
   const [selectedYear, setSelectedYear] = useState<string>("2025");
+  const [selectedBoardObserver, setSelectedBoardObserver] = useState<string>("all");
   const navigate = useNavigate();
   
-  const filteredCompanies = selectedFund === "all"
-    ? companies
-    : companies.filter(company => company.fundId === parseInt(selectedFund));
+  // Apply filters sequentially
+  let filteredCompanies = companies;
+  
+  if (selectedFund !== "all") {
+    filteredCompanies = filteredCompanies.filter(company => company.fundId === parseInt(selectedFund));
+  }
+  
+  if (selectedBoardObserver !== "all") {
+    filteredCompanies = filteredCompanies.filter(company => company.boardObserverId === selectedBoardObserver);
+  }
   
   const selectedCompanyId =
     selectedCompany !== "all"
@@ -120,14 +136,17 @@ export default function Dashboard() {
       
       <DashboardFilters
         funds={funds}
-        companies={companies}
+        companies={filteredCompanies}
         financialYears={financialYears}
+        boardObservers={boardObservers}
         selectedFund={selectedFund}
         setSelectedFund={setSelectedFund}
         selectedCompany={selectedCompany}
         setSelectedCompany={setSelectedCompany}
         selectedYear={selectedYear}
         setSelectedYear={setSelectedYear}
+        selectedBoardObserver={selectedBoardObserver}
+        setSelectedBoardObserver={setSelectedBoardObserver}
       />
       
       <Tabs defaultValue="overview">
@@ -141,13 +160,13 @@ export default function Dashboard() {
         <TabsContent value="overview" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <FundsStatsCard totalFunds={funds.length} />
-            <CompaniesStatsCard totalCompanies={companies.length} numFunds={funds.length} />
+            <CompaniesStatsCard totalCompanies={filteredCompanies.length} numFunds={funds.length} />
             <ESGStatsCard />
           </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <FundPerformanceCard />
-            <TopPerformersCard companies={companies} />
+            <TopPerformersCard companies={filteredCompanies} />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

@@ -20,7 +20,8 @@ export const portfolioCompanies = [
       indirect: { male: 10, female: 8, others: 0 }
     },
     esgCategory: "B",
-    esgScore: 85
+    esgScore: 85,
+    boardObserverId: "5"
   },
   {
     id: 2,
@@ -42,7 +43,8 @@ export const portfolioCompanies = [
       indirect: { male: 20, female: 25, others: 0 }
     },
     esgCategory: "B",
-    esgScore: 78
+    esgScore: 78,
+    boardObserverId: "6"
   },
   {
     id: 3,
@@ -64,7 +66,8 @@ export const portfolioCompanies = [
       indirect: { male: 5, female: 10, others: 0 }
     },
     esgCategory: "A",
-    esgScore: 92
+    esgScore: 92,
+    boardObserverId: "5"
   },
   {
     id: 4,
@@ -86,7 +89,8 @@ export const portfolioCompanies = [
       indirect: { male: 4, female: 6, others: 0 }
     },
     esgCategory: "B",
-    esgScore: 80
+    esgScore: 80,
+    boardObserverId: "6"
   },
   {
     id: 5,
@@ -108,6 +112,7 @@ export const portfolioCompanies = [
       indirect: { male: 2, female: 3, others: 0 }
     },
     esgCategory: "C",
-    esgScore: 75
+    esgScore: 75,
+    boardObserverId: "5"
   }
 ];

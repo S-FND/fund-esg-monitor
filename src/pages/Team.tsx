@@ -67,6 +67,24 @@ export default function Team() {
           mobileNumber: "+1 (555) 567-8901",
           accessRights: ["Dashboard", "Funds", "Team", "Portfolio Companies", "ESG DD", "ESG CAP", "Valuation"],
           isActive: true
+        },
+        {
+          id: "5",
+          name: "Robert Taylor",
+          email: "robert.taylor@example.com",
+          designation: "Board Observer",
+          mobileNumber: "+1 (555) 234-5678",
+          accessRights: ["Dashboard", "Portfolio Companies"],
+          isActive: true
+        },
+        {
+          id: "6",
+          name: "Jennifer Davis",
+          email: "jennifer.davis@example.com",
+          designation: "BO (Board Observer)",
+          mobileNumber: "+1 (555) 345-6789",
+          accessRights: ["Dashboard", "Portfolio Companies"],
+          isActive: true
         }
       ];
       

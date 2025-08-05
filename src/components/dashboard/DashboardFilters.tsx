@@ -10,26 +10,37 @@ interface Company {
   name: string;
   fundId: number;
 }
+interface BoardObserver {
+  id: string;
+  name: string;
+  designation: string;
+}
 export function DashboardFilters({
   funds,
   companies,
   financialYears,
+  boardObservers,
   selectedFund,
   setSelectedFund,
   selectedCompany,
   setSelectedCompany,
   selectedYear,
   setSelectedYear,
+  selectedBoardObserver,
+  setSelectedBoardObserver,
 }: {
   funds: Fund[];
   companies: Company[];
   financialYears: string[];
+  boardObservers: BoardObserver[];
   selectedFund: string;
   setSelectedFund: (v: string) => void;
   selectedCompany: string;
   setSelectedCompany: (v: string) => void;
   selectedYear: string;
   setSelectedYear: (v: string) => void;
+  selectedBoardObserver: string;
+  setSelectedBoardObserver: (v: string) => void;
 }) {
   // Filter companies based on selected fund
   const filteredCompanies = selectedFund === "all"
@@ -37,7 +48,7 @@ export function DashboardFilters({
     : companies.filter(company => company.fundId === parseInt(selectedFund));
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
       <div>
         <label className="block text-sm font-medium mb-1">Select Fund</label>
         <Select value={selectedFund} onValueChange={setSelectedFund}>
@@ -80,6 +91,22 @@ export function DashboardFilters({
             {financialYears.map(year => (
               <SelectItem key={year} value={year}>
                 {year}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div>
+        <label className="block text-sm font-medium mb-1">Board Observer</label>
+        <Select value={selectedBoardObserver} onValueChange={setSelectedBoardObserver}>
+          <SelectTrigger>
+            <SelectValue placeholder="All Board Observers" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Board Observers</SelectItem>
+            {boardObservers.map(observer => (
+              <SelectItem key={observer.id} value={observer.id}>
+                {observer.name}
               </SelectItem>
             ))}
           </SelectContent>
