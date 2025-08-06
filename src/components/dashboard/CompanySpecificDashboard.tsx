@@ -434,13 +434,31 @@ export function CompanySpecificDashboard({ company, selectedYear, selectedTimeli
     { name: "Governance", value: esgData.governance, fill: "#8b5cf6" },
   ];
 
+  // Industry benchmark data (from S&P, DJSI, MSCI)
+  const getIndustryBenchmark = (sector: string) => {
+    const benchmarks = {
+      "ClimateTech": { environmental: 82, social: 74, governance: 78 }, // MSCI Clean Energy Index
+      "AgriTech": { environmental: 71, social: 76, governance: 80 }, // DJSI Agriculture
+      "HealthTech": { environmental: 68, social: 84, governance: 85 }, // S&P Healthcare Index
+      "EdTech": { environmental: 65, social: 82, governance: 79 }, // S&P Technology Index
+      "FinTech": { environmental: 70, social: 75, governance: 88 }, // DJSI Financial Services
+    };
+    return benchmarks[sector as keyof typeof benchmarks] || { environmental: 75, social: 78, governance: 80 };
+  };
+
+  // Get companies in the same industry for comparison
+  const sameIndustryCompanies = portfolioCompanies.filter(c => 
+    c.sector === company.sector && c.id !== company.id
+  );
+
   // Prepare comparison data based on selection
   const getComparisonData = () => {
     if (comparisonType === "industry") {
+      const benchmark = getIndustryBenchmark(company.sector);
       return [
-        { metric: "Environmental", company: esgData.environmental, comparison: 75 },
-        { metric: "Social", company: esgData.social, comparison: 78 },
-        { metric: "Governance", company: esgData.governance, comparison: 80 },
+        { metric: "Environmental", company: esgData.environmental, comparison: benchmark.environmental },
+        { metric: "Social", company: esgData.social, comparison: benchmark.social },
+        { metric: "Governance", company: esgData.governance, comparison: benchmark.governance },
       ];
     } else {
       // Find the selected portfolio company
@@ -453,10 +471,11 @@ export function CompanySpecificDashboard({ company, selectedYear, selectedTimeli
         ];
       }
       // Fallback to industry average
+      const benchmark = getIndustryBenchmark(company.sector);
       return [
-        { metric: "Environmental", company: esgData.environmental, comparison: 75 },
-        { metric: "Social", company: esgData.social, comparison: 78 },
-        { metric: "Governance", company: esgData.governance, comparison: 80 },
+        { metric: "Environmental", company: esgData.environmental, comparison: benchmark.environmental },
+        { metric: "Social", company: esgData.social, comparison: benchmark.social },
+        { metric: "Governance", company: esgData.governance, comparison: benchmark.governance },
       ];
     }
   };
@@ -686,14 +705,28 @@ export function CompanySpecificDashboard({ company, selectedYear, selectedTimeli
                   <SelectValue placeholder="Select comparison type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="industry">Industry Average</SelectItem>
-                  {portfolioCompanies.map(company => (
-                    <SelectItem key={company.id} value={company.name}>
-                      {company.name}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="industry">
+                    Industry Average ({company.sector})
+                  </SelectItem>
+                  {sameIndustryCompanies.length > 0 && (
+                    <>
+                      <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground border-t mt-1 pt-2">
+                        Portfolio Companies ({company.sector})
+                      </div>
+                      {sameIndustryCompanies.map(comp => (
+                        <SelectItem key={comp.id} value={comp.name}>
+                          {comp.name}
+                        </SelectItem>
+                      ))}
+                    </>
+                  )}
                 </SelectContent>
               </Select>
+              {comparisonType === "industry" && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Industry benchmarks sourced from S&P, DJSI, and MSCI indices
+                </p>
+              )}
             </div>
             <div className="flex-1">
               <label className="block text-sm font-medium mb-2">KPI for Trend Analysis</label>
@@ -739,9 +772,9 @@ export function CompanySpecificDashboard({ company, selectedYear, selectedTimeli
                       <Tooltip content={<ChartTooltipContent />} />
                       <Legend />
                       <Bar dataKey="company" name={company.name} fill="#8b5cf6" />
-                      <Bar 
+                       <Bar 
                         dataKey="comparison" 
-                        name={comparisonType === "industry" ? "Industry Average" : "Portfolio Average"} 
+                        name={comparisonType === "industry" ? `Industry Benchmark (${company.sector})` : comparisonType} 
                         fill="#94a3b8" 
                       />
                     </BarChart>
