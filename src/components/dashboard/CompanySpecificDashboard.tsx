@@ -1,9 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Building2, Users, Calendar, TrendingUp, Target, Award } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from "recharts";
 import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
+import { useState } from "react";
 
 interface CompanyData {
   id: number;
@@ -83,6 +85,45 @@ const getGovernanceKPIs = (companyId: number) => [
   { name: "Whistleblower Reports", value: companyId === 1 ? 3 : 7, unit: "reports", target: 0, trend: "down" },
 ];
 
+const getPortfolioCompaniesInSameIndustry = (sector: string, currentCompanyId: number) => {
+  const sectorCompanies = {
+    "ClimateTech": [{ name: "EcoSolutions Inc.", environmental: 88, social: 82, governance: 85, overall: 85 }],
+    "AgriTech": [{ name: "GreenHarvest", environmental: 75, social: 80, governance: 78, overall: 78 }],
+    "HealthTech": [{ name: "MediTech Innovations", environmental: 85, social: 95, governance: 92, overall: 92 }],
+    "EdTech": [{ name: "EduForward", environmental: 70, social: 85, governance: 80, overall: 80 }],
+    "FinTech": [{ name: "FinSecure", environmental: 68, social: 72, governance: 78, overall: 75 }]
+  };
+  return sectorCompanies[sector] || [];
+};
+
+const getKPITrendsData = (companyId: number, kpiName: string, granularity: string) => {
+  const baseData = {
+    monthly: [
+      { period: "Jan 2025", value: 70 },
+      { period: "Feb 2025", value: 73 },
+      { period: "Mar 2025", value: 76 },
+      { period: "Apr 2025", value: 78 },
+      { period: "May 2025", value: 80 },
+    ],
+    yearly: [
+      { period: "2021", value: 60 },
+      { period: "2022", value: 65 },
+      { period: "2023", value: 70 },
+      { period: "2024", value: 75 },
+      { period: "2025", value: 80 },
+    ]
+  };
+  
+  // Add some variation based on company and KPI
+  const multiplier = companyId === 1 ? 1.1 : 0.9;
+  const kpiMultiplier = kpiName.includes("Carbon") ? 0.8 : 1.2;
+  
+  return baseData[granularity].map(item => ({
+    ...item,
+    value: Math.round(item.value * multiplier * kpiMultiplier)
+  }));
+};
+
 const chartConfig = {
   environmental: { color: "#22c55e" },
   social: { color: "#3b82f6" },
@@ -91,18 +132,45 @@ const chartConfig = {
 };
 
 export function CompanySpecificDashboard({ company, selectedYear, selectedTimelineGranularity }: CompanySpecificDashboardProps) {
+  const [comparisonType, setComparisonType] = useState<string>("industry");
+  const [selectedKPI, setSelectedKPI] = useState<string>("Carbon Footprint Reduction");
+  
   const esgData = getCompanyESGData(company.id);
   const trendsData = getCompanyTrends(company.id, selectedTimelineGranularity);
   const kpis = getCompanyKPIs(company.id);
   const environmentalKPIs = getEnvironmentalKPIs(company.id);
   const socialKPIs = getSocialKPIs(company.id);
   const governanceKPIs = getGovernanceKPIs(company.id);
+  const portfolioCompanies = getPortfolioCompaniesInSameIndustry(company.sector, company.id);
+  const kpiTrendsData = getKPITrendsData(company.id, selectedKPI, selectedTimelineGranularity);
 
   const esgBreakdownData = [
     { name: "Environmental", value: esgData.environmental, fill: "#22c55e" },
     { name: "Social", value: esgData.social, fill: "#3b82f6" },
     { name: "Governance", value: esgData.governance, fill: "#8b5cf6" },
   ];
+
+  // Prepare comparison data based on selection
+  const getComparisonData = () => {
+    if (comparisonType === "industry") {
+      return [
+        { metric: "Environmental", company: esgData.environmental, comparison: 75 },
+        { metric: "Social", company: esgData.social, comparison: 78 },
+        { metric: "Governance", company: esgData.governance, comparison: 80 },
+      ];
+    } else {
+      // Portfolio companies comparison - show average of other companies in same industry
+      const avgCompany = portfolioCompanies[0] || { environmental: 75, social: 78, governance: 80 };
+      return [
+        { metric: "Environmental", company: esgData.environmental, comparison: avgCompany.environmental },
+        { metric: "Social", company: esgData.social, comparison: avgCompany.social },
+        { metric: "Governance", company: esgData.governance, comparison: avgCompany.governance },
+      ];
+    }
+  };
+
+  // Get all KPIs for dropdown
+  const allKPIs = [...environmentalKPIs, ...socialKPIs, ...governanceKPIs].map(kpi => kpi.name);
 
   return (
     <div className="space-y-6">
@@ -318,33 +386,107 @@ export function CompanySpecificDashboard({ company, selectedYear, selectedTimeli
         </TabsContent>
 
         <TabsContent value="performance" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>ESG Performance vs Industry Average</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ChartContainer className="h-[400px]" config={chartConfig}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={[
-                      { metric: "Environmental", company: esgData.environmental, industry: 75 },
-                      { metric: "Social", company: esgData.social, industry: 78 },
-                      { metric: "Governance", company: esgData.governance, industry: 80 },
-                    ]}
-                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="metric" />
-                    <YAxis domain={[0, 100]} />
-                    <Tooltip content={<ChartTooltipContent />} />
-                    <Legend />
-                    <Bar dataKey="company" name={company.name} fill="#8b5cf6" />
-                    <Bar dataKey="industry" name="Industry Average" fill="#94a3b8" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartContainer>
-            </CardContent>
-          </Card>
+          <div className="flex gap-4 mb-4">
+            <div className="flex-1">
+              <label className="block text-sm font-medium mb-2">Comparison Type</label>
+              <Select value={comparisonType} onValueChange={setComparisonType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select comparison type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="industry">Industry Average</SelectItem>
+                  <SelectItem value="portfolio">Portfolio Companies (Same Industry)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex-1">
+              <label className="block text-sm font-medium mb-2">KPI for Trend Analysis</label>
+              <Select value={selectedKPI} onValueChange={setSelectedKPI}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select KPI" />
+                </SelectTrigger>
+                <SelectContent>
+                  <optgroup label="Environmental">
+                    {environmentalKPIs.map(kpi => (
+                      <SelectItem key={kpi.name} value={kpi.name}>{kpi.name}</SelectItem>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Social">
+                    {socialKPIs.map(kpi => (
+                      <SelectItem key={kpi.name} value={kpi.name}>{kpi.name}</SelectItem>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Governance">
+                    {governanceKPIs.map(kpi => (
+                      <SelectItem key={kpi.name} value={kpi.name}>{kpi.name}</SelectItem>
+                    ))}
+                  </optgroup>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>
+                  ESG Performance vs {comparisonType === "industry" ? "Industry Average" : "Portfolio Companies"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ChartContainer className="h-[400px]" config={chartConfig}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={getComparisonData()}
+                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="metric" />
+                      <YAxis domain={[0, 100]} />
+                      <Tooltip content={<ChartTooltipContent />} />
+                      <Legend />
+                      <Bar dataKey="company" name={company.name} fill="#8b5cf6" />
+                      <Bar 
+                        dataKey="comparison" 
+                        name={comparisonType === "industry" ? "Industry Average" : "Portfolio Average"} 
+                        fill="#94a3b8" 
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>{selectedKPI} - {selectedTimelineGranularity === "monthly" ? "Monthly" : "Annual"} Trends</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ChartContainer className="h-[400px]" config={chartConfig}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart
+                      data={kpiTrendsData}
+                      margin={{ top: 20, right: 30, left: 20, bottom: 10 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="period" />
+                      <YAxis />
+                      <Tooltip content={<ChartTooltipContent />} />
+                      <Legend />
+                      <Line 
+                        type="monotone" 
+                        dataKey="value" 
+                        name={selectedKPI}
+                        stroke="#8b5cf6" 
+                        strokeWidth={3} 
+                        activeDot={{ r: 6 }} 
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         <TabsContent value="trends" className="space-y-4">
