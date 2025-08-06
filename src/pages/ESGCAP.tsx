@@ -1,15 +1,17 @@
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { CAPItem, CAPStatus, CAPType, CAPPriority, CAPTable } from "@/components/esg-cap/CAPTable";
 import { ReviewDialog } from "@/components/esg-cap/ReviewDialog";
 import { FilterControls } from "@/components/esg-cap/FilterControls";
+import { AlertsPanel } from "@/components/esg-cap/AlertsPanel";
 import { portfolioCompanies } from "@/features/edit-portfolio-company/portfolioCompanies";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
+import { useESGCAPAlerts } from "@/hooks/useESGCAPAlerts";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { 
   Dialog,
@@ -82,11 +84,15 @@ export default function ESGCAP() {
   
   // Current working copy of CAP items
   const [capItems, setCapItems] = useState<CAPItem[]>(originalCapItems);
+  const previousCapItemsRef = useRef<CAPItem[]>(originalCapItems);
 
   // Filter CAP items by selected company
   const filteredCAPItems = selectedCompany === "all"
     ? capItems
     : capItems.filter(item => item.companyId === parseInt(selectedCompany));
+
+  // Use alerts hook to monitor changes
+  const alerts = useESGCAPAlerts(filteredCAPItems, previousCapItemsRef.current);
 
   const handleReview = (item: CAPItem) => {
     const currentItem = capItems.find(i => i.id === item.id);
@@ -142,6 +148,9 @@ export default function ESGCAP() {
   };
 
   const handleSaveChanges = (updatedItem: CAPItem) => {
+    // Store previous state for alerts
+    previousCapItemsRef.current = [...capItems];
+    
     const updatedItems = capItems.map(item => {
       if (item.id === updatedItem.id) {
         return updatedItem;
@@ -261,6 +270,12 @@ export default function ESGCAP() {
           </Button>
         </div>
       </div>
+
+      <AlertsPanel 
+        overdueItems={alerts.overdueItems}
+        approachingDeadlines={alerts.approachingDeadlines}
+        onItemClick={handleReview}
+      />
 
       <Card>
         <CardHeader>
