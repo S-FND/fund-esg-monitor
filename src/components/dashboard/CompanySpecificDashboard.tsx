@@ -98,7 +98,287 @@ const getPortfolioCompaniesInSameIndustry = (sector: string, currentCompanyId: n
 };
 
 const getKPITrendsData = (companyId: number, kpiName: string, granularity: string) => {
-  const baseData = {
+  // Different KPI-specific data patterns
+  const kpiDataPatterns = {
+    // Environmental KPIs
+    "Carbon Footprint Reduction": {
+      monthly: [
+        { period: "Jan 2025", value: 20 },
+        { period: "Feb 2025", value: 22 },
+        { period: "Mar 2025", value: 23 },
+        { period: "Apr 2025", value: 24 },
+        { period: "May 2025", value: 25 },
+      ],
+      yearly: [
+        { period: "2021", value: 10 },
+        { period: "2022", value: 13 },
+        { period: "2023", value: 17 },
+        { period: "2024", value: 21 },
+        { period: "2025", value: 25 },
+      ]
+    },
+    "Renewable Energy Usage": {
+      monthly: [
+        { period: "Jan 2025", value: 60 },
+        { period: "Feb 2025", value: 61 },
+        { period: "Mar 2025", value: 63 },
+        { period: "Apr 2025", value: 64 },
+        { period: "May 2025", value: 65 },
+      ],
+      yearly: [
+        { period: "2021", value: 35 },
+        { period: "2022", value: 45 },
+        { period: "2023", value: 55 },
+        { period: "2024", value: 62 },
+        { period: "2025", value: 65 },
+      ]
+    },
+    "Water Usage Efficiency": {
+      monthly: [
+        { period: "Jan 2025", value: 74 },
+        { period: "Feb 2025", value: 75 },
+        { period: "Mar 2025", value: 76 },
+        { period: "Apr 2025", value: 77 },
+        { period: "May 2025", value: 78 },
+      ],
+      yearly: [
+        { period: "2021", value: 65 },
+        { period: "2022", value: 68 },
+        { period: "2023", value: 72 },
+        { period: "2024", value: 76 },
+        { period: "2025", value: 78 },
+      ]
+    },
+    "Waste Recycling Rate": {
+      monthly: [
+        { period: "Jan 2025", value: 82 },
+        { period: "Feb 2025", value: 83 },
+        { period: "Mar 2025", value: 84 },
+        { period: "Apr 2025", value: 84 },
+        { period: "May 2025", value: 85 },
+      ],
+      yearly: [
+        { period: "2021", value: 70 },
+        { period: "2022", value: 75 },
+        { period: "2023", value: 80 },
+        { period: "2024", value: 83 },
+        { period: "2025", value: 85 },
+      ]
+    },
+    "Green Certifications": {
+      monthly: [
+        { period: "Jan 2025", value: 2 },
+        { period: "Feb 2025", value: 2 },
+        { period: "Mar 2025", value: 3 },
+        { period: "Apr 2025", value: 3 },
+        { period: "May 2025", value: 3 },
+      ],
+      yearly: [
+        { period: "2021", value: 0 },
+        { period: "2022", value: 1 },
+        { period: "2023", value: 2 },
+        { period: "2024", value: 2 },
+        { period: "2025", value: 3 },
+      ]
+    },
+    // Social KPIs
+    "Employee Satisfaction": {
+      monthly: [
+        { period: "Jan 2025", value: 4.0 },
+        { period: "Feb 2025", value: 4.1 },
+        { period: "Mar 2025", value: 4.1 },
+        { period: "Apr 2025", value: 4.2 },
+        { period: "May 2025", value: 4.2 },
+      ],
+      yearly: [
+        { period: "2021", value: 3.5 },
+        { period: "2022", value: 3.7 },
+        { period: "2023", value: 3.9 },
+        { period: "2024", value: 4.1 },
+        { period: "2025", value: 4.2 },
+      ]
+    },
+    "Employee Turnover Rate": {
+      monthly: [
+        { period: "Jan 2025", value: 12 },
+        { period: "Feb 2025", value: 10 },
+        { period: "Mar 2025", value: 9 },
+        { period: "Apr 2025", value: 8 },
+        { period: "May 2025", value: 8 },
+      ],
+      yearly: [
+        { period: "2021", value: 18 },
+        { period: "2022", value: 15 },
+        { period: "2023", value: 12 },
+        { period: "2024", value: 10 },
+        { period: "2025", value: 8 },
+      ]
+    },
+    "Gender Pay Gap": {
+      monthly: [
+        { period: "Jan 2025", value: 8 },
+        { period: "Feb 2025", value: 7 },
+        { period: "Mar 2025", value: 6 },
+        { period: "Apr 2025", value: 5 },
+        { period: "May 2025", value: 5 },
+      ],
+      yearly: [
+        { period: "2021", value: 15 },
+        { period: "2022", value: 12 },
+        { period: "2023", value: 9 },
+        { period: "2024", value: 7 },
+        { period: "2025", value: 5 },
+      ]
+    },
+    "Training Hours per Employee": {
+      monthly: [
+        { period: "Jan 2025", value: 35 },
+        { period: "Feb 2025", value: 37 },
+        { period: "Mar 2025", value: 38 },
+        { period: "Apr 2025", value: 39 },
+        { period: "May 2025", value: 40 },
+      ],
+      yearly: [
+        { period: "2021", value: 20 },
+        { period: "2022", value: 25 },
+        { period: "2023", value: 30 },
+        { period: "2024", value: 35 },
+        { period: "2025", value: 40 },
+      ]
+    },
+    "Community Investment": {
+      monthly: [
+        { period: "Jan 2025", value: 2.2 },
+        { period: "Feb 2025", value: 2.3 },
+        { period: "Mar 2025", value: 2.4 },
+        { period: "Apr 2025", value: 2.4 },
+        { period: "May 2025", value: 2.5 },
+      ],
+      yearly: [
+        { period: "2021", value: 1.0 },
+        { period: "2022", value: 1.5 },
+        { period: "2023", value: 2.0 },
+        { period: "2024", value: 2.3 },
+        { period: "2025", value: 2.5 },
+      ]
+    },
+    "Health & Safety Incidents": {
+      monthly: [
+        { period: "Jan 2025", value: 4 },
+        { period: "Feb 2025", value: 3 },
+        { period: "Mar 2025", value: 3 },
+        { period: "Apr 2025", value: 2 },
+        { period: "May 2025", value: 2 },
+      ],
+      yearly: [
+        { period: "2021", value: 8 },
+        { period: "2022", value: 6 },
+        { period: "2023", value: 4 },
+        { period: "2024", value: 3 },
+        { period: "2025", value: 2 },
+      ]
+    },
+    // Governance KPIs
+    "Board Independence": {
+      monthly: [
+        { period: "Jan 2025", value: 55 },
+        { period: "Feb 2025", value: 57 },
+        { period: "Mar 2025", value: 58 },
+        { period: "Apr 2025", value: 60 },
+        { period: "May 2025", value: 60 },
+      ],
+      yearly: [
+        { period: "2021", value: 35 },
+        { period: "2022", value: 42 },
+        { period: "2023", value: 50 },
+        { period: "2024", value: 57 },
+        { period: "2025", value: 60 },
+      ]
+    },
+    "Women in Leadership": {
+      monthly: [
+        { period: "Jan 2025", value: 35 },
+        { period: "Feb 2025", value: 37 },
+        { period: "Mar 2025", value: 38 },
+        { period: "Apr 2025", value: 40 },
+        { period: "May 2025", value: 40 },
+      ],
+      yearly: [
+        { period: "2021", value: 20 },
+        { period: "2022", value: 25 },
+        { period: "2023", value: 30 },
+        { period: "2024", value: 35 },
+        { period: "2025", value: 40 },
+      ]
+    },
+    "Ethics Training Completion": {
+      monthly: [
+        { period: "Jan 2025", value: 92 },
+        { period: "Feb 2025", value: 93 },
+        { period: "Mar 2025", value: 94 },
+        { period: "Apr 2025", value: 95 },
+        { period: "May 2025", value: 95 },
+      ],
+      yearly: [
+        { period: "2021", value: 75 },
+        { period: "2022", value: 82 },
+        { period: "2023", value: 88 },
+        { period: "2024", value: 92 },
+        { period: "2025", value: 95 },
+      ]
+    },
+    "Data Privacy Compliance": {
+      monthly: [
+        { period: "Jan 2025", value: 96 },
+        { period: "Feb 2025", value: 97 },
+        { period: "Mar 2025", value: 97 },
+        { period: "Apr 2025", value: 98 },
+        { period: "May 2025", value: 98 },
+      ],
+      yearly: [
+        { period: "2021", value: 80 },
+        { period: "2022", value: 85 },
+        { period: "2023", value: 92 },
+        { period: "2024", value: 96 },
+        { period: "2025", value: 98 },
+      ]
+    },
+    "Supply Chain Audits": {
+      monthly: [
+        { period: "Jan 2025", value: 82 },
+        { period: "Feb 2025", value: 83 },
+        { period: "Mar 2025", value: 84 },
+        { period: "Apr 2025", value: 85 },
+        { period: "May 2025", value: 85 },
+      ],
+      yearly: [
+        { period: "2021", value: 60 },
+        { period: "2022", value: 68 },
+        { period: "2023", value: 75 },
+        { period: "2024", value: 82 },
+        { period: "2025", value: 85 },
+      ]
+    },
+    "Whistleblower Reports": {
+      monthly: [
+        { period: "Jan 2025", value: 5 },
+        { period: "Feb 2025", value: 4 },
+        { period: "Mar 2025", value: 3 },
+        { period: "Apr 2025", value: 3 },
+        { period: "May 2025", value: 3 },
+      ],
+      yearly: [
+        { period: "2021", value: 10 },
+        { period: "2022", value: 8 },
+        { period: "2023", value: 6 },
+        { period: "2024", value: 4 },
+        { period: "2025", value: 3 },
+      ]
+    }
+  };
+  
+  // Get the specific KPI data or fallback to default
+  const kpiData = kpiDataPatterns[kpiName] || {
     monthly: [
       { period: "Jan 2025", value: 70 },
       { period: "Feb 2025", value: 73 },
@@ -115,13 +395,12 @@ const getKPITrendsData = (companyId: number, kpiName: string, granularity: strin
     ]
   };
   
-  // Add some variation based on company and KPI
-  const multiplier = companyId === 1 ? 1.1 : 0.9;
-  const kpiMultiplier = kpiName.includes("Carbon") ? 0.8 : 1.2;
+  // Apply company-specific variation
+  const companyMultiplier = companyId === 1 ? 1.0 : 0.85;
   
-  return baseData[granularity].map(item => ({
+  return kpiData[granularity].map(item => ({
     ...item,
-    value: Math.round(item.value * multiplier * kpiMultiplier)
+    value: Math.round(item.value * companyMultiplier * 100) / 100
   }));
 };
 
