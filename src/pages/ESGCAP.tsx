@@ -38,7 +38,7 @@ export default function ESGCAP() {
       actions: "Develop and implement a comprehensive environmental policy",
       responsibility: "Company ESG Manager",
       deliverable: "Environmental Policy Document",
-      targetDate: "2025-06-30",
+      targetDate: "2025-08-10", // Approaching deadline (4 days)
       type: "CP",
       priority: "High",
       status: "Pending"
@@ -50,7 +50,7 @@ export default function ESGCAP() {
       actions: "Implement waste segregation and recycling program",
       responsibility: "Operations Team",
       deliverable: "Waste Management Reports",
-      targetDate: "2025-05-15",
+      targetDate: "2025-08-09", // Approaching deadline (3 days)
       type: "CS",
       priority: "Medium",
       status: "In Progress"
@@ -75,10 +75,34 @@ export default function ESGCAP() {
       actions: "Develop and implement diversity and inclusion policy",
       responsibility: "HR Department",
       deliverable: "D&I Policy Document",
-      targetDate: "2025-03-15",
+      targetDate: "2025-08-02", // Overdue (4 days overdue)
       type: "CS",
       priority: "Low",
       status: "Delayed"
+    },
+    {
+      id: "cap-5",
+      companyId: 1,
+      item: "Carbon Footprint Assessment",
+      actions: "Conduct comprehensive carbon footprint assessment",
+      responsibility: "Sustainability Team",
+      deliverable: "Carbon Assessment Report",
+      targetDate: "2025-08-12", // Approaching deadline (6 days)
+      type: "CP",
+      priority: "High",
+      status: "Pending"
+    },
+    {
+      id: "cap-6",
+      companyId: 2,
+      item: "Water Conservation Plan",
+      actions: "Develop water conservation strategy and implementation plan",
+      responsibility: "Facilities Management",
+      deliverable: "Water Conservation Strategy",
+      targetDate: "2025-08-01", // Overdue (5 days overdue)
+      type: "CS",
+      priority: "Medium",
+      status: "In Progress"
     }
   ]);
   
