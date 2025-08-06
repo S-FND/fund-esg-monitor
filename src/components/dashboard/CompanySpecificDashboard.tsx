@@ -86,14 +86,15 @@ const getGovernanceKPIs = (companyId: number) => [
 ];
 
 const getPortfolioCompaniesInSameIndustry = (sector: string, currentCompanyId: number) => {
-  const sectorCompanies = {
-    "ClimateTech": [{ name: "EcoSolutions Inc.", environmental: 88, social: 82, governance: 85, overall: 85 }],
-    "AgriTech": [{ name: "GreenHarvest", environmental: 75, social: 80, governance: 78, overall: 78 }],
-    "HealthTech": [{ name: "MediTech Innovations", environmental: 85, social: 95, governance: 92, overall: 92 }],
-    "EdTech": [{ name: "EduForward", environmental: 70, social: 85, governance: 80, overall: 80 }],
-    "FinTech": [{ name: "FinSecure", environmental: 68, social: 72, governance: 78, overall: 75 }]
-  };
-  return sectorCompanies[sector] || [];
+  const allCompanies = [
+    { id: 1, name: "EcoSolutions Inc.", sector: "ClimateTech", environmental: 88, social: 82, governance: 85, overall: 85 },
+    { id: 2, name: "GreenHarvest", sector: "AgriTech", environmental: 75, social: 80, governance: 78, overall: 78 },
+    { id: 3, name: "MediTech Innovations", sector: "HealthTech", environmental: 85, social: 95, governance: 92, overall: 92 },
+    { id: 4, name: "EduForward", sector: "EdTech", environmental: 70, social: 85, governance: 80, overall: 80 },
+    { id: 5, name: "FinSecure", sector: "FinTech", environmental: 68, social: 72, governance: 78, overall: 75 }
+  ];
+  
+  return allCompanies.filter(company => company.sector === sector && company.id !== currentCompanyId);
 };
 
 const getKPITrendsData = (companyId: number, kpiName: string, granularity: string) => {
@@ -159,12 +160,20 @@ export function CompanySpecificDashboard({ company, selectedYear, selectedTimeli
         { metric: "Governance", company: esgData.governance, comparison: 80 },
       ];
     } else {
-      // Portfolio companies comparison - show average of other companies in same industry
-      const avgCompany = portfolioCompanies[0] || { environmental: 75, social: 78, governance: 80 };
+      // Find the selected portfolio company
+      const selectedCompany = portfolioCompanies.find(c => c.name === comparisonType);
+      if (selectedCompany) {
+        return [
+          { metric: "Environmental", company: esgData.environmental, comparison: selectedCompany.environmental },
+          { metric: "Social", company: esgData.social, comparison: selectedCompany.social },
+          { metric: "Governance", company: esgData.governance, comparison: selectedCompany.governance },
+        ];
+      }
+      // Fallback to industry average
       return [
-        { metric: "Environmental", company: esgData.environmental, comparison: avgCompany.environmental },
-        { metric: "Social", company: esgData.social, comparison: avgCompany.social },
-        { metric: "Governance", company: esgData.governance, comparison: avgCompany.governance },
+        { metric: "Environmental", company: esgData.environmental, comparison: 75 },
+        { metric: "Social", company: esgData.social, comparison: 78 },
+        { metric: "Governance", company: esgData.governance, comparison: 80 },
       ];
     }
   };
@@ -395,7 +404,11 @@ export function CompanySpecificDashboard({ company, selectedYear, selectedTimeli
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="industry">Industry Average</SelectItem>
-                  <SelectItem value="portfolio">Portfolio Companies (Same Industry)</SelectItem>
+                  {portfolioCompanies.map(company => (
+                    <SelectItem key={company.id} value={company.name}>
+                      {company.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
