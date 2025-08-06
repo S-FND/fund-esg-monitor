@@ -1,4 +1,3 @@
-
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Fund {
@@ -9,12 +8,14 @@ interface Company {
   id: number;
   name: string;
   fundId: number;
+  sector: string;
 }
 interface BoardObserver {
   id: string;
   name: string;
   designation: string;
 }
+
 export function DashboardFilters({
   funds,
   companies,
@@ -28,6 +29,10 @@ export function DashboardFilters({
   setSelectedYear,
   selectedBoardObserver,
   setSelectedBoardObserver,
+  selectedIndustry,
+  setSelectedIndustry,
+  selectedTimelineGranularity,
+  setSelectedTimelineGranularity,
 }: {
   funds: Fund[];
   companies: Company[];
@@ -41,76 +46,113 @@ export function DashboardFilters({
   setSelectedYear: (v: string) => void;
   selectedBoardObserver: string;
   setSelectedBoardObserver: (v: string) => void;
+  selectedIndustry: string;
+  setSelectedIndustry: (v: string) => void;
+  selectedTimelineGranularity: string;
+  setSelectedTimelineGranularity: (v: string) => void;
 }) {
   // Filter companies based on selected fund
   const filteredCompanies = selectedFund === "all"
     ? companies
     : companies.filter(company => company.fundId === parseInt(selectedFund));
 
+  // Get unique industries from companies
+  const industries = Array.from(new Set(companies.map(company => company.sector)));
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-      <div>
-        <label className="block text-sm font-medium mb-1">Select Fund</label>
-        <Select value={selectedFund} onValueChange={setSelectedFund}>
-          <SelectTrigger>
-            <SelectValue placeholder="All Funds" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Funds</SelectItem>
-            {funds.map(fund => (
-              <SelectItem key={fund.id} value={fund.id.toString()}>
-                {fund.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <div>
-        <label className="block text-sm font-medium mb-1">Select Portfolio Company</label>
-        <Select value={selectedCompany} onValueChange={setSelectedCompany}>
-          <SelectTrigger>
-            <SelectValue placeholder="All Companies" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Companies</SelectItem>
-            {filteredCompanies.map(company => (
-              <SelectItem key={company.id} value={company.id.toString()}>
-                {company.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <div>
-        <label className="block text-sm font-medium mb-1">Financial Year</label>
-        <Select value={selectedYear} onValueChange={setSelectedYear}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select Year" />
-          </SelectTrigger>
-          <SelectContent>
-            {financialYears.map(year => (
-              <SelectItem key={year} value={year}>
-                {year}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <div>
-        <label className="block text-sm font-medium mb-1">Board Observer</label>
-        <Select value={selectedBoardObserver} onValueChange={setSelectedBoardObserver}>
-          <SelectTrigger>
-            <SelectValue placeholder="All Board Observers" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Board Observers</SelectItem>
-            {boardObservers.map(observer => (
-              <SelectItem key={observer.id} value={observer.id}>
-                {observer.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">Select Fund</label>
+          <Select value={selectedFund} onValueChange={setSelectedFund}>
+            <SelectTrigger>
+              <SelectValue placeholder="All Funds" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Funds</SelectItem>
+              {funds.map(fund => (
+                <SelectItem key={fund.id} value={fund.id.toString()}>
+                  {fund.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Select Portfolio Company</label>
+          <Select value={selectedCompany} onValueChange={setSelectedCompany}>
+            <SelectTrigger>
+              <SelectValue placeholder="All Companies" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Companies</SelectItem>
+              {filteredCompanies.map(company => (
+                <SelectItem key={company.id} value={company.id.toString()}>
+                  {company.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Industry</label>
+          <Select value={selectedIndustry} onValueChange={setSelectedIndustry}>
+            <SelectTrigger>
+              <SelectValue placeholder="All Industries" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Industries</SelectItem>
+              {industries.map(industry => (
+                <SelectItem key={industry} value={industry}>
+                  {industry}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Financial Year</label>
+          <Select value={selectedYear} onValueChange={setSelectedYear}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select Year" />
+            </SelectTrigger>
+            <SelectContent>
+              {financialYears.map(year => (
+                <SelectItem key={year} value={year}>
+                  {year}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Board Observer</label>
+          <Select value={selectedBoardObserver} onValueChange={setSelectedBoardObserver}>
+            <SelectTrigger>
+              <SelectValue placeholder="All Board Observers" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Board Observers</SelectItem>
+              {boardObservers.map(observer => (
+                <SelectItem key={observer.id} value={observer.id}>
+                  {observer.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Timeline</label>
+          <Select value={selectedTimelineGranularity} onValueChange={setSelectedTimelineGranularity}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select Timeline" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="monthly">Monthly</SelectItem>
+              <SelectItem value="yearly">Financial Year</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
     </div>
   );

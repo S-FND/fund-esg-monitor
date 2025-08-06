@@ -21,6 +21,9 @@ import { TopSDGsCard } from "@/components/dashboard/TopSDGsCard";
 import { TopInitiativesCard } from "@/components/dashboard/TopInitiativesCard";
 import { TopNonCompliancesCard } from "@/components/dashboard/TopNonCompliancesCard";
 import { ESGRisksCard } from "@/components/dashboard/ESGRisksCard";
+import { IndustryComparisonChart } from "@/components/dashboard/IndustryComparisonChart";
+import { ESGDetailedTrendsChart } from "@/components/dashboard/ESGDetailedTrendsChart";
+import { IndustryStatsCard } from "@/components/dashboard/IndustryStatsCard";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
 
@@ -49,11 +52,29 @@ const financialYears = ["2021", "2022", "2023", "2024", "2025"];
 
 // ESG Trends Data
 const esgTrendsData = [
-  { year: "2021", environmental: 65, social: 60, governance: 70, overall: 65 },
-  { year: "2022", environmental: 70, social: 68, governance: 75, overall: 71 },
-  { year: "2023", environmental: 75, social: 73, governance: 80, overall: 76 },
-  { year: "2024", environmental: 82, social: 78, governance: 85, overall: 82 },
-  { year: "2025", environmental: 88, social: 85, governance: 90, overall: 88 },
+  { period: "2021", environmental: 65, social: 60, governance: 70, overall: 65 },
+  { period: "2022", environmental: 70, social: 68, governance: 75, overall: 71 },
+  { period: "2023", environmental: 75, social: 73, governance: 80, overall: 76 },
+  { period: "2024", environmental: 82, social: 78, governance: 85, overall: 82 },
+  { period: "2025", environmental: 88, social: 85, governance: 90, overall: 88 },
+];
+
+// Monthly trends data
+const monthlyTrendsData = [
+  { period: "Jan 2025", environmental: 82, social: 78, governance: 85, overall: 82 },
+  { period: "Feb 2025", environmental: 84, social: 80, governance: 86, overall: 83 },
+  { period: "Mar 2025", environmental: 86, social: 82, governance: 87, overall: 85 },
+  { period: "Apr 2025", environmental: 87, social: 83, governance: 88, overall: 86 },
+  { period: "May 2025", environmental: 88, social: 85, governance: 90, overall: 88 },
+];
+
+// Industry comparison data
+const industryData = [
+  { industry: "ClimateTech", environmental: 88, social: 82, governance: 85, overall: 85, companies: 1 },
+  { industry: "AgriTech", environmental: 75, social: 80, governance: 78, overall: 78, companies: 1 },
+  { industry: "HealthTech", environmental: 85, social: 95, governance: 92, overall: 92, companies: 1 },
+  { industry: "EdTech", environmental: 70, social: 85, governance: 80, overall: 80, companies: 1 },
+  { industry: "FinTech", environmental: 68, social: 72, governance: 78, overall: 75, companies: 1 },
 ];
 
 // Chart configuration
@@ -69,6 +90,8 @@ export default function Dashboard() {
   const [selectedCompany, setSelectedCompany] = useState<string>("all");
   const [selectedYear, setSelectedYear] = useState<string>("2025");
   const [selectedBoardObserver, setSelectedBoardObserver] = useState<string>("all");
+  const [selectedIndustry, setSelectedIndustry] = useState<string>("all");
+  const [selectedTimelineGranularity, setSelectedTimelineGranularity] = useState<string>("yearly");
   const navigate = useNavigate();
   
   // Apply filters sequentially
@@ -81,6 +104,22 @@ export default function Dashboard() {
   if (selectedBoardObserver !== "all") {
     filteredCompanies = filteredCompanies.filter(company => company.boardObserverId === selectedBoardObserver);
   }
+
+  if (selectedIndustry !== "all") {
+    filteredCompanies = filteredCompanies.filter(company => company.sector === selectedIndustry);
+  }
+
+  // Calculate industry stats
+  const uniqueIndustries = Array.from(new Set(companies.map(c => c.sector)));
+  const topPerformingIndustry = industryData.reduce((prev, current) => 
+    prev.overall > current.overall ? prev : current
+  ).industry;
+  const averageESGScore = Math.round(
+    industryData.reduce((sum, industry) => sum + industry.overall, 0) / industryData.length
+  );
+
+  // Get appropriate trends data based on timeline granularity
+  const trendsData = selectedTimelineGranularity === "monthly" ? monthlyTrendsData : esgTrendsData;
   
   const selectedCompanyId =
     selectedCompany !== "all"
@@ -147,13 +186,18 @@ export default function Dashboard() {
         setSelectedYear={setSelectedYear}
         selectedBoardObserver={selectedBoardObserver}
         setSelectedBoardObserver={setSelectedBoardObserver}
+        selectedIndustry={selectedIndustry}
+        setSelectedIndustry={setSelectedIndustry}
+        selectedTimelineGranularity={selectedTimelineGranularity}
+        setSelectedTimelineGranularity={setSelectedTimelineGranularity}
       />
       
       <Tabs defaultValue="overview">
-        <TabsList className="grid grid-cols-4 mb-4">
+        <TabsList className="grid grid-cols-5 mb-4">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="esg-scores">ESG Scores</TabsTrigger>
           <TabsTrigger value="sdg-performance">SDG Performance</TabsTrigger>
+          <TabsTrigger value="industry-comparison">Industry Analysis</TabsTrigger>
           <TabsTrigger value="trends">Trends</TabsTrigger>
         </TabsList>
         
@@ -208,60 +252,26 @@ export default function Dashboard() {
           </div>
         </TabsContent>
         
-        <TabsContent value="trends">
-          <Card>
-            <CardHeader>
-              <CardTitle>ESG Trends</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ChartContainer className="h-[400px]" config={esgTrendsChartConfig}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart
-                    data={esgTrendsData}
-                    margin={{ top: 20, right: 30, left: 20, bottom: 10 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="year" />
-                    <YAxis domain={[0, 100]} label={{ value: 'Score', angle: -90, position: 'insideLeft', offset: -5 }} />
-                    <Tooltip content={<ChartTooltipContent />} />
-                    <Legend />
-                    <Line 
-                      type="monotone" 
-                      dataKey="environmental" 
-                      name="Environmental" 
-                      stroke="#22c55e" 
-                      strokeWidth={2} 
-                      activeDot={{ r: 8 }} 
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey="social" 
-                      name="Social" 
-                      stroke="#3b82f6" 
-                      strokeWidth={2} 
-                      activeDot={{ r: 8 }} 
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey="governance" 
-                      name="Governance" 
-                      stroke="#8b5cf6" 
-                      strokeWidth={2} 
-                      activeDot={{ r: 8 }} 
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey="overall" 
-                      name="Overall ESG" 
-                      stroke="#f43f5e" 
-                      strokeWidth={3} 
-                      activeDot={{ r: 8 }} 
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </ChartContainer>
-            </CardContent>
-          </Card>
+        <TabsContent value="industry-comparison" className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <FundsStatsCard totalFunds={funds.length} />
+            <CompaniesStatsCard totalCompanies={filteredCompanies.length} numFunds={funds.length} />
+            <ESGStatsCard />
+            <IndustryStatsCard 
+              totalIndustries={uniqueIndustries.length}
+              topPerformingIndustry={topPerformingIndustry}
+              averageESGScore={averageESGScore}
+            />
+          </div>
+          
+          <IndustryComparisonChart data={industryData} />
+        </TabsContent>
+        
+        <TabsContent value="trends" className="space-y-4">
+          <ESGDetailedTrendsChart 
+            data={trendsData} 
+            timelineGranularity={selectedTimelineGranularity}
+          />
         </TabsContent>
       </Tabs>
     </div>
