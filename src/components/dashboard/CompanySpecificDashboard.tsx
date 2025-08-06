@@ -1,0 +1,288 @@
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Building2, Users, Calendar, TrendingUp, Target, Award } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from "recharts";
+import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
+
+interface CompanyData {
+  id: number;
+  name: string;
+  type: string;
+  sector: string;
+  ceo: string;
+  investmentDate: string;
+  stage: string;
+  shareholding: number;
+  esgScore: number;
+  esgCategory: string;
+}
+
+interface CompanySpecificDashboardProps {
+  company: CompanyData;
+  selectedYear: string;
+  selectedTimelineGranularity: string;
+}
+
+// Mock company-specific data
+const getCompanyESGData = (companyId: number) => ({
+  environmental: companyId === 1 ? 88 : companyId === 3 ? 85 : 75,
+  social: companyId === 1 ? 82 : companyId === 3 ? 95 : 80,
+  governance: companyId === 1 ? 85 : companyId === 3 ? 92 : 78,
+});
+
+const getCompanyTrends = (companyId: number, granularity: string) => {
+  if (granularity === "monthly") {
+    return [
+      { period: "Jan 2025", environmental: 85, social: 80, governance: 83, overall: 82 },
+      { period: "Feb 2025", environmental: 86, social: 81, governance: 84, overall: 84 },
+      { period: "Mar 2025", environmental: 87, social: 82, governance: 85, overall: 85 },
+      { period: "Apr 2025", environmental: 88, social: 83, governance: 86, overall: 86 },
+      { period: "May 2025", environmental: 90, social: 85, governance: 88, overall: 88 },
+    ];
+  }
+  return [
+    { period: "2021", environmental: 70, social: 65, governance: 75, overall: 70 },
+    { period: "2022", environmental: 75, social: 72, governance: 78, overall: 75 },
+    { period: "2023", environmental: 80, social: 78, governance: 82, overall: 80 },
+    { period: "2024", environmental: 85, social: 82, governance: 85, overall: 84 },
+    { period: "2025", environmental: 88, social: 85, governance: 88, overall: 87 },
+  ];
+};
+
+const getCompanyKPIs = (companyId: number) => [
+  { name: "Carbon Footprint", value: companyId === 1 ? 120 : 150, unit: "tCO2e", trend: "down" },
+  { name: "Energy Efficiency", value: companyId === 1 ? 85 : 78, unit: "%", trend: "up" },
+  { name: "Employee Satisfaction", value: companyId === 1 ? 4.2 : 3.8, unit: "/5", trend: "up" },
+  { name: "Board Diversity", value: companyId === 1 ? 40 : 30, unit: "%", trend: "up" },
+];
+
+const chartConfig = {
+  environmental: { color: "#22c55e" },
+  social: { color: "#3b82f6" },
+  governance: { color: "#8b5cf6" },
+  overall: { color: "#f43f5e" }
+};
+
+export function CompanySpecificDashboard({ company, selectedYear, selectedTimelineGranularity }: CompanySpecificDashboardProps) {
+  const esgData = getCompanyESGData(company.id);
+  const trendsData = getCompanyTrends(company.id, selectedTimelineGranularity);
+  const kpis = getCompanyKPIs(company.id);
+
+  const esgBreakdownData = [
+    { name: "Environmental", value: esgData.environmental, fill: "#22c55e" },
+    { name: "Social", value: esgData.social, fill: "#3b82f6" },
+    { name: "Governance", value: esgData.governance, fill: "#8b5cf6" },
+  ];
+
+  return (
+    <div className="space-y-6">
+      {/* Company Header */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <Building2 className="h-8 w-8 text-primary" />
+              <div>
+                <CardTitle className="text-xl">{company.name}</CardTitle>
+                <p className="text-sm text-muted-foreground">{company.sector} • {company.type}</p>
+              </div>
+            </div>
+            <Badge variant="secondary" className="text-lg px-4 py-2">
+              ESG Score: {company.esgScore} (Category {company.esgCategory})
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="flex items-center space-x-2">
+              <Users className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium">CEO</p>
+                <p className="text-sm text-muted-foreground">{company.ceo}</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium">Investment Date</p>
+                <p className="text-sm text-muted-foreground">{company.investmentDate}</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium">Stage</p>
+                <p className="text-sm text-muted-foreground">{company.stage}</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Target className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium">Shareholding</p>
+                <p className="text-sm text-muted-foreground">{company.shareholding}%</p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Tabs defaultValue="overview">
+        <TabsList className="grid grid-cols-4 mb-4">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="esg-breakdown">ESG Details</TabsTrigger>
+          <TabsTrigger value="performance">Performance</TabsTrigger>
+          <TabsTrigger value="trends">Trends</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>ESG Score Breakdown</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ChartContainer className="h-[300px]" config={chartConfig}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={esgBreakdownData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={120}
+                        paddingAngle={5}
+                        dataKey="value"
+                      >
+                        {esgBreakdownData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.fill} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Key Performance Indicators</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {kpis.map((kpi, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                      <div>
+                        <p className="font-medium">{kpi.name}</p>
+                        <p className="text-2xl font-bold text-primary">
+                          {kpi.value}{kpi.unit}
+                        </p>
+                      </div>
+                      <div className={`p-2 rounded-full ${kpi.trend === 'up' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                        <TrendingUp className={`h-4 w-4 ${kpi.trend === 'down' ? 'rotate-180' : ''}`} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="esg-breakdown" className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-green-600">Environmental</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-green-600 mb-2">{esgData.environmental}</div>
+                <p className="text-sm text-muted-foreground">Carbon footprint reduction, energy efficiency, waste management</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-blue-600">Social</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-blue-600 mb-2">{esgData.social}</div>
+                <p className="text-sm text-muted-foreground">Employee welfare, community impact, diversity & inclusion</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-purple-600">Governance</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-purple-600 mb-2">{esgData.governance}</div>
+                <p className="text-sm text-muted-foreground">Board structure, transparency, ethical practices</p>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="performance" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>ESG Performance vs Industry Average</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer className="h-[400px]" config={chartConfig}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={[
+                      { metric: "Environmental", company: esgData.environmental, industry: 75 },
+                      { metric: "Social", company: esgData.social, industry: 78 },
+                      { metric: "Governance", company: esgData.governance, industry: 80 },
+                    ]}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="metric" />
+                    <YAxis domain={[0, 100]} />
+                    <Tooltip content={<ChartTooltipContent />} />
+                    <Legend />
+                    <Bar dataKey="company" name={company.name} fill="#8b5cf6" />
+                    <Bar dataKey="industry" name="Industry Average" fill="#94a3b8" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="trends" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                {selectedTimelineGranularity === "monthly" ? "Monthly" : "Annual"} ESG Performance Trends
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer className="h-[400px]" config={chartConfig}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart
+                    data={trendsData}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 10 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="period" />
+                    <YAxis domain={[0, 100]} />
+                    <Tooltip content={<ChartTooltipContent />} />
+                    <Legend />
+                    <Line type="monotone" dataKey="environmental" name="Environmental" stroke="#22c55e" strokeWidth={2} />
+                    <Line type="monotone" dataKey="social" name="Social" stroke="#3b82f6" strokeWidth={2} />
+                    <Line type="monotone" dataKey="governance" name="Governance" stroke="#8b5cf6" strokeWidth={2} />
+                    <Line type="monotone" dataKey="overall" name="Overall ESG" stroke="#f43f5e" strokeWidth={3} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}

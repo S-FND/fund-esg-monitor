@@ -24,6 +24,7 @@ import { ESGRisksCard } from "@/components/dashboard/ESGRisksCard";
 import { IndustryComparisonChart } from "@/components/dashboard/IndustryComparisonChart";
 import { ESGDetailedTrendsChart } from "@/components/dashboard/ESGDetailedTrendsChart";
 import { IndustryStatsCard } from "@/components/dashboard/IndustryStatsCard";
+import { CompanySpecificDashboard } from "@/components/dashboard/CompanySpecificDashboard";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
 
@@ -39,7 +40,13 @@ const companies = portfolioCompanies.map(company => ({
   sector: company.sector,
   fundId: company.fundId,
   esgScore: company.esgScore,
-  boardObserverId: company.boardObserverId
+  boardObserverId: company.boardObserverId,
+  type: company.type,
+  ceo: company.ceo,
+  investmentDate: company.investmentDate,
+  stage: company.stage,
+  shareholding: company.shareholding,
+  esgCategory: company.esgCategory
 }));
 
 // Board Observers data
@@ -126,10 +133,17 @@ export default function Dashboard() {
       ? companies.find((c) => c.id.toString() === selectedCompany)?.id?.toString() ?? ""
       : "";
 
+  // Get selected company data
+  const selectedCompanyData = selectedCompany !== "all" 
+    ? portfolioCompanies.find(c => c.id.toString() === selectedCompany)
+    : null;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+        <h1 className="text-2xl font-bold tracking-tight">
+          {selectedCompanyData ? `${selectedCompanyData.name} Dashboard` : "Portfolio Dashboard"}
+        </h1>
         <div className="flex items-center gap-2">
           <Dialog>
             <DialogTrigger asChild>
@@ -192,6 +206,14 @@ export default function Dashboard() {
         setSelectedTimelineGranularity={setSelectedTimelineGranularity}
       />
       
+      {/* Conditional rendering based on company selection */}
+      {selectedCompanyData ? (
+        <CompanySpecificDashboard 
+          company={selectedCompanyData}
+          selectedYear={selectedYear}
+          selectedTimelineGranularity={selectedTimelineGranularity}
+        />
+      ) : (
       <Tabs defaultValue="overview">
         <TabsList className="grid grid-cols-5 mb-4">
           <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -274,6 +296,7 @@ export default function Dashboard() {
           />
         </TabsContent>
       </Tabs>
+      )}
     </div>
   );
 }
