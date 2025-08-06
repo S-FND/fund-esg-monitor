@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Building2, Users, Calendar, TrendingUp, Target, Award } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from "recharts";
 import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 
 interface CompanyData {
   id: number;
@@ -422,7 +422,11 @@ export function CompanySpecificDashboard({ company, selectedYear, selectedTimeli
   const socialKPIs = getSocialKPIs(company.id);
   const governanceKPIs = getGovernanceKPIs(company.id);
   const portfolioCompanies = getPortfolioCompaniesInSameIndustry(company.sector, company.id);
-  const kpiTrendsData = getKPITrendsData(company.id, selectedKPI, selectedTimelineGranularity);
+  
+  // Calculate KPI trends data reactively when selectedKPI or granularity changes
+  const kpiTrendsData = useMemo(() => {
+    return getKPITrendsData(company.id, selectedKPI, selectedTimelineGranularity);
+  }, [company.id, selectedKPI, selectedTimelineGranularity]);
 
   const esgBreakdownData = [
     { name: "Environmental", value: esgData.environmental, fill: "#22c55e" },
