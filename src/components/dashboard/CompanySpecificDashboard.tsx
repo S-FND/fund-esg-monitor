@@ -702,21 +702,18 @@ export function CompanySpecificDashboard({ company, selectedYear, selectedTimeli
                   <SelectValue placeholder="Select KPI" />
                 </SelectTrigger>
                 <SelectContent>
-                  <optgroup label="Environmental">
-                    {environmentalKPIs.map(kpi => (
-                      <SelectItem key={kpi.name} value={kpi.name}>{kpi.name}</SelectItem>
-                    ))}
-                  </optgroup>
-                  <optgroup label="Social">
-                    {socialKPIs.map(kpi => (
-                      <SelectItem key={kpi.name} value={kpi.name}>{kpi.name}</SelectItem>
-                    ))}
-                  </optgroup>
-                  <optgroup label="Governance">
-                    {governanceKPIs.map(kpi => (
-                      <SelectItem key={kpi.name} value={kpi.name}>{kpi.name}</SelectItem>
-                    ))}
-                  </optgroup>
+                  <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">Environmental</div>
+                  {environmentalKPIs.map(kpi => (
+                    <SelectItem key={kpi.name} value={kpi.name}>{kpi.name}</SelectItem>
+                  ))}
+                  <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground border-t mt-1 pt-2">Social</div>
+                  {socialKPIs.map(kpi => (
+                    <SelectItem key={kpi.name} value={kpi.name}>{kpi.name}</SelectItem>
+                  ))}
+                  <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground border-t mt-1 pt-2">Governance</div>
+                  {governanceKPIs.map(kpi => (
+                    <SelectItem key={kpi.name} value={kpi.name}>{kpi.name}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
