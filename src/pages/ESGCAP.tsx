@@ -91,8 +91,13 @@ export default function ESGCAP() {
     ? capItems
     : capItems.filter(item => item.companyId === parseInt(selectedCompany));
 
+  // Filter previous items by selected company for proper alert comparison
+  const filteredPreviousItems = selectedCompany === "all"
+    ? previousCapItemsRef.current
+    : previousCapItemsRef.current.filter(item => item.companyId === parseInt(selectedCompany));
+
   // Use alerts hook to monitor changes
-  const alerts = useESGCAPAlerts(filteredCAPItems, previousCapItemsRef.current);
+  const alerts = useESGCAPAlerts(filteredCAPItems, filteredPreviousItems);
 
   const handleReview = (item: CAPItem) => {
     const currentItem = capItems.find(i => i.id === item.id);
