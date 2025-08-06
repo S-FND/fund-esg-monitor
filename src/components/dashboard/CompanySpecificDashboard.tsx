@@ -57,6 +57,32 @@ const getCompanyKPIs = (companyId: number) => [
   { name: "Board Diversity", value: companyId === 1 ? 40 : 30, unit: "%", trend: "up" },
 ];
 
+const getEnvironmentalKPIs = (companyId: number) => [
+  { name: "Carbon Footprint Reduction", value: companyId === 1 ? 25 : 15, unit: "%", target: 30, trend: "up" },
+  { name: "Renewable Energy Usage", value: companyId === 1 ? 65 : 45, unit: "%", target: 80, trend: "up" },
+  { name: "Water Usage Efficiency", value: companyId === 1 ? 78 : 60, unit: "%", target: 85, trend: "up" },
+  { name: "Waste Recycling Rate", value: companyId === 1 ? 85 : 70, unit: "%", target: 90, trend: "up" },
+  { name: "Green Certifications", value: companyId === 1 ? 3 : 1, unit: "certs", target: 5, trend: "up" },
+];
+
+const getSocialKPIs = (companyId: number) => [
+  { name: "Employee Satisfaction", value: companyId === 1 ? 4.2 : 3.8, unit: "/5", target: 4.5, trend: "up" },
+  { name: "Employee Turnover Rate", value: companyId === 1 ? 8 : 15, unit: "%", target: 10, trend: "down" },
+  { name: "Gender Pay Gap", value: companyId === 1 ? 5 : 12, unit: "%", target: 0, trend: "down" },
+  { name: "Training Hours per Employee", value: companyId === 1 ? 40 : 25, unit: "hours", target: 50, trend: "up" },
+  { name: "Community Investment", value: companyId === 1 ? 2.5 : 1.2, unit: "% revenue", target: 3, trend: "up" },
+  { name: "Health & Safety Incidents", value: companyId === 1 ? 2 : 5, unit: "incidents", target: 0, trend: "down" },
+];
+
+const getGovernanceKPIs = (companyId: number) => [
+  { name: "Board Independence", value: companyId === 1 ? 60 : 40, unit: "%", target: 70, trend: "up" },
+  { name: "Women in Leadership", value: companyId === 1 ? 40 : 25, unit: "%", target: 50, trend: "up" },
+  { name: "Ethics Training Completion", value: companyId === 1 ? 95 : 80, unit: "%", target: 100, trend: "up" },
+  { name: "Data Privacy Compliance", value: companyId === 1 ? 98 : 85, unit: "%", target: 100, trend: "up" },
+  { name: "Supply Chain Audits", value: companyId === 1 ? 85 : 60, unit: "% suppliers", target: 90, trend: "up" },
+  { name: "Whistleblower Reports", value: companyId === 1 ? 3 : 7, unit: "reports", target: 0, trend: "down" },
+];
+
 const chartConfig = {
   environmental: { color: "#22c55e" },
   social: { color: "#3b82f6" },
@@ -68,6 +94,9 @@ export function CompanySpecificDashboard({ company, selectedYear, selectedTimeli
   const esgData = getCompanyESGData(company.id);
   const trendsData = getCompanyTrends(company.id, selectedTimelineGranularity);
   const kpis = getCompanyKPIs(company.id);
+  const environmentalKPIs = getEnvironmentalKPIs(company.id);
+  const socialKPIs = getSocialKPIs(company.id);
+  const governanceKPIs = getGovernanceKPIs(company.id);
 
   const esgBreakdownData = [
     { name: "Environmental", value: esgData.environmental, fill: "#22c55e" },
@@ -191,33 +220,98 @@ export function CompanySpecificDashboard({ company, selectedYear, selectedTimeli
           </div>
         </TabsContent>
 
-        <TabsContent value="esg-breakdown" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <TabsContent value="esg-breakdown" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Environmental Section */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-green-600">Environmental</CardTitle>
+                <CardTitle className="text-green-600 flex items-center gap-2">
+                  <Award className="h-5 w-5" />
+                  Environmental
+                </CardTitle>
+                <div className="text-3xl font-bold text-green-600">{esgData.environmental}</div>
               </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-green-600 mb-2">{esgData.environmental}</div>
-                <p className="text-sm text-muted-foreground">Carbon footprint reduction, energy efficiency, waste management</p>
+              <CardContent className="space-y-3">
+                {environmentalKPIs.map((kpi, index) => (
+                  <div key={index} className="p-3 bg-green-50 rounded-lg border border-green-100">
+                    <div className="flex justify-between items-start mb-1">
+                      <p className="text-sm font-medium text-green-800">{kpi.name}</p>
+                      <div className={`p-1 rounded-full ${kpi.trend === 'up' ? 'bg-green-200 text-green-700' : 'bg-red-200 text-red-700'}`}>
+                        <TrendingUp className={`h-3 w-3 ${kpi.trend === 'down' ? 'rotate-180' : ''}`} />
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-lg font-bold text-green-700">
+                        {kpi.value}{kpi.unit}
+                      </span>
+                      <span className="text-xs text-green-600">
+                        Target: {kpi.target}{kpi.unit}
+                      </span>
+                    </div>
+                  </div>
+                ))}
               </CardContent>
             </Card>
+
+            {/* Social Section */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-blue-600">Social</CardTitle>
+                <CardTitle className="text-blue-600 flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Social
+                </CardTitle>
+                <div className="text-3xl font-bold text-blue-600">{esgData.social}</div>
               </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-blue-600 mb-2">{esgData.social}</div>
-                <p className="text-sm text-muted-foreground">Employee welfare, community impact, diversity & inclusion</p>
+              <CardContent className="space-y-3">
+                {socialKPIs.map((kpi, index) => (
+                  <div key={index} className="p-3 bg-blue-50 rounded-lg border border-blue-100">
+                    <div className="flex justify-between items-start mb-1">
+                      <p className="text-sm font-medium text-blue-800">{kpi.name}</p>
+                      <div className={`p-1 rounded-full ${kpi.trend === 'up' ? 'bg-green-200 text-green-700' : 'bg-red-200 text-red-700'}`}>
+                        <TrendingUp className={`h-3 w-3 ${kpi.trend === 'down' ? 'rotate-180' : ''}`} />
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-lg font-bold text-blue-700">
+                        {kpi.value}{kpi.unit}
+                      </span>
+                      <span className="text-xs text-blue-600">
+                        Target: {kpi.target}{kpi.unit}
+                      </span>
+                    </div>
+                  </div>
+                ))}
               </CardContent>
             </Card>
+
+            {/* Governance Section */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-purple-600">Governance</CardTitle>
+                <CardTitle className="text-purple-600 flex items-center gap-2">
+                  <Building2 className="h-5 w-5" />
+                  Governance
+                </CardTitle>
+                <div className="text-3xl font-bold text-purple-600">{esgData.governance}</div>
               </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-purple-600 mb-2">{esgData.governance}</div>
-                <p className="text-sm text-muted-foreground">Board structure, transparency, ethical practices</p>
+              <CardContent className="space-y-3">
+                {governanceKPIs.map((kpi, index) => (
+                  <div key={index} className="p-3 bg-purple-50 rounded-lg border border-purple-100">
+                    <div className="flex justify-between items-start mb-1">
+                      <p className="text-sm font-medium text-purple-800">{kpi.name}</p>
+                      <div className={`p-1 rounded-full ${kpi.trend === 'up' ? 'bg-green-200 text-green-700' : 'bg-red-200 text-red-700'}`}>
+                        <TrendingUp className={`h-3 w-3 ${kpi.trend === 'down' ? 'rotate-180' : ''}`} />
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-lg font-bold text-purple-700">
+                        {kpi.value}{kpi.unit}
+                      </span>
+                      <span className="text-xs text-purple-600">
+                        Target: {kpi.target}{kpi.unit}
+                      </span>
+                    </div>
+                  </div>
+                ))}
               </CardContent>
             </Card>
           </div>
