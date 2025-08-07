@@ -12,6 +12,7 @@ import {
   PortfolioCompanies,
   NewCompany,
   PreScreening,
+  Categorization,
   Team,
   ESGDDReport,
   ESGCAP,
@@ -110,6 +111,7 @@ function App() {
           <Route path="/portfolio" element={<PortfolioCompanies />} />
           <Route path="/portfolio/new" element={<NewCompany />} />
           <Route path="/portfolio/pre-screening" element={<PreScreening />} />
+          <Route path="/portfolio/categorization" element={<Categorization />} />
           <Route
             path="/portfolio/:id"
             element={<EditPortfolioCompany />}
