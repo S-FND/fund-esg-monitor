@@ -3,6 +3,7 @@ export { default as Dashboard } from './Dashboard';
 export { default as InvestorInfo } from './InvestorInfo';
 export { default as Funds } from './Funds';
 export { default as PortfolioCompanies } from './Portfolio';
+export { default as NewCompany } from './NewCompany';
 export { default as Team } from './Team';
 export { default as ESGDDReport } from './ESGDDReport';
 export { default as ESGCAP } from './ESGCAP';
