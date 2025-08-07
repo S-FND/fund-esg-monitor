@@ -26,6 +26,7 @@ import { Sidebar } from "@/components/sidebar";
 import { Button } from "@/components/ui/button";
 import { ModeToggle } from "@/components/ui/mode-toggle";
 import { Shell } from "@/components/Shell";
+import { PortfolioProvider } from "@/contexts/PortfolioContext";
 import { EditPortfolioCompany } from "@/features/edit-portfolio-company";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
@@ -77,7 +78,8 @@ function App() {
   }, []);
 
   return (
-    <Shell>
+    <PortfolioProvider>
+      <Shell>
       <Sidebar />
       <ScrollArea className="flex-1 w-full p-4 md:p-8">
         <div className="flex justify-end space-x-4">
@@ -127,6 +129,7 @@ function App() {
         </Routes>
       </ScrollArea>
     </Shell>
+    </PortfolioProvider>
   );
 }
 

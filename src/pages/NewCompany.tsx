@@ -10,6 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ChevronRight, ArrowLeft } from "lucide-react";
+import { usePortfolio } from "@/contexts/PortfolioContext";
 
 // Dummy data
 const funds = [
@@ -63,6 +64,7 @@ const futureActions = [
 
 export default function NewCompany() {
   const navigate = useNavigate();
+  const { setTempCompanyData } = usePortfolio();
   const [formData, setFormData] = useState({
     companyName: "",
     companyType: "",
@@ -110,6 +112,10 @@ export default function NewCompany() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     console.log("Submitting company data:", formData);
+    
+    // Store the form data temporarily in context
+    setTempCompanyData(formData);
+    
     // Navigate to pre-screening page
     navigate("/portfolio/pre-screening");
   };
