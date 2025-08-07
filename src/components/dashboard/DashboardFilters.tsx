@@ -31,8 +31,6 @@ export function DashboardFilters({
   setSelectedBoardObserver,
   selectedIndustry,
   setSelectedIndustry,
-  selectedTimelineGranularity,
-  setSelectedTimelineGranularity,
 }: {
   funds: Fund[];
   companies: Company[];
@@ -48,8 +46,6 @@ export function DashboardFilters({
   setSelectedBoardObserver: (v: string) => void;
   selectedIndustry: string;
   setSelectedIndustry: (v: string) => void;
-  selectedTimelineGranularity: string;
-  setSelectedTimelineGranularity: (v: string) => void;
 }) {
   // Filter companies based on selected fund
   const filteredCompanies = selectedFund === "all"
@@ -61,7 +57,7 @@ export function DashboardFilters({
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <div>
           <label className="block text-sm font-medium mb-1">Select Fund</label>
           <Select value={selectedFund} onValueChange={setSelectedFund}>
@@ -138,18 +134,6 @@ export function DashboardFilters({
                   {observer.name}
                 </SelectItem>
               ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Timeline</label>
-          <Select value={selectedTimelineGranularity} onValueChange={setSelectedTimelineGranularity}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select Timeline" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="monthly">Monthly</SelectItem>
-              <SelectItem value="yearly">Financial Year</SelectItem>
             </SelectContent>
           </Select>
         </div>

@@ -202,8 +202,6 @@ export default function Dashboard() {
         setSelectedBoardObserver={setSelectedBoardObserver}
         selectedIndustry={selectedIndustry}
         setSelectedIndustry={setSelectedIndustry}
-        selectedTimelineGranularity={selectedTimelineGranularity}
-        setSelectedTimelineGranularity={setSelectedTimelineGranularity}
       />
       
       {/* Conditional rendering based on company selection */}
@@ -290,6 +288,20 @@ export default function Dashboard() {
         </TabsContent>
         
         <TabsContent value="trends" className="space-y-4">
+          <div className="flex justify-end mb-4">
+            <div className="w-48">
+              <label className="block text-sm font-medium mb-1">Timeline Granularity</label>
+              <Select value={selectedTimelineGranularity} onValueChange={setSelectedTimelineGranularity}>
+                <SelectTrigger className="bg-background border shadow-sm">
+                  <SelectValue placeholder="Select Timeline" />
+                </SelectTrigger>
+                <SelectContent className="bg-background border shadow-lg z-50">
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                  <SelectItem value="yearly">Financial Year</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
           <ESGDetailedTrendsChart 
             data={trendsData} 
             timelineGranularity={selectedTimelineGranularity}
