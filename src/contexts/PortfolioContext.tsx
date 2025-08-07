@@ -31,6 +31,7 @@ interface PortfolioContextType {
   companies: PortfolioCompany[];
   newlyAddedCompanies: PortfolioCompany[];
   addCompany: (company: Omit<PortfolioCompany, 'id' | 'isNewlyAdded' | 'dateAdded'>) => void;
+  approveCompany: (companyId: number, assignments: { fundId: number; fundName: string; boardObserverId: string }) => void;
   tempCompanyData: any;
   setTempCompanyData: (data: any) => void;
 }
@@ -53,6 +54,23 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
     setTempCompanyData(null); // Clear temp data after adding
   };
 
+  const approveCompany = (companyId: number, assignments: { fundId: number; fundName: string; boardObserverId: string }) => {
+    setCompanies(prev => 
+      prev.map(company => 
+        company.id === companyId
+          ? {
+              ...company,
+              fundId: assignments.fundId,
+              fundName: assignments.fundName,
+              boardObserverId: assignments.boardObserverId,
+              isNewlyAdded: false,
+              dateAdded: undefined
+            }
+          : company
+      )
+    );
+  };
+
   const newlyAddedCompanies = companies.filter(company => company.isNewlyAdded);
 
   return (
@@ -60,6 +78,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
       companies,
       newlyAddedCompanies,
       addCompany,
+      approveCompany,
       tempCompanyData,
       setTempCompanyData
     }}>

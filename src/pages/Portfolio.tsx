@@ -9,6 +9,7 @@ import { NoCompaniesFound } from "@/features/portfolio/NoCompaniesFound";
 import { usePortfolio } from "@/contexts/PortfolioContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { CompanyApprovalDialog } from "@/components/portfolio/CompanyApprovalDialog";
 
 export default function Portfolio() {
   const navigate = useNavigate();
@@ -74,12 +75,20 @@ export default function Portfolio() {
             <div className="grid grid-cols-1 gap-4">
               {newlyAddedCompanies.map(company => (
                 <div key={company.id} className="relative">
-                  <CompanyCard company={company} />
-                  <Badge 
-                    className="absolute top-2 right-2 bg-green-600 text-white"
-                  >
-                    New
-                  </Badge>
+                  <div className="flex gap-4">
+                    <div className="flex-1">
+                      <CompanyCard company={company} />
+                    </div>
+                    <div className="flex flex-col justify-center gap-2 min-w-[200px]">
+                      <Badge 
+                        className="bg-orange-100 text-orange-800 border-orange-300 text-center"
+                        variant="outline"
+                      >
+                        Pending Approval
+                      </Badge>
+                      <CompanyApprovalDialog company={company} />
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
