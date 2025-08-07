@@ -5,6 +5,7 @@ export { default as Funds } from './Funds';
 export { default as NewFund } from './NewFund';
 export { default as PortfolioCompanies } from './Portfolio';
 export { default as NewCompany } from './NewCompany';
+export { default as PreScreening } from './PreScreening';
 export { default as Team } from './Team';
 export { default as ESGDDReport } from './ESGDDReport';
 export { default as ESGCAP } from './ESGCAP';
