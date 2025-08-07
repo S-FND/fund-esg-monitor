@@ -8,6 +8,7 @@ import {
   Dashboard,
   InvestorInfo,
   Funds,
+  NewFund,
   PortfolioCompanies,
   NewCompany,
   Team,
@@ -103,6 +104,7 @@ function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/investor-info" element={<InvestorInfo />} />
           <Route path="/funds" element={<Funds />} />
+          <Route path="/funds/new" element={<NewFund />} />
           <Route path="/funds/:id" element={<EditFund />} />
           <Route path="/portfolio" element={<PortfolioCompanies />} />
           <Route path="/portfolio/new" element={<NewCompany />} />
