@@ -21,7 +21,7 @@ import { TopSDGsCard } from "@/components/dashboard/TopSDGsCard";
 import { TopInitiativesCard } from "@/components/dashboard/TopInitiativesCard";
 import { TopNonCompliancesCard } from "@/components/dashboard/TopNonCompliancesCard";
 import { ESGRisksCard } from "@/components/dashboard/ESGRisksCard";
-import { IndustryComparisonChart } from "@/components/dashboard/IndustryComparisonChart";
+import { EnhancedIndustryComparisonChart } from "@/components/dashboard/EnhancedIndustryComparisonChart";
 import { ESGDetailedTrendsChart } from "@/components/dashboard/ESGDetailedTrendsChart";
 import { IndustryStatsCard } from "@/components/dashboard/IndustryStatsCard";
 import { CompanySpecificDashboard } from "@/components/dashboard/CompanySpecificDashboard";
@@ -284,7 +284,10 @@ export default function Dashboard() {
             />
           </div>
           
-          <IndustryComparisonChart data={industryData} />
+          <EnhancedIndustryComparisonChart 
+            selectedFund={selectedFund} 
+            selectedIndustry={selectedIndustry}
+          />
         </TabsContent>
         
         <TabsContent value="trends" className="space-y-4">
