@@ -33,21 +33,8 @@ export function useTeamAddForm({ onAdd, onClose }: UseTeamAddFormProps) {
     setSubmitting(true);
 
     try {
-      // Insert team member
-      const { data: memberData, error: memberError } = await supabase
-        .from("team_members")
-        .insert({
-          name,
-          email,
-          fund_admin_id: (await supabase.auth.getUser()).data.user?.id,
-          designation,
-          mobile_number: mobileNumber,
-        })
-        .select("id")
-        .single();
-
-      if (memberError) throw memberError;
-
+      // For now, just simulate adding team member without database
+      // Will be updated when proper auth is connected
       onAdd({
         name,
         email,
@@ -62,6 +49,7 @@ export function useTeamAddForm({ onAdd, onClose }: UseTeamAddFormProps) {
         title: "Team Member Added",
         description: `${name} has been added to the team.`,
       });
+
     } catch (error) {
       console.error("Error adding team member:", error);
       toast({
