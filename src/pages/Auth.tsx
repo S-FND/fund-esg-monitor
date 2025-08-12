@@ -190,6 +190,16 @@ export default function Auth() {
           <CardDescription className="text-center">
             Sign in to your account or create a new one
           </CardDescription>
+          <div className="mt-4 p-3 bg-muted rounded-lg text-sm">
+            <p className="font-medium mb-2">Demo Accounts:</p>
+            <div className="space-y-1 text-xs">
+              <p><strong>Fund Admin:</strong> support@fandoro.com</p>
+              <p><strong>Team Editor:</strong> team.editor@fandoro.com</p>
+              <p><strong>Team Reader:</strong> team.readonly@fandoro.com</p>
+              <p><strong>Auditor:</strong> auditor@fandoro.com</p>
+              <p className="mt-2 text-muted-foreground">Password: demo123 (for all accounts)</p>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="login" className="w-full">
