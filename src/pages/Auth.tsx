@@ -36,11 +36,11 @@ export default function Auth() {
     ];
     
     try {
-      // For demo users, bypass password validation and use default password
+      // For demo users, bypass password validation completely
       if (demoEmails.includes(email.toLowerCase())) {
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
-          password: 'demo123', // Use the known demo password
+          password: 'demo123', // Always use the demo password for these accounts
         });
         
         if (error) {
@@ -232,7 +232,7 @@ export default function Auth() {
               <p><strong>Team Editor:</strong> team.editor@fandoro.com</p>
               <p><strong>Team Reader:</strong> team.readonly@fandoro.com</p>
               <p><strong>Auditor:</strong> auditor@fandoro.com</p>
-              <p className="mt-2 text-muted-foreground">Password: demo123 (for all accounts)</p>
+              <p className="mt-2 text-muted-foreground">Password: Any password works for demo accounts</p>
             </div>
           </div>
         </CardHeader>
