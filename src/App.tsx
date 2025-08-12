@@ -22,6 +22,7 @@ import {
   TeamMemberDetail,
   TeamMemberEdit,
 } from "./pages";
+import NewFundSimple from "./pages/NewFundSimple";
 import TeamManagement from "./pages/TeamManagement";
 import { Sidebar } from "@/components/sidebar";
 import { Button } from "@/components/ui/button";
@@ -142,7 +143,7 @@ function App() {
             } />
             <Route path="/funds/new" element={
               <ProtectedRoute requiredRole="investor_admin">
-                <NewFund />
+                <NewFundSimple />
               </ProtectedRoute>
             } />
             <Route path="/funds/:id" element={

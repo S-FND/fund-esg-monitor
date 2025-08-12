@@ -14,14 +14,10 @@ export interface Company {
 interface FundCompaniesFieldProps {
   companies: Company[];
   selectedCompanies: Company[];
-  setSelectedCompanies: (companies: Company[]) => void;
+  onSelectionChange: (companies: Company[]) => void;
 }
 
-export function FundCompaniesField({ 
-  companies, 
-  selectedCompanies, 
-  setSelectedCompanies 
-}: FundCompaniesFieldProps) {
+export function FundCompaniesField({ companies, selectedCompanies, onSelectionChange }: FundCompaniesFieldProps) {
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
   
   const availableCompanies = companies.filter(
@@ -33,13 +29,13 @@ export function FundCompaniesField({
     
     const companyToAdd = companies.find(c => c.id === selectedCompanyId);
     if (companyToAdd && !selectedCompanies.some(c => c.id === companyToAdd.id)) {
-      setSelectedCompanies([...selectedCompanies, companyToAdd]);
+      onSelectionChange([...selectedCompanies, companyToAdd]);
       setSelectedCompanyId("");
     }
   };
 
   const handleRemoveCompany = (companyId: string) => {
-    setSelectedCompanies(selectedCompanies.filter(c => c.id !== companyId));
+    onSelectionChange(selectedCompanies.filter(c => c.id !== companyId));
   };
 
   return (

@@ -2,7 +2,7 @@
 export { default as Dashboard } from './Dashboard';
 export { default as InvestorInfo } from './InvestorInfo';
 export { default as Funds } from './Funds';
-export { default as NewFund } from './NewFund';
+export { default as NewFund } from './NewFundSimple';
 export { default as PortfolioCompanies } from './Portfolio';
 export { default as NewCompany } from './NewCompany';
 export { default as PreScreening } from './PreScreening';

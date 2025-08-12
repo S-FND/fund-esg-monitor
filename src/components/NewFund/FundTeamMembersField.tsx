@@ -7,21 +7,22 @@ import { Card } from "@/components/ui/card";
 import { X } from "lucide-react";
 
 export interface TeamMember {
-  id: string; // Changed from number to string
+  id: string;
   name: string;
+  email: string;
   designation: string;
 }
 
 interface FundTeamMembersFieldProps {
   teamMembers: TeamMember[];
   selectedTeamMembers: TeamMember[];
-  setSelectedTeamMembers: (teamMembers: TeamMember[]) => void;
+  onSelectionChange: (teamMembers: TeamMember[]) => void;
 }
 
 export function FundTeamMembersField({ 
   teamMembers, 
   selectedTeamMembers, 
-  setSelectedTeamMembers 
+  onSelectionChange 
 }: FundTeamMembersFieldProps) {
   const [selectedTeamMemberId, setSelectedTeamMemberId] = useState<string>("");
   
@@ -34,13 +35,13 @@ export function FundTeamMembersField({
     
     const memberToAdd = teamMembers.find(m => m.id === selectedTeamMemberId);
     if (memberToAdd && !selectedTeamMembers.some(m => m.id === memberToAdd.id)) {
-      setSelectedTeamMembers([...selectedTeamMembers, memberToAdd]);
+      onSelectionChange([...selectedTeamMembers, memberToAdd]);
       setSelectedTeamMemberId("");
     }
   };
 
   const handleRemoveTeamMember = (memberId: string) => {
-    setSelectedTeamMembers(selectedTeamMembers.filter(m => m.id !== memberId));
+    onSelectionChange(selectedTeamMembers.filter(m => m.id !== memberId));
   };
 
   return (
