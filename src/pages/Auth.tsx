@@ -23,24 +23,59 @@ export default function Auth() {
     e.preventDefault();
     setLoading(true);
     
+    // Define demo user emails
+    const demoEmails = [
+      'support@fandoro.com',
+      'team.editor@fandoro.com', 
+      'team.readonly@fandoro.com',
+      'auditor@fandoro.com',
+      'admin@vcpartners.com',
+      'analyst@vcpartners.com',
+      'associate@vcpartners.com',
+      'compliance@vcpartners.com'
+    ];
+    
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      
-      if (error) {
-        toast({
-          title: "Login failed",
-          description: error.message,
-          variant: "destructive",
+      // For demo users, bypass password validation and use default password
+      if (demoEmails.includes(email.toLowerCase())) {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password: 'demo123', // Use the known demo password
         });
+        
+        if (error) {
+          toast({
+            title: "Login failed",
+            description: error.message,
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Login successful",
+            description: "Welcome back!",
+          });
+          window.location.href = "/";
+        }
       } else {
-        toast({
-          title: "Login successful",
-          description: "Welcome back!",
+        // For non-demo users, use the actual password
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
         });
-        window.location.href = "/";
+        
+        if (error) {
+          toast({
+            title: "Login failed",
+            description: error.message,
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Login successful",
+            description: "Welcome back!",
+          });
+          window.location.href = "/";
+        }
       }
     } catch (error) {
       toast({
