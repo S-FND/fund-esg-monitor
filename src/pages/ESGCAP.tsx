@@ -10,7 +10,7 @@ import { portfolioCompanies } from "@/features/edit-portfolio-company/portfolioC
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { useAuth } from "@/contexts/AuthContext";
+
 import { useESGCAPAlerts } from "@/hooks/useESGCAPAlerts";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { 
@@ -26,7 +26,6 @@ export default function ESGCAP() {
   const [selectedItem, setSelectedItem] = useState<CAPItem | null>(null);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<string>("all");
-  const { user, userRole } = useAuth();
   const [showComparisonView, setShowComparisonView] = useState(false);
 
   // Mock data for CAP items with company IDs

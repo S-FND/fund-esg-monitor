@@ -15,12 +15,11 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AdminNav } from "./admin/AdminNav";
-import { useAuth } from "@/contexts/AuthContext";
+
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { config } from "@/config/environment";
 
 export function Header() {
-  const { userRole } = useAuth();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   
   return (
@@ -40,7 +39,6 @@ export function Header() {
             </Badge>
           )}
         </div>
-        {(userRole === 'admin' || userRole === 'investor_admin') && <AdminNav />}
       </div>
       
       <div className="flex items-center gap-4">

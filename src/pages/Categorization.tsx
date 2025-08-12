@@ -11,11 +11,10 @@ import { CategoryQuestionsTable } from "@/components/categorization/CategoryQues
 import { ObjectiveCard } from "@/components/categorization/ObjectiveCard";
 import { useCategorization } from "@/hooks/useCategorization";
 import { getSectionTitle, getCategory } from "@/data/categorizationQuestions";
-import { useAuth } from "@/contexts/AuthContext";
+
 
 export default function Categorization() {
   const navigate = useNavigate();
-  const { userRole } = useAuth();
   const { tempCompanyData, addCompany } = usePortfolio();
   
   const {
@@ -31,7 +30,7 @@ export default function Categorization() {
   } = useCategorization();
   
   const category = getCategory(totalScore);
-  const canManageQuestions = userRole === 'admin' || userRole === 'investor_admin' || userRole === 'investor';
+  const canManageQuestions = true; // Allow all users to manage questions without auth
   
   return (
     <div className="space-y-6">

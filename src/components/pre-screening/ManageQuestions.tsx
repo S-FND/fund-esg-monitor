@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { useAuth } from "@/contexts/AuthContext";
+
 import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { QuestionForm, type QuestionFormData } from "./manage-questions/QuestionForm";
@@ -11,15 +11,14 @@ export function ManageQuestions({ questions, onQuestionUpdate }: {
   questions: any[], 
   onQuestionUpdate: (questions: any[]) => void 
 }) {
-  const { userRole } = useAuth();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [showQuestionForm, setShowQuestionForm] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState<QuestionFormData | null>(null);
   
-  // Allow admin, investor_admin, and investor roles to manage questions
-  const canManageQuestions = userRole === 'admin' || userRole === 'investor_admin' || userRole === 'investor';
+  // Allow all users to manage questions without auth
+  const canManageQuestions = true;
 
   if (!canManageQuestions) {
     return null;

@@ -3,12 +3,11 @@ import { useLocation } from "react-router-dom";
 import { mainNavItems, esgDDNavItem, valuationNavItem } from "./navigation-items";
 import { SidebarNavItem } from "./SidebarNavItem";
 import { SidebarSubmenu } from "./SidebarSubmenu";
-import { useAuth } from "@/contexts/AuthContext";
+
 import { useState, useEffect } from "react";
 
 export function SidebarContent() {
   const location = useLocation();
-  const { user } = useAuth();
   const [accessibleMenus, setAccessibleMenus] = useState<string[]>([]);
 
   // Check if any path starts with /esg-dd but is not /esg-dd/risk-matrix
@@ -18,20 +17,9 @@ export function SidebarContent() {
   const isValuationSubmenuOpen = location.pathname.includes("risk-matrix");
 
   useEffect(() => {
-    // In a real app, this would come from the backend based on user roles
-    if (user) {
-      // Get the unique module names user has access to
-      const accessList = user.accessRights
-        .filter(right => right.level !== "none")
-        .map(right => right.moduleName);
-
-      // Remove duplicates if any
-      const uniqueAccessList = Array.from(new Set(accessList));
-      setAccessibleMenus(uniqueAccessList);
-    } else {
-      setAccessibleMenus(["Dashboard"]); // Default fallback
-    }
-  }, [user]);
+    // Without authentication, give access to all modules
+    setAccessibleMenus(["Dashboard", "Funds", "Team", "Portfolio Companies", "ESG DD", "Valuation"]);
+  }, []);
 
   // Filter menu items based on user access
   const filteredMainNavItems = mainNavItems.filter(item => 

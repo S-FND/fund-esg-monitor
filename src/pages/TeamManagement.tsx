@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TeamAddDialogSimple } from "@/components/TeamAddDialog/TeamAddDialogSimple";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContextNew";
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface TeamMember {
@@ -25,7 +25,6 @@ export default function TeamManagement() {
   const [loading, setLoading] = useState(true);
   const [addingDialogOpen, setAddingDialogOpen] = useState(false);
   const { toast } = useToast();
-  const { profile } = useAuth();
 
   useEffect(() => {
     // Load initial mock data
@@ -157,9 +156,7 @@ export default function TeamManagement() {
                           <SelectItem value="team_member_readonly">Read Only</SelectItem>
                           <SelectItem value="team_member_editor">Editor</SelectItem>
                           <SelectItem value="auditor">Auditor</SelectItem>
-                          {profile?.role === 'super_admin' && (
-                            <SelectItem value="investor_admin">Admin</SelectItem>
-                          )}
+                          <SelectItem value="investor_admin">Admin</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>

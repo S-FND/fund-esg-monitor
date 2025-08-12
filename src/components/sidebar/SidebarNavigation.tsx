@@ -10,12 +10,11 @@ import { cn } from "@/lib/utils";
 import { mainNavItems } from "./navigation-items";
 import { SidebarSubmenuItem } from "./SidebarSubmenuItem";
 import { esgDDNavItem, valuationNavItem } from "./navigation-items";
-import { useAuth } from "@/contexts/AuthContext";
+
 import { useState, useEffect } from "react";
 
 export function SidebarNavigation() {
   const location = useLocation();
-  const { user } = useAuth();
   const [accessibleMenus, setAccessibleMenus] = useState<string[]>([]);
 
   // Check if any path starts with /esg-dd but is not /esg-dd/risk-matrix
@@ -25,25 +24,9 @@ export function SidebarNavigation() {
   const isValuationSubmenuOpen = location.pathname.includes("risk-matrix");
 
   useEffect(() => {
-    // In a real app, this would come from the backend based on user roles
-    // For demo purposes, we'll use mock data
-    const fetchUserAccess = async () => {
-      // Default mock accesses for demo purposes
-      const mockUserAccess = {
-        // Simulating different access patterns
-        "1": ["Dashboard", "Funds", "Team", "Portfolio Companies", "ESG DD", "Valuation"],
-        "2": ["ESG DD", "ESG CAP", "Valuation"],
-        "3": ["Dashboard", "Portfolio Companies", "Valuation"],
-        "4": ["Dashboard", "Funds", "Team", "Portfolio Companies", "ESG DD", "ESG CAP", "Valuation"]
-      };
-
-      const userId = user?.id || "1"; // Default to user 1 if no user ID
-      const accessList = mockUserAccess[userId as keyof typeof mockUserAccess] || ["Dashboard"];
-      setAccessibleMenus(accessList);
-    };
-
-    fetchUserAccess();
-  }, [user]);
+    // Without authentication, give access to all modules
+    setAccessibleMenus(["Dashboard", "Funds", "Team", "Portfolio Companies", "ESG DD", "Valuation"]);
+  }, []);
 
   // Filter menu items based on user access
   const filteredMainNavItems = mainNavItems.filter(item => 

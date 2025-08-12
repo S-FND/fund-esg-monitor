@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronRight } from "lucide-react";
 import { ManageQuestions } from "@/components/pre-screening/ManageQuestions";
-import { useAuth } from "@/contexts/AuthContext";
+
 import { ObjectivesCard } from "@/components/pre-screening/ObjectivesCard";
 import { QuestionsTable } from "@/components/pre-screening/QuestionsTable";
 import { ScoreSummary } from "@/components/pre-screening/ScoreSummary";
@@ -47,7 +47,6 @@ const initialQuestions = [
 
 export default function PreScreening() {
   const navigate = useNavigate();
-  const { userRole } = useAuth();
   const [questions, setQuestions] = useState(initialQuestions);
   const {
     responses,
@@ -65,8 +64,8 @@ export default function PreScreening() {
   // Calculate total score
   const totalScore = getTotalScore();
   
-  // Determine if user can manage questions
-  const canManageQuestions = userRole === 'admin' || userRole === 'investor_admin' || userRole === 'investor';
+  // Allow all users to manage questions without auth
+  const canManageQuestions = true;
   
   return (
     <div className="space-y-6">

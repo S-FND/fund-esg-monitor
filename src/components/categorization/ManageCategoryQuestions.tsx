@@ -1,5 +1,5 @@
 
-import { useAuth } from "@/contexts/AuthContext";
+
 import { CategoriesData, CategoryQuestion } from "@/types/categorization";
 import { ManageCategoryQuestionsDialog } from "./manage-questions/ManageCategoryQuestionsDialog";
 
@@ -12,8 +12,7 @@ export function ManageCategoryQuestions({
   questions, 
   onQuestionUpdate 
 }: ManageCategoryQuestionsProps) {
-  const { userRole } = useAuth();
-  const canManageQuestions = userRole === 'admin' || userRole === 'investor_admin' || userRole === 'investor';
+  const canManageQuestions = true; // Allow all users to manage questions without auth
 
   return (
     <ManageCategoryQuestionsDialog
