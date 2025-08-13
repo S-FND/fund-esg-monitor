@@ -1,5 +1,5 @@
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { CAPItem, CAPStatus, CAPType, CAPPriority, CAPTable } from "@/components/esg-cap/CAPTable";
@@ -105,9 +105,23 @@ export default function ESGCAP() {
     }
   ]);
   
-  // Current working copy of CAP items
-  const [capItems, setCapItems] = useState<CAPItem[]>(originalCapItems);
+  // Current working copy of CAP items - load from localStorage if available
+  const loadCapItemsFromStorage = () => {
+    try {
+      const stored = localStorage.getItem('esg-cap-items');
+      return stored ? JSON.parse(stored) : originalCapItems;
+    } catch {
+      return originalCapItems;
+    }
+  };
+  
+  const [capItems, setCapItems] = useState<CAPItem[]>(loadCapItemsFromStorage);
   const previousCapItemsRef = useRef<CAPItem[]>(originalCapItems);
+
+  // Save to localStorage whenever capItems changes
+  useEffect(() => {
+    localStorage.setItem('esg-cap-items', JSON.stringify(capItems));
+  }, [capItems]);
 
   // Filter CAP items by selected company
   const filteredCAPItems = selectedCompany === "all"
@@ -133,18 +147,30 @@ export default function ESGCAP() {
   // Added state for edit capability
   const [canEdit, setCanEdit] = useState(true);
 
-  const handleApprove = () => {
+  const handleApprove = async () => {
     if (selectedItem) {
       // Store previous state for alerts
       previousCapItemsRef.current = [...capItems];
       
+      console.log('Approving item:', selectedItem.id, 'Current status:', selectedItem.status);
+      
       const updatedItems = capItems.map(item => {
         if (item.id === selectedItem.id) {
-          return { ...item, status: "Completed" as CAPStatus, actualDate: new Date().toISOString().split('T')[0] };
+          const updatedItem = { ...item, status: "Completed" as CAPStatus, actualDate: new Date().toISOString().split('T')[0] };
+          console.log('Item updated to:', updatedItem);
+          return updatedItem;
         }
         return item;
       });
+      
+      // TODO: Save to database here
+      // const { error } = await supabase.from('cap_items').update({
+      //   status: 'Completed',
+      //   actual_date: new Date().toISOString().split('T')[0]
+      // }).eq('id', selectedItem.id);
+      
       setCapItems(updatedItems);
+      console.log('Updated capItems state, alerts should recalculate');
     }
     toast({
       title: "Item Approved",
@@ -153,18 +179,29 @@ export default function ESGCAP() {
     setReviewDialogOpen(false);
   };
 
-  const handleReject = () => {
+  const handleReject = async () => {
     if (selectedItem) {
       // Store previous state for alerts
       previousCapItemsRef.current = [...capItems];
       
+      console.log('Rejecting item:', selectedItem.id, 'Current status:', selectedItem.status);
+      
       const updatedItems = capItems.map(item => {
         if (item.id === selectedItem.id) {
-          return { ...item, status: "Rejected" as CAPStatus };
+          const updatedItem = { ...item, status: "Rejected" as CAPStatus };
+          console.log('Item updated to:', updatedItem);
+          return updatedItem;
         }
         return item;
       });
+      
+      // TODO: Save to database here
+      // const { error } = await supabase.from('cap_items').update({
+      //   status: 'Rejected'
+      // }).eq('id', selectedItem.id);
+      
       setCapItems(updatedItems);
+      console.log('Updated capItems state, alerts should recalculate');
     }
     toast({
       title: "Item Rejected",
