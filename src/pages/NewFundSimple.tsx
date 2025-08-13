@@ -9,6 +9,7 @@ import { FundCompaniesField } from "@/components/NewFund/FundCompaniesField";
 import { FundTeamMembersField } from "@/components/NewFund/FundTeamMembersField";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Company {
   id: string;
@@ -145,12 +146,57 @@ export default function NewFund() {
     console.log("Selected team members:", selectedTeamMembers);
     
     try {
-      // Simulate fund creation
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Get current user's profile to determine tenant_id
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to create a fund.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Get user's profile to get tenant_id
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!profile?.tenant_id) {
+        toast({
+          title: "Error",
+          description: "Unable to determine your organization. Please contact support.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Insert fund into database
+      const { data: fund, error: fundError } = await supabase
+        .from('funds')
+        .insert({
+          name: formData.name,
+          size: formData.size,
+          currency: formData.currency,
+          stage: formData.stage,
+          sectors: formData.sectors,
+          inclusion_terms: formData.inclusionTerms,
+          exclusion_terms: formData.exclusionTerms,
+          tenant_id: profile.tenant_id,
+          created_by: user.id
+        })
+        .select()
+        .single();
+
+      if (fundError) {
+        throw fundError;
+      }
       
       toast({
         title: "Fund Created Successfully",
-        description: `${formData.name} has been created with ${selectedCompanies.length} companies and ${selectedTeamMembers.length} team members.`,
+        description: `${formData.name} has been created and saved to the database.`,
       });
       
       // Navigate back to funds page

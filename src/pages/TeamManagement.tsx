@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TeamAddDialogSimple } from "@/components/TeamAddDialog/TeamAddDialogSimple";
 import { useToast } from "@/hooks/use-toast";
-
+import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface TeamMember {
@@ -27,60 +27,182 @@ export default function TeamManagement() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Load initial mock data
-    setLoading(false);
+    loadTeamMembers();
   }, []);
 
-  const handleAddTeamMember = (member: { name: string; email: string; designation: string; mobileNumber: string }) => {
-    const newMember: TeamMember = {
-      id: crypto.randomUUID(),
-      email: member.email,
-      full_name: member.name,
-      designation: member.designation,
-      mobile_number: member.mobileNumber,
-      role: 'team_member_readonly',
-      is_active: true,
-      user_id: null,
-      invited_at: new Date().toISOString(),
-      accepted_at: null,
-    };
-    
-    setTeamMembers(prev => [newMember, ...prev]);
-    
-    toast({
-      title: "Team Member Invited",
-      description: `${member.name} has been invited to join the team.`,
-    });
+  const loadTeamMembers = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
+      // Get user's profile to get tenant_id
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!profile?.tenant_id) {
+        setLoading(false);
+        return;
+      }
+
+      // Fetch team members for this tenant
+      const { data: members, error } = await supabase
+        .from('team_members')
+        .select('*')
+        .eq('tenant_id', profile.tenant_id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading team members:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load team members.",
+          variant: "destructive",
+        });
+      } else {
+        setTeamMembers(members || []);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const updateMemberRole = (memberId: string, newRole: string) => {
-    setTeamMembers(prev => 
-      prev.map(member => 
-        member.id === memberId 
-          ? { ...member, role: newRole as any }
-          : member
-      )
-    );
-    
-    toast({
-      title: "Success",
-      description: "Member role updated successfully",
-    });
+  const handleAddTeamMember = async (member: { name: string; email: string; designation: string; mobileNumber: string }) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to add team members.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Get user's profile to get tenant_id
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!profile?.tenant_id) {
+        toast({
+          title: "Error",
+          description: "Unable to determine your organization. Please contact support.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Insert team member into database
+      const { data: newMember, error } = await supabase
+        .from('team_members')
+        .insert({
+          email: member.email,
+          full_name: member.name,
+          designation: member.designation,
+          mobile_number: member.mobileNumber,
+          role: 'team_member_readonly',
+          is_active: true,
+          tenant_id: profile.tenant_id,
+          invited_by: user.id
+        })
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      // Add to local state
+      setTeamMembers(prev => [newMember, ...prev]);
+      
+      toast({
+        title: "Team Member Invited",
+        description: `${member.name} has been invited to join the team and saved to the database.`,
+      });
+    } catch (error) {
+      console.error('Error adding team member:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add team member. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const toggleMemberStatus = (memberId: string, isActive: boolean) => {
-    setTeamMembers(prev => 
-      prev.map(member => 
-        member.id === memberId 
-          ? { ...member, is_active: !isActive }
-          : member
-      )
-    );
-    
-    toast({
-      title: "Success",
-      description: `Member ${!isActive ? 'activated' : 'deactivated'} successfully`,
-    });
+  const updateMemberRole = async (memberId: string, newRole: string) => {
+    try {
+      const { error } = await supabase
+        .from('team_members')
+        .update({ role: newRole as any })
+        .eq('id', memberId);
+
+      if (error) {
+        throw error;
+      }
+
+      setTeamMembers(prev => 
+        prev.map(member => 
+          member.id === memberId 
+            ? { ...member, role: newRole as any }
+            : member
+        )
+      );
+      
+      toast({
+        title: "Success",
+        description: "Member role updated successfully",
+      });
+    } catch (error) {
+      console.error('Error updating member role:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update member role. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const toggleMemberStatus = async (memberId: string, isActive: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('team_members')
+        .update({ is_active: !isActive })
+        .eq('id', memberId);
+
+      if (error) {
+        throw error;
+      }
+
+      setTeamMembers(prev => 
+        prev.map(member => 
+          member.id === memberId 
+            ? { ...member, is_active: !isActive }
+            : member
+        )
+      );
+      
+      toast({
+        title: "Success",
+        description: `Member ${!isActive ? 'activated' : 'deactivated'} successfully`,
+      });
+    } catch (error) {
+      console.error('Error updating member status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update member status. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   if (loading) {
