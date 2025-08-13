@@ -75,14 +75,14 @@ export function ReviewDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>Review CAP Item</DialogTitle>
           <DialogDescription>
             {canEdit ? "Review and edit this CAP item." : "Review this CAP item."}
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 py-4">
+        <div className="space-y-4 py-4 overflow-y-auto flex-1">
           <div>
             <h4 className="font-semibold mb-1">Item</h4>
             {canEdit ? (
