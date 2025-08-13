@@ -122,9 +122,9 @@ export default function Auth() {
         password: demoUser.password,
       });
 
-      // If user doesn't exist, create them with auto-confirmation
+      // If user doesn't exist, create them
       if (error && error.message.includes('Invalid login credentials')) {
-        const { error: signUpError } = await supabase.auth.signUp({
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
           email: demoUser.email,
           password: demoUser.password,
           options: {
@@ -138,15 +138,49 @@ export default function Auth() {
 
         if (signUpError) throw signUpError;
 
+        // Confirm the demo user
+        const { error: confirmError } = await supabase.rpc('confirm_demo_user', {
+          user_email: demoUser.email
+        });
+
+        if (confirmError) {
+          console.error('Error confirming demo user:', confirmError);
+        }
+
+        // Try to sign in again after confirmation
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: demoUser.email,
+          password: demoUser.password,
+        });
+
+        if (signInError) throw signInError;
+
         toast({
-          title: `Demo ${role} account created!`,
-          description: "Please check your email to verify the account, then try logging in again.",
+          title: `Demo ${role} account created and logged in!`,
+          description: "You can now use all the features of the platform.",
         });
         return;
       } else if (error && error.message.includes('Email not confirmed')) {
+        // Confirm the demo user
+        const { error: confirmError } = await supabase.rpc('confirm_demo_user', {
+          user_email: demoUser.email
+        });
+
+        if (confirmError) {
+          console.error('Error confirming demo user:', confirmError);
+        }
+
+        // Try to sign in again after confirmation
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: demoUser.email,
+          password: demoUser.password,
+        });
+
+        if (signInError) throw signInError;
+
         toast({
-          title: "Email verification required",
-          description: "Please check your email and click the verification link, then try again.",
+          title: `Demo ${role} logged in!`,
+          description: "You can now use all the features of the platform.",
         });
         return;
       } else if (error) {

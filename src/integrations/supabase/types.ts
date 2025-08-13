@@ -424,7 +424,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      confirm_demo_user: {
+        Args: { user_email: string }
+        Returns: undefined
+      }
     }
     Enums: {
       approval_status: "draft" | "pending_approval" | "approved" | "rejected"
