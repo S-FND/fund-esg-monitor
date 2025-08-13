@@ -126,9 +126,8 @@ export default function ESGCAP() {
     const currentItem = capItems.find(i => i.id === item.id);
     setSelectedItem(currentItem || null);
     setReviewDialogOpen(true);
-    // Always allow editing for items that are not completed
-    const isCompleted = currentItem?.status === "Completed";
-    setCanEdit(!isCompleted);
+    // Allow editing for all items except in comparison view
+    setCanEdit(true);
   };
 
   // Added state for edit capability
@@ -136,6 +135,9 @@ export default function ESGCAP() {
 
   const handleApprove = () => {
     if (selectedItem) {
+      // Store previous state for alerts
+      previousCapItemsRef.current = [...capItems];
+      
       const updatedItems = capItems.map(item => {
         if (item.id === selectedItem.id) {
           return { ...item, status: "Completed" as CAPStatus, actualDate: new Date().toISOString().split('T')[0] };
@@ -153,6 +155,9 @@ export default function ESGCAP() {
 
   const handleReject = () => {
     if (selectedItem) {
+      // Store previous state for alerts
+      previousCapItemsRef.current = [...capItems];
+      
       const updatedItems = capItems.map(item => {
         if (item.id === selectedItem.id) {
           return { ...item, status: "Rejected" as CAPStatus };
