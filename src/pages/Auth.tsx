@@ -122,7 +122,7 @@ export default function Auth() {
         password: demoUser.password,
       });
 
-      // If user doesn't exist, create them
+      // If user doesn't exist, create them with auto-confirmation
       if (error && error.message.includes('Invalid login credentials')) {
         const { error: signUpError } = await supabase.auth.signUp({
           email: demoUser.email,
@@ -138,13 +138,17 @@ export default function Auth() {
 
         if (signUpError) throw signUpError;
 
-        // Sign in after successful signup
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email: demoUser.email,
-          password: demoUser.password,
+        toast({
+          title: `Demo ${role} account created!`,
+          description: "Please check your email to verify the account, then try logging in again.",
         });
-
-        if (signInError) throw signInError;
+        return;
+      } else if (error && error.message.includes('Email not confirmed')) {
+        toast({
+          title: "Email verification required",
+          description: "Please check your email and click the verification link, then try again.",
+        });
+        return;
       } else if (error) {
         throw error;
       }
