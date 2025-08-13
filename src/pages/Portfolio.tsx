@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, Calendar } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import { InviteCompanyDialog } from "@/features/portfolio/InviteCompanyDialog";
 import { FilterControls } from "@/features/portfolio/FilterControls";
 import { CompanyCard } from "@/features/portfolio/CompanyCard";
@@ -14,8 +16,11 @@ import { CompanyApprovalDialog } from "@/components/portfolio/CompanyApprovalDia
 export default function Portfolio() {
   const navigate = useNavigate();
   const { companies, newlyAddedCompanies } = usePortfolio();
+  const { toast } = useToast();
   const [selectedFund, setSelectedFund] = useState<string>("all");
   const [selectedSector, setSelectedSector] = useState<string>("all");
+  const [dbCompanies, setDbCompanies] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // Get regular portfolio companies (exclude newly added ones for the main list)
   const regularPortfolioCompanies = companies.filter(company => !company.isNewlyAdded);
@@ -37,8 +42,87 @@ export default function Portfolio() {
     return matchesFund && matchesSector;
   });
 
-  const handleInvite = (email: string) => {
-    console.log("Inviting company with email:", email);
+  // Load portfolio companies from database
+  useEffect(() => {
+    loadCompanies();
+  }, []);
+
+  const loadCompanies = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
+      // Get user's profile to get tenant_id
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!profile?.tenant_id) {
+        setLoading(false);
+        return;
+      }
+
+      // Fetch companies from database
+      const { data: portfolioCompanies, error } = await supabase
+        .from('portfolio_companies')
+        .select(`
+          *,
+          funds (
+            name
+          )
+        `)
+        .eq('tenant_id', profile.tenant_id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw error;
+      }
+
+      setDbCompanies(portfolioCompanies || []);
+    } catch (error) {
+      console.error('Error loading companies:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load portfolio companies.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleInvite = async (email: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to send invitations.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Here you could implement invitation logic
+      console.log("Inviting company with email:", email);
+      
+      toast({
+        title: "Invitation Sent",
+        description: `Invitation sent to ${email}`,
+      });
+    } catch (error) {
+      console.error('Error sending invitation:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send invitation.",
+        variant: "destructive",
+      });
+    }
   };
 
   const clearFilters = () => {

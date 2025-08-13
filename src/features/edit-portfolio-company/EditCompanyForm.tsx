@@ -1,6 +1,8 @@
 
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +36,7 @@ interface Company {
 
 export default function EditCompanyForm({ company }: { company: Company }) {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [editData, setEditData] = useState({ ...company });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -62,10 +65,53 @@ export default function EditCompanyForm({ company }: { company: Company }) {
     }));
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Here, you would update the backend!
-    navigate("/portfolio");
+    
+    try {
+      // Get current user's profile to determine tenant_id
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to update company data.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Update company in database
+      const { error } = await supabase
+        .from('portfolio_companies')
+        .update({
+          name: editData.name,
+          industry: editData.sector,
+          stage: editData.stage,
+          equity_percentage: editData.shareholding,
+          esg_score: editData.esgScore,
+          employee_count: editData.employees.founders.male + editData.employees.founders.female + editData.employees.founders.others + editData.employees.others.male + editData.employees.others.female + editData.employees.others.others,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', company.id.toString());
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Company Updated",
+        description: "Company information has been successfully updated.",
+      });
+      
+      navigate("/portfolio");
+    } catch (error) {
+      console.error('Error updating company:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update company. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleCancel = () => {

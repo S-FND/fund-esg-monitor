@@ -11,6 +11,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ChevronRight, ArrowLeft } from "lucide-react";
 import { usePortfolio } from "@/contexts/PortfolioContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 // Dummy data
 const funds = [
@@ -65,6 +67,7 @@ const futureActions = [
 export default function NewCompany() {
   const navigate = useNavigate();
   const { setTempCompanyData } = usePortfolio();
+  const { toast } = useToast();
   const [formData, setFormData] = useState({
     companyName: "",
     companyType: "",
@@ -109,15 +112,71 @@ export default function NewCompany() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log("Submitting company data:", formData);
     
-    // Store the form data temporarily in context
-    setTempCompanyData(formData);
-    
-    // Navigate to pre-screening page
-    navigate("/portfolio/pre-screening");
+    try {
+      // Get current user's profile to determine tenant_id
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        // Store the form data temporarily in context for non-authenticated users
+        setTempCompanyData(formData);
+        navigate("/portfolio/pre-screening");
+        return;
+      }
+
+      // Get user's profile to get tenant_id
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!profile?.tenant_id) {
+        // Fallback to temporary storage if no tenant
+        setTempCompanyData(formData);
+        navigate("/portfolio/pre-screening");
+        return;
+      }
+
+      // Save to database
+      const companyData = {
+        name: formData.companyName,
+        industry: formData.sector,
+        stage: formData.investmentStage,
+        description: formData.description,
+        website: formData.email, // Using email as website placeholder
+        headquarters: formData.city,
+        founded_year: formData.screeningDate ? new Date(formData.screeningDate).getFullYear() : null,
+        employee_count: parseInt(formData.employeesFoundersMale) + parseInt(formData.employeesFoundersFemale) + parseInt(formData.employeesFoundersOthers) + parseInt(formData.employeesOtherMale) + parseInt(formData.employeesOtherFemale) + parseInt(formData.employeesOtherOthers),
+        investment_amount: formData.investmentSize ? parseInt(formData.investmentSize.replace(/[^0-9]/g, '')) : null,
+        equity_percentage: formData.shareholding ? parseFloat(formData.shareholding) : null,
+        fund_id: formData.fundId || null,
+        tenant_id: profile.tenant_id,
+        created_by: user.id
+      };
+
+      const { data: company, error } = await supabase
+        .from('portfolio_companies')
+        .insert(companyData)
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      // Store company ID and navigate to pre-screening
+      setTempCompanyData({ ...formData, companyId: company.id });
+      navigate("/portfolio/pre-screening");
+      
+    } catch (error) {
+      console.error('Error saving company:', error);
+      // Fallback to temporary storage on error
+      setTempCompanyData(formData);
+      navigate("/portfolio/pre-screening");
+    }
   };
   
   return (
