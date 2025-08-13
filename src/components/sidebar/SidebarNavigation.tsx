@@ -10,12 +10,15 @@ import { cn } from "@/lib/utils";
 import { mainNavItems } from "./navigation-items";
 import { SidebarSubmenuItem } from "./SidebarSubmenuItem";
 import { esgDDNavItem, valuationNavItem } from "./navigation-items";
+import { useAuth } from "@/contexts/AuthContext";
+import { LogOut } from "lucide-react";
 
 import { useState, useEffect } from "react";
 
 export function SidebarNavigation() {
   const location = useLocation();
   const [accessibleMenus, setAccessibleMenus] = useState<string[]>([]);
+  const { signOut } = useAuth();
 
   // Check if any path starts with /esg-dd but is not /esg-dd/risk-matrix
   const isEsgSubmenuOpen = location.pathname.startsWith("/esg-dd") && !location.pathname.includes("risk-matrix");
@@ -69,6 +72,17 @@ export function SidebarNavigation() {
           isInitiallyOpen={isValuationSubmenuOpen} 
         />
       )}
+      
+      <SidebarMenuItem>
+        <SidebarMenuButton 
+          onClick={signOut}
+          tooltip="Sign Out"
+          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+        >
+          <LogOut className="h-4 w-4" />
+          <span>Sign Out</span>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
     </SidebarMenu>
   );
 }

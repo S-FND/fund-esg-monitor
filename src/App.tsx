@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import {
   Route,
   Routes,
+  Navigate,
 } from "react-router-dom";
 import {
   Dashboard,
@@ -24,6 +25,7 @@ import {
 } from "./pages";
 import NewFundSimple from "./pages/NewFundSimple";
 import TeamManagement from "./pages/TeamManagement";
+import Auth from "./pages/Auth";
 import { Sidebar } from "@/components/sidebar";
 import { Button } from "@/components/ui/button";
 import { ModeToggle } from "@/components/ui/mode-toggle";
@@ -32,8 +34,30 @@ import { PortfolioProvider } from "@/contexts/PortfolioContext";
 import { EditPortfolioCompany } from "@/features/edit-portfolio-company";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 function App() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg">Loading...</div>
+      </div>
+    );
+  }
+
+  // If user is not authenticated, show auth page
+  if (!user) {
+    return (
+      <Routes>
+        <Route path="/auth" element={<Auth />} />
+        <Route path="*" element={<Navigate to="/auth" replace />} />
+      </Routes>
+    );
+  }
+
+  // User is authenticated, show main app
   return (
     <PortfolioProvider>
       <Shell>
@@ -43,6 +67,7 @@ function App() {
             <ModeToggle />
           </div>
           <Routes>
+            <Route path="/auth" element={<Navigate to="/" replace />} />
             <Route path="/" element={<Dashboard />} />
             <Route path="/investor-info" element={<InvestorInfo />} />
             <Route path="/funds" element={<Funds />} />
