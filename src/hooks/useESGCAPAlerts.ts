@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { toast } from "@/hooks/use-toast";
 import { CAPItem } from "@/components/esg-cap/CAPTable";
 
@@ -13,6 +13,13 @@ export const useESGCAPAlerts = (
   previousCapItems?: CAPItem[]
 ) => {
   const [alerts, setAlerts] = useState<AlertsState>({
+    overdueItems: [],
+    approachingDeadlines: [],
+    statusChanges: []
+  });
+  
+  // Track previous alert state to prevent duplicate toasts
+  const previousAlertsRef = useRef<AlertsState>({
     overdueItems: [],
     approachingDeadlines: [],
     statusChanges: []
@@ -70,23 +77,37 @@ export const useESGCAPAlerts = (
       statusChanges
     });
 
-    // Show toast notifications for new alerts
-    if (overdueItems.length > 0) {
+    // Only show toast notifications when alerts actually change
+    const previousAlerts = previousAlertsRef.current;
+    
+    // Check if overdue items have actually changed
+    const newOverdueItems = overdueItems.filter(item => 
+      !previousAlerts.overdueItems.find(prev => prev.id === item.id)
+    );
+    
+    // Check if approaching deadlines have actually changed
+    const newApproachingItems = approachingDeadlines.filter(item => 
+      !previousAlerts.approachingDeadlines.find(prev => prev.id === item.id)
+    );
+    
+    // Show toast only for new overdue items
+    if (newOverdueItems.length > 0) {
       toast({
         title: "⚠️ Overdue Items Alert",
-        description: `${overdueItems.length} CAP item(s) are overdue and require immediate attention.`,
+        description: `${newOverdueItems.length} CAP item(s) are now overdue and require immediate attention.`,
         variant: "destructive",
       });
     }
 
-    if (approachingDeadlines.length > 0) {
+    // Show toast only for new approaching deadlines
+    if (newApproachingItems.length > 0) {
       toast({
         title: "📅 Approaching Deadlines",
-        description: `${approachingDeadlines.length} CAP item(s) have deadlines within the next 7 days.`,
+        description: `${newApproachingItems.length} CAP item(s) have deadlines within the next 7 days.`,
       });
     }
 
-    // Show status change notifications
+    // Show status change notifications (these are already new changes)
     statusChanges.forEach(change => {
       const statusColor = change.newStatus === "Completed" ? "default" : 
                          change.newStatus === "Rejected" ? "destructive" : "default";
@@ -97,6 +118,13 @@ export const useESGCAPAlerts = (
         variant: statusColor === "destructive" ? "destructive" : "default",
       });
     });
+    
+    // Update previous alerts reference
+    previousAlertsRef.current = {
+      overdueItems,
+      approachingDeadlines,
+      statusChanges
+    };
   }, [capItems, previousCapItems]);
 
   return alerts;
