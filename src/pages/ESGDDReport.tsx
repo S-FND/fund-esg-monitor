@@ -312,30 +312,57 @@ export default function ESGDDReport() {
               {currentReport?.title} - {currentReport && getCompanyName(currentReport.companyId)}
             </DialogTitle>
           </DialogHeader>
-          <div className="mt-4 h-[70vh] overflow-hidden">
+          <div className="mt-4 h-[70vh] flex flex-col items-center justify-center space-y-6 border border-gray-300 rounded bg-gray-50">
             {currentReport?.fileUrl ? (
-              <div className="w-full h-full border border-gray-300 rounded">
-                <iframe
-                  src={`${currentReport.fileUrl}#toolbar=1&navpanes=1&scrollbar=1`}
-                  className="w-full h-full"
-                  title={`PDF Viewer for ${currentReport.title}`}
-                  onError={() => {
-                    toast({
-                      title: "PDF Loading Error",
-                      description: "Unable to display PDF in viewer. Please download the file instead.",
-                      variant: "destructive",
-                    });
-                  }}
-                />
-                <div className="text-xs text-muted-foreground mt-2 text-center">
-                  If the PDF doesn't display correctly, please download it instead.
+              <>
+                <div className="text-center space-y-4">
+                  <FileText className="h-20 w-20 text-primary mx-auto" />
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      {currentReport.title}
+                    </h3>
+                    <p className="text-sm text-gray-600 mt-1">
+                      {getCompanyName(currentReport.companyId)} • {new Date(currentReport.date).toLocaleDateString()}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      By {currentReport.consultant}
+                    </p>
+                  </div>
                 </div>
-              </div>
+                
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button 
+                    onClick={() => {
+                      // Open in new tab to bypass Chrome blocking
+                      window.open(currentReport.fileUrl, '_blank', 'noopener,noreferrer');
+                    }}
+                    className="px-6 py-2"
+                  >
+                    <Eye className="mr-2 h-4 w-4" />
+                    Open PDF in New Tab
+                  </Button>
+                  
+                  <Button 
+                    variant="outline"
+                    onClick={() => handleDownloadReport(currentReport)}
+                    className="px-6 py-2"
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    Download PDF
+                  </Button>
+                </div>
+                
+                <div className="text-xs text-gray-500 text-center max-w-md">
+                  <p>Click "Open PDF in New Tab" to view the report in your browser's PDF viewer, or download it to open with your preferred PDF application.</p>
+                </div>
+              </>
             ) : (
-              <div className="flex flex-col items-center justify-center h-full text-center">
-                <FileText className="h-16 w-16 text-muted-foreground mb-4" />
-                <p className="text-lg font-medium text-muted-foreground">PDF not available</p>
-                <p className="text-sm text-muted-foreground">Please contact support if this issue persists.</p>
+              <div className="text-center space-y-4">
+                <FileText className="h-16 w-16 text-gray-400 mx-auto" />
+                <div>
+                  <p className="text-lg font-medium text-gray-600">PDF not available</p>
+                  <p className="text-sm text-gray-500">Please contact support if this issue persists.</p>
+                </div>
               </div>
             )}
           </div>
