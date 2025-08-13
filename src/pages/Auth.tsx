@@ -104,6 +104,66 @@ export default function Auth() {
     }
   };
 
+  const handleDemoLogin = async (role: string) => {
+    setLoading(true);
+    try {
+      // Create demo user credentials
+      const demoUsers = {
+        'Fund Manager': { email: 'demo.manager@fandoro.com', password: 'demo123', name: 'Demo Manager', company: 'Fandoro Demo Fund' },
+        'Analyst': { email: 'demo.analyst@fandoro.com', password: 'demo123', name: 'Demo Analyst', company: 'Fandoro Analytics' },
+        'Admin': { email: 'demo.admin@fandoro.com', password: 'demo123', name: 'Demo Admin', company: 'Fandoro Admin' }
+      };
+
+      const demoUser = demoUsers[role as keyof typeof demoUsers];
+      
+      // Try to sign in first
+      let { error } = await supabase.auth.signInWithPassword({
+        email: demoUser.email,
+        password: demoUser.password,
+      });
+
+      // If user doesn't exist, create them
+      if (error && error.message.includes('Invalid login credentials')) {
+        const { error: signUpError } = await supabase.auth.signUp({
+          email: demoUser.email,
+          password: demoUser.password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/`,
+            data: {
+              full_name: demoUser.name,
+              company_name: demoUser.company,
+            }
+          }
+        });
+
+        if (signUpError) throw signUpError;
+
+        // Sign in after successful signup
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: demoUser.email,
+          password: demoUser.password,
+        });
+
+        if (signInError) throw signInError;
+      } else if (error) {
+        throw error;
+      }
+
+      toast({
+        title: `Welcome ${role}!`,
+        description: "Successfully signed in with demo account.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error with demo login",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
@@ -112,6 +172,40 @@ export default function Auth() {
           <CardDescription>Sign in to your account or create a new one</CardDescription>
         </CardHeader>
         <CardContent>
+          {/* Demo User Buttons */}
+          <div className="mb-6 p-4 bg-muted/50 rounded-lg border">
+            <h3 className="text-sm font-medium mb-3 text-muted-foreground">Quick Demo Access</h3>
+            <div className="grid grid-cols-1 gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleDemoLogin('Fund Manager')}
+                disabled={loading}
+                className="justify-start"
+              >
+                🏢 Demo Fund Manager
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleDemoLogin('Analyst')}
+                disabled={loading}
+                className="justify-start"
+              >
+                📊 Demo Analyst
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleDemoLogin('Admin')}
+                disabled={loading}
+                className="justify-start"
+              >
+                ⚙️ Demo Admin
+              </Button>
+            </div>
+          </div>
+
           <Tabs defaultValue="signin" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="signin">Sign In</TabsTrigger>
