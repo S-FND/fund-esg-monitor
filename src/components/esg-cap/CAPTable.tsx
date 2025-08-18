@@ -14,6 +14,8 @@ export interface CAPItem {
   id: string;
   companyId: number;
   item: string;
+  measures: string; 
+  resource: string;
   actions: string;
   responsibility: string;
   deliverable: string;

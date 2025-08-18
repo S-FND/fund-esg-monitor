@@ -1,23 +1,13 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
-import { CAPItem, CAPStatus, CAPType, CAPPriority, CAPTable } from "@/components/esg-cap/CAPTable";
+import { CAPItem, CAPStatus, CAPType, CAPPriority } from "@/components/esg-cap/CAPTable";
 import { ComparePlan, ReviewDialog } from "@/components/esg-cap/ReviewDialog";
 import { FilterControls } from "@/components/esg-cap/FilterControls";
 import { AlertsPanel } from "@/components/esg-cap/AlertsPanel";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { ArrowLeft, ArrowRight } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
 import { http } from "@/utils/httpInterceptor";
 import { useESGCAPAlerts } from "@/hooks/useESGCAPAlerts";
 
@@ -40,6 +30,154 @@ interface APIResponse {
   finalPlan: boolean;
 }
 
+const HighlightDiff = ({ current, original }: { current: string, original?: string }) => {
+  if (!original || current === original) {
+    return <span>{current}</span>;
+  }
+
+  return (
+    <span className="relative group">
+      <span className="text-green-600 bg-green-50 px-1 rounded">{current}</span>
+      <span className="absolute hidden group-hover:block -bottom-6 left-0 text-xs text-red-600 line-through bg-red-50 px-1 rounded">
+        {original}
+      </span>
+    </span>
+  );
+};
+
+const CAPTable = ({
+  items,
+  originalItems,
+  onReview,
+  onSendReminder,
+  isComparisonView,
+  onRevert,
+  onRevertField,
+  finalPlan,
+  progressPercentage
+}: {
+  items: CAPItem[];
+  originalItems: CAPItem[];
+  onReview: (item: CAPItem) => void;
+  onSendReminder: (item: CAPItem) => void;
+  isComparisonView: boolean;
+  onRevert: (itemId: string) => void;
+  onRevertField: (itemId: string, field: keyof CAPItem) => void;
+  finalPlan: boolean;
+  progressPercentage: number;
+}) => {
+  const getChangedFields = useCallback((currentItem: CAPItem, originalItem?: CAPItem) => {
+    if (!originalItem) return {};
+    
+    const changes: Record<string, boolean> = {};
+    (Object.keys(currentItem) as Array<keyof CAPItem>).forEach((key) => {
+      changes[key] = JSON.stringify(currentItem[key]) !== JSON.stringify(originalItem[key]);
+    });
+    return changes;
+  }, []);
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full border-collapse">
+        <thead>
+          <tr className="bg-gray-100">
+            <th className="p-3 text-left">Item</th>
+            <th className="p-3 text-left">Measures</th>
+            <th className="p-3 text-left">Resource</th>
+            <th className="p-3 text-left">Status</th>
+            {isComparisonView && <th className="p-3 text-left">Changes</th>}
+            <th className="p-3 text-left">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((item) => {
+            const originalItem = originalItems.find(i => i.id === item.id);
+            const changedFields = getChangedFields(item, originalItem);
+            const hasChanges = isComparisonView && Object.values(changedFields).some(Boolean);
+
+            return (
+              <tr 
+                key={item.id} 
+                className={`border-t ${hasChanges ? "bg-yellow-50" : ""}`}
+              >
+                <td className={`p-3 ${changedFields.item ? "border-l-4 border-yellow-500" : ""}`}>
+                  <HighlightDiff current={item.item} original={originalItem?.item} />
+                </td>
+                <td className={`p-3 ${changedFields.measures ? "border-l-4 border-yellow-500" : ""}`}>
+                  <HighlightDiff current={item.measures} original={originalItem?.measures} />
+                </td>
+                <td className={`p-3 ${changedFields.resource ? "border-l-4 border-yellow-500" : ""}`}>
+                  <HighlightDiff current={item.resource} original={originalItem?.resource} />
+                </td>
+                <td className={`p-3 ${changedFields.status ? "border-l-4 border-yellow-500" : ""}`}>
+                  <HighlightDiff 
+                    current={item.status} 
+                    original={originalItem?.status} 
+                  />
+                </td>
+                {isComparisonView && (
+                  <td className="p-3">
+                    {hasChanges ? (
+                      <div className="flex flex-wrap gap-1">
+                        {Object.entries(changedFields).map(([field, hasChanged]) => (
+                          hasChanged && (
+                            <button
+                              key={field}
+                              onClick={() => onRevertField(item.id, field as keyof CAPItem)}
+                              className="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800 hover:bg-yellow-200 transition-colors"
+                              title={`Revert ${field} to original`}
+                            >
+                              {field}
+                            </button>
+                          )
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-gray-400 text-sm">No changes</span>
+                    )}
+                  </td>
+                )}
+                <td className="p-3 space-x-2">
+                  <Button 
+                    size="sm" 
+                    onClick={() => onReview(item)}
+                    disabled={finalPlan}
+                  >
+                    Review
+                  </Button>
+                  {isComparisonView && hasChanges && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onRevert(item.id)}
+                    >
+                      Revert All
+                    </Button>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      {progressPercentage > 0 && (
+        <div className="mt-4">
+          <div className="flex justify-between mb-1">
+            <span className="text-sm font-medium">Progress</span>
+            <span className="text-sm">{progressPercentage}%</span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2.5">
+            <div 
+              className="bg-green-600 h-2.5 rounded-full" 
+              style={{ width: `${progressPercentage}%` }}
+            ></div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function ESGCAP() {
   const [portfolioCompanies, setPortfolioCompanies] = useState([]);
   const [selectedItem, setSelectedItem] = useState<CAPItem | null>(null);
@@ -55,7 +193,6 @@ export default function ESGCAP() {
   const previousCapItemsRef = useRef<CAPItem[]>([]);
   const [canEdit, setCanEdit] = useState(true);
 
-  // Use alerts hook to monitor changes
   const alerts = useESGCAPAlerts(filteredCAPItems, previousCapItemsRef.current);
 
   const handleReview = (item: CAPItem) => {
@@ -150,14 +287,12 @@ export default function ESGCAP() {
       }
       
       const jsondata: APIResponse = await res.json();
-      console.log("API Response:", jsondata);
       
       setPlanData(jsondata);
       setFilteredCAPItems(jsondata.plan || []);
       setCapItems(jsondata.plan || []);
       setFinalPlan(jsondata.finalPlan || false);
       
-      // Initialize comparison data from plan history
       const latestHistory = jsondata.planHistoryDetails?.[0];
       setComparePlanData({
         founderPlan: latestHistory?.requestPlan || [],
@@ -215,7 +350,6 @@ export default function ESGCAP() {
           title: "CAP Submitted",
           description: "All CAP items have been submitted successfully.",
         });
-        // Refresh the data after submission
         if (selectedCompany !== 'all') {
           getPlanList(selectedCompany);
         }
@@ -231,7 +365,16 @@ export default function ESGCAP() {
   };
 
   const toggleComparisonView = () => {
-    setShowComparisonView(!showComparisonView);
+    if (showComparisonView) {
+      setShowComparisonView(false);
+    } else if (comparePlanData?.founderPlan?.length) {
+      setShowComparisonView(true);
+    } else {
+      toast({
+        title: "No changes to compare",
+        description: "There are no previous versions to compare with.",
+      });
+    }
   };
 
   const handleRevertToOriginal = (itemId: string) => {
@@ -290,7 +433,6 @@ export default function ESGCAP() {
           title: "CAP Accepted",
           description: "The corrective action plan has been accepted.",
         });
-        // Refresh the data
         if (selectedCompany !== 'all') {
           getPlanList(selectedCompany);
         }
@@ -305,7 +447,6 @@ export default function ESGCAP() {
     }
   };
 
-  // Scoring calculation logic
   const getPriorityWeight = (priority: CAPPriority): number => {
     switch (priority) {
       case "High": return 2;
@@ -397,29 +538,32 @@ export default function ESGCAP() {
             </CardHeader>
             <CardContent>
               {showComparisonView && comparePlanData ? (
-                <CAPTable
-                  items={comparePlanData.founderPlan}
-                  onReview={handleReview}
-                  onSendReminder={handleSendReminder}
-                  isComparisonView={true}
-                  originalItems={comparePlanData.investorPlan}
-                  onRevert={handleRevertToOriginal}
-                  onRevertField={handleRevertField}
-                  finalPlan={finalPlan}
-                  showChangeStatus={true}
-                  progressPercentage={progressPercentage}
-                />
+                <div className="relative">
+                  <div className="absolute top-2 right-2 bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs">
+                    Comparing with previous version
+                  </div>
+                  <CAPTable
+                    items={comparePlanData.founderPlan}
+                    originalItems={comparePlanData.investorPlan}
+                    onReview={handleReview}
+                    onSendReminder={handleSendReminder}
+                    isComparisonView={true}
+                    onRevert={handleRevertToOriginal}
+                    onRevertField={handleRevertField}
+                    finalPlan={finalPlan}
+                    progressPercentage={progressPercentage}
+                  />
+                </div>
               ) : (
                 <CAPTable
                   items={capItems}
+                  originalItems={previousCapItemsRef.current}
                   onReview={handleReview}
                   onSendReminder={handleSendReminder}
                   isComparisonView={false}
-                  originalItems={previousCapItemsRef.current}
                   onRevert={handleRevertToOriginal}
                   onRevertField={handleRevertField}
                   finalPlan={finalPlan}
-                  showChangeStatus={false}
                   progressPercentage={progressPercentage}
                 />
               )}
