@@ -6,6 +6,7 @@ import { CAPItem, CAPStatus, CAPType, CAPPriority, CAPTable } from "@/components
 import { ReviewDialog } from "@/components/esg-cap/ReviewDialog";
 import { FilterControls } from "@/components/esg-cap/FilterControls";
 import { AlertsPanel } from "@/components/esg-cap/AlertsPanel";
+import { AddCAPDialog } from "@/components/esg-cap/AddCAPDialog";
 import { portfolioCompanies } from "@/features/edit-portfolio-company/portfolioCompanies";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -119,8 +120,12 @@ export default function ESGCAP() {
   const previousCapItemsRef = useRef<CAPItem[]>(originalCapItems);
 
   // Save to localStorage whenever capItems changes
+  const saveToLocalStorage = (items: CAPItem[]) => {
+    localStorage.setItem('esg-cap-items', JSON.stringify(items));
+  };
+  
   useEffect(() => {
-    localStorage.setItem('esg-cap-items', JSON.stringify(capItems));
+    saveToLocalStorage(capItems);
   }, [capItems]);
 
   // Filter CAP items by selected company
@@ -170,6 +175,7 @@ export default function ESGCAP() {
       // }).eq('id', selectedItem.id);
       
       setCapItems(updatedItems);
+      saveToLocalStorage(updatedItems);
       console.log('Updated capItems state, alerts should recalculate');
     }
     toast({
@@ -201,6 +207,7 @@ export default function ESGCAP() {
       // }).eq('id', selectedItem.id);
       
       setCapItems(updatedItems);
+      saveToLocalStorage(updatedItems);
       console.log('Updated capItems state, alerts should recalculate');
     }
     toast({
@@ -228,6 +235,7 @@ export default function ESGCAP() {
       return item;
     });
     setCapItems(updatedItems);
+    saveToLocalStorage(updatedItems);
     setSelectedItem(updatedItem);
   };
 
@@ -254,6 +262,7 @@ export default function ESGCAP() {
         return item;
       });
       setCapItems(updatedItems);
+      saveToLocalStorage(updatedItems);
       
       toast({
         title: "Item Reverted",
@@ -273,12 +282,25 @@ export default function ESGCAP() {
         return item;
       });
       setCapItems(updatedItems);
+      saveToLocalStorage(updatedItems);
       
       toast({
         title: "Field Reverted",
         description: `Field "${field}" has been reverted to its original value.`,
       });
     }
+  };
+
+  const handleAddItem = (newItem: CAPItem) => {
+    const updatedItems = [...capItems, newItem];
+    setCapItems(updatedItems);
+    saveToLocalStorage(updatedItems);
+  };
+
+  const handleAddMultipleItems = (newItems: CAPItem[]) => {
+    const updatedItems = [...capItems, ...newItems];
+    setCapItems(updatedItems);
+    saveToLocalStorage(updatedItems);
   };
 
   // Scoring calculation logic
@@ -314,11 +336,17 @@ export default function ESGCAP() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">ESG Corrective Action Plan</h1>
-        <p className="text-muted-foreground">
-          Review and finalize the ESG Corrective Action Plan items
-        </p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">ESG Corrective Action Plan</h1>
+          <p className="text-muted-foreground">
+            Review and finalize the ESG Corrective Action Plan items
+          </p>
+        </div>
+        <AddCAPDialog 
+          onAddItem={handleAddItem}
+          onAddMultipleItems={handleAddMultipleItems}
+        />
       </div>
 
       <div className="flex items-center justify-between">
