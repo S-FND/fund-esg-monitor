@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PageNavigation } from "@/components/PageNavigation";
 import { ESGMatrixOverview } from "@/components/esg-risk-matrix/ESGMatrixOverview";
 import { ESGCompanyMatrix } from "@/components/esg-risk-matrix/ESGCompanyMatrix";
 import { ESGRiskSettings } from "@/components/esg-risk-matrix/ESGRiskSettings";
@@ -15,6 +16,8 @@ export default function ESGRiskMatrix() {
 
   return (
     <div className="space-y-6">
+      <PageNavigation />
+      
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">ESG Risk Matrix</h1>
         <ESGRiskSettings />

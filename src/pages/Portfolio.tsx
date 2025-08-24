@@ -4,6 +4,7 @@ import { Plus, Calendar } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { PageNavigation } from "@/components/PageNavigation";
 import { InviteCompanyDialog } from "@/features/portfolio/InviteCompanyDialog";
 import { FilterControls } from "@/features/portfolio/FilterControls";
 import { CompanyCard } from "@/features/portfolio/CompanyCard";
@@ -132,6 +133,8 @@ export default function Portfolio() {
 
   return (
     <div className="space-y-6">
+      <PageNavigation />
+      
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">Portfolio Companies</h1>
         <div className="flex items-center gap-2">

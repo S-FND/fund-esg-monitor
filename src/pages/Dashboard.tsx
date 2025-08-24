@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { PageNavigation } from "@/components/PageNavigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -140,6 +141,8 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
+      <PageNavigation />
+      
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">
           {selectedCompanyData ? `${selectedCompanyData.name} Dashboard` : "Portfolio Dashboard"}

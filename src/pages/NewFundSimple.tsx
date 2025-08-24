@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { PageNavigation } from "@/components/PageNavigation";
 import { FundCompaniesField } from "@/components/NewFund/FundCompaniesField";
 import { FundTeamMembersField } from "@/components/NewFund/FundTeamMembersField";
 import { useToast } from "@/hooks/use-toast";
@@ -213,6 +214,8 @@ export default function NewFund() {
 
   return (
     <div className="container mx-auto p-6 max-w-4xl">
+      <PageNavigation className="mb-6" />
+      
       <div className="mb-6">
         <h1 className="text-3xl font-bold">Create New Fund</h1>
         <p className="text-muted-foreground">Set up a new investment fund with companies and team members</p>

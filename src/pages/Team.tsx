@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { TeamAddDialog } from "@/components/TeamAddDialog";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { PageNavigation } from "@/components/PageNavigation";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Pencil, Eye, UserCheck, Shield } from "lucide-react";
@@ -131,6 +132,8 @@ export default function Team() {
 
   return (
     <div className="container max-w-4xl mx-auto py-8">
+      <PageNavigation className="mb-6" />
+      
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold">Team Management</h1>
         <Button onClick={() => setAddingDialogOpen(true)}>Add New Team Member</Button>

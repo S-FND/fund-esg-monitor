@@ -7,6 +7,7 @@ import { ReviewDialog } from "@/components/esg-cap/ReviewDialog";
 import { FilterControls } from "@/components/esg-cap/FilterControls";
 import { AlertsPanel } from "@/components/esg-cap/AlertsPanel";
 import { AddCAPDialog } from "@/components/esg-cap/AddCAPDialog";
+import { PageNavigation } from "@/components/PageNavigation";
 import { portfolioCompanies } from "@/features/edit-portfolio-company/portfolioCompanies";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -336,6 +337,8 @@ export default function ESGCAP() {
 
   return (
     <div className="space-y-6">
+      <PageNavigation />
+      
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">ESG Corrective Action Plan</h1>

@@ -4,8 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronRight } from "lucide-react";
+import { PageNavigation } from "@/components/PageNavigation";
 import { ManageQuestions } from "@/components/pre-screening/ManageQuestions";
-
 import { ObjectivesCard } from "@/components/pre-screening/ObjectivesCard";
 import { QuestionsTable } from "@/components/pre-screening/QuestionsTable";
 import { ScoreSummary } from "@/components/pre-screening/ScoreSummary";
@@ -69,6 +69,8 @@ export default function PreScreening() {
   
   return (
     <div className="space-y-6">
+      <PageNavigation />
+      
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Pre-Screening Gating Checklist</h1>

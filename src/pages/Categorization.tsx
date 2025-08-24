@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronLeft } from "lucide-react";
+import { PageNavigation } from "@/components/PageNavigation";
 import { usePortfolio } from "@/contexts/PortfolioContext";
 import { ManageCategoryQuestions } from "@/components/categorization/ManageCategoryQuestions";
 import { CategoryScoringSidebar } from "@/components/categorization/CategoryScoringSidebar";
@@ -37,6 +38,8 @@ export default function Categorization() {
   
   return (
     <div className="space-y-6">
+      <PageNavigation />
+      
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Categorization Checklist</h1>

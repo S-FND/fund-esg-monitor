@@ -2,7 +2,8 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus } from "lucide-react";
+import { Plus, Building2, Calendar, Users, PiggyBank } from "lucide-react";
+import { PageNavigation } from "@/components/PageNavigation";
 import { funds } from "./fundsData";
 
 export default function Funds() {
@@ -10,6 +11,8 @@ export default function Funds() {
   
   return (
     <div className="space-y-6">
+      <PageNavigation />
+      
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">Funds</h1>
         <Button onClick={() => navigate("/funds/new")} className="gap-2">

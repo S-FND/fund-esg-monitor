@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
+import { PageNavigation } from "@/components/PageNavigation";
 
 const dummyInvestorData = {
   investorName: "Global Sustainable Ventures",
@@ -23,6 +24,8 @@ export default function InvestorInfo() {
 
   return (
     <div className="p-6">
+      <PageNavigation className="mb-6" />
+      
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold">Investor General Information</h2>
         <Button onClick={() => navigate("/investor-info/edit")}>Edit Profile</Button>

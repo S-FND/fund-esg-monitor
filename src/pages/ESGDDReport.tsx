@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { FileText, Download, Eye } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { DateRangeSearch } from "@/components/esg-dd/DateRangeSearch";
+import { PageNavigation } from "@/components/PageNavigation";
 import { useState } from "react";
 import { portfolioCompanies } from "@/features/edit-portfolio-company/portfolioCompanies";
 import { 
@@ -190,6 +191,8 @@ export default function ESGDDReport() {
 
   return (
     <div className="space-y-6">
+      <PageNavigation />
+      
       <div>
         <h1 className="text-2xl font-bold tracking-tight">ESG DD Reports</h1>
         <p className="text-muted-foreground">
