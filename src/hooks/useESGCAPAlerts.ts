@@ -1,16 +1,16 @@
 import { useEffect, useState, useRef } from "react";
 import { toast } from "@/hooks/use-toast";
-import { CAPItem } from "@/components/esg-cap/CAPTable";
+import { ESGCapItem } from "@/components/esg-cap/CAPTable"; // Import the correct interface
 
 interface AlertsState {
-  overdueItems: CAPItem[];
-  approachingDeadlines: CAPItem[];
-  statusChanges: Array<{ item: CAPItem; previousStatus: string; newStatus: string }>;
+  overdueItems: ESGCapItem[];
+  approachingDeadlines: ESGCapItem[];
+  statusChanges: Array<{ item: ESGCapItem; previousStatus: string; newStatus: string }>;
 }
 
 export const useESGCAPAlerts = (
-  capItems: CAPItem[],
-  previousCapItems?: CAPItem[]
+  capItems: ESGCapItem[],
+  previousCapItems?: ESGCapItem[]
 ) => {
   const [alerts, setAlerts] = useState<AlertsState>({
     overdueItems: [],
@@ -25,32 +25,32 @@ export const useESGCAPAlerts = (
     statusChanges: []
   });
 
-  const checkOverdueItems = (items: CAPItem[]): CAPItem[] => {
+  const checkOverdueItems = (items: ESGCapItem[]): ESGCapItem[] => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
     return items.filter(item => {
-      if (item.status === "Completed") return false;
-      const targetDate = new Date(item.targetDate);
-      targetDate.setHours(0, 0, 0, 0);
-      return targetDate < today;
+      if (item.status === "completed") return false; // Changed from "Completed" to "completed"
+      const deadlineDate = new Date(item.deadline); // Changed from targetDate to deadline
+      deadlineDate.setHours(0, 0, 0, 0);
+      return deadlineDate < today;
     });
   };
 
-  const checkApproachingDeadlines = (items: CAPItem[]): CAPItem[] => {
+  const checkApproachingDeadlines = (items: ESGCapItem[]): ESGCapItem[] => {
     const today = new Date();
     const sevenDaysFromNow = new Date();
     sevenDaysFromNow.setDate(today.getDate() + 7);
     
     return items.filter(item => {
-      if (item.status === "Completed") return false;
-      const targetDate = new Date(item.targetDate);
-      return targetDate >= today && targetDate <= sevenDaysFromNow;
+      if (item.status === "completed") return false; // Changed from "Completed" to "completed"
+      const deadlineDate = new Date(item.deadline); // Changed from targetDate to deadline
+      return deadlineDate >= today && deadlineDate <= sevenDaysFromNow;
     });
   };
 
-  const checkStatusChanges = (current: CAPItem[], previous: CAPItem[] = []) => {
-    const changes: Array<{ item: CAPItem; previousStatus: string; newStatus: string }> = [];
+  const checkStatusChanges = (current: ESGCapItem[], previous: ESGCapItem[] = []) => {
+    const changes: Array<{ item: ESGCapItem; previousStatus: string; newStatus: string }> = [];
     
     current.forEach(currentItem => {
       const previousItem = previous.find(p => p.id === currentItem.id);
@@ -109,12 +109,12 @@ export const useESGCAPAlerts = (
 
     // Show status change notifications (these are already new changes)
     statusChanges.forEach(change => {
-      const statusColor = change.newStatus === "Completed" ? "default" : 
-                         change.newStatus === "Rejected" ? "destructive" : "default";
+      const statusColor = change.newStatus === "completed" ? "default" : 
+                         change.newStatus === "delayed" ? "destructive" : "default"; // Updated status values
       
       toast({
         title: "📋 Status Updated",
-        description: `"${change.item.item}" changed from ${change.previousStatus} to ${change.newStatus}`,
+        description: `"${change.item.issue}" changed from ${change.previousStatus} to ${change.newStatus}`, // Changed from item.item to item.issue
         variant: statusColor === "destructive" ? "destructive" : "default",
       });
     });

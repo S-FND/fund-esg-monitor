@@ -11,6 +11,7 @@ interface User {
   id: string;
   email: string;
   name: string;
+  entityType: number;
   assignedPages: UserAccessRight[];
   isActive: boolean;
   isParent:Boolean;

@@ -38,7 +38,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Sidebar } from "./components/sidebar";
+import { Sidebar } from "./components/Sidebar";
 import EditInvestorProfile from "./pages/EditInvestorProfile";
 import NewCompany from "./pages/NewCompany";
 import PreScreening from "./pages/PreScreening";
