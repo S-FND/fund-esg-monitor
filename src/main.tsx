@@ -8,6 +8,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { SidebarProvider } from "@/components/ui/sidebar"
 import { ToastProvider } from "@/components/ui/toast"
 import { AuthProvider } from "@/contexts/AuthContext"
+import { AccessControlProvider } from "@/contexts/AccessControlContext"
 
 
 createRoot(document.getElementById("root")!).render(
@@ -15,10 +16,12 @@ createRoot(document.getElementById("root")!).render(
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <ToastProvider>
         <AuthProvider>
-          <SidebarProvider>
-            <App />
-            <Toaster />
-          </SidebarProvider>
+          <AccessControlProvider>
+            <SidebarProvider>
+              <App />
+              <Toaster />
+            </SidebarProvider>
+          </AccessControlProvider>
         </AuthProvider>
       </ToastProvider>
     </ThemeProvider>

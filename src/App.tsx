@@ -35,11 +35,15 @@ import { EditPortfolioCompany } from "@/features/edit-portfolio-company";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAccessControl } from "@/contexts/AccessControlContext";
+import { AccessDenied } from "@/components/AccessDenied";
+import { DemoModeToggle } from "@/components/DemoModeToggle";
 
 function App() {
   const { user, loading } = useAuth();
+  const { hasAccess, isLoading: accessLoading } = useAccessControl();
 
-  if (loading) {
+  if (loading || accessLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-lg">Loading...</div>
@@ -57,13 +61,19 @@ function App() {
     );
   }
 
-  // User is authenticated, show main app
+  // Check if user has access
+  if (!hasAccess) {
+    return <AccessDenied />;
+  }
+
+  // User is authenticated and has access, show main app
   return (
     <PortfolioProvider>
       <Shell>
         <Sidebar />
         <ScrollArea className="flex-1 w-full p-4 md:p-8">
           <div className="flex justify-end space-x-4">
+            <DemoModeToggle />
             <ModeToggle />
           </div>
           <Routes>
