@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Upload, Plus, Download } from "lucide-react";
+import { Upload, Plus, Download, Trash2 } from "lucide-react";
 import { ESGCapItem, CAPStatus, CAPCategory, CAPPriority, CAPType } from "./CAPTable";
 import { toast } from "@/hooks/use-toast";
 import { EsgddAPIs } from "@/network/esgdd";
@@ -23,13 +23,29 @@ interface AddCAPDialogProps {
     onAddMultipleItems: (items: ESGCapItem[]) => void;
 }
 
+// Define a single row in the form
+interface CAPFormRow {
+    id: string;
+    item: string;
+    category: CAPCategory;
+    priority: CAPPriority;
+    measures: string;
+    resource: string;
+    deliverable: string;
+    targetDate: string;
+    dealCondition: CAPType;
+    actualDate: string;
+    status: CAPStatus;
+    assignedTo: string;
+}
+
 export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProps) {
     const [open, setOpen] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [companies, setCompanies] = useState<Company[]>([]);
     const [loadingCompanies, setLoadingCompanies] = useState(false);
-
     const [financialYear, setFinancialYear] = useState("");
+    const [selectedCompany, setSelectedCompany] = useState<string>("");
 
     useEffect(() => {
         const currentDate = new Date();
@@ -45,21 +61,23 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
         setFinancialYear(financialYear);
     }, []);
 
-    // Keep form state exactly as provided BUT replace CS with dealCondition
-    const [formData, setFormData] = useState({
-        companyId: "",
-        item: "",
-        category: "environmental" as CAPCategory,
-        priority: "Medium" as CAPPriority,
-        measures: "",
-        resource: "",
-        deliverable: "",
-        targetDate: "",
-        dealCondition: "none" as CAPType, // Replace CS with dealCondition
-        actualDate: "",
-        status: "pending" as CAPStatus,
-        assignedTo: "",
-    });
+    // Initialize with one empty row
+    const [formRows, setFormRows] = useState<CAPFormRow[]>([
+        {
+            id: Math.random().toString(36).substr(2, 9),
+            item: "",
+            category: "environmental",
+            priority: "Medium",
+            measures: "",
+            resource: "",
+            deliverable: "",
+            targetDate: "",
+            dealCondition: "none",
+            actualDate: "",
+            status: "pending",
+            assignedTo: "",
+        }
+    ]);
 
     // Fetch companies from API when dialog opens
     useEffect(() => {
@@ -122,108 +140,158 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
         }
     };
 
+    const addRow = () => {
+        setFormRows([
+            ...formRows,
+            {
+                id: Math.random().toString(36).substr(2, 9),
+                item: "",
+                category: "environmental",
+                priority: "Medium",
+                measures: "",
+                resource: "",
+                deliverable: "",
+                targetDate: "",
+                dealCondition: "none",
+                actualDate: "",
+                status: "pending",
+                assignedTo: "",
+            }
+        ]);
+    };
+
+    const removeRow = (id: string) => {
+        if (formRows.length <= 1) return;
+        setFormRows(formRows.filter(row => row.id !== id));
+    };
+
+    const updateRow = (id: string, field: keyof CAPFormRow, value: any) => {
+        setFormRows(
+            formRows.map(row => 
+                row.id === id ? { ...row, [field]: value } : row
+            )
+        );
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-      
-        if (!formData.item || !formData.measures || !formData.companyId) {
-          toast({
-            title: "Missing Required Fields",
-            description: "Please fill in all required fields (Company, Item, Measures).",
-            variant: "destructive",
-          });
-          return;
-        }
-      
-        const selectedCompany = companies.find(c => c.id === formData.companyId);
+
+        // Validate company selection
         if (!selectedCompany) {
-          toast({
-            title: "Company Not Selected",
-            description: "Please select a valid company.",
-            variant: "destructive",
-          });
-          return;
-        }
-      
-        const newItem: Omit<ESGCapItem, 'id'> = {
-          reportId: formData.companyId,
-          item: formData.item,
-          category: formData.category,
-          priority: formData.priority,
-          measures: formData.measures,
-          resource: formData.resource,
-          deliverable: formData.deliverable,
-          targetDate: formData.targetDate,
-          CS: formData.dealCondition,
-          actualDate: formData.actualDate,
-          status: formData.status,
-          assignedTo: formData.assignedTo,
-          dealCondition: formData.dealCondition,
-          createdAt: new Date().toISOString(),
-        };
-      
-        try {
-          // Get the current plan from the parent component state
-          // This assumes you pass the current plan items as a prop
-          // If not, you'll need to fetch the current plan first
-          
-          // For now, let's assume you have access to the current plan
-          const currentPlan = []; // This should be the current plan items
-          
-          const updatedPlan = [...currentPlan, newItem];
-          
-          const finalData = {
-            plan: updatedPlan,
-            email: selectedCompany.email,
-            financialYear: financialYear
-          };
-      
-          console.log('finalData', finalData);
-          
-          // Call API to save the updated plan
-          const [result, error] = await EsgddAPIs.saveEscap(finalData);
-      
-          if (result) {
-            // Add to local state after successful API call
-            const savedItem: ESGCapItem = {
-              ...newItem,
-              id: result.id || result._id // Use server-generated ID
-            };
-            
-            onAddItem(savedItem);
             toast({
-              title: "CAP Item Added",
-              description: "New CAP item has been successfully added.",
+                title: "Company Required",
+                description: "Please select a company.",
+                variant: "destructive",
             });
-            
-            // Reset form
-            setFormData({
-              companyId: "",
-              item: "",
-              category: "environmental" as CAPCategory,
-              priority: "Medium" as CAPPriority,
-              measures: "",
-              resource: "",
-              deliverable: "",
-              targetDate: "",
-              dealCondition: "none" as CAPType,
-              actualDate: "",
-              status: "pending" as CAPStatus,
-              assignedTo: "",
-            });
-      
-            setOpen(false);
-          } else {
-            throw new Error(error || "Failed to save CAP item");
-          }
-        } catch (error) {
-          console.error("Error adding CAP item:", error);
-          toast({
-            title: "Error",
-            description: "Failed to add CAP item. Please try again.",
-            variant: "destructive",
-          });
+            return;
         }
-      };
+
+        // Validate all rows
+        const invalidRows = formRows.filter(row => 
+            !row.item || !row.measures
+        );
+
+        if (invalidRows.length > 0) {
+            toast({
+                title: "Missing Required Fields",
+                description: "Please fill in all required fields (Item, Measures) for all rows.",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        // Find the selected company details
+        const company = companies.find(c => c.id === selectedCompany);
+        if (!company) {
+            toast({
+                title: "Invalid Company",
+                description: "Selected company is not valid.",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        // Prepare items for submission
+        const newItems: ESGCapItem[] = [];
+
+        for (const row of formRows) {
+            const newItem: Omit<ESGCapItem, 'id'> = {
+                reportId: selectedCompany,
+                item: row.item,
+                category: row.category,
+                priority: row.priority,
+                measures: row.measures,
+                resource: row.resource,
+                deliverable: row.deliverable,
+                targetDate: row.targetDate,
+                CS: row.dealCondition,
+                actualDate: row.actualDate,
+                status: row.status,
+                assignedTo: row.assignedTo,
+                dealCondition: row.dealCondition,
+                createdAt: new Date().toISOString(),
+            };
+
+            newItems.push(newItem as ESGCapItem);
+        }
+
+        try {
+            const finalData = {
+                plan: newItems,
+                email: company.email,
+                financialYear: financialYear
+            };
+
+            console.log('finalData', finalData);
+            
+            // Call API to save the plan
+            const [result, error] = await EsgddAPIs.saveEscap(finalData);
+
+            if (result) {
+                // Add to local state after successful API call
+                const savedItems: ESGCapItem[] = newItems.map(item => ({
+                    ...item,
+                    id: result.id || result._id || Math.random().toString(36).substr(2, 9)
+                }));
+                
+                onAddMultipleItems(savedItems);
+                
+                toast({
+                    title: "CAP Items Added",
+                    description: `Successfully added ${newItems.length} CAP items.`,
+                });
+
+                // Reset form
+                setFormRows([
+                    {
+                        id: Math.random().toString(36).substr(2, 9),
+                        item: "",
+                        category: "environmental",
+                        priority: "Medium",
+                        measures: "",
+                        resource: "",
+                        deliverable: "",
+                        targetDate: "",
+                        dealCondition: "none",
+                        actualDate: "",
+                        status: "pending",
+                        assignedTo: "",
+                    }
+                ]);
+                setSelectedCompany("");
+                setOpen(false);
+            } else {
+                throw new Error(error || "Failed to save CAP items");
+            }
+        } catch (error) {
+            console.error("Error adding CAP items:", error);
+            toast({
+                title: "Error",
+                description: "Failed to add CAP items. Please try again.",
+                variant: "destructive",
+            });
+        }
+    };
 
     const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -299,36 +367,49 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
             }
 
             if (newItems.length > 0) {
-                // Call API to save multiple CAP items
-                try {
-                    const firstItem = newItems[0];
-                    const company = companies.find(c => c.id === firstItem.reportId);
+                // Group items by company for API calls
+                const itemsByCompany: Record<string, ESGCapItem[]> = {};
+                
+                newItems.forEach(item => {
+                    if (!itemsByCompany[item.reportId]) {
+                        itemsByCompany[item.reportId] = [];
+                    }
+                    itemsByCompany[item.reportId].push(item);
+                });
+
+                // Process each company's items
+                for (const [companyId, items] of Object.entries(itemsByCompany)) {
+                    const company = companies.find(c => c.id === companyId);
                     if (!company) {
-                        throw new Error("Company not found for uploaded items");
+                        throw new Error(`Company not found for uploaded items`);
                     }
 
                     const finalData = {
-                        plan: newItems,
+                        plan: items,
                         email: company.email,
-                        financialYear: "2024-25"
+                        financialYear: financialYear
                     };
 
                     const [result, error] = await EsgddAPIs.saveEscap(finalData);
 
                     if (result) {
-                        onAddMultipleItems(newItems);
-                        setOpen(false);
-                        toast({
-                            title: "CAP Items Imported",
-                            description: `Successfully imported ${newItems.length} CAP items.`,
-                        });
+                        // Update IDs for saved items
+                        const savedItems: ESGCapItem[] = items.map(item => ({
+                            ...item,
+                            id: result.id || result._id || Math.random().toString(36).substr(2, 9)
+                        }));
+                        
+                        onAddMultipleItems(savedItems);
                     } else {
                         throw new Error(error || "Failed to save CAP items");
                     }
-                } catch (apiError) {
-                    console.error("API Error:", apiError);
-                    throw new Error("Failed to save CAP items to server");
                 }
+
+                setOpen(false);
+                toast({
+                    title: "CAP Items Imported",
+                    description: `Successfully imported ${newItems.length} CAP items.`,
+                });
             } else {
                 throw new Error("No valid items found in the file");
             }
@@ -393,171 +474,199 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                     <TabsContent value="manual" className="space-y-4">
                         <Card>
                             <CardHeader>
-                                <CardTitle>Add Single CAP Item</CardTitle>
+                                <CardTitle>Add Multiple CAP Items</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <form onSubmit={handleSubmit} className="space-y-4">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <Label htmlFor="company">Company *</Label>
-                                            <Select
-                                                value={formData.companyId} // This is still problematic - needs fixing
-                                                onValueChange={(value) => {
-                                                    // This is a simplified approach - you'd want proper company handling
-                                                    setFormData(prev => ({ ...prev, companyId: value }));
-                                                }}
-                                                disabled={loadingCompanies}
-                                            >
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder={loadingCompanies ? "Loading companies..." : "Select company"} />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {companies.map(company => (
-                                                        <SelectItem key={company.id} value={company.id.toString()}>
-                                                            {company.name}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-
-                                        <div>
-                                            <Label htmlFor="targetDate">Target Date</Label>
-                                            <Input
-                                                id="targetDate"
-                                                type="date"
-                                                value={formData.targetDate}
-                                                onChange={(e) => setFormData(prev => ({ ...prev, targetDate: e.target.value }))}
-                                            />
-                                        </div>
-                                    </div>
-
+                                <div className="space-y-6">
+                                    {/* Company Selection */}
                                     <div>
-                                        <Label htmlFor="item">Item *</Label>
-                                        <Textarea
-                                            id="item"
-                                            value={formData.item}
-                                            onChange={(e) => setFormData(prev => ({ ...prev, item: e.target.value }))}
-                                            placeholder="Describe the CAP item..."
-                                            className="min-h-[60px]"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <Label htmlFor="measures">Measures *</Label>
-                                        <Textarea
-                                            id="measures"
-                                            value={formData.measures}
-                                            onChange={(e) => setFormData(prev => ({ ...prev, measures: e.target.value }))}
-                                            placeholder="Describe the measures..."
-                                            className="min-h-[60px]"
-                                        />
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <Label htmlFor="resource">Resource</Label>
-                                            <Input
-                                                id="resource"
-                                                value={formData.resource}
-                                                onChange={(e) => setFormData(prev => ({ ...prev, resource: e.target.value }))}
-                                                placeholder="Who is responsible?"
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <Label htmlFor="assignedTo">Assigned To</Label>
-                                            <Input
-                                                id="assignedTo"
-                                                value={formData.assignedTo}
-                                                onChange={(e) => setFormData(prev => ({ ...prev, assignedTo: e.target.value }))}
-                                                placeholder="Who is responsible?"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                        <div>
-                                            <Label htmlFor="category">Category</Label>
-                                            <Select
-                                                value={formData.category}
-                                                onValueChange={(value: CAPCategory) => setFormData(prev => ({ ...prev, category: value }))}
-                                            >
-                                                <SelectTrigger>
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="environmental">Environmental</SelectItem>
-                                                    <SelectItem value="social">Social</SelectItem>
-                                                    <SelectItem value="governance">Governance</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-
-                                        <div>
-                                            <Label htmlFor="dealCondition">CP/CS</Label>
-                                            <Select
-                                                value={formData.dealCondition}
-                                                onValueChange={(value: CAPType) => setFormData(prev => ({ ...prev, dealCondition: value }))}
-                                            >
-                                                <SelectTrigger>
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="CP">CP</SelectItem>
-                                                    <SelectItem value="CS">CS</SelectItem>
-                                                    <SelectItem value="none">None</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-
-                                        <div>
-                                            <Label htmlFor="priority">Priority</Label>
-                                            <Select
-                                                value={formData.priority}
-                                                onValueChange={(value: CAPPriority) => setFormData(prev => ({ ...prev, priority: value }))}
-                                            >
-                                                <SelectTrigger>
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="High">High</SelectItem>
-                                                    <SelectItem value="Medium">Medium</SelectItem>
-                                                    <SelectItem value="Low">Low</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <Label htmlFor="status">Status</Label>
+                                        <Label htmlFor="company">Company *</Label>
                                         <Select
-                                            value={formData.status}
-                                            onValueChange={(value: CAPStatus) => setFormData(prev => ({ ...prev, status: value }))}
+                                            value={selectedCompany}
+                                            onValueChange={setSelectedCompany}
+                                            disabled={loadingCompanies}
                                         >
                                             <SelectTrigger>
-                                                <SelectValue />
+                                                <SelectValue placeholder={loadingCompanies ? "Loading companies..." : "Select company"} />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="pending">Pending</SelectItem>
-                                                <SelectItem value="in_review">In Review</SelectItem>
-                                                <SelectItem value="accepted">Accepted</SelectItem>
-                                                <SelectItem value="in_progress">In Progress</SelectItem>
-                                                <SelectItem value="completed">Completed</SelectItem>
-                                                <SelectItem value="delayed">Delayed</SelectItem>
+                                                {companies.map(company => (
+                                                    <SelectItem key={company.id} value={company.id.toString()}>
+                                                        {company.name}
+                                                    </SelectItem>
+                                                ))}
                                             </SelectContent>
                                         </Select>
                                     </div>
 
-                                    <div className="flex justify-end gap-2">
+                                    {/* Add Row Button */}
+                                    <div className="flex justify-end">
+                                        <Button 
+                                            type="button" 
+                                            variant="outline" 
+                                            onClick={addRow}
+                                            className="flex items-center"
+                                        >
+                                            <Plus className="h-4 w-4 mr-2" />
+                                            Add Another Item
+                                        </Button>
+                                    </div>
+
+                                    {/* Form Rows */}
+                                    {formRows.map((row, index) => (
+                                        <div key={row.id} className="border rounded-lg p-4 space-y-4">
+                                            {formRows.length > 1 && (
+                                                <div className="flex justify-end">
+                                                    <Button 
+                                                        type="button" 
+                                                        variant="ghost" 
+                                                        size="sm"
+                                                        onClick={() => removeRow(row.id)}
+                                                        className="text-red-500 hover:text-red-700"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            )}
+                                            
+                                            <div>
+                                                <Label htmlFor={`item-${index}`}>Item *</Label>
+                                                <Textarea
+                                                    id={`item-${index}`}
+                                                    value={row.item}
+                                                    onChange={(e) => updateRow(row.id, 'item', e.target.value)}
+                                                    placeholder="Describe the CAP item..."
+                                                    className="min-h-[60px]"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <Label htmlFor={`measures-${index}`}>Measures *</Label>
+                                                <Textarea
+                                                    id={`measures-${index}`}
+                                                    value={row.measures}
+                                                    onChange={(e) => updateRow(row.id, 'measures', e.target.value)}
+                                                    placeholder="Describe the measures..."
+                                                    className="min-h-[60px]"
+                                                />
+                                            </div>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div>
+                                                    <Label htmlFor={`resource-${index}`}>Resource</Label>
+                                                    <Input
+                                                        id={`resource-${index}`}
+                                                        value={row.resource}
+                                                        onChange={(e) => updateRow(row.id, 'resource', e.target.value)}
+                                                        placeholder="Who is responsible?"
+                                                    />
+                                                </div>
+
+                                                <div>
+                                                    <Label htmlFor={`assignedTo-${index}`}>Assigned To</Label>
+                                                    <Input
+                                                        id={`assignedTo-${index}`}
+                                                        value={row.assignedTo}
+                                                        onChange={(e) => updateRow(row.id, 'assignedTo', e.target.value)}
+                                                        placeholder="Who is responsible?"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                <div>
+                                                    <Label htmlFor={`category-${index}`}>Category</Label>
+                                                    <Select
+                                                        value={row.category}
+                                                        onValueChange={(value: CAPCategory) => updateRow(row.id, 'category', value)}
+                                                    >
+                                                        <SelectTrigger>
+                                                            <SelectValue />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="environmental">Environmental</SelectItem>
+                                                            <SelectItem value="social">Social</SelectItem>
+                                                            <SelectItem value="governance">Governance</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+
+                                                <div>
+                                                    <Label htmlFor={`dealCondition-${index}`}>CP/CS</Label>
+                                                    <Select
+                                                        value={row.dealCondition}
+                                                        onValueChange={(value: CAPType) => updateRow(row.id, 'dealCondition', value)}
+                                                    >
+                                                        <SelectTrigger>
+                                                            <SelectValue />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="CP">CP</SelectItem>
+                                                            <SelectItem value="CS">CS</SelectItem>
+                                                            <SelectItem value="none">None</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+
+                                                <div>
+                                                    <Label htmlFor={`priority-${index}`}>Priority</Label>
+                                                    <Select
+                                                        value={row.priority}
+                                                        onValueChange={(value: CAPPriority) => updateRow(row.id, 'priority', value)}
+                                                    >
+                                                        <SelectTrigger>
+                                                            <SelectValue />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="High">High</SelectItem>
+                                                            <SelectItem value="Medium">Medium</SelectItem>
+                                                            <SelectItem value="Low">Low</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <Label htmlFor={`targetDate-${index}`}>Target Date</Label>
+                                                <Input
+                                                    id={`targetDate-${index}`}
+                                                    type="date"
+                                                    value={row.targetDate}
+                                                    onChange={(e) => updateRow(row.id, 'targetDate', e.target.value)}
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <Label htmlFor={`status-${index}`}>Status</Label>
+                                                <Select
+                                                    value={row.status}
+                                                    onValueChange={(value: CAPStatus) => updateRow(row.id, 'status', value)}
+                                                >
+                                                    <SelectTrigger>
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="pending">Pending</SelectItem>
+                                                        <SelectItem value="in_review">In Review</SelectItem>
+                                                        <SelectItem value="accepted">Accepted</SelectItem>
+                                                        <SelectItem value="in_progress">In Progress</SelectItem>
+                                                        <SelectItem value="completed">Completed</SelectItem>
+                                                        <SelectItem value="delayed">Delayed</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                        </div>
+                                    ))}
+
+                                    <div className="flex justify-end gap-2 pt-4">
                                         <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                                             Cancel
                                         </Button>
-                                        <Button type="submit" disabled={loadingCompanies}>
-                                            Add CAP Item
+                                        <Button type="submit" onClick={handleSubmit} disabled={loadingCompanies}>
+                                            Add CAP Items
                                         </Button>
                                     </div>
-                                </form>
+                                </div>
                             </CardContent>
                         </Card>
                     </TabsContent>
