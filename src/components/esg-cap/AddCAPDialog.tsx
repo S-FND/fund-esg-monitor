@@ -64,7 +64,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
     // Initialize with one empty row
     const [formRows, setFormRows] = useState<CAPFormRow[]>([
         {
-            id: Math.random().toString(36).substr(2, 9),
+            id: "1", // Start with ID "1"
             item: "",
             category: "environmental",
             priority: "Medium",
@@ -90,7 +90,6 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
         setLoadingCompanies(true);
         try {
             const [res, error] = await EsgddAPIs.getCompanyList();
-            console.log('API response:', res);
 
             if (error) {
                 throw new Error(error);
@@ -115,8 +114,6 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                     name: company.companyName || company.name,
                     email: company.email || company.companyEmail || ""
                 })).filter(company => company.id && company.name);
-
-                console.log('mappedCompanies',mappedCompanies);
                 setCompanies(mappedCompanies);
             } else {
                 console.error("Unexpected API response structure:", jsondata);
@@ -141,10 +138,12 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
     };
 
     const addRow = () => {
+        // Calculate next ID based on current rows count
+        const nextId = (formRows.length + 1).toString();
         setFormRows([
             ...formRows,
             {
-                id: Math.random().toString(36).substr(2, 9),
+                id: nextId,
                 item: "",
                 category: "environmental",
                 priority: "Medium",
@@ -211,11 +210,13 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
             return;
         }
 
-        // Prepare items for submission
+        // Prepare items for submission with sequential IDs
         const newItems: ESGCapItem[] = [];
 
-        for (const row of formRows) {
-            const newItem: Omit<ESGCapItem, 'id'> = {
+        for (let i = 0; i < formRows.length; i++) {
+            const row = formRows[i];
+            // Create item without id first
+            const itemWithoutId: Omit<ESGCapItem, 'id'> = {
                 reportId: selectedCompany,
                 item: row.item,
                 category: row.category,
@@ -231,8 +232,14 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                 dealCondition: row.dealCondition,
                 createdAt: new Date().toISOString(),
             };
+            
+            // Add ID separately to avoid TypeScript error
+            const newItem = {
+                ...itemWithoutId,
+                id: (i + 1).toString()
+            } as ESGCapItem;
 
-            newItems.push(newItem as ESGCapItem);
+            newItems.push(newItem);
         }
 
         try {
@@ -242,8 +249,6 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                 financialYear: financialYear
             };
 
-            console.log('finalData', finalData);
-            
             // Call API to save the plan
             const [result, error] = await EsgddAPIs.saveEscap(finalData);
 
@@ -251,7 +256,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                 // Add to local state after successful API call
                 const savedItems: ESGCapItem[] = newItems.map(item => ({
                     ...item,
-                    id: result.id || result._id || Math.random().toString(36).substr(2, 9)
+                    id: item.id // Keep the sequential ID
                 }));
                 
                 onAddMultipleItems(savedItems);
@@ -261,10 +266,10 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                     description: `Successfully added ${newItems.length} CAP items.`,
                 });
 
-                // Reset form
+                // Reset form with sequential IDs
                 setFormRows([
                     {
-                        id: Math.random().toString(36).substr(2, 9),
+                        id: "1",
                         item: "",
                         category: "environmental",
                         priority: "Medium",
@@ -346,7 +351,8 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                     continue;
                 }
 
-                const item: Omit<ESGCapItem, 'id'> = {
+                // Create item without id first
+                const itemWithoutId: Omit<ESGCapItem, 'id'> = {
                     reportId: company.id,
                     item: values[headers.findIndex(h => h.includes('item'))] || "",
                     category: (values[headers.findIndex(h => h.includes('category'))] as CAPCategory) || "environmental",
@@ -362,8 +368,14 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                     dealCondition: (values[headers.findIndex(h => h.includes('dealcondition'))] || "") as CAPType,
                     createdAt: new Date().toISOString(),
                 };
+                
+                // Add ID separately to avoid TypeScript error
+                const newItem = {
+                    ...itemWithoutId,
+                    id: i.toString()
+                } as ESGCapItem;
 
-                newItems.push(item as ESGCapItem);
+                newItems.push(newItem);
             }
 
             if (newItems.length > 0) {
@@ -393,10 +405,10 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                     const [result, error] = await EsgddAPIs.saveEscap(finalData);
 
                     if (result) {
-                        // Update IDs for saved items
+                        // Update IDs for saved items (keep sequential IDs)
                         const savedItems: ESGCapItem[] = items.map(item => ({
                             ...item,
-                            id: result.id || result._id || Math.random().toString(36).substr(2, 9)
+                            id: item.id // Keep the sequential ID
                         }));
                         
                         onAddMultipleItems(savedItems);
@@ -652,11 +664,24 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                                                         <SelectItem value="in_progress">In Progress</SelectItem>
                                                         <SelectItem value="completed">Completed</SelectItem>
                                                         <SelectItem value="delayed">Delayed</SelectItem>
+                                                        <SelectItem value="rejected">Rejected</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                             </div>
+
+                                            <div>
+                                                <Label htmlFor={`actualDate-${index}`}>Actual Date</Label>
+                                                <Input
+                                                    id={`actualDate-${index}`}
+                                                    type="date"
+                                                    value={row.actualDate}
+                                                    onChange={(e) => updateRow(row.id, 'actualDate', e.target.value)}
+                                                />
+                                            </div>
                                         </div>
                                     ))}
+
+                                    
 
                                     <div className="flex justify-end gap-2 pt-4">
                                         <Button type="button" variant="outline" onClick={() => setOpen(false)}>

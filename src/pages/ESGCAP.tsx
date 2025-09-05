@@ -12,6 +12,7 @@ import { http } from "@/utils/httpInterceptor";
 import { useESGCAPAlerts } from "@/hooks/useESGCAPAlerts";
 import { AddCAPDialog } from "@/components/esg-cap/AddCAPDialog";
 import { EsgddAPIs } from "@/network/esgdd";
+
 interface PlanHistory {
   updateByUserId: string;
   status: string;
@@ -42,7 +43,6 @@ const HighlightDiff = ({ current, original }: { current: string, original?: stri
   if (!original || current === original) {
     return <span>{current}</span>;
   }
-console.log('current',current,'original',original);
   return (
     <span className="relative group">
       <span className="text-green-600 bg-green-50 px-1 rounded">{current}</span>
@@ -169,7 +169,7 @@ const CAPTable = ({
             <th className="p-3 text-left">Measures and/or Corrective Actions</th>
             <th className="p-3 text-left">Resource & Responsibility</th>
             {/* <th className="p-3 text-left">Expected Deliverable</th> */}
-            <SortableHeader field="deadline" title="Target Date" />
+            <SortableHeader field="targetDate" title="Target Date" />
             <th className="p-3 text-left">CP/CS</th>
             <th className="p-3 text-left">Actual Date</th>
             <th className="p-3 text-left">Status</th>
@@ -183,7 +183,6 @@ const CAPTable = ({
             const originalItem = originalItems.find(i => i.id === item.id);
             const changedFields = getChangedFields(item, originalItem);
             const hasChanges = isComparisonView && Object.values(changedFields).some(Boolean);
-console.log(item,'item_________originalItem',originalItem);
             return (
               <tr
                 key={item.id}
@@ -341,7 +340,7 @@ export default function ESGCAP() {
   }, []);
 
   const handleReview = (item: ESGCapItem) => {
-    const currentItem = capItems.find(i => i.item === item.item);
+    const currentItem = capItems.find(i => i.id === item.id);
     if (currentItem) {
       const clonedItem = JSON.parse(JSON.stringify(currentItem));
       setSelectedItem(clonedItem);
@@ -355,7 +354,7 @@ export default function ESGCAP() {
       previousCapItemsRef.current = [...capItems];
   
       const updatedItems = capItems.map(item => {
-        if (item.item === selectedItem.item) {
+        if (item.id === selectedItem.id) {
           return { ...item, status: "completed" as CAPStatus, actualCompletionDate: new Date().toISOString() };
         }
         return item;
@@ -374,7 +373,7 @@ export default function ESGCAP() {
       previousCapItemsRef.current = [...capItems];
   
       const updatedItems = capItems.map(item => {
-        if (item.item === selectedItem.item) {
+        if (item.id === selectedItem.id) {
           return { ...item, status: "rejected" as CAPStatus };
         }
         return item;
@@ -466,8 +465,8 @@ export default function ESGCAP() {
     previousCapItemsRef.current = [...capItems];
   
     const updatedItems = capItems.map(item => {
-      // Use item.item for identification
-      if (item.item === updatedItem.item) {
+      // Use item.id for identification
+      if (item.id === updatedItem.id) {
         return { ...updatedItem, changeStatus: 'Edited' };
       }
       return item;
@@ -500,9 +499,8 @@ export default function ESGCAP() {
           title: "CAP Submitted",
           description: "All CAP items have been submitted successfully.",
         });
-        if (selectedCompany !== 'all') {
-          getPlanList(selectedCompany);
-        }
+
+        getPlanList(selectedCompany);
       }
     } catch (error) {
       console.error("Error submitting CAP:", error);
@@ -528,11 +526,11 @@ export default function ESGCAP() {
   };
 
   const handleRevertToOriginal = (itemId: string) => {
-    // If itemId is the item.name, find by that
-    const originalItem = previousCapItemsRef.current.find(item => item.item === itemId);
+    // Find by ID since we're using proper IDs now
+    const originalItem = previousCapItemsRef.current.find(item => item.id === itemId);
     if (originalItem) {
       const updatedItems = capItems.map(item => {
-        if (item.item === itemId) {
+        if (item.id === itemId) {
           return { ...originalItem };
         }
         return item;
@@ -546,10 +544,10 @@ export default function ESGCAP() {
   };
   
   const handleRevertField = (itemId: string, field: keyof ESGCapItem) => {
-    const originalItem = previousCapItemsRef.current.find(item => item.item === itemId);
+    const originalItem = previousCapItemsRef.current.find(item => item.id === itemId);
     if (originalItem && field in originalItem) {
       const updatedItems = capItems.map(item => {
-        if (item.item === itemId) {
+        if (item.id === itemId) {
           return { ...item, [field]: originalItem[field] };
         }
         return item;
@@ -638,7 +636,7 @@ export default function ESGCAP() {
     }, 0);
 
     const completedWeightage = filteredCAPItems
-      .filter(item => item.status === "completed") // Changed from "Completed" to "completed"
+      .filter(item => item.status === "completed")
       .reduce((sum, item) => {
         return sum + (100 / totalItems) * getPriorityWeight(item.priority || "Medium");
       }, 0);
@@ -653,13 +651,19 @@ export default function ESGCAP() {
   }, []);
 
   const handleAddItem = (newItem: ESGCapItem) => {
-    const updatedItems = [...capItems, newItem];
+    // Ensure newItem has a proper ID
+    const itemWithId = newItem.id ? newItem : {...newItem, id: (capItems.length + 1).toString()};
+    const updatedItems = [...capItems, itemWithId];
     setCapItems(updatedItems);
     saveToLocalStorage(updatedItems);
   };
 
   const handleAddMultipleItems = (newItems: ESGCapItem[]) => {
-    const updatedItems = [...capItems, ...newItems];
+    // Ensure all items have proper IDs
+    const itemsWithIds = newItems.map((item, index) => 
+      item.id ? item : {...item, id: (capItems.length + index + 1).toString()}
+    );
+    const updatedItems = [...capItems, ...itemsWithIds];
     setCapItems(updatedItems);
     saveToLocalStorage(updatedItems);
     setFilteredCAPItems(updatedItems);

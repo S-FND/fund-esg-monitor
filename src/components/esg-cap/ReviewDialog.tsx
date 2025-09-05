@@ -70,14 +70,16 @@ export function ReviewDialog({
       setEditedItem({ ...editedItem, [field]: value });
     }
   };
-
+  const [showSaveToast, setShowSaveToast] = useState(false);
   const handleSaveChanges = () => {
     if (editedItem) {
       setDataEditStatus(true);
       onSaveChanges(editedItem);
       toast({
-        title: "Changes saved",
-        description: "Your changes have been saved successfully."
+        title: "Please click on 'Request Cap Change'",
+        description: "To save the changes and notify the company about the changes.",
+        duration: Infinity,
+        variant: "destructive",
       });
     }
   };
@@ -297,6 +299,8 @@ export function ReviewDialog({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="in_review">In Review</SelectItem>
+                      <SelectItem value="accepted">Accepted</SelectItem>
                       <SelectItem value="in_progress">In Progress</SelectItem>
                       <SelectItem value="completed">Completed</SelectItem>
                       <SelectItem value="delayed">Delayed</SelectItem>
@@ -314,20 +318,20 @@ export function ReviewDialog({
               </div>
 
               <div>
-                <h4 className="font-semibold mb-1">Actual Completion Date</h4>
+                <h4 className="font-semibold mb-1">Actual Date</h4>
                 {canEdit ? (
                   <Input
                     type="date"
-                    value={editedItem.actualCompletionDate || ''}
-                    onChange={(e) => handleInputChange('actualCompletionDate', e.target.value)}
-                    className={isFieldChanged('actualCompletionDate') ? "border-orange-400" : ""}
+                    value={editedItem.actualDate || ''}
+                    onChange={(e) => handleInputChange('actualDate', e.target.value)}
+                    className={isFieldChanged('actualDate') ? "border-orange-400" : ""}
                   />
                 ) : (
-                  <p>{editedItem.actualCompletionDate || "Not set"}</p>
+                  <p>{editedItem.actualDate || "Not set"}</p>
                 )}
-                {isFieldChanged('actualCompletionDate') && (
+                {isFieldChanged('actualDate') && (
                   <p className="text-xs text-amber-600 mt-1">
-                    Original: {originalItem?.actualCompletionDate || "Not set"}
+                    Original: {originalItem?.actualDate || "Not set"}
                   </p>
                 )}
               </div>
