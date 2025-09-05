@@ -42,7 +42,7 @@ const HighlightDiff = ({ current, original }: { current: string, original?: stri
   if (!original || current === original) {
     return <span>{current}</span>;
   }
-
+console.log('current',current,'original',original);
   return (
     <span className="relative group">
       <span className="text-green-600 bg-green-50 px-1 rounded">{current}</span>
@@ -168,7 +168,7 @@ const CAPTable = ({
             <SortableHeader field="priority" title="Priority" />
             <th className="p-3 text-left">Measures and/or Corrective Actions</th>
             <th className="p-3 text-left">Resource & Responsibility</th>
-            <th className="p-3 text-left">Expected Deliverable</th>
+            {/* <th className="p-3 text-left">Expected Deliverable</th> */}
             <SortableHeader field="deadline" title="Target Date" />
             <th className="p-3 text-left">CP/CS</th>
             <th className="p-3 text-left">Actual Date</th>
@@ -183,7 +183,7 @@ const CAPTable = ({
             const originalItem = originalItems.find(i => i.id === item.id);
             const changedFields = getChangedFields(item, originalItem);
             const hasChanges = isComparisonView && Object.values(changedFields).some(Boolean);
-
+console.log(item,'item_________originalItem',originalItem);
             return (
               <tr
                 key={item.id}
@@ -341,18 +341,21 @@ export default function ESGCAP() {
   }, []);
 
   const handleReview = (item: ESGCapItem) => {
-    const currentItem = capItems.find(i => i.id === item.id);
-    setSelectedItem(currentItem || null);
-    setReviewDialogOpen(true);
-    setCanEdit(true);
+    const currentItem = capItems.find(i => i.item === item.item);
+    if (currentItem) {
+      const clonedItem = JSON.parse(JSON.stringify(currentItem));
+      setSelectedItem(clonedItem);
+      setReviewDialogOpen(true);
+      setCanEdit(true);
+    }
   };
 
   const handleApprove = () => {
     if (selectedItem) {
       previousCapItemsRef.current = [...capItems];
-
+  
       const updatedItems = capItems.map(item => {
-        if (item.id === selectedItem.id) {
+        if (item.item === selectedItem.item) {
           return { ...item, status: "completed" as CAPStatus, actualCompletionDate: new Date().toISOString() };
         }
         return item;
@@ -361,18 +364,18 @@ export default function ESGCAP() {
     }
     toast({
       title: "Item Approved",
-      description: `You've approved "${selectedItem?.item}"`, // Changed from item.item to item.issue
+      description: `You've approved "${selectedItem?.item}"`,
     });
     setReviewDialogOpen(false);
   };
-
+  
   const handleReject = () => {
     if (selectedItem) {
       previousCapItemsRef.current = [...capItems];
-
+  
       const updatedItems = capItems.map(item => {
-        if (item.id === selectedItem.id) {
-          return { ...item, status: "rejected" as CAPStatus }; // Changed to lowercase
+        if (item.item === selectedItem.item) {
+          return { ...item, status: "rejected" as CAPStatus };
         }
         return item;
       });
@@ -380,7 +383,7 @@ export default function ESGCAP() {
     }
     toast({
       title: "Item Rejected",
-      description: `You've rejected "${selectedItem?.item}"`, // Changed from item.item to item.issue
+      description: `You've rejected "${selectedItem?.item}"`,
     });
     setReviewDialogOpen(false);
   };
@@ -388,7 +391,7 @@ export default function ESGCAP() {
   const handleSendReminder = (item: ESGCapItem) => {
     toast({
       title: "Reminder Sent",
-      description: `Reminder sent for "${item.item}"`, // Changed from item.item to item.issue
+      description: `Reminder sent for "${item.item}"`,
     });
   };
 
@@ -419,9 +422,7 @@ export default function ESGCAP() {
         setPlanData(data);
         setFilteredCAPItems(data.plan || []);
         setCapItems(data.plan || []);
-
-        const latestHistory = data.planHistoryDetails?.[0];
-
+        const latestHistory = data.planHistoryDetails?.[1];
         setComparePlanData({
           founderPlan: latestHistory?.requestPlan || [],
           investorPlan: data.plan || [],
@@ -431,8 +432,19 @@ export default function ESGCAP() {
 
         previousCapItemsRef.current = data.plan || [];
       } else {
-        console.error("Error:", error);
-      }
+          console.error("Error:", error);
+          // reset state when no data
+          setPlanData(null);
+          setFilteredCAPItems([]);
+          setCapItems([]);
+          setComparePlanData({
+            founderPlan: [],
+            investorPlan: [],
+            founderPlanLastUpdate: 0,
+            investorPlanLastUpdate: 0,
+          });
+          previousCapItemsRef.current = [];
+        }
     } catch (error) {
       console.error("Api call error:", error);
     }
@@ -444,21 +456,24 @@ export default function ESGCAP() {
       const entityId = company?.user?.entityId
       if (entityId) {
         getPlanList(entityId);
+      }else{
+        getPlanList(entityId);
       }
     }
-  }, [selectedCompany]);
+  }, [selectedCompany,portfolioCompanies]);
 
   const handleSaveChanges = (updatedItem: ESGCapItem) => {
     previousCapItemsRef.current = [...capItems];
-
+  
     const updatedItems = capItems.map(item => {
-      if (item.id === updatedItem.id) {
+      // Use item.item for identification
+      if (item.item === updatedItem.item) {
         return { ...updatedItem, changeStatus: 'Edited' };
       }
       return item;
     });
     setCapItems(updatedItems);
-    setSelectedItem(updatedItem);
+    setSelectedItem({ ...updatedItem });
     setReviewDialogOpen(false);
   };
 
@@ -513,10 +528,11 @@ export default function ESGCAP() {
   };
 
   const handleRevertToOriginal = (itemId: string) => {
-    const originalItem = previousCapItemsRef.current.find(item => item.id === itemId);
+    // If itemId is the item.name, find by that
+    const originalItem = previousCapItemsRef.current.find(item => item.item === itemId);
     if (originalItem) {
       const updatedItems = capItems.map(item => {
-        if (item.id === itemId) {
+        if (item.item === itemId) {
           return { ...originalItem };
         }
         return item;
@@ -524,15 +540,16 @@ export default function ESGCAP() {
       setCapItems(updatedItems);
       toast({
         title: "Item Reverted",
-        description: `Item "${originalItem.item}" has been reverted to its original state.`, // Changed from item.item to item.issue
+        description: `Item "${originalItem.item}" has been reverted to its original state.`,
       });
     }
   };
+  
   const handleRevertField = (itemId: string, field: keyof ESGCapItem) => {
-    const originalItem = previousCapItemsRef.current.find(item => item.id === itemId);
+    const originalItem = previousCapItemsRef.current.find(item => item.item === itemId);
     if (originalItem && field in originalItem) {
       const updatedItems = capItems.map(item => {
-        if (item.id === itemId) {
+        if (item.item === itemId) {
           return { ...item, [field]: originalItem[field] };
         }
         return item;
@@ -789,10 +806,10 @@ export default function ESGCAP() {
                     <Button
                       onClick={handleAcceptCap}
                       size="lg"
-                      disabled={showComparisonView || !canAccept()}
+                      // disabled={showComparisonView || !canAccept()}
                     >
                       {planData?.investorPlanFinalStatus || planData?.founderPlanFinalStatus
-                        ? "Already Accepted"
+                        ? "Accept CAP"
                         : "Accept CAP"}
                     </Button>
 
