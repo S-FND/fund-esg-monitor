@@ -147,24 +147,6 @@ export default function Auth() {
           console.error('Error confirming demo user:', confirmError);
         }
 
-        // Mark tenant as demo and approved
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('tenant_id')
-          .eq('user_id', signUpData.user?.id)
-          .single();
-
-        if (profileData) {
-          await supabase
-            .from('tenants')
-            .update({ 
-              is_demo: true, 
-              is_approved: true, 
-              approved_at: new Date().toISOString() 
-            })
-            .eq('id', profileData.tenant_id);
-        }
-
         // Try to sign in again after confirmation
         const { error: signInError } = await supabase.auth.signInWithPassword({
           email: demoUser.email,
@@ -186,24 +168,6 @@ export default function Auth() {
 
         if (confirmError) {
           console.error('Error confirming demo user:', confirmError);
-        }
-
-        // Ensure demo tenant is marked as demo and approved
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('tenant_id')
-          .eq('email', demoUser.email)
-          .single();
-
-        if (profileData) {
-          await supabase
-            .from('tenants')
-            .update({ 
-              is_demo: true, 
-              is_approved: true, 
-              approved_at: new Date().toISOString() 
-            })
-            .eq('id', profileData.tenant_id);
         }
 
         // Try to sign in again after confirmation
