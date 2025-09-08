@@ -270,7 +270,7 @@ const CAPTable = ({
                   >
                     Review
                   </Button>
-                  {isComparisonView && hasChanges && (
+                  {/* {isComparisonView && hasChanges && (
                     <Button
                       variant="outline"
                       size="sm"
@@ -278,7 +278,7 @@ const CAPTable = ({
                     >
                       Revert All
                     </Button>
-                  )}
+                  )} */}
                 </td>
 
                 {/* <td className={`p-3 ${changedFields.remarks ? "border-l-4 border-yellow-500" : ""}`}>
@@ -488,6 +488,7 @@ export default function ESGCAP() {
 
   const handleSubmitAllCap = async () => {
     try {
+      console.log('planData planData',planData);
       const payload = {
         changeRequest: { plan: capItems },
         comment: 'Change Request',
@@ -500,7 +501,7 @@ export default function ESGCAP() {
           description: "All CAP items have been submitted successfully.",
         });
 
-        getPlanList(selectedCompany);
+        getPlanList(planData?.entityId);
       }
     } catch (error) {
       console.error("Error submitting CAP:", error);
