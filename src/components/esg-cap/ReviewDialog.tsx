@@ -152,6 +152,24 @@ export function ReviewDialog({
               </div>
 
               <div>
+                <h4 className="font-semibold mb-1">Expected Deliverable</h4>
+                {canEdit ? (
+                  <Textarea
+                    value={editedItem.deliverable}
+                    onChange={(e) => handleInputChange('deliverable', e.target.value)}
+                    className={isFieldChanged('deliverable') ? "border-orange-400" : ""}
+                  />
+                ) : (
+                  <p>{editedItem.deliverable}</p>
+                )}
+                {isFieldChanged('deliverable') && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    Original: {originalItem?.deliverable}
+                  </p>
+                )}
+              </div>
+
+              <div>
                 <h4 className="font-semibold mb-1">Resource</h4>
                 {canEdit ? (
                   <Input
@@ -221,7 +239,12 @@ export function ReviewDialog({
                 )}
               </div>
 
-              <div>
+            
+            </div>
+
+            {/* Right Column */}
+            <div className="space-y-4">
+            <div>
                 <h4 className="font-semibold mb-1">Assigned To</h4>
                 {canEdit ? (
                   <Input
@@ -238,10 +261,6 @@ export function ReviewDialog({
                   </p>
                 )}
               </div>
-            </div>
-
-            {/* Right Column */}
-            <div className="space-y-4">
               <div>
                 <h4 className="font-semibold mb-1">Target Date</h4>
                 {canEdit ? (
@@ -346,7 +365,8 @@ export function ReviewDialog({
             </Button>
           )}
           {canEdit && (
-            <Button variant="destructive" onClick={onCancelEdit}>
+            // <Button variant="destructive" onClick={onCancelEdit}>
+            <Button variant="destructive"  onClick={() => onOpenChange(false)}>
               <X className="mr-2 h-4 w-4" />
               Cancel
             </Button>

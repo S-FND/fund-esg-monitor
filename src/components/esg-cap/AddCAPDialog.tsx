@@ -246,7 +246,11 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
             const finalData = {
                 plan: newItems,
                 email: company.email,
-                financialYear: financialYear
+                financialYear: financialYear,
+                finalAcceptance:{
+                    founderAcceptance: false,
+                    investorAcceptance: false
+                }
             };
 
             // Call API to save the plan
@@ -547,7 +551,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                                                     id={`item-${index}`}
                                                     value={row.item}
                                                     onChange={(e) => updateRow(row.id, 'item', e.target.value)}
-                                                    placeholder="Describe the CAP item..."
+                                                    placeholder="Add the CAP item"
                                                     className="min-h-[60px]"
                                                 />
                                             </div>
@@ -558,7 +562,18 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                                                     id={`measures-${index}`}
                                                     value={row.measures}
                                                     onChange={(e) => updateRow(row.id, 'measures', e.target.value)}
-                                                    placeholder="Describe the measures..."
+                                                    placeholder="Describe the measures and/or corrective actions"
+                                                    className="min-h-[60px]"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <Label htmlFor={`deliverable-${index}`}>Expected Deliverable</Label>
+                                                <Textarea
+                                                    id={`deliverable-${index}`}
+                                                    value={row.deliverable}
+                                                    onChange={(e) => updateRow(row.id, 'deliverable', e.target.value)}
+                                                    placeholder="Expected deliverable"
                                                     className="min-h-[60px]"
                                                 />
                                             </div>
@@ -570,7 +585,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                                                         id={`resource-${index}`}
                                                         value={row.resource}
                                                         onChange={(e) => updateRow(row.id, 'resource', e.target.value)}
-                                                        placeholder="Who is responsible?"
+                                                        placeholder="Enter the details"
                                                     />
                                                 </div>
 
@@ -580,7 +595,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                                                         id={`assignedTo-${index}`}
                                                         value={row.assignedTo}
                                                         onChange={(e) => updateRow(row.id, 'assignedTo', e.target.value)}
-                                                        placeholder="Who is responsible?"
+                                                        placeholder="Enter the email address"
                                                     />
                                                 </div>
                                             </div>
