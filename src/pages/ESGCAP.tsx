@@ -168,7 +168,7 @@ const CAPTable = ({
             <SortableHeader field="priority" title="Priority" />
             <th className="p-3 text-left">Measures and/or Corrective Actions</th>
             <th className="p-3 text-left">Resource & Responsibility</th>
-            {/* <th className="p-3 text-left">Expected Deliverable</th> */}
+            <th className="p-3 text-left">Expected Deliverable</th>
             <SortableHeader field="targetDate" title="Target Date" />
             <th className="p-3 text-left">CP/CS</th>
             <th className="p-3 text-left">Actual Date</th>
@@ -209,10 +209,10 @@ const CAPTable = ({
                 <td className={`p-3 ${changedFields.resource ? "border-l-4 border-yellow-500" : ""}`}>
                   <HighlightDiff current={item.resource || ''} original={originalItem?.resource} />
                 </td>
-                {/* 
-                <td className={`p-3 ${changedFields.expectedDeliverable ? "border-l-4 border-yellow-500" : ""}`}>
-                  <HighlightDiff current={item.expectedDeliverable || ''} original={originalItem?.expectedDeliverable} />
-                </td> */}
+                
+                <td className={`p-3 ${changedFields.deliverable ? "border-l-4 border-yellow-500" : ""}`}>
+                  <HighlightDiff current={item.deliverable || ''} original={originalItem?.deliverable} />
+                </td>
 
                 <td className={`p-3 ${changedFields.targetDate ? "border-l-4 border-yellow-500" : ""}`}>
                   <HighlightDiff
@@ -481,7 +481,7 @@ export default function ESGCAP() {
     if (!planData) return false;
     return !planData.investorPlanFinalStatus;
   };
-
+console.log('planData',planData);
   const isPlanFinalized = planData ?
     (planData.finalPlan || (planData.founderPlanFinalStatus && planData.investorPlanFinalStatus)) :
     false;
