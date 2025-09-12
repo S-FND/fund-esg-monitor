@@ -39,19 +39,46 @@ interface APIResponse {
   investorPlanFinalStatus: boolean;
 }
 
-const HighlightDiff = ({ current, original }: { current: string, original?: string }) => {
-  if (!original || current === original) {
-    return <span>{current}</span>;
-  }
+const HighlightDiff = ({
+  current,
+  original,
+  length = 50
+}: {
+  current: string;
+  original?: string;
+  length?: number;
+}) => {
+  const [expanded, setExpanded] = useState(false);
+
+  if (!current) return null;
+
+  const displayText =
+    !expanded && current.length > length ? current.slice(0, length) + "..." : current;
+
+  const hasDiff = original && current !== original;
+
   return (
     <span className="relative group">
-      <span className="text-green-600 bg-green-50 px-1 rounded">{current}</span>
-      <span className="absolute hidden group-hover:block -bottom-6 left-0 text-xs text-red-600 line-through bg-red-50 px-1 rounded">
-        {original}
+      <span className={`${hasDiff ? "text-green-600 bg-green-50 px-1 rounded" : ""}`}>
+        {displayText}
       </span>
+      {hasDiff && !expanded && (
+        <span className="absolute hidden group-hover:block -bottom-6 left-0 text-xs text-red-600 line-through bg-red-50 px-1 rounded">
+          {original}
+        </span>
+      )}
+      {current.length > length && (
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="ml-1 text-blue-600 hover:underline text-xs"
+        >
+          {expanded ? "View less" : "View full"}
+        </button>
+      )}
     </span>
   );
 };
+
 
 const CAPTable = ({
   items,
@@ -157,6 +184,28 @@ const CAPTable = ({
     }
   };
 
+  const ExpandableText = ({ text, length = 50 }: { text: string; length?: number }) => {
+    const [expanded, setExpanded] = useState(false);
+
+    if (!text) return null;
+
+    if (text.length <= length) {
+      return <span>{text}</span>;
+    }
+
+    return (
+      <span>
+        {expanded ? text : text.slice(0, length) + "..."}
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="ml-1 text-blue-600 hover:underline text-xs"
+        >
+          {expanded ? "View less" : "View full"}
+        </button>
+      </span>
+    );
+  };
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse">
@@ -209,7 +258,7 @@ const CAPTable = ({
                 <td className={`p-3 ${changedFields.resource ? "border-l-4 border-yellow-500" : ""}`}>
                   <HighlightDiff current={item.resource || ''} original={originalItem?.resource} />
                 </td>
-                
+
                 <td className={`p-3 ${changedFields.deliverable ? "border-l-4 border-yellow-500" : ""}`}>
                   <HighlightDiff current={item.deliverable || ''} original={originalItem?.deliverable} />
                 </td>
@@ -352,7 +401,7 @@ export default function ESGCAP() {
   const handleApprove = () => {
     if (selectedItem) {
       previousCapItemsRef.current = [...capItems];
-  
+
       const updatedItems = capItems.map(item => {
         if (item.id === selectedItem.id) {
           return { ...item, status: "completed" as CAPStatus, actualCompletionDate: new Date().toISOString() };
@@ -367,11 +416,11 @@ export default function ESGCAP() {
     });
     setReviewDialogOpen(false);
   };
-  
+
   const handleReject = () => {
     if (selectedItem) {
       previousCapItemsRef.current = [...capItems];
-  
+
       const updatedItems = capItems.map(item => {
         if (item.id === selectedItem.id) {
           return { ...item, status: "rejected" as CAPStatus };
@@ -431,19 +480,19 @@ export default function ESGCAP() {
 
         previousCapItemsRef.current = data.plan || [];
       } else {
-          console.error("Error:", error);
-          // reset state when no data
-          setPlanData(null);
-          setFilteredCAPItems([]);
-          setCapItems([]);
-          setComparePlanData({
-            founderPlan: [],
-            investorPlan: [],
-            founderPlanLastUpdate: 0,
-            investorPlanLastUpdate: 0,
-          });
-          previousCapItemsRef.current = [];
-        }
+        console.error("Error:", error);
+        // reset state when no data
+        setPlanData(null);
+        setFilteredCAPItems([]);
+        setCapItems([]);
+        setComparePlanData({
+          founderPlan: [],
+          investorPlan: [],
+          founderPlanLastUpdate: 0,
+          investorPlanLastUpdate: 0,
+        });
+        previousCapItemsRef.current = [];
+      }
     } catch (error) {
       console.error("Api call error:", error);
     }
@@ -455,15 +504,15 @@ export default function ESGCAP() {
       const entityId = company?.user?.entityId
       if (entityId) {
         getPlanList(entityId);
-      }else{
+      } else {
         getPlanList(entityId);
       }
     }
-  }, [selectedCompany,portfolioCompanies]);
+  }, [selectedCompany, portfolioCompanies]);
 
   const handleSaveChanges = (updatedItem: ESGCapItem) => {
     previousCapItemsRef.current = [...capItems];
-  
+
     const updatedItems = capItems.map(item => {
       // Use item.id for identification
       if (item.id === updatedItem.id) {
@@ -481,14 +530,14 @@ export default function ESGCAP() {
     if (!planData) return false;
     return !planData.investorPlanFinalStatus;
   };
-console.log('planData',planData);
+
   const isPlanFinalized = planData ?
     (planData.finalPlan || (planData.founderPlanFinalStatus && planData.investorPlanFinalStatus)) :
     false;
 
   const handleSubmitAllCap = async () => {
     try {
-      console.log('planData planData',planData);
+      console.log('planData planData', planData);
       const payload = {
         changeRequest: { plan: capItems },
         comment: 'Change Request',
@@ -543,7 +592,7 @@ console.log('planData',planData);
       });
     }
   };
-  
+
   const handleRevertField = (itemId: string, field: keyof ESGCapItem) => {
     const originalItem = previousCapItemsRef.current.find(item => item.id === itemId);
     if (originalItem && field in originalItem) {
@@ -653,7 +702,7 @@ console.log('planData',planData);
 
   const handleAddItem = (newItem: ESGCapItem) => {
     // Ensure newItem has a proper ID
-    const itemWithId = newItem.id ? newItem : {...newItem, id: (capItems.length + 1).toString()};
+    const itemWithId = newItem.id ? newItem : { ...newItem, id: (capItems.length + 1).toString() };
     const updatedItems = [...capItems, itemWithId];
     setCapItems(updatedItems);
     saveToLocalStorage(updatedItems);
@@ -661,8 +710,8 @@ console.log('planData',planData);
 
   const handleAddMultipleItems = (newItems: ESGCapItem[]) => {
     // Ensure all items have proper IDs
-    const itemsWithIds = newItems.map((item, index) => 
-      item.id ? item : {...item, id: (capItems.length + index + 1).toString()}
+    const itemsWithIds = newItems.map((item, index) =>
+      item.id ? item : { ...item, id: (capItems.length + index + 1).toString() }
     );
     const updatedItems = [...capItems, ...itemsWithIds];
     setCapItems(updatedItems);
@@ -811,7 +860,7 @@ console.log('planData',planData);
                     <Button
                       onClick={handleAcceptCap}
                       size="lg"
-                      // disabled={showComparisonView || !canAccept()}
+                    // disabled={showComparisonView || !canAccept()}
                     >
                       {planData?.investorPlanFinalStatus || planData?.founderPlanFinalStatus
                         ? "Accept CAP"
