@@ -201,7 +201,7 @@ export default function TeamMemberDetail() {
   };
 
 
-  const toggleMemberStatus = () => {
+  const toggleMemberStatus = async () => {
     const newStatus = !isActive;
     setIsActive(newStatus);
 
@@ -213,6 +213,23 @@ export default function TeamMemberDetail() {
         title: newStatus ? "User Activated" : "User Deactivated",
         description: `${member.name} has been ${newStatus ? "activated" : "deactivated"}.`
       });
+
+      // directly save to backend
+      let payload = {
+        accessUrls: {
+          urls: accessRights
+        },
+        subUserId: id,
+        active: newStatus,
+        email: member.email
+      };
+
+      try {
+        let response = await http.post(`subuser/activate`, payload);
+        console.log("toggle save response", response);
+      } catch (error) {
+        console.error("Error updating active status", error);
+      }
     }
   };
 
