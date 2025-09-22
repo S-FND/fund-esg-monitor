@@ -24,7 +24,7 @@ export default function Team() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const getTeamList=async ()=>{
+  const getTeamList = async () => {
     try {
       setLoading(true);
       const res = await fetch(`${import.meta.env.VITE_API_URL}` + `/subuser`, {
@@ -44,9 +44,9 @@ export default function Team() {
 
       }
     } catch (error) {
-      
+
     }
-    finally{
+    finally {
 
     }
   }
@@ -71,22 +71,6 @@ export default function Team() {
 
   const handleEditMember = (id: string) => {
     navigate(`/team/edit/${id}`);
-  };
-
-  const toggleActivateUser = (id: string) => {
-    setTeam(prevTeam => 
-      prevTeam.map(member => {
-        if (member._id === id) {
-          const newState = !member.active;
-          toast({
-            title: newState ? "User Activated" : "User Deactivated",
-            description: `${member.name} has been ${newState ? "activated" : "deactivated"}.`
-          });
-          return { ...member, active: newState };
-        }
-        return member;
-      })
-    );
   };
 
   return (
@@ -123,14 +107,15 @@ export default function Team() {
                 </div>
               </div>
               <div className="flex gap-2 shrink-0 mt-2 md:mt-0">
-                <Button 
-                  variant={member.active ? "outline" : "default"} 
-                  size="sm" 
-                  onClick={() => toggleActivateUser(member._id)}
-                >
-                  <UserCheck className="h-4 w-4 mr-1" />
-                  {member.active ? "Deactivate" : "Activate"}
-                </Button>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`inline-block w-3 h-3 rounded-full ${member.active ? "bg-green-500" : "bg-gray-400"
+                      }`}
+                  ></span>
+                  <span className={`text-sm font-medium ${member.active ? "text-green-600" : "text-gray-500"}`}>
+                    {member.active ? "Active" : "Inactive"}
+                  </span>
+                </div>
                 <Button variant="outline" size="sm" onClick={() => handleViewMember(member._id)}>
                   <Eye className="h-4 w-4 mr-1" />
                   Details
