@@ -13,6 +13,18 @@ import { esgDDNavItem, valuationNavItem } from "./navigation-items";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
 
+
+// Helper: include all subitems if parent module is accessible
+const getAccessibleSubmenu = (item: typeof esgDDNavItem | typeof valuationNavItem, accessibleMenus: string[]) => {
+  if (!item) return null;
+  // If parent module is accessible, return item with all subItems
+  if (accessibleMenus.includes(item.title)) return item;
+  // Else filter subItems individually
+  const allowedSubs = item.subItems.filter(sub => accessibleMenus.includes(sub.title));
+  if (allowedSubs.length > 0) return { ...item, subItems: allowedSubs };
+  return null;
+};
+
 export function SidebarNavigation() {
   const location = useLocation();
   const { user } = useAuth();
@@ -40,8 +52,15 @@ export function SidebarNavigation() {
       let accessList;
       if(user.isParent && (!user.assignedPages || user.assignedPages.length == 0)){
         accessList=["Dashboard","Investor General Info", "Funds", "Team", "Portfolio Companies", "ESG DD", "ESG CAP", "Valuation"]
-      }
-      else{
+      } else if (user?.assignedPages && user.assignedPages.length > 0) {
+        accessList = user.assignedPages.flatMap(p => {
+          const modules = [p.moduleName];
+          if (p.moduleName === "ESG DD") modules.push("ESG DD Report", "ESG CAP");
+          if (p.moduleName === "Valuation") modules.push("ESG Risk Matrix");
+          console.log('modules',modules);
+          return modules;
+        });
+      } else{
          accessList = user.assignedPages.map((p)=>p.moduleName) || ["Dashboard"];
         
       }
@@ -60,11 +79,13 @@ export function SidebarNavigation() {
   );
 
   // Check if user has access to ESG DD submenu
-  const hasEsgAccess = accessibleMenus.includes(esgDDNavItem.title);
+  // const hasEsgAccess = accessibleMenus.includes(esgDDNavItem.title);
+  const filteredEsgDDNavItem = getAccessibleSubmenu(esgDDNavItem, accessibleMenus);
+
 
   // Check if user has access to Valuation submenu
-  const hasValuationAccess = accessibleMenus.includes(valuationNavItem.title);
-
+  // const hasValuationAccess = accessibleMenus.includes(valuationNavItem.title);
+  const filteredValuationNavItem = getAccessibleSubmenu(valuationNavItem, accessibleMenus);
   return (
     <SidebarMenu>
       {filteredMainNavItems.map((item) => (
@@ -82,7 +103,7 @@ export function SidebarNavigation() {
         </SidebarMenuItem>
       ))}
 
-      {hasEsgAccess && (
+      {/* {hasEsgAccess && (
         <SidebarSubmenuItem 
           item={esgDDNavItem} 
           isInitiallyOpen={isEsgSubmenuOpen} 
@@ -92,6 +113,19 @@ export function SidebarNavigation() {
       {hasValuationAccess && (
         <SidebarSubmenuItem 
           item={valuationNavItem} 
+          isInitiallyOpen={isValuationSubmenuOpen} 
+        />
+      )} */}
+      {filteredEsgDDNavItem && (
+        <SidebarSubmenuItem 
+          item={filteredEsgDDNavItem} 
+          isInitiallyOpen={isEsgSubmenuOpen} 
+        />
+      )}
+
+      {filteredValuationNavItem && (
+        <SidebarSubmenuItem 
+          item={filteredValuationNavItem} 
           isInitiallyOpen={isValuationSubmenuOpen} 
         />
       )}
