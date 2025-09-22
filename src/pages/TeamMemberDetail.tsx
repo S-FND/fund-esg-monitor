@@ -226,6 +226,7 @@ export default function TeamMemberDetail() {
 
       try {
         let response = await http.post(`subuser/activate`, payload);
+        getCompanyList()
         console.log("toggle save response", response);
       } catch (error) {
         console.error("Error updating active status", error);
