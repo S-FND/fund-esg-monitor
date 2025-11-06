@@ -14,17 +14,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 const currencies = ["USD", "EUR", "GBP", "INR", "SGD"];
 
 const sectors = [
-  "Agritech", 
-  "ClimateTech", 
-  "FinTech", 
-  "HealthTech", 
-  "EdTech", 
-  "Logistics", 
-  "DeepTech", 
-  "SpaceTech", 
-  "Quick Commerce", 
-  "Ecomm", 
-  "Robotics", 
+  "Agritech",
+  "ClimateTech",
+  "FinTech",
+  "HealthTech",
+  "EdTech",
+  "Logistics",
+  "DeepTech",
+  "SpaceTech",
+  "Quick Commerce",
+  "Ecomm",
+  "Robotics",
   "Others"
 ];
 
@@ -37,6 +37,25 @@ const investmentStages = [
   "Pre-IPO",
   "IPO"
 ];
+
+const INCLUSION_OPTIONS = [
+  "Quality Education",
+  "Sustainable Development",
+  "SDGs",
+  "Planet Positive",
+  "Healthcare",
+  "Upskilling",
+];
+
+const EXCLUSION_OPTIONS = [
+  "Cyborg",
+  "Mining",
+  "Alcohol",
+  "Arms",
+  "Weapons",
+  "Politics",
+];
+
 
 // Sample team members data
 // const teamMembers = [
@@ -71,10 +90,10 @@ export default function EditFund() {
   const { id } = useParams();
   // const fund = dummyFunds.find(f => f.id === Number(id));
 
-  const [fund,setFund]=useState([])
-  const [portfolioCompanies,setPortfolioCompanies]=useState([])
-  const [teamMembers,setTeamMembers]=useState([])
-  
+  const [fund, setFund] = useState([])
+  const [portfolioCompanies, setPortfolioCompanies] = useState([])
+  const [teamMembers, setTeamMembers] = useState([])
+
 
   // If fund not found (bad URL), return to list
   if (!fund) {
@@ -88,7 +107,8 @@ export default function EditFund() {
     currency: '',
     focus: [],
     stage: '',
-
+    sectorFocus: '',
+    stageOfInvestment: '',
     inclusion: [],
     exclusion: [],
   });
@@ -121,25 +141,46 @@ export default function EditFund() {
   };
 
   const handleTeamMemberToggle = (id: string) => {
-    setSelectedTeamMembers(prev => 
+    setSelectedTeamMembers(prev =>
       prev.includes(id) ? prev.filter(m => m !== id) : [...prev, id]
     );
   };
 
-  const handleCompanyToggle = (id: string) => {
-    console.log('handleCompanyToggle :: setSelectedCompanies',selectedCompanies)
-    setSelectedCompanies(prev => 
-      prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]
+  const handleCompanyToggle = (id: string, checked?: boolean) => {
+    setSelectedCompanies(prev =>
+      // if checked === undefined toggle behavior (for safety), else use checked flag
+      (typeof checked === "boolean" ? checked : !prev.includes(id))
+        ? (prev.includes(id) ? prev : [...prev, id])
+        : prev.filter(c => c !== id)
     );
   };
 
-  const updateFundData=async ()=>{
+
+  const updateFundData = async () => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}` + `/investor/fund`, {
-        method: "PUT",
-        body:JSON.stringify({...formData,sectorFocus:formData.focus.join(","),stageOfInvestment:formData.stage}),
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
-      });
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL}/investor/fund`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+          },
+          body: JSON.stringify({
+            _id: id, // ✅ required
+            name: formData.name,
+            size: formData.size,
+            currency: formData.currency,
+            sectorFocus: formData.focus.join(","), // ✅ correct field
+            stageOfInvestment: formData.stage,
+            inclusion: formData.inclusion,
+            exclusion: formData.exclusion
+          }),
+        }
+      );
+
+      const data = await res.json();
+      console.log('data', data);
       if (!res.ok) {
         // toast.error("Invalid credentials");
         // setIsLoading(false);
@@ -149,10 +190,10 @@ export default function EditFund() {
         const jsondata = await res.json();
         console.log('jsondata', jsondata)
         // setFormData(jsondata['data'][0])
-        setFormData({...jsondata['data'][0],focus:jsondata['data'][0]['sectorFocus'].split(",")})
+        setFormData({ ...jsondata['data'][0], focus: jsondata['data'][0]['sectorFocus'].split(",") })
         setFund(jsondata['data'][0])
-        console.log(`jsondata['data'][0]?.fundedCompany?.map((c)=> c._id) companyInfo`,jsondata['data'][0]?.fundedCompany?.map((c)=> c._id))
-        setSelectedCompanies(jsondata['data'][0]?.fundedCompany?.map((c)=> c.companyInfo.companyInfoId))
+        console.log(`jsondata['data'][0]?.fundedCompany?.map((c)=> c._id) companyInfo`, jsondata['data'][0]?.fundedCompany?.map((c) => c._id))
+        setSelectedCompanies(jsondata['data'][0]?.fundedCompany?.map((c) => c.companyInfo.companyInfoId))
       }
     } catch (error) {
       console.error("Api call:", error);
@@ -165,7 +206,6 @@ export default function EditFund() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // Would save changes here; currently dummy data only
-    console.log('setSelectedCompanies',selectedCompanies)
     addCompanyToFund();
     updateFundData()
 
@@ -176,7 +216,7 @@ export default function EditFund() {
     // navigate("/funds");
   };
 
-  const getFundDetail= async()=>{
+  const getFundDetail = async () => {
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}` + `/investor/fund/${id}`, {
         method: "GET",
@@ -191,10 +231,10 @@ export default function EditFund() {
         const jsondata = await res.json();
         console.log('jsondata', jsondata)
         // setFormData(jsondata['data'][0])
-        setFormData({...jsondata['data'][0],focus:jsondata['data'][0]['sectorFocus'].split(",")})
+        setFormData({ ...jsondata['data'][0], focus: jsondata['data'][0]['sectorFocus'].split(",") })
         setFund(jsondata['data'][0])
-        console.log(`jsondata['data'][0]?.fundedCompany?.map((c)=> c._id) companyInfo`,jsondata['data'][0]?.fundedCompany?.map((c)=> c._id))
-        setSelectedCompanies(jsondata['data'][0]?.fundedCompany?.map((c)=> c.companyInfo.companyInfoId))
+        console.log(`jsondata['data'][0]?.fundedCompany?.map((c)=> c._id) companyInfo`, jsondata['data'][0]?.fundedCompany?.map((c) => c._id))
+        setSelectedCompanies(jsondata['data'][0]?.fundedCompany?.map((c) => c.companyInfo.companyInfoId))
       }
     } catch (error) {
       console.error("Api call:", error);
@@ -204,8 +244,8 @@ export default function EditFund() {
     }
   }
 
-  const getCompanyList= async()=>{
-    
+  const getCompanyList = async () => {
+
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}` + "/investor/companyInfo/", {
         method: "GET",
@@ -229,7 +269,7 @@ export default function EditFund() {
     }
   }
 
-  const getTeamList=async ()=>{
+  const getTeamList = async () => {
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}` + `/subuser`, {
         method: "GET",
@@ -247,47 +287,45 @@ export default function EditFund() {
 
       }
     } catch (error) {
-      
+
     }
-    finally{
+    finally {
 
     }
   }
 
-  const addCompanyToFund=async ()=>{
+  const addCompanyToFund = async () => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}` + `/investor/companyInfo/company/addtoFund`, {
-        method: "POST",
-        body:JSON.stringify({
-          companyInfoId: selectedCompanies,
-          fundId: id,
-        }),
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
-      });
-      if (!res.ok) {
-        // toast.error("Invalid credentials");
-        // setIsLoading(false);
-        return;
-      }
-      else {
-        const jsondata = await res.json();
-        // setViewingReport(jsondata['data'][0])
-        setTeamMembers(jsondata['data'][0]['subuser'])
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL}/investor/companyInfo/company/addtoFund`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+          },
+          body: JSON.stringify({
+            companyInfoId: selectedCompanies, // <- array of ids
+            fundId: id,
+          }),
+        }
+      );
 
-      }
+      const data = await res.json();
+      console.log("Companies Updated ✅", data);
+      // optionally refresh
+      if (res.ok) getFundDetail();
     } catch (error) {
-      
+      console.error("addCompanyToFund error:", error);
     }
-    finally{
+  };
 
-    }
-  }
 
-  useEffect(()=>{
+  useEffect(() => {
     getFundDetail()
     getCompanyList()
     getTeamList()
-  },[])
+  }, [])
 
   return (
     <div className="space-y-6">
@@ -329,19 +367,20 @@ export default function EditFund() {
                       placeholder="Enter fund name"
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="size">Fund Size</Label>
+                      <Label htmlFor="size">Fund Size (INR)</Label>
                       <Input
                         id="size"
                         name="size"
+                        type="number"
                         value={formData.size}
                         onChange={handleInputChange}
                         required
                         placeholder="Enter fund size"
                       />
                     </div>
-                    <div className="space-y-2">
+                    {/* <div className="space-y-2">
                       <Label htmlFor="currency">Currency</Label>
                       <select
                         id="currency"
@@ -354,7 +393,7 @@ export default function EditFund() {
                           <option key={cur} value={cur}>{cur}</option>
                         ))}
                       </select>
-                    </div>
+                    </div> */}
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -376,6 +415,85 @@ export default function EditFund() {
                     ))}
                   </div>
                 </div>
+                {/* ✅ Inclusion Terms */}
+                <div className="space-y-2">
+                  <Label>Inclusion Terms</Label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    {INCLUSION_OPTIONS.map(option => (
+                      <label key={option} className="flex items-center gap-2">
+                        <Checkbox
+                          checked={formData.inclusion.includes(option)}
+                          onCheckedChange={() => {
+                            setFormData(prev => {
+                              const updated = prev.inclusion.includes(option)
+                                ? prev.inclusion.filter(i => i !== option)
+                                : [...prev.inclusion, option];
+                              return { ...prev, inclusion: updated };
+                            });
+                          }}
+                        />
+                        <span className="text-sm">{option}</span>
+                      </label>
+                    ))}
+
+                    {/* ✅ Others Checkbox */}
+                    <label className="flex items-center gap-2">
+                      <Checkbox
+                        checked={formData.inclusion.includes("Other")}
+                        onCheckedChange={() => {
+                          setFormData(prev => {
+                            const updated = prev.inclusion.includes("Other")
+                              ? prev.inclusion.filter(i => i !== "Other")
+                              : [...prev.inclusion, "Other"];
+                            return { ...prev, inclusion: updated };
+                          });
+                        }}
+                      />
+                      <span className="text-sm">Other</span>
+                    </label>
+                  </div>
+
+                </div>
+
+                {/* ✅ Exclusion Terms */}
+                <div className="space-y-2 mt-6">
+                  <Label>Exclusion Terms</Label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    {EXCLUSION_OPTIONS.map(option => (
+                      <label key={option} className="flex items-center gap-2">
+                        <Checkbox
+                          checked={formData.exclusion.includes(option)}
+                          onCheckedChange={() => {
+                            setFormData(prev => {
+                              const updated = prev.exclusion.includes(option)
+                                ? prev.exclusion.filter(i => i !== option)
+                                : [...prev.exclusion, option];
+                              return { ...prev, exclusion: updated };
+                            });
+                          }}
+                        />
+                        <span className="text-sm">{option}</span>
+                      </label>
+                    ))}
+
+                    {/* ✅ Others Checkbox */}
+                    <label className="flex items-center gap-2">
+                      <Checkbox
+                        checked={formData.exclusion.includes("Other")}
+                        onCheckedChange={() => {
+                          setFormData(prev => {
+                            const updated = prev.exclusion.includes("Other")
+                              ? prev.exclusion.filter(i => i !== "Other")
+                              : [...prev.exclusion, "Other"];
+                            return { ...prev, exclusion: updated };
+                          });
+                        }}
+                      />
+                      <span className="text-sm">Other</span>
+                    </label>
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="stage">Stage of Investment</Label>
                   <select
@@ -390,6 +508,7 @@ export default function EditFund() {
                     ))}
                   </select>
                 </div>
+                {/*
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <Label>Inclusion Terms</Label>
@@ -409,7 +528,7 @@ export default function EditFund() {
                       rows={2}
                     />
                   </div>
-                </div>
+                </div> */}
               </CardContent>
             </Card>
           </TabsContent>
@@ -458,25 +577,34 @@ export default function EditFund() {
               <CardContent>
                 <div className="space-y-4">
                   <p className="text-sm text-muted-foreground">
-                    Select companies that are part of this fund's portfolio.{selectedCompanies}
+                    Select companies that are part of this fund's portfolio.
                   </p>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {portfolioCompanies.map(company => (
-                      <div key={company._id} className="flex items-start space-x-3 p-3 border rounded-md">
-                        <Checkbox 
-                          id={`company-${company._id}`} 
+                      <div
+                        key={company._id}
+                        className="flex items-start space-x-3 p-3 border rounded-md"
+                      >
+                        <Checkbox
+                          id={`company-${company._id}`}
                           checked={selectedCompanies.includes(company._id)}
-                          onCheckedChange={() => handleCompanyToggle(company._id)}
+                          // pass the checked boolean to the handler
+                          onCheckedChange={(checked) =>
+                            handleCompanyToggle(company._id, Boolean(checked))
+                          }
                         />
                         <div className="space-y-1">
-                          <Label 
+                          <Label
                             htmlFor={`company-${company._id}`}
                             className="font-medium cursor-pointer"
                           >
                             {company.companyName}
                           </Label>
                           <p className="text-sm text-muted-foreground">{company.sector}</p>
-                          <p className="text-xs text-muted-foreground">{company.companytype}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {company.companytype}
+                          </p>
                         </div>
                       </div>
                     ))}
@@ -485,6 +613,7 @@ export default function EditFund() {
               </CardContent>
             </Card>
           </TabsContent>
+
         </Tabs>
         <div className="flex justify-end mt-6 space-x-2">
           <Button
