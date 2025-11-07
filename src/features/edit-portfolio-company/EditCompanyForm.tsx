@@ -34,8 +34,11 @@ import { CategorizationSection } from "./sections/CategorizationSection";
 interface Company {
   _id: string;
   companyName: string;
-  companyType: string;
+  companytype: string;
+  email: string;
   sector: string;
+  location: string;
+  gst: string;
   fundId: number;
   fundName: string;
   founder: string;
@@ -64,19 +67,32 @@ interface Company {
   indirectlyFemale: number;
   indirectlyMale: number;
   indirectlyOther: string
+  futureAction: string
+  fundInvestmentS: string
+  potentialInvestmentSize: string
+  natureofBusiness: string
+  natureofBudateofInvestmentsiness: string
+  designation: string
+  dateofInvestment: string
+  briefdescription: string
+  dateofScreening: string
+  opportunityStatus: string
 }
 
 export default function EditCompanyForm({ company }: { company: Company }) {
   const navigate = useNavigate();
   const [editData, setEditData] = useState({ ...company });
-  console.log('EditCompanyForm',company)
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
     setEditData((prev: any) => ({
       ...prev,
       [name]: value,
     }));
   };
+  
 
   const handleNestedChange = (
     section: "employees" | "workers",
@@ -96,12 +112,106 @@ export default function EditCompanyForm({ company }: { company: Company }) {
     }));
   };
 
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Here, you would update the backend!
-    navigate("/portfolio");
-  };
+  const natureOfBusinessOptions = [
+    { value: "B2B", label: "B2B" },
+    { value: "B2C", label: "B2C" },
+    { value: "B2B2C", label: "B2B2C" },
+    { value: "D2C", label: "D2C" },
+    { value: "B2G", label: "B2G" }
+  ];
 
+  const stageOfInvestmentOptions = [
+    { value: "Seed", label: "Seed" },
+    { value: "Angel", label: "Angel" },
+    { value: "Series A", label: "Series A" },
+    { value: "Series B", label: "Series B" },
+    { value: "Series C", label: "Series C" },
+    { value: "Series D", label: "Series D" },
+    { value: "Series E", label: "Series E" }
+  ];
+
+  const futureActionOptions = [
+    { value: "SHA to be signed", label: "SHA to be signed" },
+    { value: "Rejected", label: "Rejected" },
+    { value: "To be revisited in future", label: "To be revisited in future" },
+    { value: "To review further", label: "To review further" }
+  ];
+
+  // const handleSave = (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   // Here, you would update the backend!
+  //   navigate("/portfolio");
+  // };
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const payload = {
+      companyInfoId: editData._id,
+      companyName: editData.companyName,
+      companytype: editData.companytype,
+      email: editData.email,
+      sector: editData.sector,
+      location: editData.location,
+      gst: editData.gst,
+      fundName: editData.fundName,
+      founder: editData.founder,
+      investmentDate: editData.investmentDate,
+      stage: editData.stage,
+      fundShareholding: editData.fundShareholding,
+      esgCategory: editData.esgCategory,
+      esgScore: editData.esgScore,
+      foundersPromotorsMale: editData.foundersPromotorsMale,
+      foundersPromotorsFemale: editData.foundersPromotorsFemale,
+      foundersPromotorsOther: editData.foundersPromotorsOther,
+      otherEmpMale: editData.otherEmpMale,
+      otherEmpFemale: editData.otherEmpFemale,
+      otherEmpOther: editData.otherEmpOther,
+      directContractMale: editData.directContractMale,
+      directContractFemale: editData.directContractFemale,
+      directContractOther: editData.directContractOther,
+      indirectlyMale: editData.indirectlyMale,
+      indirectlyFemale: editData.indirectlyFemale,
+      indirectlyOther: editData.indirectlyOther,
+      futureAction: editData.futureAction,
+      fundInvestmentS: editData.fundInvestmentS,
+      potentialInvestmentSize: editData.potentialInvestmentSize,
+      natureofBusiness: editData.natureofBusiness,
+      natureofBudateofInvestmentsiness: editData.natureofBudateofInvestmentsiness,
+      designation: editData.designation,
+      dateofInvestment: editData.dateofInvestment,
+      briefdescription: editData.briefdescription,
+      dateofScreening: editData.dateofScreening,
+      opportunityStatus: editData.opportunityStatus,
+    };
+
+    console.log("Payload sent:", payload);
+
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL}/investor/companyInfo/update`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      const data = await res.json();
+      console.log("API Response:", data);
+
+      if (!res.ok) {
+        throw new Error(data?.message || "Update failed");
+      }
+
+      navigate("/portfolio");
+
+    } catch (error) {
+      console.error("❌ API Error:", error);
+    }
+  };
   const handleCancel = () => {
     navigate("/portfolio");
   };
@@ -119,34 +229,200 @@ export default function EditCompanyForm({ company }: { company: Company }) {
               <TabsTrigger value="prescreening">Pre-Screening</TabsTrigger>
               <TabsTrigger value="categorization">Categorization</TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="basic" className="mt-6">
-            <form className="space-y-4" onSubmit={handleSave}>
-            <div>
-              <Label>Company Name</Label>
-              <Input
-                name="name"
-                value={editData?.companyName}
-                onChange={handleChange}
-              />
-            </div>
-            <div>
-              <Label>Type</Label>
-              <Input
-                name="type"
-                value={editData?.companyType}
-                onChange={handleChange}
-              />
-            </div>
-            <div>
-              <Label>Sector</Label>
-              <Input
-                name="sector"
-                value={editData?.sector}
-                onChange={handleChange}
-              />
-            </div>
-            <div>
+              <form className="space-y-4" onSubmit={handleSave}>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Company Name</Label>
+                    <Input
+                      name="companyName"
+                      value={editData?.companyName}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  <div>
+                    <Label>Type</Label>
+                    <Input
+                      name="companytype"
+                      value={editData?.companytype}
+                      onChange={handleChange}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Email</Label>
+                    <Input
+                      name="email"
+                      value={editData?.email}
+                      onChange={handleChange}
+                      disabled
+                    />
+                  </div>
+                  <div>
+                    <Label>Sector</Label>
+                    <Input
+                      name="sector"
+                      value={editData?.sector}
+                      onChange={handleChange}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Designation</Label>
+                    <Input
+                      name="designation"
+                      value={editData?.designation}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  <div>
+                    <Label>Nature of Business</Label>
+                    <select
+                      name="natureofBusiness"
+                      value={editData?.natureofBusiness}
+                      onChange={handleChange}
+                      className="border rounded-md w-full h-10 px-2"
+                    >
+                      <option value="">Select</option>
+                      {natureOfBusinessOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>CEO/Founder</Label>
+                    <Input
+                      name="founder"
+                      value={editData?.founder}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  <div>
+                    <Label>Date of Screening</Label>
+                    <Input
+                      type="date"
+                      name="dateofScreening"
+                      value={editData?.dateofScreening ? editData.dateofScreening.split("T")[0] : ""}
+                      onChange={handleChange}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Date of Investment</Label>
+                    <Input
+                      type="date"
+                      name="dateofInvestment"
+                      value={editData?.dateofInvestment ? editData.dateofInvestment.split("T")[0] : ""}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  <div>
+                    <Label>Fund Investment Strategy</Label>
+                    <Input
+                      name="fundInvestmentS"
+                      value={editData?.fundInvestmentS}
+                      onChange={handleChange}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Address</Label>
+                    <Input
+                      name="location"
+                      value={editData?.location}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  <div>
+                    <Label>Brief description of company activities</Label>
+                    <Input
+                      name="briefdescription"
+                      value={editData?.briefdescription}
+                      onChange={handleChange}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Potential Investment Size (INR)</Label>
+                    <Input
+                      name="potentialInvestmentSize"
+                      value={editData?.potentialInvestmentSize}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  <div>
+                    <Label>Stage of Investment</Label>
+                    <select
+                      name="stage"
+                      value={editData?.stage}
+                      onChange={handleChange}
+                      className="border rounded-md w-full h-10 px-2"
+                    >
+                      <option value="">Select</option>
+                      {stageOfInvestmentOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Future Action</Label>
+                    <select
+                      name="futureAction"
+                      value={editData?.futureAction}
+                      onChange={handleChange}
+                      className="border rounded-md w-full h-10 px-2"
+                    >
+                      <option value="">Select</option>
+                      {futureActionOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <Label>Source of Information</Label>
+                    <Input
+                      name="fundShareholding"
+                      value={editData?.fundShareholding}
+                      onChange={handleChange}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>GST Number</Label>
+                    <Input
+                      name="gst"
+                      value={editData?.gst}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  <div>
+                    <Label>Fund Shareholding (%)</Label>
+                    <Input
+                      name="fundShareholding"
+                      value={editData?.fundShareholding}
+                      onChange={handleChange}
+                    />
+                  </div>
+                </div>
+
+                {/* <div>
               <Label>Fund Name</Label>
               <Input
                 name="fundName"
@@ -154,41 +430,7 @@ export default function EditCompanyForm({ company }: { company: Company }) {
                 onChange={handleChange}
               />
             </div>
-            <div>
-              <Label>CEO</Label>
-              <Input
-                name="ceo"
-                value={editData?.founder}
-                onChange={handleChange}
-              />
-            </div>
-            <div>
-              <Label>Investment Date</Label>
-              <Input
-                name="investmentDate"
-                type="date"
-                value={editData?.investmentDate}
-                onChange={handleChange}
-              />
-            </div>
-            <div>
-              <Label>Stage</Label>
-              <Input
-                name="stage"
-                value={editData?.stage}
-                onChange={handleChange}
-              />
-            </div>
-            <div>
-              <Label>Shareholding (%)</Label>
-              <Input
-                name="shareholding"
-                type="number"
-                value={editData?.fundShareholding}
-                onChange={handleChange}
-              />
-            </div>
-            <div>
+                <div>
               <Label>ESG Category</Label>
               <Input
                 name="esgCategory"
@@ -204,116 +446,116 @@ export default function EditCompanyForm({ company }: { company: Company }) {
                 value={editData?.esgScore}
                 onChange={handleChange}
               />
-            </div>
+            </div> */}
 
-            {/* Employees */}
-            <div className="border-t pt-4 mt-6">
-              <div className="font-semibold mb-2">Employees - Founders</div>
-              <div className="flex gap-2 mb-2">
-                <Input
-                  name="foundersPromotorsMale"
-                  type="number"
-                  value={editData?.foundersPromotorsMale}
-                  onChange={handleChange}
-                  placeholder="Male"
-                />
-                <Input
-                  name="foundersPromotorsFemale"
-                  type="number"
-                  value={editData?.foundersPromotorsFemale}
-                  onChange={handleChange}
-                  placeholder="Female"
-                />
-                <Input
-                  name="foundersPromotorsOther"
-                  type="number"
-                  value={editData?.foundersPromotorsOther}
-                  onChange={handleChange}
-                  placeholder="Others"
-                />
-              </div>
+                {/* Employees */}
+                <div className="border-t pt-4 mt-6">
+                  <div className="font-semibold mb-2">Employees - Founders</div>
+                  <div className="flex gap-2 mb-2">
+                    <Input
+                      name="foundersPromotorsMale"
+                      type="number"
+                      value={editData?.foundersPromotorsMale}
+                      onChange={handleChange}
+                      placeholder="Male"
+                    />
+                    <Input
+                      name="foundersPromotorsFemale"
+                      type="number"
+                      value={editData?.foundersPromotorsFemale}
+                      onChange={handleChange}
+                      placeholder="Female"
+                    />
+                    <Input
+                      name="foundersPromotorsOther"
+                      type="number"
+                      value={editData?.foundersPromotorsOther}
+                      onChange={handleChange}
+                      placeholder="Others"
+                    />
+                  </div>
 
-              <div className="font-semibold mb-2">Employees - Other</div>
-              <div className="flex gap-2 mb-2">
-                <Input
-                  name="otherEmpMale"
-                  type="number"
-                  value={editData?.otherEmpMale}
-                  onChange={handleChange}
-                  placeholder="Male"
-                />
-                <Input
-                  name="otherEmpFemale"
-                  type="number"
-                  value={editData?.otherEmpFemale}
-                  onChange={handleChange}
-                  placeholder="Female"
-                />
-                <Input
-                  name="otherEmpOther"
-                  type="number"
-                  value={editData?.otherEmpOther}
-                  onChange={handleChange}
-                  placeholder="Others"
-                />
-              </div>
-            </div>
+                  <div className="font-semibold mb-2">Employees - Other</div>
+                  <div className="flex gap-2 mb-2">
+                    <Input
+                      name="otherEmpMale"
+                      type="number"
+                      value={editData?.otherEmpMale}
+                      onChange={handleChange}
+                      placeholder="Male"
+                    />
+                    <Input
+                      name="otherEmpFemale"
+                      type="number"
+                      value={editData?.otherEmpFemale}
+                      onChange={handleChange}
+                      placeholder="Female"
+                    />
+                    <Input
+                      name="otherEmpOther"
+                      type="number"
+                      value={editData?.otherEmpOther}
+                      onChange={handleChange}
+                      placeholder="Others"
+                    />
+                  </div>
+                </div>
 
-            {/* Workers */}
-            <div className="border-t pt-4 mt-6">
-              <div className="font-semibold mb-2">Workers - Direct</div>
-              <div className="flex gap-2 mb-2">
-                <Input
-                  name="workers_direct_male"
-                  type="number"
-                  value={editData?.directContractMale}
-                  onChange={handleChange}
-                  placeholder="Male"
-                />
-                <Input
-                  name="workers_direct_female"
-                  type="number"
-                  value={editData?.directContractFemale}
-                  onChange={handleChange}
-                  placeholder="Female"
-                />
-                <Input
-                  name="workers_direct_others"
-                  type="number"
-                  value={editData?.directContractOther}
-                  onChange={handleChange}
-                  placeholder="Others"
-                />
-              </div>
+                {/* Workers */}
+                <div className="border-t pt-4 mt-6">
+                  <div className="font-semibold mb-2">Workers - Direct</div>
+                  <div className="flex gap-2 mb-2">
+                    <Input
+                      name="workers_direct_male"
+                      type="number"
+                      value={editData?.directContractMale}
+                      onChange={handleChange}
+                      placeholder="Male"
+                    />
+                    <Input
+                      name="workers_direct_female"
+                      type="number"
+                      value={editData?.directContractFemale}
+                      onChange={handleChange}
+                      placeholder="Female"
+                    />
+                    <Input
+                      name="workers_direct_others"
+                      type="number"
+                      value={editData?.directContractOther}
+                      onChange={handleChange}
+                      placeholder="Others"
+                    />
+                  </div>
 
-              <div className="font-semibold mb-2">Workers - Indirect</div>
-              <div className="flex gap-2 mb-2">
-                <Input
-                  name="workers_indirect_male"
-                  type="number"
-                  value={editData?.indirectlyMale}
-                  onChange={handleChange}
-                  placeholder="Male"
-                />
-                <Input
-                  name="workers_indirect_female"
-                  type="number"
-                  value={editData?.indirectlyFemale}
-                  onChange={handleChange}
-                  placeholder="Female"
-                />
-                <Input
-                  name="workers_indirect_others"
-                  type="number"
-                  value={editData?.indirectlyOther}
-                  onChange={handleChange}
-                  placeholder="Others"
-                />
-              </div>
-            </div>
+                  <div className="font-semibold mb-2">Workers - Indirect</div>
+                  <div className="flex gap-2 mb-2">
+                    <Input
+                      name="workers_indirect_male"
+                      type="number"
+                      value={editData?.indirectlyMale}
+                      onChange={handleChange}
+                      placeholder="Male"
+                    />
+                    <Input
+                      name="workers_indirect_female"
+                      type="number"
+                      value={editData?.indirectlyFemale}
+                      onChange={handleChange}
+                      placeholder="Female"
+                    />
+                    <Input
+                      name="workers_indirect_others"
+                      type="number"
+                      value={editData?.indirectlyOther}
+                      onChange={handleChange}
+                      placeholder="Others"
+                    />
+                  </div>
+                </div>
 
                 <div className="flex gap-2 justify-end mt-6">
-                  <Button type="submit" variant="default">
+                  <Button type="submit" onClick={handleSave} variant="default">
                     Save
                   </Button>
                   <Button type="button" onClick={handleCancel} variant="outline">
@@ -322,11 +564,11 @@ export default function EditCompanyForm({ company }: { company: Company }) {
                 </div>
               </form>
             </TabsContent>
-            
+
             <TabsContent value="prescreening" className="mt-6">
               <PreScreeningSection companyId={editData._id} />
             </TabsContent>
-            
+
             <TabsContent value="categorization" className="mt-6">
               <CategorizationSection companyId={editData._id} />
             </TabsContent>
