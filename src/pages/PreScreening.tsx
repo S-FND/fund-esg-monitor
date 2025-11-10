@@ -136,8 +136,8 @@ export default function PreScreening() {
       }
       else {
         const jsondata = await res.json();
-        console.log('jsondata', jsondata)
-        getQuestions()
+        // console.log('jsondata', jsondata)
+        // getQuestions()
       }
     } catch (error) {
       
@@ -147,44 +147,32 @@ export default function PreScreening() {
     }
   }
 
-  const getQuestions = async()=>{
-    try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}` + `/investor/pre-screening/questions/${searchParams.get('companyInfoId')}/Prescreening`, {
-        method: "GET",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
-      });
-      if (!res.ok) {
-        // toast.error("Invalid credentials");
-        // setIsLoading(false);
-        setQuestions(initialQuestions)
-        return;
-      }
-      else {
-        const jsondata = await res.json();
-        console.log('jsondata', jsondata)
-        setQuestions(jsondata['data'])
+  // const getQuestions = async()=>{
+  //   try {
+  //     const res = await fetch(`${import.meta.env.VITE_API_URL}` + `/investor/pre-screening/questions/${searchParams.get('companyInfoId')}/Prescreening`, {
+  //       method: "GET",
+  //       headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
+  //     });
+  //     if (!res.ok) {
+  //       // toast.error("Invalid credentials");
+  //       // setIsLoading(false);
+  //       setQuestions(initialQuestions)
+  //       return;
+  //     }
+  //     else {
+  //       const jsondata = await res.json();
+  //       console.log('jsondata', jsondata)
+  //       setQuestions(jsondata['data'])
         
-      }
-    } catch (error) {
+  //     }
+  //   } catch (error) {
       
-    }
-    finally{
-
-    }
-  }
-
-  // useEffect(()=>{
-  //   console.log('handleQuestionsUpdate :: prescreening :: questions',questions)
-  //   if(questions.length>0){
-  //     saveQuestions(questions)
   //   }
-    
-  // },[questions])
+  //   finally{
 
-  useEffect(()=>{
-    getQuestions()
-  },[])
-  
+  //   }
+  // }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
