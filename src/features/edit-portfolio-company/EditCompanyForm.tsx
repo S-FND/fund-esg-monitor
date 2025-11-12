@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PreScreeningSection } from "./sections/PreScreeningSection";
 import { CategorizationSection } from "./sections/CategorizationSection";
-
+import { toast } from "@/hooks/use-toast";
 // interface Company {
 //   _id: number;
 //   name: string;
@@ -43,7 +43,6 @@ interface Company {
   fundName: string;
   founder: string;
   investmentDate: string;
-  stage: string;
   fundShareholding: number;
   employees: {
     founders: { male: number; female: number; others: number; };
@@ -77,6 +76,7 @@ interface Company {
   briefdescription: string
   dateofScreening: string
   opportunityStatus: string
+  sourceofInformation: string
 }
 
 export default function EditCompanyForm({ company }: { company: Company }) {
@@ -92,7 +92,7 @@ export default function EditCompanyForm({ company }: { company: Company }) {
       [name]: value,
     }));
   };
-  
+
 
   const handleNestedChange = (
     section: "employees" | "workers",
@@ -156,7 +156,6 @@ export default function EditCompanyForm({ company }: { company: Company }) {
       fundName: editData.fundName,
       founder: editData.founder,
       investmentDate: editData.investmentDate,
-      stage: editData.stage,
       fundShareholding: editData.fundShareholding,
       esgCategory: editData.esgCategory,
       esgScore: editData.esgScore,
@@ -182,6 +181,7 @@ export default function EditCompanyForm({ company }: { company: Company }) {
       briefdescription: editData.briefdescription,
       dateofScreening: editData.dateofScreening,
       opportunityStatus: editData.opportunityStatus,
+      sourceofInformation: editData.sourceofInformation,
     };
 
     console.log("Payload sent:", payload);
@@ -206,7 +206,11 @@ export default function EditCompanyForm({ company }: { company: Company }) {
         throw new Error(data?.message || "Update failed");
       }
 
-      navigate("/portfolio");
+      toast({
+        title: "✅ Company Updated Successfully",
+        description: "Your changes have been saved.",
+      });
+      // navigate("/portfolio");
 
     } catch (error) {
       console.error("❌ API Error:", error);
@@ -242,7 +246,7 @@ export default function EditCompanyForm({ company }: { company: Company }) {
                     />
                   </div>
                   <div>
-                    <Label>Type</Label>
+                    <Label>Company Type</Label>
                     <Input
                       name="companytype"
                       value={editData?.companytype}
@@ -297,7 +301,7 @@ export default function EditCompanyForm({ company }: { company: Company }) {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label>CEO/Founder</Label>
+                    <Label>Founder / CEO</Label>
                     <Input
                       name="founder"
                       value={editData?.founder}
@@ -363,8 +367,8 @@ export default function EditCompanyForm({ company }: { company: Company }) {
                   <div>
                     <Label>Stage of Investment</Label>
                     <select
-                      name="stage"
-                      value={editData?.stage}
+                      name="opportunityStatus"
+                      value={editData?.opportunityStatus}
                       onChange={handleChange}
                       className="border rounded-md w-full h-10 px-2"
                     >
@@ -397,8 +401,8 @@ export default function EditCompanyForm({ company }: { company: Company }) {
                   <div>
                     <Label>Source of Information</Label>
                     <Input
-                      name="fundShareholding"
-                      value={editData?.fundShareholding}
+                      name="sourceofInformation"
+                      value={editData?.sourceofInformation}
                       onChange={handleChange}
                     />
                   </div>
@@ -448,111 +452,140 @@ export default function EditCompanyForm({ company }: { company: Company }) {
               />
             </div> */}
 
-                {/* Employees */}
+                {/* Employees Section */}
                 <div className="border-t pt-4 mt-6">
-                  <div className="font-semibold mb-2">Employees - Founders</div>
-                  <div className="flex gap-2 mb-2">
-                    <Input
-                      name="foundersPromotorsMale"
-                      type="number"
-                      value={editData?.foundersPromotorsMale}
-                      onChange={handleChange}
-                      placeholder="Male"
-                    />
-                    <Input
-                      name="foundersPromotorsFemale"
-                      type="number"
-                      value={editData?.foundersPromotorsFemale}
-                      onChange={handleChange}
-                      placeholder="Female"
-                    />
-                    <Input
-                      name="foundersPromotorsOther"
-                      type="number"
-                      value={editData?.foundersPromotorsOther}
-                      onChange={handleChange}
-                      placeholder="Others"
-                    />
-                  </div>
+                  <div className="font-semibold mb-3">Number of Employees</div>
 
-                  <div className="font-semibold mb-2">Employees - Other</div>
-                  <div className="flex gap-2 mb-2">
-                    <Input
-                      name="otherEmpMale"
-                      type="number"
-                      value={editData?.otherEmpMale}
-                      onChange={handleChange}
-                      placeholder="Male"
-                    />
-                    <Input
-                      name="otherEmpFemale"
-                      type="number"
-                      value={editData?.otherEmpFemale}
-                      onChange={handleChange}
-                      placeholder="Female"
-                    />
-                    <Input
-                      name="otherEmpOther"
-                      type="number"
-                      value={editData?.otherEmpOther}
-                      onChange={handleChange}
-                      placeholder="Others"
-                    />
-                  </div>
+                  <table className="w-full border text-center">
+                    <thead>
+                      <tr className="bg-gray-200">
+                        <th className="p-2 border">Permanent Employees</th>
+                        <th className="p-2 border">Other Employees</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        {/* Founders Promoters Table */}
+                        <td className="p-0 border">
+                          <table className="w-full">
+                            <tbody>
+                              {[
+                                { label: "Male", key: "foundersPromotorsMale" },
+                                { label: "Female", key: "foundersPromotorsFemale" },
+                                { label: "Other", key: "foundersPromotorsOther" },
+                              ].map((item) => (
+                                <tr key={item.key}>
+                                  <td className="p-2 border">{item.label}</td>
+                                  <td className="p-2 border">
+                                    <Input
+                                      type="number"
+                                      name={item.key}
+                                      value={editData[item.key] || ""}
+                                      onChange={handleChange}
+                                    />
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </td>
+
+                        {/* Other Employees */}
+                        <td className="p-0 border">
+                          <table className="w-full">
+                            <tbody>
+                              {[
+                                { label: "Male", key: "otherEmpMale" },
+                                { label: "Female", key: "otherEmpFemale" },
+                                { label: "Other", key: "otherEmpOther" },
+                              ].map((item) => (
+                                <tr key={item.key}>
+                                  <td className="p-2 border">{item.label}</td>
+                                  <td className="p-2 border">
+                                    <Input
+                                      type="number"
+                                      name={item.key}
+                                      value={editData[item.key] || ""}
+                                      onChange={handleChange}
+                                    />
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
 
-                {/* Workers */}
+                {/* Workers Section */}
                 <div className="border-t pt-4 mt-6">
-                  <div className="font-semibold mb-2">Workers - Direct</div>
-                  <div className="flex gap-2 mb-2">
-                    <Input
-                      name="workers_direct_male"
-                      type="number"
-                      value={editData?.directContractMale}
-                      onChange={handleChange}
-                      placeholder="Male"
-                    />
-                    <Input
-                      name="workers_direct_female"
-                      type="number"
-                      value={editData?.directContractFemale}
-                      onChange={handleChange}
-                      placeholder="Female"
-                    />
-                    <Input
-                      name="workers_direct_others"
-                      type="number"
-                      value={editData?.directContractOther}
-                      onChange={handleChange}
-                      placeholder="Others"
-                    />
-                  </div>
+                  <div className="font-semibold mb-3">Number of Workers</div>
 
-                  <div className="font-semibold mb-2">Workers - Indirect</div>
-                  <div className="flex gap-2 mb-2">
-                    <Input
-                      name="workers_indirect_male"
-                      type="number"
-                      value={editData?.indirectlyMale}
-                      onChange={handleChange}
-                      placeholder="Male"
-                    />
-                    <Input
-                      name="workers_indirect_female"
-                      type="number"
-                      value={editData?.indirectlyFemale}
-                      onChange={handleChange}
-                      placeholder="Female"
-                    />
-                    <Input
-                      name="workers_indirect_others"
-                      type="number"
-                      value={editData?.indirectlyOther}
-                      onChange={handleChange}
-                      placeholder="Others"
-                    />
-                  </div>
+                  <table className="w-full border text-center">
+                    <thead>
+                      <tr className="bg-gray-200">
+                        <th className="p-2 border">Direct Contract</th>
+                        <th className="p-2 border">Indirectly through Service Providers</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        {/* Direct Workers */}
+                        <td className="p-0 border">
+                          <table className="w-full">
+                            <tbody>
+                              {[
+                                { label: "Male", key: "directContractMale" },
+                                { label: "Female", key: "directContractFemale" },
+                                { label: "Other", key: "directContractOther" },
+                              ].map((item) => (
+                                <tr key={item.key}>
+                                  <td className="p-2 border">{item.label}</td>
+                                  <td className="p-2 border">
+                                    <Input
+                                      type="number"
+                                      name={item.key}
+                                      value={editData[item.key] || ""}
+                                      onChange={handleChange}
+                                    />
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </td>
+
+                        {/* Indirect Workers */}
+                        <td className="p-0 border">
+                          <table className="w-full">
+                            <tbody>
+                              {[
+                                { label: "Male", key: "indirectlyMale" },
+                                { label: "Female", key: "indirectlyFemale" },
+                                { label: "Other", key: "indirectlyOther" },
+                              ].map((item) => (
+                                <tr key={item.key}>
+                                  <td className="p-2 border">{item.label}</td>
+                                  <td className="p-2 border">
+                                    <Input
+                                      type="number"
+                                      name={item.key}
+                                      value={editData[item.key] || ""}
+                                      onChange={handleChange}
+                                    />
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
+
 
                 <div className="flex gap-2 justify-end mt-6">
                   <Button type="submit" onClick={handleSave} variant="default">

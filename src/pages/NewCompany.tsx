@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -8,7 +7,6 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ChevronRight } from "lucide-react";
 
 // Dummy data
@@ -42,47 +40,43 @@ const companyTypes = [
   "Private Ltd"
 ];
 
-const businessNatures = ["B2B", "B2C", "B2B2C"];
-
-const investmentStages = [
-  "Pre Seed",
-  "Seed",
-  "Pre Series A",
-  "Series A",
-  "Series B and above",
-  "Pre-IPO",
-  "IPO"
+const natureOfBusinessOptions = [
+  { value: "B2B", label: "B2B" },
+  { value: "B2C", label: "B2C" },
+  { value: "B2B2C", label: "B2B2C" },
+  { value: "D2C", label: "D2C" },
+  { value: "B2G", label: "B2G" }
 ];
 
-const futureActions = [
-  "SHA to be signed",
-  "Rejected",
-  "To be revisited in future",
-  "To review further"
+const stageOfInvestmentOptions = [
+  { value: "Seed", label: "Seed" },
+  { value: "Angel", label: "Angel" },
+  { value: "Series A", label: "Series A" },
+  { value: "Series B", label: "Series B" },
+  { value: "Series C", label: "Series C" },
+  { value: "Series D", label: "Series D" },
+  { value: "Series E", label: "Series E" }
+];
+
+const futureActionOptions = [
+  { value: "SHA to be signed", label: "SHA to be signed" },
+  { value: "Rejected", label: "Rejected" },
+  { value: "To be revisited in future", label: "To be revisited in future" },
+  { value: "To review further", label: "To review further" }
 ];
 
 export default function NewCompany() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     companyName: "",
-    companyType: "",
+    companytype: "",
     email: "",
     sector: "",
-    subsector: "",
-    designation: "",
-    natureofBusiness: "",
-    founder: "",
-    dateofScreening: "",
-    investmentDate: "",
-    fundId: "",
-    fundInvestmentS: "",
     location: "",
-    briefdescription: "",
-    potentialInvestmentSize: "",
-    opportunityStatus: "",
-    futureAction: "",
-    sourceofInformation: "",
     gst: "",
+    fundName: "",
+    founder: "",
+    investmentDate: "",
     fundShareholding: "",
     foundersPromotorsMale: "0",
     foundersPromotorsFemale: "0",
@@ -95,7 +89,17 @@ export default function NewCompany() {
     directContractOther: "0",
     indirectlyMale: "0",
     indirectlyFemale: "0",
-    indirectlyOther: "0"
+    indirectlyOther: "0",
+    futureAction: "",
+    fundInvestmentS: "",
+    potentialInvestmentSize: "",
+    natureofBusiness: "",
+    designation: "",
+    dateofInvestment: "",
+    briefdescription: "",
+    dateofScreening: "",
+    opportunityStatus: "",
+    sourceofInformation: "",
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -113,33 +117,25 @@ export default function NewCompany() {
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}` + `/investor/companyInfo/update`, {
         method: "POST",
-        body: JSON.stringify({ ...formData, companytype: 'Portfolio Company' }),
+        body: JSON.stringify({ ...formData }),
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
       });
       if (!res.ok) {
-        // toast.error("Invalid credentials");
-        // setIsLoading(false);
         return;
       }
       else {
         const jsondata = await res.json();
         console.log('jsondata', jsondata)
-        // Navigate to pre-screening page
         if(jsondata['companyInfoId']){
           navigate("/portfolio/pre-screening?companyInfoId="+jsondata['companyInfoId']);
         }
         else{
           //show toast error
         }
-        
       }
     } catch (error) {
       console.error("Api call:", error);
-      // toast.error("API Call failed. Please try again.");
-    } finally {
-      // setIsLoading(false);
     }
-
   };
 
   return (
@@ -171,10 +167,10 @@ export default function NewCompany() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="companyType">Company Type</Label>
+                <Label htmlFor="companytype">Company Type</Label>
                 <Select
-                  value={formData.companyType}
-                  onValueChange={(value) => handleSelectChange("companyType", value)}
+                  value={formData.companytype}
+                  onValueChange={(value) => handleSelectChange("companytype", value)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select company type" />
@@ -202,36 +198,23 @@ export default function NewCompany() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="sector">Sector</Label>
-                  <Select
-                    value={formData.sector}
-                    onValueChange={(value) => handleSelectChange("sector", value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select sector" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {sectors.map(sector => (
-                        <SelectItem key={sector} value={sector}>
-                          {sector}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="subsector">Subsector</Label>
-                  <Input
-                    id="subsector"
-                    name="subsector"
-                    value={formData.subsector}
-                    onChange={handleInputChange}
-                    placeholder="Enter subsector"
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="sector">Sector</Label>
+                <Select
+                  value={formData.sector}
+                  onValueChange={(value) => handleSelectChange("sector", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select sector" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sectors.map(sector => (
+                      <SelectItem key={sector} value={sector}>
+                        {sector}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">
@@ -247,18 +230,21 @@ export default function NewCompany() {
 
               <div className="space-y-2">
                 <Label htmlFor="natureofBusiness">Nature of Business</Label>
-                <RadioGroup
+                <Select
+                  value={formData.natureofBusiness}
                   onValueChange={(value) => handleSelectChange("natureofBusiness", value)}
-                  defaultValue={formData.natureofBusiness}
-                  className="flex space-x-4"
                 >
-                  {businessNatures.map(nature => (
-                    <div key={nature} className="flex items-center space-x-2">
-                      <RadioGroupItem value={nature} id={`nature-${nature}`} />
-                      <Label htmlFor={`nature-${nature}`}>{nature}</Label>
-                    </div>
-                  ))}
-                </RadioGroup>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select nature of business" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {natureOfBusinessOptions.map(option => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">
@@ -286,34 +272,26 @@ export default function NewCompany() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="investmentDate">Date of Investment</Label>
+                  <Label htmlFor="dateofInvestment">Date of Investment</Label>
                   <Input
-                    id="investmentDate"
-                    name="investmentDate"
+                    id="dateofInvestment"
+                    name="dateofInvestment"
                     type="date"
-                    value={formData.investmentDate}
+                    value={formData.dateofInvestment}
                     onChange={handleInputChange}
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="fundId">Fund</Label>
-                <Select
-                  value={formData.fundId}
-                  onValueChange={(value) => handleSelectChange("fundId", value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select fund" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {funds.map(fund => (
-                      <SelectItem key={fund.id} value={fund.id.toString()}>
-                        {fund.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="fundName">Fund Name</Label>
+                <Input
+                  id="fundName"
+                  name="fundName"
+                  value={formData.fundName}
+                  onChange={handleInputChange}
+                  placeholder="Enter fund name"
+                />
               </div>
 
               <div className="space-y-2">
@@ -328,13 +306,13 @@ export default function NewCompany() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="location">City</Label>
+                <Label htmlFor="location">Address</Label>
                 <Input
                   id="location"
                   name="location"
                   value={formData.location}
                   onChange={handleInputChange}
-                  placeholder="Enter city"
+                  placeholder="Enter Address"
                 />
               </div>
 
@@ -371,9 +349,9 @@ export default function NewCompany() {
                     <SelectValue placeholder="Select investment stage" />
                   </SelectTrigger>
                   <SelectContent>
-                    {investmentStages.map(stage => (
-                      <SelectItem key={stage} value={stage}>
-                        {stage}
+                    {stageOfInvestmentOptions.map(option => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -390,9 +368,9 @@ export default function NewCompany() {
                     <SelectValue placeholder="Select future action" />
                   </SelectTrigger>
                   <SelectContent>
-                    {futureActions.map(action => (
-                      <SelectItem key={action} value={action}>
-                        {action}
+                    {futureActionOptions.map(option => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -439,162 +417,140 @@ export default function NewCompany() {
 
             <Separator />
 
-            <div>
-              <h3 className="font-medium mb-4">Total Number of Permanent Employees</h3>
-              <div className="grid grid-cols-4 gap-4 mb-4">
-                <div className="col-span-1"></div>
-                <div className="text-center text-sm font-medium">Male</div>
-                <div className="text-center text-sm font-medium">Female</div>
-                <div className="text-center text-sm font-medium">Others</div>
-              </div>
+            {/* Employees Section - Matching Edit Form Layout */}
+            <div className="border-t pt-4 mt-6">
+              <div className="font-semibold mb-3">Number of Employees</div>
 
-              <div className="grid grid-cols-4 gap-4 mb-4">
-                <div className="flex items-center">Founders/Promoters</div>
-                <div>
-                  <Input
-                    id="foundersPromotorsMale"
-                    name="foundersPromotorsMale"
-                    type="number"
-                    min="0"
-                    value={formData.foundersPromotorsMale}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                <div>
-                  <Input
-                    id="foundersPromotorsFemale"
-                    name="foundersPromotorsFemale"
-                    type="number"
-                    min="0"
-                    value={formData.foundersPromotorsFemale}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                <div>
-                  <Input
-                    id="foundersPromotorsOther"
-                    name="foundersPromotorsOther"
-                    type="number"
-                    min="0"
-                    value={formData.foundersPromotorsOther}
-                    onChange={handleInputChange}
-                  />
-                </div>
-              </div>
+              <table className="w-full border text-center">
+                <thead>
+                  <tr className="bg-gray-200">
+                    <th className="p-2 border">Permanent Employees</th>
+                    <th className="p-2 border">Other Employees</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    {/* Founders Promoters Table */}
+                    <td className="p-0 border">
+                      <table className="w-full">
+                        <tbody>
+                          {[
+                            { label: "Male", key: "foundersPromotorsMale" },
+                            { label: "Female", key: "foundersPromotorsFemale" },
+                            { label: "Other", key: "foundersPromotorsOther" },
+                          ].map((item) => (
+                            <tr key={item.key}>
+                              <td className="p-2 border">{item.label}</td>
+                              <td className="p-2 border">
+                                <Input
+                                  type="number"
+                                  name={item.key}
+                                  value={formData[item.key] || ""}
+                                  onChange={handleInputChange}
+                                />
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </td>
 
-              <div className="grid grid-cols-4 gap-4">
-                <div className="flex items-center">Other Employees</div>
-                <div>
-                  <Input
-                    id="otherEmpMale"
-                    name="otherEmpMale"
-                    type="number"
-                    min="0"
-                    value={formData.otherEmpMale}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                <div>
-                  <Input
-                    id="otherEmpFemale"
-                    name="otherEmpFemale"
-                    type="number"
-                    min="0"
-                    value={formData.otherEmpFemale}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                <div>
-                  <Input
-                    id="otherEmpOther"
-                    name="otherEmpOther"
-                    type="number"
-                    min="0"
-                    value={formData.otherEmpOther}
-                    onChange={handleInputChange}
-                  />
-                </div>
-              </div>
+                    {/* Other Employees */}
+                    <td className="p-0 border">
+                      <table className="w-full">
+                        <tbody>
+                          {[
+                            { label: "Male", key: "otherEmpMale" },
+                            { label: "Female", key: "otherEmpFemale" },
+                            { label: "Other", key: "otherEmpOther" },
+                          ].map((item) => (
+                            <tr key={item.key}>
+                              <td className="p-2 border">{item.label}</td>
+                              <td className="p-2 border">
+                                <Input
+                                  type="number"
+                                  name={item.key}
+                                  value={formData[item.key] || ""}
+                                  onChange={handleInputChange}
+                                />
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
 
             <Separator />
 
-            <div>
-              <h3 className="font-medium mb-4">Number of Workers</h3>
-              <div className="grid grid-cols-4 gap-4 mb-4">
-                <div className="col-span-1"></div>
-                <div className="text-center text-sm font-medium">Male</div>
-                <div className="text-center text-sm font-medium">Female</div>
-                <div className="text-center text-sm font-medium">Others</div>
-              </div>
+            {/* Workers Section - Matching Edit Form Layout */}
+            <div className="border-t pt-4 mt-6">
+              <div className="font-semibold mb-3">Number of Workers</div>
 
-              <div className="grid grid-cols-4 gap-4 mb-4">
-                <div className="flex items-center">Direct contract / no. of workers</div>
-                <div>
-                  <Input
-                    id="directContractMale"
-                    name="directContractMale"
-                    type="number"
-                    min="0"
-                    value={formData.directContractMale}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                <div>
-                  <Input
-                    id="directContractFemale"
-                    name="directContractFemale"
-                    type="number"
-                    min="0"
-                    value={formData.directContractFemale}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                <div>
-                  <Input
-                    id="directContractOther"
-                    name="directContractOther"
-                    type="number"
-                    min="0"
-                    value={formData.directContractOther}
-                    onChange={handleInputChange}
-                  />
-                </div>
-              </div>
+              <table className="w-full border text-center">
+                <thead>
+                  <tr className="bg-gray-200">
+                    <th className="p-2 border">Direct Contract</th>
+                    <th className="p-2 border">Indirectly through Service Providers</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    {/* Direct Workers */}
+                    <td className="p-0 border">
+                      <table className="w-full">
+                        <tbody>
+                          {[
+                            { label: "Male", key: "directContractMale" },
+                            { label: "Female", key: "directContractFemale" },
+                            { label: "Other", key: "directContractOther" },
+                          ].map((item) => (
+                            <tr key={item.key}>
+                              <td className="p-2 border">{item.label}</td>
+                              <td className="p-2 border">
+                                <Input
+                                  type="number"
+                                  name={item.key}
+                                  value={formData[item.key] || ""}
+                                  onChange={handleInputChange}
+                                />
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </td>
 
-              <div className="grid grid-cols-4 gap-4">
-                <div className="flex items-center">Indirectly through service providers</div>
-                <div>
-                  <Input
-                    id="indirectlyMale"
-                    name="indirectlyMale"
-                    type="number"
-                    min="0"
-                    value={formData.indirectlyMale}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                <div>
-                  <Input
-                    id="indirectlyFemale"
-                    name="indirectlyFemale"
-                    type="number"
-                    min="0"
-                    value={formData.indirectlyFemale}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                <div>
-                  <Input
-                    id="indirectlyOther"
-                    name="indirectlyOther"
-                    type="number"
-                    min="0"
-                    value={formData.indirectlyOther}
-                    onChange={handleInputChange}
-                  />
-                </div>
-              </div>
+                    {/* Indirect Workers */}
+                    <td className="p-0 border">
+                      <table className="w-full">
+                        <tbody>
+                          {[
+                            { label: "Male", key: "indirectlyMale" },
+                            { label: "Female", key: "indirectlyFemale" },
+                            { label: "Other", key: "indirectlyOther" },
+                          ].map((item) => (
+                            <tr key={item.key}>
+                              <td className="p-2 border">{item.label}</td>
+                              <td className="p-2 border">
+                                <Input
+                                  type="number"
+                                  name={item.key}
+                                  value={formData[item.key] || ""}
+                                  onChange={handleInputChange}
+                                />
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </CardContent>
         </Card>

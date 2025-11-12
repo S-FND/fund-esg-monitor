@@ -123,7 +123,7 @@ export default function EditFund() {
   };
 
   const handleSelectChange = (
-    field: "currency" | "stage",
+    field: "currency" | "stageOfInvestment",
     value: string
   ) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -172,7 +172,7 @@ export default function EditFund() {
             size: formData.size,
             currency: formData.currency,
             sectorFocus: formData.focus.join(","), // ✅ correct field
-            stageOfInvestment: formData.stage,
+            stageOfInvestment: formData.stageOfInvestment,
             inclusion: formData.inclusion,
             exclusion: formData.exclusion
           }),
@@ -210,7 +210,7 @@ export default function EditFund() {
     updateFundData()
 
     toast({
-      title: "Fund Updated",
+      title: "✅ Fund Updated",
       description: `${formData.name} has been updated successfully.`
     });
     // navigate("/funds");
@@ -495,14 +495,15 @@ export default function EditFund() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="stage">Stage of Investment</Label>
+                  <Label htmlFor="stageOfInvestment">Stage of Investment</Label>
                   <select
-                    id="stage"
-                    name="stage"
-                    value={formData.stage}
-                    onChange={e => handleSelectChange("stage", e.target.value)}
+                    id="stageOfInvestment"
+                    name="stageOfInvestment"
+                    value={formData.stageOfInvestment}
+                    onChange={e => handleSelectChange("stageOfInvestment", e.target.value)}
                     className="border rounded-md px-2 py-1 w-full"
                   >
+                    <option value="">Select investment stage</option>
                     {investmentStages.map(stage => (
                       <option key={stage} value={stage}>{stage}</option>
                     ))}

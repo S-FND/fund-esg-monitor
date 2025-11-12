@@ -8,6 +8,7 @@ export { default as ESGDDReport } from './ESGDDReport';
 export { default as ESGCAP } from './ESGCAP';
 export { default as Valuation } from './Valuation';
 export { default as ESGRiskMatrix } from './ESGRiskMatrix';
+export { default as NewFund } from './NewFund';
 export { default as EditFund } from './EditFund';
 export { default as TeamMemberDetail } from './TeamMemberDetail';
 export { default as TeamMemberEdit } from './TeamMemberEdit';
