@@ -15,6 +15,7 @@ import {
   ESGCAP,
   Valuation,
   ESGRiskMatrix,
+  NewFund,
   EditFund,
   TeamMemberDetail,
   TeamMemberEdit,
@@ -115,6 +116,7 @@ function App() {
           <Route path="/investor-info" element={<InvestorInfo />} />
           <Route path="investor-info/edit" element={<EditInvestorProfile />} />
           <Route path="/funds" element={<Funds />} />
+          <Route path="/funds/new" element={<NewFund />} /> 
           <Route path="/funds/:id" element={<EditFund />} />
           <Route path="/portfolio" element={<PortfolioCompanies />} />
           <Route path="portfolio/new" element={<NewCompany />} />

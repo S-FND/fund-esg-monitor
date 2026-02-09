@@ -109,7 +109,7 @@ export function ManageQuestions({ questions, onQuestionUpdate }: {
           <DialogTitle>{showQuestionForm ? (isEditing ? "Edit Question" : "Add New Question") : "Manage Categorization Questions"}</DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-4">
+        <div className="space-y-4 overflow-y-auto max-h-[65vh] pr-2">
           {showQuestionForm ? (
             <QuestionForm
               initialData={currentQuestion || undefined}
