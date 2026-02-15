@@ -4,145 +4,58 @@ import { Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { InviteCompanyDialog } from "@/features/portfolio/InviteCompanyDialog";
 import { FilterControls } from "@/features/portfolio/FilterControls";
-import { CompanyCard } from "@/features/portfolio/CompanyCard";
+import { PortfolioTable } from "@/features/portfolio/PortfolioTable";
 import { NoCompaniesFound } from "@/features/portfolio/NoCompaniesFound";
+import { http } from "@/utils/httpInterceptor";
+import { toast } from "sonner"; // Add this import
 
-// Dummy data
-// const portfolioCompanies = [
-//   {
-//     id: 1,
-//     name: "EcoSolutions Inc.",
-//     type: "Private Ltd",
-//     sector: "ClimateTech",
-//     fundId: 1,
-//     fundName: "Green Tech Fund I",
-//     ceo: "Sarah Johnson",
-//     investmentDate: "2023-05-15",
-//     stage: "Series A",
-//     shareholding: 12.5,
-//     employees: {
-//       founders: { male: 1, female: 1, others: 0 },
-//       others: { male: 18, female: 12, others: 1 }
-//     },
-//     workers: {
-//       direct: { male: 25, female: 20, others: 0 },
-//       indirect: { male: 10, female: 8, others: 0 }
-//     },
-//     esgCategory: "B",
-//     esgScore: 85
-//   },
-//   {
-//     id: 2,
-//     name: "GreenHarvest",
-//     type: "Private Ltd",
-//     sector: "AgriTech",
-//     fundId: 2,
-//     fundName: "Sustainable Growth Fund",
-//     ceo: "Michael Lee",
-//     investmentDate: "2022-11-03",
-//     stage: "Seed",
-//     shareholding: 15.0,
-//     employees: {
-//       founders: { male: 2, female: 0, others: 0 },
-//       others: { male: 8, female: 7, others: 0 }
-//     },
-//     workers: {
-//       direct: { male: 45, female: 30, others: 0 },
-//       indirect: { male: 20, female: 25, others: 0 }
-//     },
-//     esgCategory: "B",
-//     esgScore: 78
-//   },
-//   {
-//     id: 3,
-//     name: "MediTech Innovations",
-//     type: "Private Ltd",
-//     sector: "HealthTech",
-//     fundId: 2,
-//     fundName: "Sustainable Growth Fund",
-//     ceo: "Lisa Wang",
-//     investmentDate: "2023-03-22",
-//     stage: "Series A",
-//     shareholding: 10.0,
-//     employees: {
-//       founders: { male: 1, female: 2, others: 0 },
-//       others: { male: 25, female: 30, others: 2 }
-//     },
-//     workers: {
-//       direct: { male: 15, female: 25, others: 0 },
-//       indirect: { male: 5, female: 10, others: 0 }
-//     },
-//     esgCategory: "A",
-//     esgScore: 92
-//   },
-//   {
-//     id: 4,
-//     name: "EduForward",
-//     type: "Private Ltd",
-//     sector: "EdTech",
-//     fundId: 3,
-//     fundName: "Impact Ventures",
-//     ceo: "Raj Patel",
-//     investmentDate: "2022-08-10",
-//     stage: "Pre Series A",
-//     shareholding: 18.0,
-//     employees: {
-//       founders: { male: 1, female: 1, others: 0 },
-//       others: { male: 12, female: 15, others: 0 }
-//     },
-//     workers: {
-//       direct: { male: 8, female: 12, others: 0 },
-//       indirect: { male: 4, female: 6, others: 0 }
-//     },
-//     esgCategory: "B",
-//     esgScore: 80
-//   },
-//   {
-//     id: 5,
-//     name: "FinSecure",
-//     type: "Private Ltd",
-//     sector: "FinTech",
-//     fundId: 3,
-//     fundName: "Impact Ventures",
-//     ceo: "David Chen",
-//     investmentDate: "2023-01-14",
-//     stage: "Seed",
-//     shareholding: 20.0,
-//     employees: {
-//       founders: { male: 2, female: 0, others: 0 },
-//       others: { male: 10, female: 8, others: 0 }
-//     },
-//     workers: {
-//       direct: { male: 5, female: 4, others: 0 },
-//       indirect: { male: 2, female: 3, others: 0 }
-//     },
-//     esgCategory: "C",
-//     esgScore: 75
-//   }
-// ];
-
-// Retrieve unique fund data for filtering
-// const funds = Array.from(new Set(portfolioCompanies.map(company => company.fundId)))
-//   .map(fundId => {
-//     const company = portfolioCompanies.find(c => c.fundId === fundId);
-//     return { id: fundId, name: company?.fundName || '' };
-//   });
-
-// Retrieve unique sectors for filtering  
-// const sectors = Array.from(new Set(portfolioCompanies.map(company => company.sector)));
+interface Company {
+  _id: string;
+  companyName: string;
+  sector: string;
+  esgCategory: string;
+  companytype: string;
+  founder: string;
+  opportunityStatus: string;
+  dateofScreening: string;
+  fundShareholding: string;
+  esgScore: string;
+  foundersPromotorsMale: string;
+  foundersPromotorsFemale: string;
+  otherEmpMale: string;
+  otherEmpFemale: string;
+  otherEmpOther: string;
+  foundersPromotorsOther: string;
+  directContractMale: string;
+  indirectlyMale: string;
+  directContractFemale: string;
+  indirectlyFemale: string;
+  directContractOther: string;
+  indirectlyOther: string;
+  fundCompany: { fundId: number; fundName: string }[];
+  user?: {
+    _id: string;
+    name?: string;
+    email?: string;
+    isDeleted?: boolean;
+    active?: boolean;
+    softDelete?: boolean;
+  };
+  companyId?: string;
+  name?: string;
+}
 
 export default function Portfolio() {
   const navigate = useNavigate();
   const [selectedFund, setSelectedFund] = useState<string>("all");
   const [selectedSector, setSelectedSector] = useState<string>("all");
-  const [portfolioCompanyList, setPortfolioCompanyList] = useState([])
-  const [funds, setFunds] = useState([])
-  const [filteredCompanies,setFilteredCompanies]=useState([])
-  const [sectors, setSectors] = useState([])
-
-
-
-  // const sectors = Array.from(new Set(portfolioCompanyList.map(company => company.sector)));
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "deleted">("active");
+  const [portfolioCompanyList, setPortfolioCompanyList] = useState<Company[]>([]);
+  const [funds, setFunds] = useState([]);
+  const [filteredCompanies, setFilteredCompanies] = useState<Company[]>([]);
+  const [sectors, setSectors] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [deletingCompanyId, setDeletingCompanyId] = useState<string | null>(null);
 
   const handleInvite = (email: string) => {
     console.log("Inviting company with email:", email);
@@ -152,139 +65,215 @@ export default function Portfolio() {
     setSelectedFund("all");
     setSelectedSector("all");
   };
+
   const getFundList = async () => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}` + `/investor/fund`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/investor/fund`, {
         method: "GET",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("auth_token")}`
+        },
       });
-      if (!res.ok) {
-        // toast.error("Invalid credentials");
-        // setIsLoading(false);
-        return;
-      }
-      else {
+      if (res.ok) {
         const jsondata = await res.json();
-        console.log('jsondata', jsondata)
-        setFunds(jsondata['data'])
+        setFunds(jsondata['data']);
       }
     } catch (error) {
       console.error("Api call:", error);
-      // toast.error("API Call failed. Please try again.");
-    } finally {
-      // setIsLoading(false);
     }
-  }
+  };
 
   const getCompanyList = async () => {
-
+    setLoading(true);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}` + "/investor/companyInfo/", {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/investor/companyInfo/`, {
         method: "GET",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("auth_token")}`
+        },
       });
-      if (!res.ok) {
-        // toast.error("Invalid credentials");
-        // setIsLoading(false);
-        return;
-      }
-      else {
+      if (res.ok) {
         const jsondata = await res.json();
-        console.log('jsondata', jsondata)
-        setPortfolioCompanyList(jsondata['data'])
-        setFilteredCompanies(jsondata['data'])
-        let sectorList=[]
-        jsondata['data'].forEach((company) => {
-          if(company.sector){
-            sectorList.push(company.sector)
-          }  
-        })
-        // const sectors = Array.from(new Set(jsondata['data'].map(company => company.sector)));
-        setSectors(Array.from(new Set(sectorList)))
-        // console.log("sectors",sectorList)
+        setPortfolioCompanyList(jsondata['data']);
+        setFilteredCompanies(jsondata['data']);
+
+        let sectorList: string[] = [];
+        jsondata['data'].forEach((company: Company) => {
+          if (company.sector) {
+            sectorList.push(company.sector);
+          }
+        });
+        setSectors(Array.from(new Set(sectorList)));
       }
     } catch (error) {
       console.error("Api call:", error);
-      // toast.error("API Call failed. Please try again.");
     } finally {
-      // setIsLoading(false);
+      setLoading(false);
     }
-  }
+  };
+
+  const handleSoftDelete = async (userId: string, shouldDelete: boolean) => {
+    setDeletingCompanyId(userId);
+
+    let companyName = "Company"; // Declare outside try block
+
+    try {
+      const company: any = portfolioCompanyList.find(c =>
+        c.user?._id === userId || c.companyId === userId || c._id === userId
+      );
+      companyName = company?.name || company?.companyName || "Company"; // Assign here
+
+      let response;
+
+      if (shouldDelete) {
+        // ✅ CORRECT ENDPOINT FOR SOFT DELETE
+        response = await http.patch(`auth/${userId}/soft-delete`);
+
+        if (response.data?.status || response.status === 200) {
+          toast.success(`${companyName} has been archived successfully`);
+        } else {
+          throw new Error(response.data?.message || 'Soft delete failed');
+        }
+      } else {
+        // ✅ CORRECT ENDPOINT FOR RESTORE
+        response = await http.patch(`auth/${userId}/restore`);
+
+        if (response.data?.status || response.status === 200) {
+          toast.success(`${companyName} has been restored successfully`);
+        } else {
+          throw new Error(response.data?.message || 'Restore failed');
+        }
+      }
+
+      // Refresh company list after successful operation
+      await getCompanyList();
+
+    } catch (error: any) {
+      console.error('Operation failed:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Unknown error';
+
+      if (shouldDelete) {
+        toast.error(`Failed to archive ${companyName}: ${errorMessage}`); // Now accessible here
+      } else {
+        toast.error(`Failed to restore ${companyName}: ${errorMessage}`); // Now accessible here
+      }
+    } finally {
+      setDeletingCompanyId(null);
+    }
+  };
+
+  const isCompanyDeleted = (company: Company) => {
+    return company?.user?.isDeleted === true ||
+      company?.user?.active === false ||
+      company?.user?.softDelete === true;
+  };
 
   useEffect(() => {
-    // Filter companies based on selected filters
-    if(selectedFund !== 'all' && selectedSector !== 'all'){
-      setFilteredCompanies(
-        portfolioCompanyList.filter((p)=>{
-          let filterfund=p.fundCompany.filter((f)=>f.fundId.toString() == selectedFund.toString())
-          if(filterfund && filterfund[0] && p.sector == selectedSector){
-            return p;
-          }
-        })
-      )
+    // Filter companies based on selected filters and status filter
+    let filtered = [...portfolioCompanyList];
+
+    // Status filter (active/deleted)
+    if (statusFilter === "active") {
+      filtered = filtered.filter(company => !isCompanyDeleted(company));
+    } else if (statusFilter === "deleted") {
+      filtered = filtered.filter(company => isCompanyDeleted(company));
     }
-    else if(selectedFund !== 'all'){
-      setFilteredCompanies(
-        portfolioCompanyList.filter((p)=>{
-          let filterfund=p.fundCompany.filter((f)=>f.fundId.toString() == selectedFund.toString())
-          if(filterfund && filterfund[0]){
-            return p;
-          }
-        })
-      )
+
+    // Fund filter
+    if (selectedFund !== 'all') {
+      filtered = filtered.filter((p: any) =>
+        p.fundCompany?.some((f: any) => f.fundId.toString() === selectedFund.toString())
+      );
     }
-    else if(selectedSector !== 'all'){
-      setFilteredCompanies(
-        portfolioCompanyList.filter((p)=>p.sector == selectedSector)
-      )
+
+    // Sector filter
+    if (selectedSector !== 'all') {
+      filtered = filtered.filter((p: any) => p.sector === selectedSector);
     }
-    else if(selectedFund == 'all' && selectedSector == 'all'){
-      setFilteredCompanies(portfolioCompanyList)
-    }
-  }, [selectedFund, selectedSector])
+
+    setFilteredCompanies(filtered);
+  }, [selectedFund, selectedSector, statusFilter, portfolioCompanyList]);
+
+  // Handle status filter change
+  const handleStatusFilterChange = (filter: "all" | "active" | "deleted") => {
+    setStatusFilter(filter);
+  };
+
+  // Get counts for stats
+  const activeCount = portfolioCompanyList.filter(c => !isCompanyDeleted(c)).length;
+  const deletedCount = portfolioCompanyList.filter(c => isCompanyDeleted(c)).length;
 
   useEffect(() => {
-    getFundList()
-    getCompanyList()
-  }, [])
+    getFundList();
+    getCompanyList();
+  }, []);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" style={{ paddingTop: '10px' }}>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">Portfolio Companies</h1>
-        <div className="flex items-center gap-2">
+
+        <div className="flex items-center gap-3">
+          {/* Active Count Badge */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className={`h-8 px-3 rounded-full ${statusFilter === 'active'
+              ? 'bg-green-50 text-green-700 border border-green-200'
+              : 'text-gray-600'
+              }`}
+            onClick={() => setStatusFilter('active')}
+          >
+            <span className="w-1.5 h-1.5 bg-green-500 rounded-full mr-2"></span>
+            <span className="text-sm">Active</span>
+            <span className="ml-2 font-semibold">{activeCount}</span>
+          </Button>
+
+          {/* Archived Count Badge */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className={`h-8 px-3 rounded-full ${statusFilter === 'deleted'
+              ? 'bg-gray-100 text-gray-700 border border-gray-200'
+              : 'text-gray-600'
+              }`}
+            onClick={() => setStatusFilter('deleted')}
+          >
+            <span className="w-1.5 h-1.5 bg-gray-400 rounded-full mr-2"></span>
+            <span className="text-sm">Exit</span>
+            <span className="ml-2 font-semibold">{deletedCount}</span>
+          </Button>
+
           <InviteCompanyDialog onInvite={handleInvite} />
-          <Button onClick={() => navigate("/portfolio/new")} className="gap-2">
+          <Button onClick={() => navigate("/portfolio/new")} size="sm" className="gap-1">
             <Plus className="h-4 w-4" />
             <span>Add New Company</span>
           </Button>
         </div>
       </div>
 
-      <FilterControls
-        funds={funds}
-        sectors={sectors}
-        selectedFund={selectedFund}
-        selectedSector={selectedSector}
-        setSelectedFund={setSelectedFund}
-        setSelectedSector={setSelectedSector}
-      />
-      <div className="grid grid-cols-1 gap-4">
-        {filteredCompanies.map(company => (
-          <CompanyCard key={company._id} company={company} />
-        ))}
-      </div>
+        <FilterControls
+          funds={funds}
+          sectors={sectors}
+          selectedFund={selectedFund}
+          selectedSector={selectedSector}
+          setSelectedFund={setSelectedFund}
+          setSelectedSector={setSelectedSector}
+        />
 
-      {/*{filteredCompanies.length === 0 && (
-        <NoCompaniesFound clearFilters={clearFilters} />
-      )} */}
-      {/* <div className="grid grid-cols-1 gap-4">
-        {portfolioCompanyList.map(company => (
-          <CompanyCard key={company._id} company={company} />
-        ))}
-      </div> */}
-
-      {portfolioCompanyList.length === 0 && (
+      {filteredCompanies.length > 0 ? (
+        <PortfolioTable
+          companies={filteredCompanies}
+          onViewDetails={(companyId) => navigate(`/portfolio/${companyId}`)}
+          onSoftDelete={handleSoftDelete}
+          viewMode={statusFilter === "deleted" ? "deleted" : "active"}
+          loading={loading || deletingCompanyId !== null}
+          onFilterChange={handleStatusFilterChange}
+          currentFilter={statusFilter}
+        />
+      ) : (
         <NoCompaniesFound clearFilters={clearFilters} />
       )}
     </div>

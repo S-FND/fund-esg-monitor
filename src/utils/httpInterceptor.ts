@@ -178,6 +178,22 @@ export class HttpClient {
   public async delete<T = any>(url: string, config?: Omit<RequestConfig, 'url' | 'method'>): Promise<ApiResponse<T>> {
     return this.request<T>({ url:`${import.meta.env.VITE_API_URL}/${url}`, method: 'DELETE', headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` }  });
   }
+
+  public async patch<T = any>(url: string, data?: any): Promise<ApiResponse<T>> {
+    const token = localStorage.getItem("auth_token"); // Make sure this key is correct
+    
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/${url}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}` // Add token directly like your working APIs
+      },
+      body: data ? JSON.stringify(data) : undefined
+    });
+    
+    const responseData = await response.json();
+    return { data: responseData, error: null };
+  }
 }
 
 // Export a singleton instance
