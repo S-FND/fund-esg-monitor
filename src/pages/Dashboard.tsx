@@ -1,190 +1,258 @@
-
-import { useEffect, useState } from "react";
+// pages/Dashboard.tsx
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { PortfolioCompanyKPIs } from "@/components/PortfolioCompanyKPIs";
+
+// Components
 import { DashboardFilters } from "@/components/dashboard/DashboardFilters";
-import { FundsStatsCard } from "@/components/dashboard/FundsStatsCard";
-import { CompaniesStatsCard } from "@/components/dashboard/CompaniesStatsCard";
-import { ESGStatsCard } from "@/components/dashboard/ESGStatsCard";
+import { SustainabilityJourney } from "@/components/dashboard/SustainabilityJourney";
+import { EnvironmentTab } from "@/components/dashboard/tabs/EnvironmentTab";
+import { SocialTab } from "@/components/dashboard/tabs/SocialTab";
+import { GovernanceTab } from "@/components/dashboard/tabs/GovernanceTab";
+import { SDGTab } from "@/components/dashboard/tabs/SDGTab";
+import { OverviewStats } from "@/components/dashboard/OverviewStats";
 import { FundPerformanceCard } from "@/components/dashboard/FundPerformanceCard";
 import { TopPerformersCard } from "@/components/dashboard/TopPerformersCard";
+import { NonCompliancesCard } from "@/components/dashboard/NonCompliancesCard";
+import { ESGRisksCard } from "@/components/dashboard/ESGRisksCard";
 import { ESGKPIsSection } from "@/components/dashboard/ESGKPIsSection";
 import { SDGPerformanceCard } from "@/components/dashboard/SDGPerformanceCard";
 import { TopSDGsCard } from "@/components/dashboard/TopSDGsCard";
 import { TopInitiativesCard } from "@/components/dashboard/TopInitiativesCard";
-import { TopNonCompliancesCard } from "@/components/dashboard/TopNonCompliancesCard";
-import { ESGRisksCard } from "@/components/dashboard/ESGRisksCard";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
-import { useSearchParams } from "react-router-dom";
-import { toast } from "sonner";
-import { useAuth } from "@/contexts/AuthContext";
+import { ESGTrendsCard } from "@/components/dashboard/ESGTrendsCard";
 
-const funds = [
-  { id: 1, name: "Green Tech Fund I", size: "$50M", focus: "ClimateTech", stage: "Series A" },
-  { id: 2, name: "Sustainable Growth Fund", size: "$100M", focus: "AgriTech, HealthTech", stage: "Series B and above" },
-  { id: 3, name: "Impact Ventures", size: "$25M", focus: "EdTech, FinTech", stage: "Seed" },
-];
+// API
+import { dashboardApi } from "./services/dashboardApi";
 
-const companies = [
-  { id: 1, name: "EcoSolutions Inc.", sector: "ClimateTech", fundId: 1, esgScore: 85 },
-  { id: 2, name: "GreenHarvest", sector: "AgriTech", fundId: 2, esgScore: 78 },
-  { id: 3, name: "MediTech Innovations", sector: "HealthTech", fundId: 2, esgScore: 92 },
-  { id: 4, name: "EduForward", sector: "EdTech", fundId: 3, esgScore: 80 },
-  { id: 5, name: "FinSecure", sector: "FinTech", fundId: 3, esgScore: 75 },
-];
-
-const financialYears = ["2021", "2022", "2023", "2024", "2025"];
-
-// ESG Trends Data
-const esgTrendsData = [
-  { year: "2021", environmental: 65, social: 60, governance: 70, overall: 65 },
-  { year: "2022", environmental: 70, social: 68, governance: 75, overall: 71 },
-  { year: "2023", environmental: 75, social: 73, governance: 80, overall: 76 },
-  { year: "2024", environmental: 82, social: 78, governance: 85, overall: 82 },
-  { year: "2025", environmental: 88, social: 85, governance: 90, overall: 88 },
-];
-
-// Chart configuration
-const esgTrendsChartConfig = {
-  environmental: { color: "#22c55e" },
-  social: { color: "#3b82f6" },
-  governance: { color: "#8b5cf6" },
-  overall: { color: "#f43f5e" }
-};
+// Types
+import { DashboardData } from "./types/dashboard.types";
 
 export default function Dashboard() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { user, setUser } = useAuth();
+
+  // State
+  const [loading, setLoading] = useState(true);
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [transformedData, setTransformedData] = useState<any>(null);
+  const [funds, setFunds] = useState<any[]>([]);
+  const [companies, setCompanies] = useState<any[]>([]);
+
+  // Filter states
+  const [selectedPortfolio, setSelectedPortfolio] = useState<string>("all-funds");
   const [selectedFund, setSelectedFund] = useState<string>("all");
   const [selectedCompany, setSelectedCompany] = useState<string>("all");
-  const [selectedYear, setSelectedYear] = useState<string>("2025");
-  const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
-  // console.log(`localStorage.getItem('auth_token')`, localStorage.getItem('auth_token'))
-  // console.log('searchParam', searchParams.get('token'))
-  // let token = JSON.parse((searchParams.get('token')));
+  const [selectedYear, setSelectedYear] = useState<string>("");
+  const [selectedMonth, setSelectedMonth] = useState<string>("");
+  const [showMonthDropdown, setShowMonthDropdown] = useState(false);
+  const [activeTab, setActiveTab] = useState("overview");
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
+  // Financial years
+  const [financialYears, setFinancialYears] = useState<string[]>([]);
+  const [currentFinancialYear, setCurrentFinancialYear] = useState<string>("");
 
-  const { setUser } = useAuth();
-  
-  let getUserDetails = async (token) => {
-    try {
-      // Insert team member
-      // console.log("Strt getUserDetails")
-      // console.log('token',token)
-      const res = await fetch(`${import.meta.env.VITE_API_URL}` + `/investor/general-info/verify-token`, {
-        method: "GET",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) {
-        // console.log("inisde res not ok")
-        toast.error("Invalid credentials");
-        // setIsLoading(false);
-        setTimeout(() => {
-          window.location.href = import.meta.env.VITE_LOGIN_REVERT_URL
-          // "https://preprod-enterprise.fandoro.com/"
-        }, 1000)
-
-      }
-      else {
-        const jsonData = await res.json();
-        localStorage.setItem('auth_token', token)
-        localStorage.setItem('user', JSON.stringify(jsonData['data']))
-        if(!jsonData['data']['isParent'] && jsonData['data'].assignedPages.length>0){
-          navigate(jsonData['data'].assignedPages[0]['href'])
-        }
-        setUser(prev => ({ ...prev, ...jsonData['data'] }));
-      }
-    }
-    catch (error) {
-      // console.log("inisde catch",error.message)
-      toast.error("Invalid credentials :: ",error.message);
-        // setIsLoading(false);
-        setTimeout(() => {
-          window.location.href = import.meta.env.VITE_LOGIN_REVERT_URL 
-        }, 50000)
-    }
-  }
+  // Add this after your state declarations to track filter changes
   useEffect(() => {
-    let token;
-    // console.log("Start entry")
-    if(searchParams.get('token')){
-      // console.log("Inside if")
-      token=JSON.parse((searchParams.get('token')));
+    console.log('🔍 Filter changed:', {
+      selectedPortfolio,
+      selectedFund,
+      selectedCompany,
+      selectedYear,
+      selectedMonth,
+      showMonthDropdown
+    });
+  }, [selectedPortfolio, selectedFund, selectedCompany, selectedYear, selectedMonth, showMonthDropdown]);
+
+  // Authentication
+  useEffect(() => {
+    const tokenParam = searchParams.get('token');
+    if (tokenParam) {
+      // Remove any surrounding quotes from the token
+      const cleanToken = tokenParam.replace(/^"|"$/g, '');
+      console.log('Original token param:', tokenParam);
+      console.log('Cleaned token:', cleanToken);
+
+      localStorage.setItem('auth_token', cleanToken);
+      verifyToken(cleanToken);
+    } else if (!localStorage.getItem('auth_token')) {
+      window.location.href = import.meta.env.VITE_LOGIN_REVERT_URL;
+    } else {
+      loadInitialData();
     }
-    else if (!searchParams.get('token') && !localStorage.getItem('auth_token')) {
-      // console.log("Inside else if 1 statement")
-      toast.error("Invalid credentials");
-      // setIsLoading(false);
+  }, [searchParams]);
+
+  const verifyToken = async (token: string) => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/investor/general-info/verify-token`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+      });
+
+      if (!res.ok) throw new Error("Invalid credentials");
+
+      const jsonData = await res.json();
+      localStorage.setItem('user', JSON.stringify(jsonData['data']));
+      setUser(prev => ({ ...prev, ...jsonData['data'] }));
+      loadInitialData();
+
+    } catch (error) {
+      toast.error("Authentication failed");
       setTimeout(() => {
-        window.location.href = import.meta.env.VITE_LOGIN_REVERT_URL
-      }, 10000)
+        window.location.href = import.meta.env.VITE_LOGIN_REVERT_URL;
+      }, 1000);
     }
-    else if(localStorage.getItem('auth_token') && !searchParams.get('token')){
-      // console.log("Inside else if 2 statement")
-      token=localStorage.getItem('auth_token')
+  };
+
+  const loadInitialData = async () => {
+    setLoading(true);
+    try {
+      // Load funds and companies in parallel
+      const [fundsData, companiesData] = await Promise.all([
+        dashboardApi.getFunds(),
+        dashboardApi.getCompanies()
+      ]);
+
+      setFunds(fundsData);
+      setCompanies(companiesData);
+
+      // Set current financial year
+      const currentFY = dashboardApi.getCurrentFinancialYear();
+      setCurrentFinancialYear(currentFY);
+      setSelectedYear(currentFY);
+
+      // Generate financial years
+      const years = generateFinancialYears();
+      setFinancialYears(years);
+
+      // Load dashboard data
+      await loadDashboardData();
+      setInitialLoadDone(true);
+    } catch (error) {
+      console.error('Error loading initial data:', error);
+      toast.error('Failed to load initial data');
+    } finally {
+      setLoading(false);
     }
-    // console.log("exit from useeffct")
-    getUserDetails(token)
-  }, [searchParams])
+  };
 
-  const filteredCompanies = selectedFund === "all"
-    ? companies
-    : companies.filter(company => company.fundId === parseInt(selectedFund));
+  const loadDashboardData = useCallback(async () => {
+    setLoading(true);
+    try {
+      // Build params object
+      const params: any = {
+        viewType: selectedPortfolio,
+        year: selectedYear,
+      };
 
-  const selectedCompanyId =
-    selectedCompany !== "all"
-      ? companies.find((c) => c.id.toString() === selectedCompany)?.id?.toString() ?? ""
-      : "";
+      // Only add fundId if a specific fund is selected (not "all")
+      if (selectedFund !== "all") {
+        params.fundId = selectedFund;
+      }
+
+      // Only add companyId if a specific company is selected (not "all")
+      if (selectedCompany !== "all") {
+        params.companyId = selectedCompany;
+      }
+
+      // Only add month if month dropdown is shown and month is selected
+      if (showMonthDropdown && selectedMonth) {
+        params.month = selectedMonth;
+      }
+
+      console.log('📤 Calling API with filters:', params);
+
+      const data = await dashboardApi.getDashboardData(params);
+      console.log('📥 API Response:', data);
+
+      setDashboardData(data);
+      const transformed = dashboardApi.transformDashboardData(data);
+      setTransformedData(transformed);
+
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+      // toast.error('Failed to load dashboard data');
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedYear, selectedFund, selectedCompany, selectedMonth, showMonthDropdown]);
+
+  useEffect(() => {
+    if (!selectedYear) return;
+
+    if (initialLoadDone) {
+      loadDashboardData();
+    }
+  }, [selectedYear, selectedFund, selectedCompany, selectedMonth, showMonthDropdown]);
+
+  useEffect(() => {
+    const fetchCompaniesForPortfolio = async () => {
+      if (selectedPortfolio === "individual-company") {
+        setLoading(true);
+        try {
+          console.log('📋 Fetching companies for individual company view...');
+          const companiesData = await dashboardApi.getCompanies();
+          console.log('📋 Companies data received:', companiesData);
+
+          const formattedCompanies = companiesData.map((item: any) => ({
+            companyId: item.companyId || item._id,
+            name: item.companyName?.trim() || item.name?.trim() || 'Unnamed Company',
+          }));
+
+          console.log('📋 Formatted companies:', formattedCompanies);
+          setCompanies(formattedCompanies);
+        } catch (error) {
+          console.error('Error fetching companies:', error);
+          toast.error('Failed to load companies');
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchCompaniesForPortfolio();
+  }, [selectedPortfolio]);
+
+  const generateFinancialYears = (): string[] => {
+    const currentYear = new Date().getFullYear();
+    const years: string[] = [];
+    for (let year = currentYear + 1; year >= 2021; year--) {
+      years.push(`${year}-${year + 1}`);
+    }
+    return years;
+  };
+
+  // Handle filter changes
+  const handlePortfolioChange = (value: string) => {
+    setSelectedPortfolio(value);
+    setSelectedFund("all");
+    setSelectedCompany("all");
+  };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-        <div className="flex items-center gap-2">
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button className="gap-2">
-                <Plus className="h-4 w-4" />
-                <span>Add Fund</span>
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create New Fund</DialogTitle>
-              </DialogHeader>
-              <div className="py-4">
-                <p>This will take you to the Create New Fund page.</p>
-                <Button className="mt-4 w-full" onClick={() => navigate("/funds/new")}>
-                  Continue
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+      {loading && <Loader2 />}
 
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="outline" className="gap-2">
-                <Plus className="h-4 w-4" />
-                <span>Add Portfolio Company</span>
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add New Portfolio Company</DialogTitle>
-              </DialogHeader>
-              <div className="py-4">
-                <p>This will take you to the General Information page for adding a new company.</p>
-                <Button className="mt-4 w-full" onClick={() => navigate("/portfolio/new")}>
-                  Continue
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold tracking-tight">Investor Dashboard</h1>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => navigate("/funds/new")} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Add Fund
+          </Button>
+          <Button onClick={() => navigate("/portfolio/new")} variant="outline" className="gap-2">
+            <Plus className="h-4 w-4" />
+            Add Portfolio Company
+          </Button>
         </div>
       </div>
 
@@ -192,127 +260,83 @@ export default function Dashboard() {
         funds={funds}
         companies={companies}
         financialYears={financialYears}
+        selectedPortfolio={selectedPortfolio}
+        setSelectedPortfolio={handlePortfolioChange}
         selectedFund={selectedFund}
         setSelectedFund={setSelectedFund}
         selectedCompany={selectedCompany}
         setSelectedCompany={setSelectedCompany}
         selectedYear={selectedYear}
         setSelectedYear={setSelectedYear}
+        selectedMonth={selectedMonth}
+        setSelectedMonth={setSelectedMonth}
+        showMonthDropdown={showMonthDropdown}
+        setShowMonthDropdown={setShowMonthDropdown}
+        currentFinancialYear={currentFinancialYear}
       />
 
-      <Tabs defaultValue="overview">
-        <TabsList className="grid grid-cols-4 mb-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid grid-cols-6 mb-4">
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="esg-scores">ESG Scores</TabsTrigger>
-          <TabsTrigger value="sdg-performance">SDG Performance</TabsTrigger>
-          <TabsTrigger value="trends">Trends</TabsTrigger>
+          <TabsTrigger value="sustainability">Sustainability Journey</TabsTrigger>
+          <TabsTrigger value="environment">Environment</TabsTrigger>
+          <TabsTrigger value="social">Social</TabsTrigger>
+          <TabsTrigger value="governance">Governance</TabsTrigger>
+          <TabsTrigger value="sdg">SDG</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <FundsStatsCard totalFunds={funds.length} />
-            <CompaniesStatsCard totalCompanies={companies.length} numFunds={funds.length} />
-            <ESGStatsCard />
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <FundPerformanceCard />
-            <TopPerformersCard companies={companies} />
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <TopNonCompliancesCard
-              selectedFund={selectedFund}
-              selectedCompany={selectedCompany}
-              selectedYear={selectedYear}
-            />
-            <ESGRisksCard
-              selectedFund={selectedFund}
-              selectedCompany={selectedCompany}
-              selectedYear={selectedYear}
-            />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="esg-scores">
-          <ESGKPIsSection selectedCompany={selectedCompany} selectedCompanyId={selectedCompanyId} selectedYear={selectedYear} />
-        </TabsContent>
-
-        <TabsContent value="sdg-performance" className="space-y-4">
-          <SDGPerformanceCard
-            selectedFund={selectedFund}
-            selectedCompany={selectedCompany}
-            selectedYear={selectedYear}
+          <OverviewStats
+            stats={transformedData?.overview?.stats}
+            funds={funds}
+            companies={companies}
           />
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <TopSDGsCard
-              selectedFund={selectedFund}
-              selectedCompany={selectedCompany}
-              selectedYear={selectedYear}
-            />
-            <TopInitiativesCard
-              selectedFund={selectedFund}
-              selectedCompany={selectedCompany}
-              selectedYear={selectedYear}
-            />
+            <FundPerformanceCard data={transformedData?.overview?.fundPerformance} />
+            <TopPerformersCard data={transformedData?.overview?.topPerformers} />
           </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <NonCompliancesCard data={transformedData?.overview?.nonCompliances} />
+            <ESGRisksCard data={transformedData?.overview?.esgRisks} />
+          </div>
+
+          <ESGTrendsCard data={transformedData?.trends?.esgTrends} />
         </TabsContent>
 
-        <TabsContent value="trends">
-          <Card>
-            <CardHeader>
-              <CardTitle>ESG Trends</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ChartContainer className="h-[400px]" config={esgTrendsChartConfig}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart
-                    data={esgTrendsData}
-                    margin={{ top: 20, right: 30, left: 20, bottom: 10 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="year" />
-                    <YAxis domain={[0, 100]} label={{ value: 'Score', angle: -90, position: 'insideLeft', offset: -5 }} />
-                    <Tooltip content={<ChartTooltipContent />} />
-                    <Legend />
-                    <Line
-                      type="monotone"
-                      dataKey="environmental"
-                      name="Environmental"
-                      stroke="#22c55e"
-                      strokeWidth={2}
-                      activeDot={{ r: 8 }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="social"
-                      name="Social"
-                      stroke="#3b82f6"
-                      strokeWidth={2}
-                      activeDot={{ r: 8 }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="governance"
-                      name="Governance"
-                      stroke="#8b5cf6"
-                      strokeWidth={2}
-                      activeDot={{ r: 8 }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="overall"
-                      name="Overall ESG"
-                      stroke="#f43f5e"
-                      strokeWidth={3}
-                      activeDot={{ r: 8 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </ChartContainer>
-            </CardContent>
-          </Card>
+        <TabsContent value="sustainability">
+          <SustainabilityJourney
+            esgMeterData={dashboardData?.dashboardOtherData?.dashboardEsgMeterData}
+            nonComplianceData={dashboardData?.dashboardOtherData?.dashboardNonComplianceData}
+            riskData={dashboardData?.dashboardOtherData?.dashboardRiskData}
+            sdgData={dashboardData?.dashboardOtherData?.dashboardSDGStratgyData}
+            boardMeetingsData={dashboardData?.percentage_of_board}
+            selectedPortfolio={selectedPortfolio}
+          />
+        </TabsContent>
+
+        <TabsContent value="environment">
+          <EnvironmentTab data={dashboardData?.dashboardEnvironment} />
+        </TabsContent>
+
+        <TabsContent value="social">
+          <SocialTab data={dashboardData?.dashboardSocial} />
+        </TabsContent>
+
+        <TabsContent value="governance">
+          <GovernanceTab data={dashboardData?.dashboardGovernance} />
+        </TabsContent>
+
+        <TabsContent value="sdg" className="space-y-4">
+          <SDGPerformanceCard data={transformedData?.sdgPerformance} />
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <TopSDGsCard data={transformedData?.sdgPerformance?.topSDGs} />
+            <TopInitiativesCard data={transformedData?.sdgPerformance?.topInitiatives} />
+          </div>
+
+          <SDGTab data={dashboardData?.dashboardOtherData?.dashboardSDGStratgyData} />
         </TabsContent>
       </Tabs>
     </div>

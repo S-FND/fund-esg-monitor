@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { funds as dummyFunds } from "./fundsData";
 // import { portfolioCompanies } from "@/features/edit-portfolio-company/portfolioCompanies";
-import { BarChart2, Building, Users } from "lucide-react";
+import { BarChart2, Building, Users, LayoutDashboard, Leaf, Users2, Shield, TrendingUp, Award, Droplets, Wind, Factory, Recycle, Globe, Target, Zap, Trash2, AlertCircle, AlertTriangle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -56,44 +56,80 @@ const EXCLUSION_OPTIONS = [
   "Politics",
 ];
 
-
-// Sample team members data
-// const teamMembers = [
-//   {
-//     id: "1",
-//     name: "John Smith",
-//     email: "john.smith@example.com",
-//     designation: "Fund Manager"
-//   },
-//   {
-//     id: "2",
-//     name: "Sarah Johnson",
-//     email: "sarah.johnson@example.com",
-//     designation: "ESG Analyst"
-//   },
-//   {
-//     id: "3",
-//     name: "Michael Wong",
-//     email: "michael.wong@example.com",
-//     designation: "Investment Analyst"
-//   },
-//   {
-//     id: "4",
-//     name: "Lisa Chen",
-//     email: "lisa.chen@example.com",
-//     designation: "Chief Investment Officer"
-//   }
-// ];
+// Dashboard Topics based on backend service structure
+const DASHBOARD_TOPICS = [
+  {
+    id: "environment",
+    label: "Environment Metrics",
+    icon: Leaf,
+    subtopics: [
+      { id: "energy", label: "Energy Consumption", icon: Zap },
+      { id: "water_withdrawl", label: "Water Withdrawal", icon: Droplets },
+      { id: "water_discharge", label: "Water Discharge", icon: Droplets },
+      { id: "waste_management", label: "Waste Management", icon: Trash2 },
+      { id: "waste_recovery", label: "Waste Recovery", icon: Recycle },
+      { id: "gh_gas_emission", label: "GHG Emissions", icon: Wind },
+      { id: "air_emission", label: "Air Emissions", icon: Factory },
+      { id: "disposal_method", label: "Waste Disposal", icon: Trash2 },
+    ]
+  },
+  {
+    id: "social",
+    label: "Social Metrics",
+    icon: Users2,
+    subtopics: [
+      { id: "employee_diversity", label: "Employee Diversity", icon: Users2 },
+      { id: "workers_diversity", label: "Workers Diversity", icon: Users2 },
+      { id: "key_persons", label: "Key Personnel", icon: Award },
+      { id: "differently_abled", label: "Differently Abled", icon: Users2 },
+      { id: "workers_differently_abled", label: "Workers Differently Abled", icon: Users2 },
+      { id: "minimum_wages", label: "Minimum Wages", icon: TrendingUp },
+      { id: "workers_minimum_wages", label: "Workers Minimum Wages", icon: TrendingUp },
+      { id: "life_coverage", label: "Life Insurance Coverage", icon: Shield },
+      { id: "workers_life_coverage", label: "Workers Life Coverage", icon: Shield },
+      { id: "accident_insurance", label: "Accident Insurance", icon: Shield },
+      { id: "workers_accident_insurance", label: "Workers Accident Insurance", icon: Shield },
+    ]
+  },
+  {
+    id: "governance",
+    label: "Governance Metrics",
+    icon: Shield,
+    subtopics: [
+      { id: "board_members_gender", label: "Board Gender Diversity", icon: Users2 },
+      { id: "board_pay_parity", label: "Board Pay Parity", icon: TrendingUp },
+      { id: "esg_skilled", label: "ESG Skilled Board", icon: Award },
+      { id: "disciplinary_action", label: "Disciplinary Actions", icon: Shield },
+      { id: "details_of_complaints", label: "Complaints Details", icon: AlertCircle },
+      { id: "percentageOperations", label: "Operations Percentage", icon: TrendingUp },
+      { id: "the_ratio_of_independent", label: "Independent Directors Ratio", icon: Users2 },
+      { id: "litigation_risks", label: "Litigation Risks", icon: AlertCircle },
+      { id: "political_contributions", label: "Political Contributions", icon: Globe },
+      { id: "percentage_of_board", label: "Board Composition", icon: Users2 },
+    ]
+  },
+  {
+    id: "risk",
+    label: "Risk & Compliance",
+    icon: AlertTriangle,
+    subtopics: [
+      { id: "risk_identified", label: "Risk Identification", icon: AlertTriangle },
+      { id: "non_compliance", label: "Non-Compliance", icon: AlertCircle },
+      { id: "esg_score", label: "ESG Score", icon: Target },
+      { id: "sdg_strategy", label: "SDG Strategy", icon: Target },
+    ]
+  }
+];
 
 export default function EditFund() {
   const navigate = useNavigate();
   const { id } = useParams();
-  // const fund = dummyFunds.find(f => f.id === Number(id));
 
   const [fund, setFund] = useState([])
   const [portfolioCompanies, setPortfolioCompanies] = useState([])
   const [teamMembers, setTeamMembers] = useState([])
-
+  const [activeTab, setActiveTab] = useState("details");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // If fund not found (bad URL), return to list
   if (!fund) {
@@ -111,11 +147,10 @@ export default function EditFund() {
     stageOfInvestment: '',
     inclusion: [],
     exclusion: [],
+    dashboardTopics: [], // Store selected dashboard topic IDs
   });
 
-  const [selectedTeamMembers, setSelectedTeamMembers] = useState<string[]>([]);
   const [selectedCompanies, setSelectedCompanies] = useState<string[]>([]);
-
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -140,23 +175,50 @@ export default function EditFund() {
     });
   };
 
-  const handleTeamMemberToggle = (id: string) => {
-    setSelectedTeamMembers(prev =>
-      prev.includes(id) ? prev.filter(m => m !== id) : [...prev, id]
-    );
+  const handleDashboardTopicToggle = (topicId: string) => {
+    setFormData(prev => {
+      const topics = [...prev.dashboardTopics];
+      if (topics.includes(topicId)) {
+        return { ...prev, dashboardTopics: topics.filter(t => t !== topicId) };
+      } else {
+        return { ...prev, dashboardTopics: [...topics, topicId] };
+      }
+    });
+  };
+
+  const handleMainCategoryToggle = (categoryId: string, subtopics: any[]) => {
+    const subtopicIds = subtopics.map(s => s.id);
+    const allSelected = subtopicIds.every(id => formData.dashboardTopics.includes(id));
+    
+    setFormData(prev => {
+      let updatedTopics = [...prev.dashboardTopics];
+      
+      if (allSelected) {
+        // Remove all subtopics in this category
+        updatedTopics = updatedTopics.filter(id => !subtopicIds.includes(id));
+      } else {
+        // Add all subtopics in this category
+        subtopicIds.forEach(id => {
+          if (!updatedTopics.includes(id)) {
+            updatedTopics.push(id);
+          }
+        });
+      }
+      
+      return { ...prev, dashboardTopics: updatedTopics };
+    });
   };
 
   const handleCompanyToggle = (id: string, checked?: boolean) => {
     setSelectedCompanies(prev =>
-      // if checked === undefined toggle behavior (for safety), else use checked flag
       (typeof checked === "boolean" ? checked : !prev.includes(id))
         ? (prev.includes(id) ? prev : [...prev, id])
         : prev.filter(c => c !== id)
     );
   };
 
-
   const updateFundData = async () => {
+    setIsSubmitting(true);
     try {
       const res = await fetch(
         `${import.meta.env.VITE_API_URL}/investor/fund`,
@@ -167,14 +229,18 @@ export default function EditFund() {
             Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
           },
           body: JSON.stringify({
-            _id: id, // ✅ required
+            _id: id,
             name: formData.name,
             size: formData.size,
             currency: formData.currency,
-            sectorFocus: formData.focus.join(","), // ✅ correct field
+            sectorFocus: formData.focus.join(","),
             stageOfInvestment: formData.stageOfInvestment,
             inclusion: formData.inclusion,
-            exclusion: formData.exclusion
+            exclusion: formData.exclusion,
+            dashboardTopics: formData.dashboardTopics,
+            fundedCompany: selectedCompanies.map(companyId => ({
+              companyInfoId: companyId
+            }))
           }),
         }
       );
@@ -182,38 +248,37 @@ export default function EditFund() {
       const data = await res.json();
       console.log('data', data);
       if (!res.ok) {
-        // toast.error("Invalid credentials");
-        // setIsLoading(false);
+        toast({
+          title: "❌ Update Failed",
+          description: "Failed to update fund details.",
+          variant: "destructive",
+        });
         return;
       }
       else {
-        const jsondata = await res.json();
-        console.log('jsondata', jsondata)
-        // setFormData(jsondata['data'][0])
-        setFormData({ ...jsondata['data'][0], focus: jsondata['data'][0]['sectorFocus'].split(",") })
-        setFund(jsondata['data'][0])
-        console.log(`jsondata['data'][0]?.fundedCompany?.map((c)=> c._id) companyInfo`, jsondata['data'][0]?.fundedCompany?.map((c) => c._id))
-        setSelectedCompanies(jsondata['data'][0]?.fundedCompany?.map((c) => c.companyInfo.companyInfoId))
+        toast({
+          title: "✅ Fund Updated",
+          description: `${formData.name} has been updated successfully.`
+        });
+        
+        // Refresh fund data
+        await getFundDetail();
       }
     } catch (error) {
       console.error("Api call:", error);
-      // toast.error("API Call failed. Please try again.");
+      toast({
+        title: "❌ Update Failed",
+        description: "An error occurred while updating the fund.",
+        variant: "destructive",
+      });
     } finally {
-      // setIsLoading(false);
+      setIsSubmitting(false);
     }
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Would save changes here; currently dummy data only
-    addCompanyToFund();
-    updateFundData()
-
-    toast({
-      title: "✅ Fund Updated",
-      description: `${formData.name} has been updated successfully.`
-    });
-    // navigate("/funds");
+    await updateFundData();
   };
 
   const getFundDetail = async () => {
@@ -223,37 +288,31 @@ export default function EditFund() {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
       });
       if (!res.ok) {
-        // toast.error("Invalid credentials");
-        // setIsLoading(false);
         return;
       }
       else {
         const jsondata = await res.json();
         console.log('jsondata', jsondata)
-        // setFormData(jsondata['data'][0])
-        setFormData({ ...jsondata['data'][0], focus: jsondata['data'][0]['sectorFocus'].split(",") })
+        setFormData({ 
+          ...jsondata['data'][0], 
+          focus: jsondata['data'][0]['sectorFocus']?.split(",") || [],
+          dashboardTopics: jsondata['data'][0]['dashboardTopics'] || [],
+        })
         setFund(jsondata['data'][0])
-        console.log(`jsondata['data'][0]?.fundedCompany?.map((c)=> c._id) companyInfo`, jsondata['data'][0]?.fundedCompany?.map((c) => c._id))
-        setSelectedCompanies(jsondata['data'][0]?.fundedCompany?.map((c) => c.companyInfo.companyInfoId))
+        setSelectedCompanies(jsondata['data'][0]?.fundedCompany?.map((c) => c.companyInfo.companyInfoId) || [])
       }
     } catch (error) {
       console.error("Api call:", error);
-      // toast.error("API Call failed. Please try again.");
-    } finally {
-      // setIsLoading(false);
     }
   }
 
   const getCompanyList = async () => {
-
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}` + "/investor/companyInfo/", {
         method: "GET",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
       });
       if (!res.ok) {
-        // toast.error("Invalid credentials");
-        // setIsLoading(false);
         return;
       }
       else {
@@ -263,68 +322,12 @@ export default function EditFund() {
       }
     } catch (error) {
       console.error("Api call:", error);
-      // toast.error("API Call failed. Please try again.");
-    } finally {
-      // setIsLoading(false);
     }
   }
-
-  const getTeamList = async () => {
-    try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}` + `/subuser`, {
-        method: "GET",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
-      });
-      if (!res.ok) {
-        // toast.error("Invalid credentials");
-        // setIsLoading(false);
-        return;
-      }
-      else {
-        const jsondata = await res.json();
-        // setViewingReport(jsondata['data'][0])
-        setTeamMembers(jsondata['data'][0]['subuser'])
-
-      }
-    } catch (error) {
-
-    }
-    finally {
-
-    }
-  }
-
-  const addCompanyToFund = async () => {
-    try {
-      const res = await fetch(
-        `${import.meta.env.VITE_API_URL}/investor/companyInfo/company/addtoFund`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
-          },
-          body: JSON.stringify({
-            companyInfoId: selectedCompanies, // <- array of ids
-            fundId: id,
-          }),
-        }
-      );
-
-      const data = await res.json();
-      console.log("Companies Updated ✅", data);
-      // optionally refresh
-      if (res.ok) getFundDetail();
-    } catch (error) {
-      console.error("addCompanyToFund error:", error);
-    }
-  };
-
 
   useEffect(() => {
     getFundDetail()
     getCompanyList()
-    getTeamList()
   }, [])
 
   return (
@@ -332,23 +335,24 @@ export default function EditFund() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">Edit Fund</h1>
       </div>
-      <form onSubmit={handleSubmit}>
-        <Tabs defaultValue="details">
-          <TabsList className="mb-4">
-            <TabsTrigger value="details">
-              <BarChart2 className="h-4 w-4 mr-2" />
-              Fund Details
-            </TabsTrigger>
-            {/* <TabsTrigger value="team">
-              <Users className="h-4 w-4 mr-2" />
-              Team Members
-            </TabsTrigger> */}
-            <TabsTrigger value="companies">
-              <Building className="h-4 w-4 mr-2" />
-              Portfolio Companies
-            </TabsTrigger>
-          </TabsList>
+      
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="mb-4">
+          <TabsTrigger value="details">
+            <BarChart2 className="h-4 w-4 mr-2" />
+            Fund Details
+          </TabsTrigger>
+          <TabsTrigger value="companies">
+            <Building className="h-4 w-4 mr-2" />
+            Portfolio Companies
+          </TabsTrigger>
+          <TabsTrigger value="dashboard">
+            <LayoutDashboard className="h-4 w-4 mr-2" />
+            Dashboard Topics
+          </TabsTrigger>
+        </TabsList>
 
+        <form onSubmit={handleSubmit}>
           <TabsContent value="details">
             <Card>
               <CardHeader>
@@ -380,20 +384,6 @@ export default function EditFund() {
                         placeholder="Enter fund size"
                       />
                     </div>
-                    {/* <div className="space-y-2">
-                      <Label htmlFor="currency">Currency</Label>
-                      <select
-                        id="currency"
-                        name="currency"
-                        value={formData.currency}
-                        onChange={e => handleSelectChange("currency", e.target.value)}
-                        className="border rounded-md px-2 py-1 w-full"
-                      >
-                        {currencies.map(cur => (
-                          <option key={cur} value={cur}>{cur}</option>
-                        ))}
-                      </select>
-                    </div> */}
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -415,7 +405,7 @@ export default function EditFund() {
                     ))}
                   </div>
                 </div>
-                {/* ✅ Inclusion Terms */}
+                
                 <div className="space-y-2">
                   <Label>Inclusion Terms</Label>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
@@ -435,8 +425,6 @@ export default function EditFund() {
                         <span className="text-sm">{option}</span>
                       </label>
                     ))}
-
-                    {/* ✅ Others Checkbox */}
                     <label className="flex items-center gap-2">
                       <Checkbox
                         checked={formData.inclusion.includes("Other")}
@@ -452,10 +440,8 @@ export default function EditFund() {
                       <span className="text-sm">Other</span>
                     </label>
                   </div>
-
                 </div>
 
-                {/* ✅ Exclusion Terms */}
                 <div className="space-y-2 mt-6">
                   <Label>Exclusion Terms</Label>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
@@ -475,8 +461,6 @@ export default function EditFund() {
                         <span className="text-sm">{option}</span>
                       </label>
                     ))}
-
-                    {/* ✅ Others Checkbox */}
                     <label className="flex items-center gap-2">
                       <Checkbox
                         checked={formData.exclusion.includes("Other")}
@@ -509,66 +493,9 @@ export default function EditFund() {
                     ))}
                   </select>
                 </div>
-                {/*
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <Label>Inclusion Terms</Label>
-                    <textarea
-                      value={formData.inclusion}
-                      readOnly
-                      className="w-full mt-1 text-sm bg-muted rounded"
-                      rows={2}
-                    />
-                  </div>
-                  <div>
-                    <Label>Exclusion Terms</Label>
-                    <textarea
-                      value={formData.exclusion}
-                      readOnly
-                      className="w-full mt-1 text-sm bg-muted rounded"
-                      rows={2}
-                    />
-                  </div>
-                </div> */}
               </CardContent>
             </Card>
           </TabsContent>
-
-          {/* <TabsContent value="team">
-            <Card>
-              <CardHeader>
-                <CardTitle>Team Members</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    Select team members who will be part of this fund.
-                  </p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {teamMembers.map(member => (
-                      <div key={member._id} className="flex items-start space-x-3 p-3 border rounded-md">
-                        <Checkbox 
-                          id={`team-member-${member.id}`} 
-                          checked={selectedTeamMembers.includes(member.id)}
-                          onCheckedChange={() => handleTeamMemberToggle(member.id)}
-                        />
-                        <div className="space-y-1">
-                          <Label 
-                            htmlFor={`team-member-${member.id}`}
-                            className="font-medium cursor-pointer"
-                          >
-                            {member.name}
-                          </Label>
-                          <p className="text-sm text-muted-foreground">{member.designation}</p>
-                          <p className="text-xs text-muted-foreground">{member.email}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent> */}
 
           <TabsContent value="companies">
             <Card>
@@ -590,7 +517,6 @@ export default function EditFund() {
                         <Checkbox
                           id={`company-${company._id}`}
                           checked={selectedCompanies.includes(company._id)}
-                          // pass the checked boolean to the handler
                           onCheckedChange={(checked) =>
                             handleCompanyToggle(company._id, Boolean(checked))
                           }
@@ -615,18 +541,108 @@ export default function EditFund() {
             </Card>
           </TabsContent>
 
-        </Tabs>
-        <div className="flex justify-end mt-6 space-x-2">
-          <Button
-            variant="outline"
-            type="button"
-            onClick={() => navigate("/funds")}
-          >
-            Cancel
-          </Button>
-          <Button type="submit">Save</Button>
-        </div>
-      </form>
+          <TabsContent value="dashboard">
+            <Card>
+              <CardHeader>
+                <CardTitle>Dashboard Topics Configuration</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  <p className="text-sm text-muted-foreground">
+                    Select the dashboard metrics that should be displayed for this fund's portfolio companies.
+                    These settings will be saved along with the fund details.
+                  </p>
+
+                  {DASHBOARD_TOPICS.map(category => {
+                    const Icon = category.icon;
+                    const allSelected = category.subtopics.every(s => 
+                      formData.dashboardTopics.includes(s.id)
+                    );
+                    
+                    return (
+                      <div key={category.id} className="border rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-2">
+                            <Icon className="h-5 w-5 text-primary" />
+                            <h3 className="text-lg font-semibold">{category.label}</h3>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleMainCategoryToggle(category.id, category.subtopics)}
+                          >
+                            {allSelected ? "Deselect All" : "Select All"}
+                          </Button>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                          {category.subtopics.map(subtopic => {
+                            const SubtopicIcon = subtopic.icon;
+                            return (
+                              <div key={subtopic.id} className="flex items-start space-x-3 p-2 border rounded-md hover:bg-accent/50">
+                                <Checkbox
+                                  id={`topic-${subtopic.id}`}
+                                  checked={formData.dashboardTopics.includes(subtopic.id)}
+                                  onCheckedChange={() => handleDashboardTopicToggle(subtopic.id)}
+                                />
+                                <div className="flex items-center gap-2">
+                                  <SubtopicIcon className="h-4 w-4 text-muted-foreground" />
+                                  <Label
+                                    htmlFor={`topic-${subtopic.id}`}
+                                    className="text-sm font-medium cursor-pointer"
+                                  >
+                                    {subtopic.label}
+                                  </Label>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  <div className="mt-6 p-4 bg-muted/50 rounded-lg">
+                    <h4 className="font-medium mb-2">Selected Topics Summary</h4>
+                    <p className="text-sm text-muted-foreground">
+                      {formData.dashboardTopics.length} topics selected
+                    </p>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {formData.dashboardTopics.map(topicId => {
+                        const topic = DASHBOARD_TOPICS.flatMap(c => c.subtopics).find(s => s.id === topicId);
+                        return topic && (
+                          <span key={topicId} className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary rounded-md text-xs">
+                            <topic.icon className="h-3 w-3" />
+                            {topic.label}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <div className="flex justify-end mt-6 space-x-2">
+            <Button
+              variant="outline"
+              type="button"
+              onClick={() => navigate("/funds")}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="submit"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Saving..." : "Save All Changes"}
+            </Button>
+          </div>
+        </form>
+      </Tabs>
     </div>
   );
 }

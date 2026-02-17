@@ -1,111 +1,71 @@
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Users, Globe, Shield } from "lucide-react";
-
-interface ESGRisk {
-  id: number;
-  description: string;
-  category: 'environmental' | 'social' | 'governance';
-  riskIndex: 'high' | 'medium' | 'low';
-  companies: string[];
-}
+// components/dashboard/ESGRisksCard.tsx
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AlertCircle } from "lucide-react";
 
 interface ESGRisksCardProps {
-  selectedFund?: string;
-  selectedCompany?: string;
-  selectedYear?: string;
+  data?: {
+    environmental?: Array<{ value: string }>;
+    social?: Array<{ value: string }>;
+    governance?: Array<{ value: string }>;
+  };
 }
 
-export function ESGRisksCard({
-  selectedFund = "all",
-  selectedCompany = "all",
-  selectedYear = "2025",
-}: ESGRisksCardProps) {
-  const esgRisks: ESGRisk[] = [
-    {
-      id: 1,
-      description: "Carbon emissions regulatory compliance",
-      category: "environmental",
-      riskIndex: "high",
-      companies: ["EcoSolutions Inc.", "GreenHarvest", "MediTech Innovations"],
-    },
-    {
-      id: 2,
-      description: "Supply chain labor standards",
-      category: "social",
-      riskIndex: "medium",
-      companies: ["GreenHarvest", "FinSecure"],
-    },
-    {
-      id: 3,
-      description: "Board diversity and inclusion",
-      category: "governance",
-      riskIndex: "medium",
-      companies: ["EduForward", "MediTech Innovations"],
-    },
-    {
-      id: 4,
-      description: "Water scarcity impact",
-      category: "environmental",
-      riskIndex: "high",
-      companies: ["GreenHarvest", "EcoSolutions Inc."],
-    },
-  ];
+export function ESGRisksCard({ data }: ESGRisksCardProps) {
+  const risks = data || {};
 
-  const getCategoryIcon = (category: ESGRisk['category']) => {
-    switch (category) {
-      case 'environmental':
-        return <Globe className="h-4 w-4" />;
-      case 'social':
-        return <Users className="h-4 w-4" />;
-      case 'governance':
-        return <Shield className="h-4 w-4" />;
-    }
-  };
-
-  const getRiskColor = (riskIndex: ESGRisk['riskIndex']) => {
-    switch (riskIndex) {
-      case 'high':
-        return 'destructive';
-      case 'medium':
-        return 'default';
-      case 'low':
-        return 'secondary';
-    }
-  };
+  const hasRisks = Object.values(risks).some(category => 
+    category && category.length > 0
+  );
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>ESG Risk Assessment</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <AlertCircle className="h-5 w-5 text-red-500" />
+          ESG Risks Identified
+        </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
-          {esgRisks.map((risk) => (
-            <Alert key={risk.id} variant="default" className="bg-background">
-              {getCategoryIcon(risk.category)}
-              <div className="flex items-start justify-between w-full">
-                <div className="space-y-1">
-                  <AlertDescription className="font-medium">
-                    {risk.description}
-                  </AlertDescription>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Badge variant={getRiskColor(risk.riskIndex)}>
-                      {risk.riskIndex} risk
-                    </Badge>
-                    <Badge variant="outline" className="capitalize">
-                      {risk.category}
-                    </Badge>
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {risk.companies.join(", ")}
-                  </div>
-                </div>
+        {hasRisks ? (
+          <div className="space-y-4">
+            {risks.environmental && risks.environmental.length > 0 && (
+              <div>
+                <h4 className="font-medium text-green-600 mb-2">Environmental</h4>
+                <ul className="list-disc pl-5 space-y-1">
+                  {risks.environmental.slice(0, 3).map((risk, idx) => (
+                    <li key={idx} className="text-sm">{risk.value}</li>
+                  ))}
+                </ul>
               </div>
-            </Alert>
-          ))}
-        </div>
+            )}
+            
+            {risks.social && risks.social.length > 0 && (
+              <div>
+                <h4 className="font-medium text-blue-600 mb-2">Social</h4>
+                <ul className="list-disc pl-5 space-y-1">
+                  {risks.social.slice(0, 3).map((risk, idx) => (
+                    <li key={idx} className="text-sm">{risk.value}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            
+            {risks.governance && risks.governance.length > 0 && (
+              <div>
+                <h4 className="font-medium text-purple-600 mb-2">Governance</h4>
+                <ul className="list-disc pl-5 space-y-1">
+                  {risks.governance.slice(0, 3).map((risk, idx) => (
+                    <li key={idx} className="text-sm">{risk.value}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        ) : (
+          <p className="text-center text-muted-foreground py-8">
+            No risks identified
+          </p>
+        )}
       </CardContent>
     </Card>
   );

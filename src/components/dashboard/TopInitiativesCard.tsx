@@ -1,4 +1,4 @@
-
+// components/dashboard/TopInitiativesCard.tsx
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -12,18 +12,12 @@ interface Initiative {
 }
 
 interface TopInitiativesCardProps {
-  selectedFund?: string;
-  selectedCompany?: string;
-  selectedYear?: string;
+  data?: Initiative[];
 }
 
-export function TopInitiativesCard({
-  selectedFund = "all",
-  selectedCompany = "all",
-  selectedYear = "2025",
-}: TopInitiativesCardProps) {
-  // This would be fetched from an API in a real application
-  const initiatives: Initiative[] = [
+export function TopInitiativesCard({ data }: TopInitiativesCardProps) {
+  // Default data if none provided
+  const defaultData: Initiative[] = [
     {
       id: 1,
       title: "Carbon Neutral Supply Chain",
@@ -45,21 +39,9 @@ export function TopInitiativesCard({
       companies: ["GreenHarvest", "MediTech Innovations"],
       sdgNumber: 12,
     },
-    {
-      id: 4,
-      title: "Sustainable Water Management",
-      progress: 71,
-      companies: ["EduForward", "GreenHarvest"],
-      sdgNumber: 6,
-    },
-    {
-      id: 5,
-      title: "Employee Well-being Program",
-      progress: 68,
-      companies: ["FinSecure", "EduForward", "MediTech Innovations"],
-      sdgNumber: 3,
-    },
   ];
+
+  const initiatives = data || defaultData;
 
   return (
     <Card>
@@ -73,7 +55,9 @@ export function TopInitiativesCard({
               <div className="flex items-start justify-between">
                 <div>
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="bg-primary/10">SDG {initiative.sdgNumber}</Badge>
+                    <Badge variant="outline" className="bg-primary/10">
+                      SDG {initiative.sdgNumber}
+                    </Badge>
                     <h4 className="font-semibold">{initiative.title}</h4>
                   </div>
                   <p className="text-xs mt-1 text-muted-foreground">

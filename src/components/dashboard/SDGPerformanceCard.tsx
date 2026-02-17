@@ -1,57 +1,42 @@
-
+// components/dashboard/SDGPerformanceCard.tsx
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import {
   ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
 } from "@/components/ui/chart";
 import { Bar, BarChart, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell } from "recharts";
 
 const sdgColors = {
-  1: "#E5243B", // No Poverty
-  2: "#DDA63A", // Zero Hunger
-  3: "#4C9F38", // Good Health and Well-being
-  4: "#C5192D", // Quality Education
-  5: "#FF3A21", // Gender Equality
-  6: "#26BDE2", // Clean Water and Sanitation
-  7: "#FCC30B", // Affordable and Clean Energy
-  8: "#A21942", // Decent Work and Economic Growth
-  9: "#FD6925", // Industry, Innovation and Infrastructure
-  10: "#DD1367", // Reduced Inequalities
-  11: "#FD9D24", // Sustainable Cities and Communities
-  12: "#BF8B2E", // Responsible Consumption and Production
-  13: "#3F7E44", // Climate Action
-  14: "#0A97D9", // Life Below Water
-  15: "#56C02B", // Life on Land
-  16: "#00689D", // Peace, Justice and Strong Institutions
-  17: "#19486A", // Partnerships for the Goals
+  1: "#E5243B", 2: "#DDA63A", 3: "#4C9F38", 4: "#C5192D", 5: "#FF3A21",
+  6: "#26BDE2", 7: "#FCC30B", 8: "#A21942", 9: "#FD6925", 10: "#DD1367",
+  11: "#FD9D24", 12: "#BF8B2E", 13: "#3F7E44", 14: "#0A97D9", 15: "#56C02B",
+  16: "#00689D", 17: "#19486A",
 };
 
-interface SDGData {
-  sdgNumber: number;
-  progress: number;
-}
-
 interface SDGPerformanceCardProps {
-  selectedFund?: string;
-  selectedCompany?: string;
-  selectedYear?: string;
+  data?: {
+    data?: {
+      overallScore?: number;
+      topPerforming?: string[];
+      needsImprovement?: string[];
+      sdgData?: Array<{
+        sdgNumber: number;
+        progress: number;
+      }>;
+    };
+  };
 }
 
-export function SDGPerformanceCard({
-  selectedFund = "all",
-  selectedCompany = "all",
-  selectedYear = "2025",
-}: SDGPerformanceCardProps) {
-  // This would be fetched from an API in a real application
-  const sdgData: SDGData[] = [
+export function SDGPerformanceCard({ data }: SDGPerformanceCardProps) {
+  // Default data if none provided
+  const defaultSdgData = [
     { sdgNumber: 7, progress: 78 },
     { sdgNumber: 13, progress: 65 },
     { sdgNumber: 12, progress: 82 },
     { sdgNumber: 8, progress: 71 },
     { sdgNumber: 9, progress: 59 },
   ];
+
+  const sdgData = data?.data?.sdgData || defaultSdgData;
 
   const chartData = sdgData.map((item) => ({
     name: `SDG ${item.sdgNumber}`,
@@ -66,16 +51,7 @@ export function SDGPerformanceCard({
         <CardTitle>SDG Performance</CardTitle>
       </CardHeader>
       <CardContent>
-        <ChartContainer
-          className="h-[300px]"
-          config={{
-            sdg7: { color: sdgColors[7] },
-            sdg13: { color: sdgColors[13] },
-            sdg12: { color: sdgColors[12] },
-            sdg8: { color: sdgColors[8] },
-            sdg9: { color: sdgColors[9] },
-          }}
-        >
+        <ChartContainer className="h-[300px]" config={{}}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={chartData}
