@@ -9,6 +9,8 @@ interface FundPerformanceCardProps {
     social: number;
     governance: number;
   }>;
+  selectedPortfolio?: string;
+  selectedFund?: string;
 }
 
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -32,25 +34,44 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
-export function FundPerformanceCard({ data }: FundPerformanceCardProps) {
-  const defaultData = [
-    { name: "Sample Fund I", environmental: 85, social: 75, governance: 80 },
-    { name: "Dummy Private Limited", environmental: 78, social: 82, governance: 75 },
-    { name: "Health Ventures", environmental: 92, social: 88, governance: 90 }
-  ];
+export function FundPerformanceCard({ 
+  data, 
+  selectedPortfolio = "fundwise",
+  selectedFund = "all" 
+}: FundPerformanceCardProps) {
+  
+  const hasData = data && data.length > 0;
+  const title = selectedPortfolio === "fundwise" 
+    ? selectedFund !== "all" 
+      ? "Fund ESG Performance" 
+      : "ESG Performance by Fund"
+    : "Company ESG Performance";
 
-  const chartData = data || defaultData;
+  if (!hasData) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>{title}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+            <p>No performance data available for the selected filters</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>ESG Performance by Fund</CardTitle>
+        <CardTitle>{title}</CardTitle>
       </CardHeader>
       <CardContent>
         <div style={{ width: '100%', height: 300 }}>
           <ResponsiveContainer>
             <BarChart
-              data={chartData}
+              data={data}
               margin={{ top: 20, right: 30, left: 20, bottom: 70 }}
             >
               <XAxis 

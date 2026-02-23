@@ -64,6 +64,7 @@ const DASHBOARD_TOPICS = [
     icon: Leaf,
     subtopics: [
       { id: "energy", label: "Energy Consumption", icon: Zap },
+      { id: "energy_consumption", label: "Energy Consumption (GJ)", icon: Zap },
       { id: "water_withdrawl", label: "Water Withdrawal", icon: Droplets },
       { id: "water_discharge", label: "Water Discharge", icon: Droplets },
       { id: "waste_management", label: "Waste Management", icon: Trash2 },
@@ -125,17 +126,20 @@ export default function EditFund() {
   const navigate = useNavigate();
   const { id } = useParams();
 
-  const [fund, setFund] = useState([])
+  // ✅ CHANGE 1: Change from [] to null
+  const [fund, setFund] = useState<any>(null);
   const [portfolioCompanies, setPortfolioCompanies] = useState([])
   const [teamMembers, setTeamMembers] = useState([])
   const [activeTab, setActiveTab] = useState("details");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // ✅ CHANGE 2: Add loading state
+  const [loading, setLoading] = useState(true);
 
-  // If fund not found (bad URL), return to list
-  if (!fund) {
-    navigate("/funds");
-    return null;
-  }
+  // ✅ CHANGE 3: Move this check after loading
+  // if (!fund) {
+  //   navigate("/funds");
+  //   return null;
+  // }
 
   const [formData, setFormData] = useState({
     name: '',
@@ -282,27 +286,58 @@ export default function EditFund() {
   };
 
   const getFundDetail = async () => {
+    setLoading(true);
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}` + `/investor/fund/${id}`, {
         method: "GET",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
       });
       if (!res.ok) {
+        navigate("/funds");
         return;
       }
       else {
         const jsondata = await res.json();
-        console.log('jsondata', jsondata)
+        console.log('jsondata', jsondata);
+        
+        // ✅ Get fund data from response.data[0]
+        const fundData = jsondata?.data?.[0];
+        
+        if (!fundData) {
+          navigate("/funds");
+          return;
+        }
+
+        // ✅ Process sector focus - remove tabs
+        const sectorFocus = fundData.sectorFocus || '';
+        const focusArray = sectorFocus
+          .split(',')
+          .map((s: string) => s.replace(/\t/g, '').trim())
+          .filter((s: string) => s.length > 0);
+        
+        // ✅ Get company IDs from fundedCompany array
+        let companyIds: string[] = [];
+        if (fundData.fundedCompany && Array.isArray(fundData.fundedCompany)) {
+          companyIds = [...new Set<string>(
+            fundData.fundedCompany
+              .map((item: any) => item.companyInfo?.companyInfoId)
+              .filter((id: string) => id)
+          )];
+        }
+
         setFormData({ 
-          ...jsondata['data'][0], 
-          focus: jsondata['data'][0]['sectorFocus']?.split(",") || [],
-          dashboardTopics: jsondata['data'][0]['dashboardTopics'] || [],
-        })
-        setFund(jsondata['data'][0])
-        setSelectedCompanies(jsondata['data'][0]?.fundedCompany?.map((c) => c.companyInfo.companyInfoId) || [])
+          ...fundData,
+          focus: focusArray,
+          dashboardTopics: fundData.dashboardTopics || [],
+        });
+        
+        setFund(fundData);
+        setSelectedCompanies(companyIds);
+        setLoading(false);
       }
     } catch (error) {
       console.error("Api call:", error);
+      navigate("/funds");
     }
   }
 
@@ -317,8 +352,9 @@ export default function EditFund() {
       }
       else {
         const jsondata = await res.json();
-        console.log('jsondata', jsondata)
-        setPortfolioCompanies(jsondata['data'])
+        console.log('jsondata', jsondata);
+        // ✅ Handle response structure
+        setPortfolioCompanies(jsondata?.data || jsondata || []);
       }
     } catch (error) {
       console.error("Api call:", error);
@@ -326,9 +362,26 @@ export default function EditFund() {
   }
 
   useEffect(() => {
-    getFundDetail()
-    getCompanyList()
-  }, [])
+    Promise.all([getFundDetail(), getCompanyList()]);
+  }, []);
+
+  // ✅ CHANGE 5: Add loading state UI
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-2 text-muted-foreground">Loading fund details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ✅ CHANGE 6: Check if fund exists after loading
+  if (!fund) {
+    navigate("/funds");
+    return null;
+  }
 
   return (
     <div className="space-y-6">
@@ -356,7 +409,7 @@ export default function EditFund() {
           <TabsContent value="details">
             <Card>
               <CardHeader>
-                <CardTitle>Edit Details for {fund['name']}</CardTitle>
+                <CardTitle>Edit Details for {fund?.name}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -20,27 +20,42 @@ interface SDGStrategyData {
 
 interface SDGTabProps {
   data?: SDGStrategyData[];
+  selectedPortfolio?: string;
+  dashboardTopics?: string[];
 }
 
-export function SDGTab({ data }: SDGTabProps) {
+export function SDGTab({ 
+  data, 
+  selectedPortfolio = "fundwise", 
+  dashboardTopics = [] 
+}: SDGTabProps) {
   console.log('SDGTab received data:', data);
-
+  
   const sdgData = data || [];
+  const hasData = sdgData.length > 0;
 
-  if (!sdgData.length) {
+  if (!hasData) {
     return (
       <Card>
         <CardHeader>
           <CardTitle>SDG Strategy</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
-            No SDG strategy data available.
+          <div className="text-center py-4">
+            <h3 className="text-lg">No data available.</h3>
           </div>
         </CardContent>
       </Card>
     );
   }
+
+  // Helper to get full image URL
+  const getFullImageUrl = (imagePath: string) => {
+    if (!imagePath) return '';
+    if (imagePath.startsWith('http')) return imagePath;
+    const baseUrl = import.meta.env.VITE_API_URL || '';
+    return `${baseUrl}${imagePath}`;
+  };
 
   return (
     <Card>
@@ -49,16 +64,16 @@ export function SDGTab({ data }: SDGTabProps) {
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
-          <Table>
+          <Table className="table mb-0 table-bordered table-striped" style={{ tableLayout: "fixed", width: "100%" }}>
             <TableHeader>
-              <TableRow className="bg-muted">
-                <TableHead className="w-[410px] font-bold">WHAT</TableHead>
-                <TableHead className="w-[310px] font-bold">WHO</TableHead>
-                <TableHead className="w-[310px] font-bold">ABC Goal</TableHead>
-                <TableHead className="w-[310px] font-bold">Impact Thesis</TableHead>
-                <TableHead className="w-[310px] font-bold">Baseline Metric</TableHead>
-                <TableHead className="w-[310px] font-bold">Target Metric</TableHead>
-                <TableHead className="w-[310px] font-bold">Current Status</TableHead>
+              <TableRow>
+                <TableHead style={{ width: "410px" }} className="font-bold">WHAT</TableHead>
+                <TableHead style={{ width: "310px" }} className="font-bold">WHO</TableHead>
+                <TableHead style={{ width: "310px" }} className="font-bold uppercase">ABC Goal</TableHead>
+                <TableHead style={{ width: "310px" }} className="font-bold uppercase">Impact Thesis</TableHead>
+                <TableHead style={{ width: "310px" }} className="font-bold uppercase">Baseline Metric</TableHead>
+                <TableHead style={{ width: "310px" }} className="font-bold uppercase">Target Metric</TableHead>
+                <TableHead style={{ width: "310px" }} className="font-bold uppercase">Current Status</TableHead>
               </TableRow>
               <TableRow className="bg-primary/10">
                 <TableCell className="text-sm">SDG Goal, Target, and Indicator</TableCell>
@@ -71,109 +86,110 @@ export function SDGTab({ data }: SDGTabProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sdgData.map((item, index) => (
-                <TableRow key={index}>
-                  <TableCell>
-                    <div className="space-y-2">
-                      {/* Goal */}
-                      {item.goal && (
-                        <div className="font-medium">{item.goal}</div>
-                      )}
-                      
-                      {/* What Goal */}
-                      {item.what_goal && item.what_goal !== item.goal && (
-                        <div>{item.what_goal}</div>
-                      )}
-                      
-                      {/* Target */}
-                      {item.what_target && (
-                        <>
+              {sdgData.map((item, index) => {
+                const imageUrl = getFullImageUrl(item.what_img || '');
+                
+                return (
+                  <TableRow key={index}>
+                    <TableCell>
+                      <div className="d-flex" style={{ display: 'flex' }}>
+                        <div>
+                          {item?.what_goal}
                           <br />
-                          <div>{item.what_target}</div>
-                        </>
-                      )}
-                      
-                      {/* Text */}
-                      {item.what_text && (
-                        <>
                           <br />
-                          <div>{item.what_text}</div>
-                        </>
-                      )}
-                      
-                      {/* Image */}
-                      {item.what_img && (
-                        <div className="mt-2">
-                          <img 
-                            src={item.what_img} 
-                            alt="SDG" 
-                            className="w-[90px] h-[90px] object-contain"
-                          />
+                          {item?.what_target}
+                          <br />
+                          <br />
+                          {item?.what_text}
                         </div>
-                      )}
-                    </div>
-                  </TableCell>
-                  
-                  <TableCell>
-                    <textarea
-                      className="w-full min-h-[100px] p-2 border rounded-md bg-muted/20 text-sm resize-none"
-                      value={item.who || ''}
-                      readOnly
-                      placeholder="No data"
-                    />
-                  </TableCell>
-                  
-                  <TableCell>
-                    <div className="space-y-2">
-                      {item.abc_goal && (
-                        <div>{item.abc_goal}</div>
-                      )}
+                        {imageUrl && (
+                          <div className="imageUrl d-flex align-items-start mt-0 ms-4" style={{ display: 'flex', alignItems: 'flex-start', marginTop: 0, marginLeft: '1rem' }}>
+                            <img
+                              src={imageUrl}
+                              alt="SDG"
+                              style={{ width: "90px", maxWidth: "90px" }}
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                              }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+                    
+                    <TableCell>
                       <textarea
-                        className="w-full min-h-[100px] p-2 border rounded-md bg-muted/20 text-sm resize-none"
-                        value={item.abc_goal_description || ''}
+                        className="w-full p-2 border rounded-md bg-muted/20 text-sm resize-none form-control"
+                        placeholder="who"
+                        rows={4}
+                        value={item?.who || ''}
                         readOnly
-                        placeholder="No description"
+                        style={{ minHeight: '100px' }}
                       />
-                    </div>
-                  </TableCell>
-                  
-                  <TableCell>
-                    <textarea
-                      className="w-full min-h-[100px] p-2 border rounded-md bg-muted/20 text-sm resize-none"
-                      value={item.impact_thesis || ''}
-                      readOnly
-                      placeholder="No data"
-                    />
-                  </TableCell>
-                  
-                  <TableCell>
-                    <textarea
-                      className="w-full min-h-[100px] p-2 border rounded-md bg-muted/20 text-sm resize-none"
-                      value={item.baseline_metric || ''}
-                      readOnly
-                      placeholder="No data"
-                    />
-                  </TableCell>
-                  
-                  <TableCell>
-                    <textarea
-                      className="w-full min-h-[100px] p-2 border rounded-md bg-muted/20 text-sm resize-none"
-                      value={item.target_metric || ''}
-                      readOnly
-                      placeholder="No data"
-                    />
-                  </TableCell>
-                  
-                  <TableCell>
-                    <textarea
-                      className="w-full min-h-[100px] p-2 border rounded-md bg-muted/20 text-sm resize-none"
-                      value={item.current_status || ''}
-                      readOnly
-                      placeholder="No data"
-                    />
-                  </TableCell>
-                </TableRow>
-              ))}
+                    </TableCell>
+                    
+                    <TableCell>
+                      <div>
+                        {item?.abc_goal}
+                        <br />
+                        <br />
+                        <textarea
+                          className="w-full p-2 border rounded-md bg-muted/20 text-sm resize-none form-control"
+                          placeholder="Description"
+                          rows={4}
+                          value={item?.abc_goal_description || ''}
+                          readOnly
+                          style={{ minHeight: '100px' }}
+                        />
+                      </div>
+                    </TableCell>
+                    
+                    <TableCell>
+                      <textarea
+                        className="w-full p-2 border rounded-md bg-muted/20 text-sm resize-none form-control"
+                        placeholder=""
+                        rows={4}
+                        value={item?.impact_thesis || ''}
+                        readOnly
+                        style={{ minHeight: '100px' }}
+                      />
+                    </TableCell>
+                    
+                    <TableCell>
+                      <textarea
+                        className="w-full p-2 border rounded-md bg-muted/20 text-sm resize-none form-control"
+                        placeholder=""
+                        rows={4}
+                        value={item?.baseline_metric || ''}
+                        readOnly
+                        style={{ minHeight: '100px' }}
+                      />
+                    </TableCell>
+                    
+                    <TableCell>
+                      <textarea
+                        className="w-full p-2 border rounded-md bg-muted/20 text-sm resize-none form-control"
+                        placeholder=""
+                        rows={4}
+                        value={item?.target_metric || ''}
+                        readOnly
+                        style={{ minHeight: '100px' }}
+                      />
+                    </TableCell>
+                    
+                    <TableCell>
+                      <textarea
+                        className="w-full p-2 border rounded-md bg-muted/20 text-sm resize-none form-control"
+                        placeholder=""
+                        rows={4}
+                        value={item?.current_status || ''}
+                        readOnly
+                        style={{ minHeight: '100px' }}
+                      />
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </div>

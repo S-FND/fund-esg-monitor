@@ -1,22 +1,52 @@
 // services/dashboardApi.ts
 import { http } from "@/utils/httpInterceptor";
 import { toast } from "sonner";
+import { DashboardData, EnvironmentData, GovernanceData, SocialData, OtherData } from "../types/dashboard.types";
+
+interface DashboardFilters {
+  viewType?: string;
+  year?: string;
+  fundId?: string;
+  companyId?: string;
+  month?: string;
+}
+
+interface ApiResponse {
+  data?: DashboardData;
+  status?: number;
+  message?: string;
+}
+
+interface Fund {
+  _id: string;
+  name: string;
+  sectorFocus?: string;
+  size?: number;
+  [key: string]: any;
+}
+
+interface Company {
+  _id: string;
+  companyId?: string;
+  name?: string;
+  companyName?: string;
+  [key: string]: any;
+}
 
 export const dashboardApi = {
-  // Get dashboard data - following the exact pattern from old code
-  async getDashboardData(filters = {}) {
+  // Get dashboard data with types
+  async getDashboardData(filters: DashboardFilters = {}): Promise<DashboardData> {
     try {
       // 1. Build params exactly like the old code
-      const params = {
+      const params: Record<string, any> = {
         type: filters.viewType || 'individual-company',
         fy: filters.year || this.getCurrentFinancialYear(),
       };
 
-      // 2. Add user ID from localStorage (like old code's 'user' param) - THIS IS CRITICAL
+      // 2. Add user ID from localStorage
       const userStr = localStorage.getItem('user');
       if (userStr) {
         const user = JSON.parse(userStr);
-        // In your old code, you used isCompany?.isInvestor?.userId
         if (user?.isInvestor?.userId) {
           params.user = user.isInvestor.userId;
         } else if (user?._id) {
@@ -28,7 +58,7 @@ export const dashboardApi = {
 
       // 3. Add optional parameters
       if (filters.month) {
-        params.month = parseInt(filters.month); // Convert to number like old code
+        params.month = parseInt(filters.month);
       }
       
       if (filters.fundId && filters.fundId !== "all") {
@@ -41,34 +71,28 @@ export const dashboardApi = {
 
       console.log('📤 Building request with params:', params);
 
-      // 4. MANUALLY build the query string (LIKE YOUR OLD CODE)
+      // 4. MANUALLY build the query string
       let queryParams = `type=${params.type}&fy=${params.fy}`;
       
-      // Add user parameter (CRITICAL - your old code had this)
       if (params.user) {
         queryParams += `&id=${params.user}`;
       }
       
-      // Add month if present (convert to number like old code)
       if (params.month !== undefined) {
         queryParams += `&month=${params.month}`;
       }
       
-      // Add fund if present
       if (params.fundId) {
         queryParams += `&fundId=${params.fundId}`;
       }
       
-      // Add company if present
       if (params.companyId) {
         queryParams += `&companyId=${params.companyId}`;
       }
 
-      // 5. Construct the full URL
       const url = `investor/dashboard?${queryParams}`;
       console.log('🔗 Final Request URL:', url);
 
-      // 6. Make the API call
       const response = await http.get(url);
       console.log('📥 API Response:', response);
 
@@ -82,29 +106,28 @@ export const dashboardApi = {
   },
 
   // Get current financial year
-  getCurrentFinancialYear() {
+  getCurrentFinancialYear(): string {
     const today = new Date();
     const currentYear = today.getFullYear();
     const currentMonth = today.getMonth() + 1;
     
-    // Indian financial year: April to March
     const financialYearStart = currentMonth >= 4 ? currentYear : currentYear - 1;
     return `${financialYearStart}-${financialYearStart + 1}`;
   },
 
-  // Get default/fallback data structure
-  getDefaultDashboardData() {
+  // Get default/fallback data structure with proper type
+  getDefaultDashboardData(): DashboardData {
     return {
       dashboardEnvironment: {},
       dashboardGovernance: {},
       dashboardSocial: {},
       dashboardOtherData: {},
-      percentage_of_board: {}
+      percentage_of_board: []
     };
   },
 
-  // Get funds list
-  async getFunds() {
+  // Get funds list with proper type
+  async getFunds(): Promise<Fund[]> {
     try {
       const userStr = localStorage.getItem('user');
       if (!userStr) {
@@ -129,8 +152,8 @@ export const dashboardApi = {
     }
   },
 
-  // Get companies list
-  async getCompanies() {
+  // Get companies list with proper type
+  async getCompanies(): Promise<Company[]> {
     try {
       const response = await http.get(`investor/companyInfo`);
       console.log('Companies API response:', response?.data);
@@ -149,16 +172,30 @@ export const dashboardApi = {
     }
   },
 
-  // Transform API data to dashboard format
-  transformDashboardData(apiData) {
+  // Get fund by ID with proper type
+  async getFundById(fundId: string): Promise<Fund | null> {
+    try {
+      console.log('📊 Fetching fund details for ID:', fundId);
+      const response = await http.get(`investor/fund/${fundId}`);
+      console.log('📊 Fund details response:', response?.data);
+      return response?.data?.data || null;
+    } catch (error) {
+      console.error('Error fetching fund details:', error);
+      return null;
+    }
+  },
+
+  // Transform API data to dashboard format with proper types
+  transformDashboardData(apiData: DashboardData): any {
     if (!apiData) return {};
     
     const envData = apiData.dashboardEnvironment || {};
     const govData = apiData.dashboardGovernance || {};
     const socialData = apiData.dashboardSocial || {};
     const otherData = apiData.dashboardOtherData || {};
+    const boardMeetings = apiData.percentage_of_board || [];
     
-    // Calculate ESG scores
+    // Calculate ESG scores from real data
     const esgScores = otherData.dashboardEsgMeterData || {
       environment: { percentage: 0 },
       social: { percentage: 0 },
@@ -186,8 +223,8 @@ export const dashboardApi = {
     return {
       overview: {
         stats,
-        fundPerformance: this.prepareFundPerformance(apiData),
-        topPerformers: this.prepareTopPerformers(apiData),
+        fundPerformance: [],
+        topPerformers: [],
         nonCompliances: otherData.dashboardNonComplianceData || [],
         esgRisks: otherData.dashboardRiskData || {}
       },
@@ -198,117 +235,26 @@ export const dashboardApi = {
       },
       sdgPerformance: {
         data: {
-          overallScore: 76,
-          topPerforming: ["SDG 7", "SDG 9", "SDG 11"],
-          needsImprovement: ["SDG 1", "SDG 10"],
           sdgData: this.prepareSDGData(otherData)
         },
-        topSDGs: this.prepareTopSDGs(otherData),
-        topInitiatives: this.prepareTopInitiatives(apiData)
+        topSDGs: [],
+        topInitiatives: []
       },
       trends: {
-        esgTrends: this.prepareESGTrends(apiData)
-      }
+        esgTrends: []
+      },
+      boardMeetings
     };
   },
-  
-  // Helper methods (keep your existing helper methods)
-  prepareFundPerformance(apiData) {
-    return [
-      { name: "Sample Fund I", environmental: 85, social: 75, governance: 80 },
-      { name: "Dummy Private Limited", environmental: 78, social: 82, governance: 75 },
-      { name: "Health Ventures", environmental: 92, social: 88, governance: 90 }
-    ];
+
+  // Helper methods with proper types
+  prepareSDGData(otherData: OtherData): any[] {
+    return otherData.dashboardSDGStratgyData || [];
   },
-  
-  prepareTopPerformers(apiData) {
-    return [
-      { name: "EcoSolutions Inc.", esgScore: 92, sector: "ClimateTech" },
-      { name: "GreenHarvest", esgScore: 88, sector: "AgriTech" },
-      { name: "MediTech Innovations", esgScore: 85, sector: "HealthTech" }
-    ];
-  },
-  
-  prepareTopSDGs(otherData) {
-    const sdgStratgyData = otherData.dashboardSDGStratgyData || [];
-    const sdgCounts = {};
-    
-    sdgStratgyData.forEach(item => {
-      const sdgNumber = this.extractSDGNumber(item.what_goal || item.goal);
-      if (sdgNumber) {
-        sdgCounts[sdgNumber] = (sdgCounts[sdgNumber] || 0) + 1;
-      }
-    });
-    
-    return Object.entries(sdgCounts).map(([sdgNumber, companies]) => ({
-      sdgNumber: parseInt(sdgNumber),
-      companies: companies,
-      totalCompanies: 7
-    })).sort((a, b) => b.companies - a.companies).slice(0, 3);
-  },
-  
-  extractSDGNumber(text) {
-    if (!text) return null;
-    const match = text.match(/SDG\s*(\d+)/i);
-    return match ? parseInt(match[1]) : null;
-  },
-  
-  prepareSDGData(otherData) {
-    const sdgStratgyData = otherData.dashboardSDGStratgyData || [];
-    const sdgMap = new Map();
-    
-    sdgStratgyData.forEach(item => {
-      const sdgNumber = this.extractSDGNumber(item.what_goal || item.goal);
-      if (sdgNumber && !sdgMap.has(sdgNumber)) {
-        sdgMap.set(sdgNumber, {
-          sdgNumber,
-          progress: Math.floor(Math.random() * 40) + 50
-        });
-      }
-    });
-    
-    return Array.from(sdgMap.values()).slice(0, 5);
-  },
-  
-  prepareTopInitiatives(apiData) {
-    return [
-      {
-        id: 1,
-        title: "Renewable Energy Transition",
-        progress: 75,
-        companies: ["EcoSolutions Inc.", "GreenHarvest"],
-        sdgNumber: 7
-      },
-      {
-        id: 2,
-        title: "Sustainable Supply Chain",
-        progress: 60,
-        companies: ["MediTech Innovations", "FinSecure"],
-        sdgNumber: 12
-      },
-      {
-        id: 3,
-        title: "Community Development",
-        progress: 80,
-        companies: ["EduForward"],
-        sdgNumber: 1
-      }
-    ];
-  },
-  
-  prepareESGTrends(apiData) {
-    return [
-      { year: "2021-2022", environmental: 65, social: 60, governance: 70, overall: 65 },
-      { year: "2022-2023", environmental: 70, social: 68, governance: 75, overall: 71 },
-      { year: "2023-2024", environmental: 75, social: 73, governance: 80, overall: 76 },
-      { year: "2024-2025", environmental: 82, social: 78, governance: 85, overall: 82 },
-      { year: "2025-2026", environmental: 88, social: 85, governance: 90, overall: 88 }
-    ];
-  },
-  
-  prepareEnvironmentalKPIs(envData) {
+
+  prepareEnvironmentalKPIs(envData: EnvironmentData): any {
     return {
-      score: 85,
+      score: (envData as any)?.overallScore || 0,
       metrics: [
         { name: "Energy Consumption", value: this.formatEnergyData(envData.energy) },
         { name: "Water Usage", value: this.formatWaterData(envData.water_withdrawl) },
@@ -317,61 +263,64 @@ export const dashboardApi = {
       ]
     };
   },
-  
-  prepareSocialKPIs(socialData) {
+
+  prepareSocialKPIs(socialData: SocialData): any {
     return {
-      score: 78,
+      score: (socialData as any)?.overallScore || 0,
       metrics: [
         { name: "Employee Diversity", value: this.formatDiversityData(socialData.employee_diversity) },
-        { name: "Training Hours", value: "25 hrs/emp" },
-        { name: "Employee Satisfaction", value: "4.2/5" }
+        { name: "Training Hours", value: "0 hrs" },
+        { name: "Employee Satisfaction", value: "0/5" }
       ]
     };
   },
-  
-  prepareGovernanceKPIs(govData) {
+
+  prepareGovernanceKPIs(govData: GovernanceData): any {
     return {
-      score: 82,
+      score: (govData as any)?.overallScore || 0,
       metrics: [
         { name: "Board Diversity", value: this.formatBoardData(govData.board_members_gender) },
-        { name: "Ethics Training", value: "100%" },
-        { name: "Audit Compliance", value: "95%" }
+        { name: "Ethics Training", value: "0%" },
+        { name: "Audit Compliance", value: "0%" }
       ]
     };
   },
-  
-  formatEnergyData(energyData) {
+
+  // Formatter methods with proper types
+  formatEnergyData(energyData: any): string {
     if (!energyData?.pie?.data) return "No data";
-    const total = energyData.pie.data.reduce((a, b) => a + b, 0);
+    const total = energyData.pie.data.reduce((a: number, b: number) => a + b, 0);
     const renewable = energyData.pie.data[0] || 0;
     const percentage = total > 0 ? ((renewable / total) * 100).toFixed(1) : 0;
     return `${percentage}% renewable`;
   },
-  
-  formatWaterData(waterData) {
+
+  formatWaterData(waterData: any): string {
     if (!waterData?.pie?.data) return "No data";
-    const total = waterData.pie.data.reduce((a, b) => a + b, 0);
+    const total = waterData.pie.data.reduce((a: number, b: number) => a + b, 0);
     return `${total.toLocaleString()} m³`;
   },
-  
-  formatWasteData(wasteData) {
+
+  formatWasteData(wasteData: any): string {
     if (!wasteData?.pie?.data) return "No data";
-    const total = wasteData.pie.data.reduce((a, b) => a + b, 0);
+    const total = wasteData.pie.data.reduce((a: number, b: number) => a + b, 0);
     return `${total.toLocaleString()} tons`;
   },
-  
-  formatGHGData(ghgData) {
+
+  formatGHGData(ghgData: any): string {
     if (!ghgData?.pie?.data) return "No data";
     const scope1 = ghgData.pie.data[0] || 0;
     const scope2 = ghgData.pie.data[1] || 0;
     return `Scope 1: ${scope1}, Scope 2: ${scope2}`;
   },
-  
-  formatDiversityData(diversityData) {
-    return "42%";
+
+  formatDiversityData(diversityData: any): string {
+    if (!diversityData?.mbar?.data) return "No data";
+    return "Data available";
   },
-  
-  formatBoardData(boardData) {
-    return "35%";
+
+  formatBoardData(boardData: any): string {
+    if (!boardData?.pie?.data) return "No data";
+    return "Data available";
   }
 };
