@@ -157,9 +157,23 @@ export default function Dashboard() {
     if (selectedYear) loadDashboardData();
   }, [selectedYear, selectedFund, selectedCompany, selectedMonth, showMonthDropdown, selectedPortfolio, loadDashboardData]);
 
-  const generateFinancialYears = () => {
-    const currentYear = new Date().getFullYear();
-    return Array.from({ length: 5 }, (_, i) => `${currentYear + 1 - i}-${currentYear + 2 - i}`);
+  /* ✅ Current Financial Year */
+  const getCurrentFinancialYear = (): string => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth(); // 0 = Jan
+
+    const startYear = month >= 3 ? year : year - 1;
+    return `${startYear}-${startYear + 1}`;
+  };
+
+  /* ✅ Generate FY list */
+  const generateFinancialYears = (count = 5): string[] => {
+    const startYear = Number(getCurrentFinancialYear().split('-')[0]);
+    return Array.from({ length: count }, (_, i) => {
+      const y = startYear - i;
+      return `${y}-${y + 1}`;
+    });
   };
 
   const handlePortfolioChange = (value: string) => {
@@ -258,21 +272,36 @@ export default function Dashboard() {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
-          <OverviewStats
-            stats={{
-              totalFunds: funds?.length,
-              totalCompanies: companies?.length,
-              avgESGScore: dashboardData?.dashboardOtherData?.dashboardEsgMeterData?.environment?.percentage,
-              esgBreakdown: {
-                environmental: dashboardData?.dashboardOtherData?.dashboardEsgMeterData?.environment?.percentage,
-                social: dashboardData?.dashboardOtherData?.dashboardEsgMeterData?.social?.percentage,
-                governance: dashboardData?.dashboardOtherData?.dashboardEsgMeterData?.governance?.percentage
-              }
+        <ESGTrendsCard 
+            data={transformedData?.trends?.esgTrends} 
+            currentScores={{
+              environmental: dashboardData?.dashboardOtherData?.dashboardEsgMeterData?.environment?.percentage || 0,
+              social: dashboardData?.dashboardOtherData?.dashboardEsgMeterData?.social?.percentage || 0,
+              governance: dashboardData?.dashboardOtherData?.dashboardEsgMeterData?.governance?.percentage || 0
             }}
-            funds={funds}
-            companies={companies}
-            selectedPortfolio={selectedPortfolio}
           />
+        <OverviewStats
+    stats={{
+      totalFunds: funds?.length,
+      totalCompanies: companies?.length,
+      totalCapital: 0, // Add if you have this data
+      avgESGScore: (
+        (dashboardData?.dashboardOtherData?.dashboardEsgMeterData?.environment?.percentage || 0) +
+        (dashboardData?.dashboardOtherData?.dashboardEsgMeterData?.social?.percentage || 0) +
+        (dashboardData?.dashboardOtherData?.dashboardEsgMeterData?.governance?.percentage || 0)
+      ) / 3,
+      esgBreakdown: {
+        environmental: dashboardData?.dashboardOtherData?.dashboardEsgMeterData?.environment?.percentage,
+        social: dashboardData?.dashboardOtherData?.dashboardEsgMeterData?.social?.percentage,
+        governance: dashboardData?.dashboardOtherData?.dashboardEsgMeterData?.governance?.percentage
+      }
+    }}
+    funds={funds}
+    companies={companies}
+    selectedPortfolio={selectedPortfolio}
+    selectedFund={selectedFund}
+    selectedCompany={selectedCompany}
+  />
 
           {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <FundPerformanceCard data={transformedData?.overview?.fundPerformance} />
@@ -288,7 +317,7 @@ export default function Dashboard() {
             />
           </div>
 
-          <ESGTrendsCard data={transformedData?.trends?.esgTrends} />
+         
         </TabsContent>
 
         <TabsContent value="sustainability">
