@@ -21,7 +21,7 @@ export function NonCompliancesCard({
     setHasData(data && data.length > 0);
   }, [data]);
 
-  if (!hasData) {
+  if (!data || !hasData) {
     return (
       <Card>
         <CardHeader>
@@ -43,6 +43,9 @@ export function NonCompliancesCard({
     );
   }
 
+  // Safe to use data now since we've checked it's defined
+  const displayData = data.slice(0, 5);
+
   return (
     <Card>
       <CardHeader>
@@ -53,7 +56,7 @@ export function NonCompliancesCard({
       </CardHeader>
       <CardContent>
         <div className="space-y-4 max-h-[300px] overflow-y-auto">
-          {data.slice(0, 5).map((item, index) => (
+          {displayData.map((item, index) => (
             <div key={index} className="border-b pb-2 last:border-0 last:pb-0">
               <h4 className="font-medium text-sm">{item.area}</h4>
               <p className="text-sm text-muted-foreground mt-1">{item.description}</p>

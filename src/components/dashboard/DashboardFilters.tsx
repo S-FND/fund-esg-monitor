@@ -65,6 +65,7 @@ export function DashboardFilters({
   setShowMonthDropdown,
   currentFinancialYear,
 }: DashboardFiltersProps) {
+  console.log('companies----->',companies);
   return (
     <div className="flex flex-wrap gap-4 items-end">
       {/* Portfolio Type Selector */}
