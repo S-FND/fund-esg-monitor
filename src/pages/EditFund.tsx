@@ -109,17 +109,17 @@ const DASHBOARD_TOPICS = [
       { id: "percentage_of_board", label: "Board Composition", icon: Users2 },
     ]
   },
-  {
-    id: "risk",
-    label: "Risk & Compliance",
-    icon: AlertTriangle,
-    subtopics: [
-      { id: "risk_identified", label: "Risk Identification", icon: AlertTriangle },
-      { id: "non_compliance", label: "Non-Compliance", icon: AlertCircle },
-      { id: "esg_score", label: "ESG Score", icon: Target },
-      { id: "sdg_strategy", label: "SDG Strategy", icon: Target },
-    ]
-  }
+  // {
+  //   id: "risk",
+  //   label: "Risk & Compliance",
+  //   icon: AlertTriangle,
+  //   subtopics: [
+  //     { id: "risk_identified", label: "Risk Identification", icon: AlertTriangle },
+  //     { id: "non_compliance", label: "Non-Compliance", icon: AlertCircle },
+  //     { id: "esg_score", label: "ESG Score", icon: Target },
+  //     { id: "sdg_strategy", label: "SDG Strategy", icon: Target },
+  //   ]
+  // }
 ];
 
 export default function EditFund() {
