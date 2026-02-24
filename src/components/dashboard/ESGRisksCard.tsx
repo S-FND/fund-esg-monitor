@@ -1,110 +1,130 @@
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Users, Globe, Shield } from "lucide-react";
-
-interface ESGRisk {
-  id: number;
-  description: string;
-  category: 'environmental' | 'social' | 'governance';
-  riskIndex: 'high' | 'medium' | 'low';
-  companies: string[];
-}
+// components/dashboard/ESGRisksCard.tsx
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AlertCircle } from "lucide-react";
+import { useEffect, useState } from "react";
 
 interface ESGRisksCardProps {
-  selectedFund?: string;
-  selectedCompany?: string;
-  selectedYear?: string;
+  data?: {
+    environmental?: Array<{ value: string }>;
+    social?: Array<{ value: string }>;
+    governance?: Array<{ value: string }>;
+  };
+  selectedPortfolio?: string;
 }
 
-export function ESGRisksCard({
-  selectedFund = "all",
-  selectedCompany = "all",
-  selectedYear = "2025",
+export function ESGRisksCard({ 
+  data, 
+  selectedPortfolio = "fundwise" 
 }: ESGRisksCardProps) {
-  const esgRisks: ESGRisk[] = [
-    {
-      id: 1,
-      description: "Carbon emissions regulatory compliance",
-      category: "environmental",
-      riskIndex: "high",
-      companies: ["EcoSolutions Inc.", "GreenHarvest", "MediTech Innovations"],
-    },
-    {
-      id: 2,
-      description: "Supply chain labor standards",
-      category: "social",
-      riskIndex: "medium",
-      companies: ["GreenHarvest", "FinSecure"],
-    },
-    {
-      id: 3,
-      description: "Board diversity and inclusion",
-      category: "governance",
-      riskIndex: "medium",
-      companies: ["EduForward", "MediTech Innovations"],
-    },
-    {
-      id: 4,
-      description: "Water scarcity impact",
-      category: "environmental",
-      riskIndex: "high",
-      companies: ["GreenHarvest", "EcoSolutions Inc."],
-    },
-  ];
+  const [hasData, setHasData] = useState(false);
+  const [environmentalRisks, setEnvironmentalRisks] = useState<any[]>([]);
+  const [socialRisks, setSocialRisks] = useState<any[]>([]);
+  const [governanceRisks, setGovernanceRisks] = useState<any[]>([]);
 
-  const getCategoryIcon = (category: ESGRisk['category']) => {
-    switch (category) {
-      case 'environmental':
-        return <Globe className="h-4 w-4" />;
-      case 'social':
-        return <Users className="h-4 w-4" />;
-      case 'governance':
-        return <Shield className="h-4 w-4" />;
-    }
-  };
+  useEffect(() => {
+    const risks = data || {};
+    const env = risks.environmental?.filter(r => r.value) || [];
+    const soc = risks.social?.filter(r => r.value) || [];
+    const gov = risks.governance?.filter(r => r.value) || [];
+    
+    setEnvironmentalRisks(env);
+    setSocialRisks(soc);
+    setGovernanceRisks(gov);
+    setHasData(env.length > 0 || soc.length > 0 || gov.length > 0);
+  }, [data]);
 
-  const getRiskColor = (riskIndex: ESGRisk['riskIndex']) => {
-    switch (riskIndex) {
-      case 'high':
-        return 'destructive';
-      case 'medium':
-        return 'default';
-      case 'low':
-        return 'secondary';
-    }
-  };
+  if (!hasData) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <AlertCircle className="h-5 w-5 text-red-500" />
+            ESG Risks Identified
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <AlertCircle className="h-8 w-8 text-muted-foreground/30 mb-2" />
+            <p className="text-muted-foreground">No risks identified</p>
+            <p className="text-xs text-muted-foreground/70 mt-1">
+              All ESG risk factors are within acceptable limits
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>ESG Risk Assessment</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <AlertCircle className="h-5 w-5 text-red-500" />
+          ESG Risks Identified
+        </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
-          {esgRisks.map((risk) => (
-            <Alert key={risk.id} variant="default" className="bg-background">
-              {getCategoryIcon(risk.category)}
-              <div className="flex items-start justify-between w-full">
-                <div className="space-y-1">
-                  <AlertDescription className="font-medium">
-                    {risk.description}
-                  </AlertDescription>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Badge variant={getRiskColor(risk.riskIndex)}>
-                      {risk.riskIndex} risk
-                    </Badge>
-                    <Badge variant="outline" className="capitalize">
-                      {risk.category}
-                    </Badge>
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {risk.companies.join(", ")}
-                  </div>
-                </div>
-              </div>
-            </Alert>
-          ))}
+        <div className="space-y-4 max-h-[300px] overflow-y-auto">
+          {environmentalRisks.length > 0 && (
+            <div className="border-l-2 border-green-500 pl-3">
+              <h4 className="font-medium text-green-600 mb-2 flex items-center gap-1">
+                <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                Environmental ({environmentalRisks.length})
+              </h4>
+              <ul className="space-y-2">
+                {environmentalRisks.slice(0, 3).map((risk, idx) => (
+                  <li key={idx} className="text-sm text-muted-foreground">
+                    • {risk.value}
+                  </li>
+                ))}
+                {environmentalRisks.length > 3 && (
+                  <li className="text-xs text-primary">+{environmentalRisks.length - 3} more</li>
+                )}
+              </ul>
+            </div>
+          )}
+          
+          {socialRisks.length > 0 && (
+            <div className="border-l-2 border-blue-500 pl-3">
+              <h4 className="font-medium text-blue-600 mb-2 flex items-center gap-1">
+                <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                Social ({socialRisks.length})
+              </h4>
+              <ul className="space-y-2">
+                {socialRisks.slice(0, 3).map((risk, idx) => (
+                  <li key={idx} className="text-sm text-muted-foreground">
+                    • {risk.value}
+                  </li>
+                ))}
+                {socialRisks.length > 3 && (
+                  <li className="text-xs text-primary">+{socialRisks.length - 3} more</li>
+                )}
+              </ul>
+            </div>
+          )}
+          
+          {governanceRisks.length > 0 && (
+            <div className="border-l-2 border-purple-500 pl-3">
+              <h4 className="font-medium text-purple-600 mb-2 flex items-center gap-1">
+                <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
+                Governance ({governanceRisks.length})
+              </h4>
+              <ul className="space-y-2">
+                {governanceRisks.slice(0, 3).map((risk, idx) => (
+                  <li key={idx} className="text-sm text-muted-foreground">
+                    • {risk.value}
+                  </li>
+                ))}
+                {governanceRisks.length > 3 && (
+                  <li className="text-xs text-primary">+{governanceRisks.length - 3} more</li>
+                )}
+              </ul>
+            </div>
+          )}
+        </div>
+        
+        <div className="mt-4 text-xs text-muted-foreground">
+          Total risks: {environmentalRisks.length + socialRisks.length + governanceRisks.length}
         </div>
       </CardContent>
     </Card>
