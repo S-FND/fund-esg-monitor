@@ -95,7 +95,12 @@ export default function Dashboard() {
       ]);
 
       setFunds(fundsData);
-      setCompanies(companiesData);
+      const transformedCompanies = companiesData.map((company: any) => ({
+        companyId: company.companyId,
+        name: company.companyName || company.name
+      }));
+      
+      setCompanies(transformedCompanies);
 
       const currentFY = dashboardApi.getCurrentFinancialYear();
       setCurrentFinancialYear(currentFY);
@@ -115,10 +120,24 @@ export default function Dashboard() {
     try {
       const params: any = { viewType: selectedPortfolio, year: selectedYear };
 
-      if (selectedPortfolio === "fundwise" && selectedFund !== "all") {
-        params.fundId = selectedFund;
-      } else if (selectedPortfolio === "individual-company" && selectedCompany !== "all") {
-        params.companyId = selectedCompany;
+      if (selectedPortfolio === "fundwise") {
+        if (selectedFund !== "all") {
+          params.fundId = selectedFund;
+        } else {
+          setLoading(false);
+          setDashboardData(null);
+          setTransformedData(null);
+          return;
+        }
+      } else if (selectedPortfolio === "individual-company") {
+        if (selectedCompany !== "all") {
+          params.companyId = selectedCompany;
+        } else {
+          setLoading(false);
+          setDashboardData(null);
+          setTransformedData(null);
+          return;
+        }
       }
 
       if (showMonthDropdown && selectedMonth) params.month = selectedMonth;
@@ -280,28 +299,28 @@ export default function Dashboard() {
               governance: dashboardData?.dashboardOtherData?.dashboardEsgMeterData?.governance?.percentage || 0
             }}
           />
-        <OverviewStats
-    stats={{
-      totalFunds: funds?.length,
-      totalCompanies: companies?.length,
-      totalCapital: 0, // Add if you have this data
-      avgESGScore: (
-        (dashboardData?.dashboardOtherData?.dashboardEsgMeterData?.environment?.percentage || 0) +
-        (dashboardData?.dashboardOtherData?.dashboardEsgMeterData?.social?.percentage || 0) +
-        (dashboardData?.dashboardOtherData?.dashboardEsgMeterData?.governance?.percentage || 0)
-      ) / 3,
-      esgBreakdown: {
-        environmental: dashboardData?.dashboardOtherData?.dashboardEsgMeterData?.environment?.percentage,
-        social: dashboardData?.dashboardOtherData?.dashboardEsgMeterData?.social?.percentage,
-        governance: dashboardData?.dashboardOtherData?.dashboardEsgMeterData?.governance?.percentage
-      }
-    }}
-    funds={funds}
-    companies={companies}
-    selectedPortfolio={selectedPortfolio}
-    selectedFund={selectedFund}
-    selectedCompany={selectedCompany}
-  />
+        {/* <OverviewStats
+          stats={{
+            totalFunds: funds?.length,
+            totalCompanies: companies?.length,
+            totalCapital: 0, // Add if you have this data
+            avgESGScore: (
+              (dashboardData?.dashboardOtherData?.dashboardEsgMeterData?.environment?.percentage || 0) +
+              (dashboardData?.dashboardOtherData?.dashboardEsgMeterData?.social?.percentage || 0) +
+              (dashboardData?.dashboardOtherData?.dashboardEsgMeterData?.governance?.percentage || 0)
+            ) / 3,
+            esgBreakdown: {
+              environmental: dashboardData?.dashboardOtherData?.dashboardEsgMeterData?.environment?.percentage,
+              social: dashboardData?.dashboardOtherData?.dashboardEsgMeterData?.social?.percentage,
+              governance: dashboardData?.dashboardOtherData?.dashboardEsgMeterData?.governance?.percentage
+            }
+          }}
+          funds={funds}
+          companies={companies}
+          selectedPortfolio={selectedPortfolio}
+          selectedFund={selectedFund}
+          selectedCompany={selectedCompany}
+        /> */}
 
           {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <FundPerformanceCard data={transformedData?.overview?.fundPerformance} />
@@ -357,7 +376,7 @@ export default function Dashboard() {
         </TabsContent>
 
         <TabsContent value="sdg" className="space-y-4">
-          <SDGPerformanceCard
+          {/* <SDGPerformanceCard
             data={transformedData?.sdgPerformance}
             selectedPortfolio={selectedPortfolio}
             dashboardTopics={topicsToPass}
@@ -373,7 +392,7 @@ export default function Dashboard() {
               selectedPortfolio={selectedPortfolio}
               dashboardTopics={topicsToPass}
             />
-          </div>
+          </div> */}
           <SDGTab
             data={dashboardData?.dashboardOtherData?.dashboardSDGStratgyData}
             selectedPortfolio={selectedPortfolio}
