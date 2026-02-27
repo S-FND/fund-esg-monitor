@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, Download, Eye, Link } from "lucide-react";
+import { FileText, Download, Eye, Link, FileCheck, Clock, Users } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { DateRangeSearch } from "@/components/esg-dd/DateRangeSearch";
 import { useEffect, useState } from "react";
@@ -29,25 +29,6 @@ export default function ESGDDReport() {
   const getS3FilePath = (file_path) =>
     `https://fandoro-sustainability-saas.s3.ap-south-1.amazonaws.com/${file_path}`;
   const [portfolioCompanies, setPortfolioCompanies] = useState([])
-  // const allReports: Report[] = [
-  //   {
-  //     id: "report-1",
-  //     entityId: 1,
-  //     title: "ESG Due Diligence Report - Q1 2025",
-  //     createdAt: "2025-01-15",
-  //     consultant: "EcoConsult Partners",
-  //     file_path: "#"
-  //   },
-  //   {
-  //     id: "report-2",
-  //     entityId: 2,
-  //     title: "ESG Due Diligence Report - Q4 2024",
-  //     createdAt: "2024-10-10",
-  //     consultant: "Sustainable Future Advisors",
-  //     file_path: "#"
-  //   }
-  // ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
   const [filteredReports, setFilteredReports] = useState([]);
   const [selectedCompany, setSelectedCompany] = useState<string>("all");
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -75,8 +56,8 @@ export default function ESGDDReport() {
     }
 
     setSelectedCompany(companyId);
-    let filteredCompany=portfolioCompanies.filter((p)=>p.email == companyId)[0];
-    console.log('filteredCompany',filteredCompany)
+    let filteredCompany = portfolioCompanies.filter((p) => p.email == companyId)[0];
+    console.log('filteredCompany', filteredCompany)
     applyFilters(companyId, null, null);
   };
 
@@ -240,6 +221,16 @@ export default function ESGDDReport() {
     return company?.name || "Unknown Company";
   };
 
+  // Calculate stats
+  const totalReports = filteredReports.length;
+  const uniqueCompanies = [...new Set(filteredReports.map(r => r.entityId))].length;
+  const latestReport = filteredReports.length > 0
+    ? new Date(Math.max(...filteredReports.map(r => new Date(r.createdAt).getTime()))).toLocaleDateString()
+    : 'N/A';
+  const oldestReport = filteredReports.length > 0
+    ? new Date(Math.min(...filteredReports.map(r => new Date(r.createdAt).getTime()))).toLocaleDateString()
+    : 'N/A';
+
   return (
     <div className="space-y-6">
       <div>
@@ -247,6 +238,77 @@ export default function ESGDDReport() {
         <p className="text-muted-foreground">
           View ESG Due Diligence reports uploaded by consultants
         </p>
+      </div>
+
+      {/* Stats Boxes */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {/* Total Reports Card */}
+        <Card className="border-none shadow-md bg-gradient-to-br from-blue-500 to-blue-600 text-white overflow-hidden">
+          <div className="p-3 relative">
+            <div className="absolute top-0 right-0 w-14 h-14 bg-white/10 rounded-full -mr-4 -mt-4"></div>
+            <div className="absolute bottom-0 left-0 w-8 h-8 bg-white/10 rounded-full -ml-3 -mb-3"></div>
+            <div className="flex items-center justify-between relative z-10">
+              <div>
+                <p className="text-xs font-medium text-blue-100">Total Reports</p>
+                <p className="text-xl font-bold">{totalReports}</p>
+              </div>
+              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                <FileText className="h-4 w-4" />
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        {/* Companies Card */}
+        <Card className="border-none shadow-md bg-gradient-to-br from-green-500 to-emerald-600 text-white overflow-hidden">
+          <div className="p-3 relative">
+            <div className="absolute top-0 right-0 w-14 h-14 bg-white/10 rounded-full -mr-4 -mt-4"></div>
+            <div className="absolute bottom-0 left-0 w-8 h-8 bg-white/10 rounded-full -ml-3 -mb-3"></div>
+            <div className="flex items-center justify-between relative z-10">
+              <div>
+                <p className="text-xs font-medium text-green-100">Companies</p>
+                <p className="text-xl font-bold">{uniqueCompanies}</p>
+              </div>
+              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                <Users className="h-4 w-4" />
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        {/* Latest Report Card */}
+        <Card className="border-none shadow-md bg-gradient-to-br from-purple-500 to-purple-600 text-white overflow-hidden">
+          <div className="p-3 relative">
+            <div className="absolute top-0 right-0 w-14 h-14 bg-white/10 rounded-full -mr-4 -mt-4"></div>
+            <div className="absolute bottom-0 left-0 w-8 h-8 bg-white/10 rounded-full -ml-3 -mb-3"></div>
+            <div className="flex items-center justify-between relative z-10">
+              <div>
+                <p className="text-xs font-medium text-purple-100">Latest Report</p>
+                <p className="text-base font-bold truncate max-w-[100px]">{latestReport}</p>
+              </div>
+              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                <Clock className="h-4 w-4" />
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        {/* Oldest Report Card */}
+        <Card className="border-none shadow-md bg-gradient-to-br from-orange-500 to-orange-600 text-white overflow-hidden">
+          <div className="p-3 relative">
+            <div className="absolute top-0 right-0 w-14 h-14 bg-white/10 rounded-full -mr-4 -mt-4"></div>
+            <div className="absolute bottom-0 left-0 w-8 h-8 bg-white/10 rounded-full -ml-3 -mb-3"></div>
+            <div className="flex items-center justify-between relative z-10">
+              <div>
+                <p className="text-xs font-medium text-orange-100">Oldest Report</p>
+                <p className="text-base font-bold truncate max-w-[100px]">{oldestReport}</p>
+              </div>
+              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                <FileCheck className="h-4 w-4" />
+              </div>
+            </div>
+          </div>
+        </Card>
       </div>
 
       <div className="flex flex-col gap-6">

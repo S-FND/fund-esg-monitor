@@ -1,0 +1,88 @@
+[
+    {
+      "value": "category1",
+      "label": "Goal 1. End poverty in all its forms everywhere",
+      "imageUrl": "/assets/images/E_SDG_ICONS/E-WEB-Goal-01.png"
+    },
+    {
+      "value": "category2",
+      "label": "Goal 2. End hunger, achieve food security and improved nutrition and promote sustainable agriculture",
+      "imageUrl": "/assets/images/E_SDG_ICONS/E-WEB-Goal-02.png"
+    },
+    {
+      "value": "category3",
+      "label": "Goal 3. Ensure healthy lives and promote well-being for all at all ages",
+      "imageUrl": "/assets/images/E_SDG_ICONS/E-WEB-Goal-03.png"
+    },
+    {
+      "value": "category4",
+      "label": "Goal 4. Ensure inclusive and equitable quality education and promote lifelong learning opportunities for all",
+      "imageUrl": "/assets/images/E_SDG_ICONS/E-WEB-Goal-04.png"
+    },
+    {
+      "value": "category5",
+      "label": "Goal 5. Achieve gender equality and empower all women and girls",
+      "imageUrl": "/assets/images/E_SDG_ICONS/E-WEB-Goal-05.png"
+    },
+    {
+      "value": "category6",
+      "label": "Goal 6. Ensure availability and sustainable management of water and sanitation for all",
+      "imageUrl": "/assets/images/E_SDG_ICONS/E-WEB-Goal-06.png"
+    },
+    {
+      "value": "category7",
+      "label": "Goal 7. Ensure access to affordable, reliable, sustainable and modern energy for all",
+      "imageUrl": "/assets/images/E_SDG_ICONS/E-WEB-Goal-07.png"
+    },
+    {
+      "value": "category8",
+      "label": "Goal 8. Promote sustained, inclusive and sustainable economic growth, full and productive employment and decent work for all",
+      "imageUrl": "/assets/images/E_SDG_ICONS/E-WEB-Goal-08.png"
+    },
+    {
+      "value": "category9",
+      "label": "Goal 9. Build resilient infrastructure, promote inclusive and sustainable industrialization and foster innovation",
+      "imageUrl": "/assets/images/E_SDG_ICONS/E-WEB-Goal-09.png"
+    },
+    {
+      "value": "category10",
+      "label": "Goal 10. Reduce inequality within and among countries",
+      "imageUrl": "/assets/images/E_SDG_ICONS/E-WEB-Goal-10.png"
+    },
+    {
+      "value": "category11",
+      "label": "Goal 11. Make cities and human settlements inclusive, safe, resilient and sustainable",
+      "imageUrl": "/assets/images/E_SDG_ICONS/E-WEB-Goal-11.png"
+    },
+    {
+      "value": "category12",
+      "label": "Goal 12. Ensure sustainable consumption and production patterns",
+      "imageUrl": "/assets/images/E_SDG_ICONS/E-WEB-Goal-12.png"
+    },
+    {
+      "value": "category13",
+      "label": "Goal 13. Take urgent action to combat climate change and its impacts",
+      "imageUrl": "/assets/images/E_SDG_ICONS/E-WEB-Goal-13.png"
+    },
+    {
+      "value": "category14",
+      "label": "Goal 14. Conserve and sustainably use the oceans, seas and marine resources for sustainable development",
+      "imageUrl": "/assets/images/E_SDG_ICONS/E-WEB-Goal-14.png"
+    },
+    {
+      "value": "category15",
+      "label": "Goal 15. Protect, restore and promote sustainable use of terrestrial ecosystems, sustainably manage forests, combat desertification, and halt and reverse land degradation and halt biodiversity loss",
+      "imageUrl": "/assets/images/E_SDG_ICONS/E-WEB-Goal-15.png"
+    },
+    {
+      "value": "category16",
+      "label": "Goal 16. Promote peaceful and inclusive societies for sustainable development, provide access to justice for all and build effective, accountable and inclusive institutions at all levels",
+      "imageUrl": "/assets/images/E_SDG_ICONS/E-WEB-Goal-16.png"
+    },
+    {
+      "value": "category17",
+      "label": "Goal 17. Strengthen the means of implementation and revitalize the Global Partnership for Sustainable Development",
+      "imageUrl": "/assets/images/E_SDG_ICONS/E-WEB-Goal-17.png"
+    }
+  ]
+  
