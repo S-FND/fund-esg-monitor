@@ -7,7 +7,16 @@ import { FilterControls } from "@/components/esg-cap/FilterControls";
 import { AlertsPanel } from "@/components/esg-cap/AlertsPanel";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { ArrowLeft, ArrowRight, ArrowUp, ArrowDown } from "lucide-react";
+import { 
+  ArrowLeft, 
+  ArrowRight, 
+  ArrowUp, 
+  ArrowDown,
+  FileText,
+  CheckCircle2,
+  Clock,
+  Target
+} from "lucide-react";
 import { http } from "@/utils/httpInterceptor";
 import { useESGCAPAlerts } from "@/hooks/useESGCAPAlerts";
 import { AddCAPDialog } from "@/components/esg-cap/AddCAPDialog";
@@ -319,20 +328,7 @@ const CAPTable = ({
                   >
                     Review
                   </Button>
-                  {/* {isComparisonView && hasChanges && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onRevert(String(item.id))}
-                    >
-                      Revert All
-                    </Button>
-                  )} */}
                 </td>
-
-                {/* <td className={`p-3 ${changedFields.remarks ? "border-l-4 border-yellow-500" : ""}`}>
-                  <HighlightDiff current={item.remarks || ''} original={originalItem?.remarks} />
-                </td> */}
               </tr>
             );
           })}
@@ -377,9 +373,8 @@ export default function ESGCAP() {
   useEffect(() => {
     const currentDate = new Date();
     const currentYear = currentDate.getFullYear();
-    const aprilFirstCurrentYear = new Date(currentYear, 3, 1); // April 1st of the current year
+    const aprilFirstCurrentYear = new Date(currentYear, 3, 1);
 
-    // Check if the current date is before April 1st of the current year
     const financialYear =
       currentDate < aprilFirstCurrentYear
         ? `${currentYear - 1}-${currentYear.toString().slice(-2)}`
@@ -387,6 +382,12 @@ export default function ESGCAP() {
 
     setFinancialYear(financialYear);
   }, []);
+
+  // Calculate stats
+  const totalItems = filteredCAPItems.length;
+  const completedItems = filteredCAPItems.filter(i => i.status === 'completed').length;
+  const pendingItems = filteredCAPItems.filter(i => i.status === 'pending').length;
+  const inProgressItems = filteredCAPItems.filter(i => i.status === 'in-progress').length;
 
   const handleReview = (item: ESGCapItem) => {
     const currentItem = capItems.find(i => i.id === item.id);
@@ -481,7 +482,6 @@ export default function ESGCAP() {
         previousCapItemsRef.current = data.plan || [];
       } else {
         console.error("Error:", error);
-        // reset state when no data
         setPlanData(null);
         setFilteredCAPItems([]);
         setCapItems([]);
@@ -501,10 +501,8 @@ export default function ESGCAP() {
   useEffect(() => {
     if (selectedCompany !== 'all') {
       const company = portfolioCompanies.find(c => c.email === selectedCompany);
-      const entityId = company?.user?.entityId
+      const entityId = company?.user?.entityId;
       if (entityId) {
-        getPlanList(entityId);
-      } else {
         getPlanList(entityId);
       }
     }
@@ -514,7 +512,6 @@ export default function ESGCAP() {
     previousCapItemsRef.current = [...capItems];
 
     const updatedItems = capItems.map(item => {
-      // Use item.id for identification
       if (item.id === updatedItem.id) {
         return { ...updatedItem, changeStatus: 'Edited' };
       }
@@ -523,12 +520,6 @@ export default function ESGCAP() {
     setCapItems(updatedItems);
     setSelectedItem({ ...updatedItem });
     setReviewDialogOpen(false);
-  };
-
-
-  const isAcceptVisible = (): boolean => {
-    if (!planData) return false;
-    return !planData.investorPlanFinalStatus;
   };
 
   const isPlanFinalized = planData ?
@@ -576,7 +567,6 @@ export default function ESGCAP() {
   };
 
   const handleRevertToOriginal = (itemId: string) => {
-    // Find by ID since we're using proper IDs now
     const originalItem = previousCapItemsRef.current.find(item => item.id === itemId);
     if (originalItem) {
       const updatedItems = capItems.map(item => {
@@ -617,7 +607,6 @@ export default function ESGCAP() {
     const isFounder = user?.entityType === 2;
 
     try {
-      // Update acceptance flags
       const updatedFinalAcceptance = {
         founderAcceptance: planData.finalAcceptance?.founderAcceptance || false,
         investorAcceptance: planData.finalAcceptance?.investorAcceptance || false,
@@ -625,15 +614,13 @@ export default function ESGCAP() {
         ...(isInvestor && { investorAcceptance: true }),
       };
 
-      // Check if both have accepted
       const bothAccepted =
         updatedFinalAcceptance.founderAcceptance &&
         updatedFinalAcceptance.investorAcceptance;
 
-      // Payload for API (added plan)
       const payload = {
         entityId: planData.entityId,
-        plan: planData.plan || [], // ✅ include the CAP plan
+        plan: planData.plan || [],
         finalAcceptance: updatedFinalAcceptance,
         ...(isFounder && { founderPlanFinalStatus: true }),
         ...(isInvestor && { investorPlanFinalStatus: true }),
@@ -666,7 +653,6 @@ export default function ESGCAP() {
       });
     }
   };
-
 
   const getPriorityWeight = (priority: CAPPriority): number => {
     switch (priority) {
@@ -701,7 +687,6 @@ export default function ESGCAP() {
   }, []);
 
   const handleAddItem = (newItem: ESGCapItem) => {
-    // Ensure newItem has a proper ID
     const itemWithId = newItem.id ? newItem : { ...newItem, id: (capItems.length + 1).toString() };
     const updatedItems = [...capItems, itemWithId];
     setCapItems(updatedItems);
@@ -709,7 +694,6 @@ export default function ESGCAP() {
   };
 
   const handleAddMultipleItems = (newItems: ESGCapItem[]) => {
-    // Ensure all items have proper IDs
     const itemsWithIds = newItems.map((item, index) =>
       item.id ? item : { ...item, id: (capItems.length + index + 1).toString() }
     );
@@ -719,7 +703,6 @@ export default function ESGCAP() {
     setFilteredCAPItems(updatedItems);
   };
 
-  // Save to localStorage whenever capItems changes
   const saveToLocalStorage = (items: ESGCapItem[]) => {
     localStorage.setItem('esg-cap-items', JSON.stringify(items));
   };
@@ -728,30 +711,24 @@ export default function ESGCAP() {
     saveToLocalStorage(capItems);
   }, [capItems]);
 
-  // Add this helper
   const canAccept = (): boolean => {
     if (!planData) return false;
 
     const isInvestor = user?.entityType === 1;
     const isFounder = user?.entityType === 2;
 
-    // If already finalized → no accept
     if (planData.finalPlan) return false;
 
-    // Founder case
     if (isFounder) {
       return !planData.founderPlanFinalStatus;
     }
 
-    // Investor case
     if (isInvestor) {
-      // Must wait for founder + not already accepted
       return planData.founderPlanFinalStatus && !planData.investorPlanFinalStatus;
     }
 
     return false;
   };
-
 
   return (
     <div className="space-y-6">
@@ -766,6 +743,57 @@ export default function ESGCAP() {
           onAddItem={handleAddItem}
           onAddMultipleItems={handleAddMultipleItems}
         />
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card className="border-none shadow-sm bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-blue-100">Total Items</p>
+                <p className="text-lg font-bold">{totalItems}</p>
+              </div>
+              <FileText className="h-4 w-4 text-white/80" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-none shadow-sm bg-gradient-to-br from-green-500 to-emerald-600 text-white">
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-green-100">Completed</p>
+                <p className="text-lg font-bold">{completedItems}</p>
+              </div>
+              <CheckCircle2 className="h-4 w-4 text-white/80" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-none shadow-sm bg-gradient-to-br from-yellow-500 to-yellow-600 text-white">
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-yellow-100">Pending</p>
+                <p className="text-lg font-bold">{pendingItems}</p>
+              </div>
+              <Clock className="h-4 w-4 text-white/80" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-none shadow-sm bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-purple-100">In Progress</p>
+                <p className="text-lg font-bold">{inProgressItems}</p>
+              </div>
+              <Target className="h-4 w-4 text-white/80" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="flex items-center justify-between">
@@ -860,13 +888,11 @@ export default function ESGCAP() {
                     <Button
                       onClick={handleAcceptCap}
                       size="lg"
-                    // disabled={showComparisonView || !canAccept()}
                     >
                       {planData?.investorPlanFinalStatus || planData?.founderPlanFinalStatus
                         ? "Accept CAP"
                         : "Accept CAP"}
                     </Button>
-
                   </>
                 )}
                 {isPlanFinalized && (

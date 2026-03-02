@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -14,8 +15,10 @@ import {
   Target,
   User,
   Eye,
-  Trash2, // Changed from LogOut
-  Undo
+  Trash2,
+  Undo,
+  TrendingUp,
+  Archive
 } from "lucide-react";
 import {
   AlertDialog,
@@ -62,23 +65,24 @@ interface Company {
 interface PortfolioTableProps {
   companies: Company[];
   onViewDetails?: (companyId: string) => void;
-  onSoftDelete: (companyId: string, shouldDelete: boolean) => Promise<void>; // Changed
+  onSoftDelete: (companyId: string, shouldDelete: boolean) => Promise<void>;
   viewMode: "active" | "deleted";
-  loading?: boolean; // Added
-  onFilterChange?: (filter: "all" | "active" | "deleted") => void; // Added
-  currentFilter?: "all" | "active" | "deleted"; // Added
+  loading?: boolean;
+  onFilterChange?: (filter: "all" | "active" | "deleted") => void;
+  currentFilter?: "all" | "active" | "deleted";
 }
 
 export function PortfolioTable({
   companies,
   onViewDetails,
-  onSoftDelete, // Changed
+  onSoftDelete,
   viewMode,
-  loading = false // Added
+  loading = false
 }: PortfolioTableProps) {
   const navigate = useNavigate();
   const [showExitModal, setShowExitModal] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<{ id: string; company: Company } | null>(null);
+
   const handleViewDetails = (companyId: string) => {
     if (onViewDetails) {
       onViewDetails(companyId);
@@ -92,6 +96,11 @@ export function PortfolioTable({
       company?.user?.active === false ||
       company?.user?.softDelete === true;
   };
+
+  // Calculate stats - moved inside component after isDeleted is defined
+  const totalCompanies = companies.length;
+  const activeCompanies = companies.filter(c => !isDeleted(c)).length;
+  const deletedCompanies = companies.filter(c => isDeleted(c)).length;
 
   const handleDeleteRestoreClick = async (companyId: string, company: Company) => {
     const deleted = isDeleted(company);
@@ -107,6 +116,60 @@ export function PortfolioTable({
 
   return (
     <>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+        {/* Total Companies Card */}
+        <Card className="border-none shadow-md bg-gradient-to-br from-blue-500 to-blue-600 text-white overflow-hidden h-fit">
+          <div className="p-2 relative">
+            <div className="absolute top-0 right-0 w-12 h-12 bg-white/10 rounded-full -mr-4 -mt-4"></div>
+            <div className="absolute bottom-0 left-0 w-8 h-8 bg-white/10 rounded-full -ml-2 -mb-2"></div>
+            <div className="flex items-center justify-between relative z-10">
+              <div>
+                <p className="text-xs font-medium text-blue-100">Total Companies</p>
+                <p className="text-xl font-bold">{totalCompanies}</p>
+              </div>
+              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                <Building2 className="h-4 w-4" />
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        {/* Active Companies Card */}
+        <Card className="border-none shadow-md bg-gradient-to-br from-green-500 to-emerald-600 text-white overflow-hidden h-fit">
+          <div className="p-2 relative">
+            <div className="absolute top-0 right-0 w-12 h-12 bg-white/10 rounded-full -mr-4 -mt-4"></div>
+            <div className="absolute bottom-0 left-0 w-8 h-8 bg-white/10 rounded-full -ml-2 -mb-2"></div>
+            <div className="flex items-center justify-between relative z-10">
+              <div>
+                <p className="text-xs font-medium text-green-100">Active</p>
+                <p className="text-xl font-bold">{activeCompanies}</p>
+              </div>
+              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                <TrendingUp className="h-4 w-4" />
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        {/* Deleted Companies Card */}
+        <Card className="border-none shadow-md bg-gradient-to-br from-gray-600 to-gray-700 text-white overflow-hidden h-fit">
+          <div className="p-2 relative">
+            <div className="absolute top-0 right-0 w-12 h-12 bg-white/10 rounded-full -mr-4 -mt-4"></div>
+            <div className="absolute bottom-0 left-0 w-8 h-8 bg-white/10 rounded-full -ml-2 -mb-2"></div>
+            <div className="flex items-center justify-between relative z-10">
+              <div>
+                <p className="text-xs font-medium text-gray-200">Deleted</p>
+                <p className="text-xl font-bold">{deletedCompanies}</p>
+              </div>
+              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                <Archive className="h-4 w-4" />
+              </div>
+            </div>
+          </div>
+        </Card>
+      </div>
+
       <div className="rounded-md border overflow-hidden">
         <Table>
           <TableHeader>
