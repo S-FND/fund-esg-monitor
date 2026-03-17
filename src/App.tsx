@@ -109,7 +109,7 @@ function App() {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
-          <ModeToggle />
+          {/* <ModeToggle /> */}
         </div>
         <Routes>
           <Route path="/" element={<Dashboard />} />
