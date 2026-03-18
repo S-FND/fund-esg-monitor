@@ -160,6 +160,16 @@ export const esgddChangePlan = async (postData: any) => {
   }
 };
 
+export const sendReminder = async (postData: any) => {
+  try {
+    const response = await api.post(`investor/esgdd/escap/send-reminder`, postData);
+    return [response.data, null];
+  } catch (error: any) {
+    console.log("error message: ", error.message);
+    return [null, error.message || "ERROR : Failed to send reminder"];
+  }
+};
+
 // Export entityId if needed elsewhere
 export const entityId = getUserEntityId();
 
@@ -176,5 +186,6 @@ export const EsgddAPIs = {
   getEsgCaps,
   esgddAcceptPlan,
   esgddChangePlan,
+  sendReminder,
   entityId: getUserEntityId()
 };

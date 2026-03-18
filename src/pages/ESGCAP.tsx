@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
-import { ESGCapItem, CAPStatus, CAPType, CAPPriority } from "@/components/esg-cap/CAPTable";
+import { ESGCapItem, CAPStatus, CAPType, CAPPriority, CAPTable } from "@/components/esg-cap/CAPTable";
 import { ComparePlan, ReviewDialog } from "@/components/esg-cap/ReviewDialog";
 import { FilterControls } from "@/components/esg-cap/FilterControls";
 import { AlertsPanel } from "@/components/esg-cap/AlertsPanel";
@@ -48,310 +48,6 @@ interface APIResponse {
   investorPlanFinalStatus: boolean;
 }
 
-const HighlightDiff = ({
-  current,
-  original,
-  length = 50
-}: {
-  current: string;
-  original?: string;
-  length?: number;
-}) => {
-  const [expanded, setExpanded] = useState(false);
-
-  if (!current) return null;
-
-  const displayText =
-    !expanded && current.length > length ? current.slice(0, length) + "..." : current;
-
-  const hasDiff = original && current !== original;
-
-  return (
-    <span className="relative group">
-      <span className={`${hasDiff ? "text-green-600 bg-green-50 px-1 rounded" : ""}`}>
-        {displayText}
-      </span>
-      {hasDiff && !expanded && (
-        <span className="absolute hidden group-hover:block -bottom-6 left-0 text-xs text-red-600 line-through bg-red-50 px-1 rounded">
-          {original}
-        </span>
-      )}
-      {current.length > length && (
-        <button
-          onClick={() => setExpanded(!expanded)}
-          className="ml-1 text-blue-600 hover:underline text-xs"
-        >
-          {expanded ? "View less" : "View full"}
-        </button>
-      )}
-    </span>
-  );
-};
-
-
-const CAPTable = ({
-  items,
-  originalItems,
-  onReview,
-  onSendReminder,
-  isComparisonView,
-  onRevert,
-  onRevertField,
-  finalPlan,
-  progressPercentage
-}: {
-  items: ESGCapItem[];
-  originalItems: ESGCapItem[];
-  onReview: (item: ESGCapItem) => void;
-  onSendReminder: (item: ESGCapItem) => void;
-  isComparisonView: boolean;
-  onRevert: (itemId: string) => void;
-  onRevertField: (itemId: string, field: keyof ESGCapItem) => void;
-  finalPlan: boolean;
-  progressPercentage: number;
-}) => {
-  const [sortConfig, setSortConfig] = useState<{
-    key: keyof ESGCapItem;
-    direction: 'asc' | 'desc';
-  } | null>(null);
-  const requestSort = (key: keyof ESGCapItem) => {
-    let direction: 'asc' | 'desc' = 'asc';
-    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
-      direction = 'desc';
-    }
-    setSortConfig({ key, direction });
-  };
-
-  const sortedItems = useMemo(() => {
-    if (!sortConfig) return items;
-    return [...items].sort((a, b) => {
-      const aValue = a[sortConfig.key];
-      const bValue = b[sortConfig.key];
-
-      if (aValue === undefined || aValue === null) return 1;
-      if (bValue === undefined || bValue === null) return -1;
-
-      if (typeof aValue === 'string' && typeof bValue === 'string') {
-        return sortConfig.direction === 'asc'
-          ? aValue.localeCompare(bValue)
-          : bValue.localeCompare(aValue);
-      }
-
-      if (typeof aValue === 'number' && typeof bValue === 'number') {
-        return sortConfig.direction === 'asc' ? aValue - bValue : bValue - aValue;
-      }
-
-      // For dates
-      if (typeof aValue === 'string' && typeof bValue === 'string') {
-        const dateA = new Date(aValue);
-        const dateB = new Date(bValue);
-        return sortConfig.direction === 'asc'
-          ? dateA.getTime() - dateB.getTime()
-          : dateB.getTime() - dateA.getTime();
-      }
-
-      return 0;
-    });
-  }, [items, sortConfig]);
-
-  const getChangedFields = useCallback((currentItem: ESGCapItem, originalItem?: ESGCapItem) => {
-    if (!originalItem) return {};
-
-    const changes: Record<string, boolean> = {};
-    (Object.keys(currentItem) as Array<keyof ESGCapItem>).forEach((key) => {
-      changes[key] = JSON.stringify(currentItem[key]) !== JSON.stringify(originalItem[key]);
-    });
-    return changes;
-  }, []);
-
-  const SortableHeader = ({
-    field,
-    title
-  }: {
-    field: keyof ESGCapItem;
-    title: string;
-  }) => (
-    <th
-      className="p-3 text-left cursor-pointer hover:bg-muted/50"
-      onClick={() => requestSort(field)}
-    >
-      {title}
-      {sortConfig?.key === field && (
-        sortConfig.direction === 'asc' ?
-          <ArrowUp className="h-4 w-4 inline ml-1" /> :
-          <ArrowDown className="h-4 w-4 inline ml-1" />
-      )}
-    </th>
-  );
-
-  const formatDate = (dateString: string | undefined) => {
-    if (!dateString) return '';
-    try {
-      return new Date(dateString).toLocaleDateString();
-    } catch {
-      return dateString;
-    }
-  };
-
-  const ExpandableText = ({ text, length = 50 }: { text: string; length?: number }) => {
-    const [expanded, setExpanded] = useState(false);
-
-    if (!text) return null;
-
-    if (text.length <= length) {
-      return <span>{text}</span>;
-    }
-
-    return (
-      <span>
-        {expanded ? text : text.slice(0, length) + "..."}
-        <button
-          onClick={() => setExpanded(!expanded)}
-          className="ml-1 text-blue-600 hover:underline text-xs"
-        >
-          {expanded ? "View less" : "View full"}
-        </button>
-      </span>
-    );
-  };
-
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full border-collapse">
-        <thead>
-          <tr className="bg-gray-100">
-            <th className="p-3 text-left w-[60px]">S. No</th>
-            <SortableHeader field="item" title="Item" />
-            <th className="p-3 text-left">Category</th>
-            <SortableHeader field="priority" title="Priority" />
-            <th className="p-3 text-left">Measures and/or Corrective Actions</th>
-            <th className="p-3 text-left">Resource & Responsibility</th>
-            <th className="p-3 text-left">Expected Deliverable</th>
-            <SortableHeader field="targetDate" title="Target Date" />
-            <th className="p-3 text-left">CP/CS</th>
-            <th className="p-3 text-left">Actual Date</th>
-            <th className="p-3 text-left">Status</th>
-            {isComparisonView && <th className="p-3 text-left">Changes</th>}
-            <th className="p-3 text-left">Actions</th>
-            <th className="p-3 text-left">Remarks</th>
-          </tr>
-        </thead>
-        <tbody>
-          {sortedItems.map((item, index) => {
-            const originalItem = originalItems.find(i => i.id === item.id);
-            const changedFields = getChangedFields(item, originalItem);
-            const hasChanges = isComparisonView && Object.values(changedFields).some(Boolean);
-            return (
-              <tr
-                key={item.id}
-                className={`border-t ${hasChanges ? "bg-yellow-50" : ""}`}
-              >
-                <td className="p-3 text-center">{index + 1}</td>
-
-                <td className={`p-3 ${changedFields.item ? "border-l-4 border-yellow-500" : ""}`}>
-                  <HighlightDiff current={item.item} original={originalItem?.item} />
-                </td>
-
-                <td className={`p-3 ${changedFields.category ? "border-l-4 border-yellow-500" : ""}`}>
-                  <HighlightDiff current={item.category || ''} original={originalItem?.category} />
-                </td>
-
-                <td className={`p-3 ${changedFields.priority ? "border-l-4 border-yellow-500" : ""}`}>
-                  <HighlightDiff current={item.priority || ''} original={originalItem?.priority} />
-                </td>
-
-                <td className={`p-3 ${changedFields.measures ? "border-l-4 border-yellow-500" : ""}`}>
-                  <HighlightDiff current={item.measures || ''} original={originalItem?.measures} />
-                </td>
-
-                <td className={`p-3 ${changedFields.resource ? "border-l-4 border-yellow-500" : ""}`}>
-                  <HighlightDiff current={item.resource || ''} original={originalItem?.resource} />
-                </td>
-
-                <td className={`p-3 ${changedFields.deliverable ? "border-l-4 border-yellow-500" : ""}`}>
-                  <HighlightDiff current={item.deliverable || ''} original={originalItem?.deliverable} />
-                </td>
-
-                <td className={`p-3 ${changedFields.targetDate ? "border-l-4 border-yellow-500" : ""}`}>
-                  <HighlightDiff
-                    current={formatDate(item.targetDate)}
-                    original={formatDate(originalItem?.targetDate)}
-                  />
-                </td>
-
-                <td className={`p-3 ${changedFields.CS ? "border-l-4 border-yellow-500" : ""}`}>
-                  <HighlightDiff current={item.CS || ''} original={originalItem?.CS} />
-                </td>
-
-                <td className={`p-3 ${changedFields.actualDate ? "border-l-4 border-yellow-500" : ""}`}>
-                  <HighlightDiff
-                    current={formatDate(item.actualDate)}
-                    original={formatDate(originalItem?.actualDate)}
-                  />
-                </td>
-
-                <td className={`p-3 ${changedFields.status ? "border-l-4 border-yellow-500" : ""}`}>
-                  <HighlightDiff
-                    current={item.status}
-                    original={originalItem?.status}
-                  />
-                </td>
-
-                {isComparisonView && (
-                  <td className="p-3">
-                    {hasChanges ? (
-                      <div className="flex flex-wrap gap-1">
-                        {Object.entries(changedFields).map(([field, hasChanged]) => (
-                          hasChanged && (
-                            <button
-                              key={field}
-                              onClick={() => onRevertField(String(item.id), field as keyof ESGCapItem)}
-                              className="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800 hover:bg-yellow-200 transition-colors"
-                              title={`Revert ${field} to original`}
-                            >
-                              {field}
-                            </button>
-                          )
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="text-gray-400 text-sm">No changes</span>
-                    )}
-                  </td>
-                )}
-
-                <td className="p-3 space-x-2">
-                  <Button
-                    size="sm"
-                    onClick={() => onReview(item)}
-                    disabled={finalPlan}
-                  >
-                    Review
-                  </Button>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-      {progressPercentage > 0 && (
-        <div className="mt-4">
-          <div className="flex justify-between mb-1">
-            <span className="text-sm font-medium">Progress</span>
-            <span className="text-sm">{progressPercentage}%</span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2.5">
-            <div
-              className="bg-green-600 h-2.5 rounded-full"
-              style={{ width: `${progressPercentage}%` }}
-            ></div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
 export default function ESGCAP() {
   const [portfolioCompanies, setPortfolioCompanies] = useState([]);
   const [selectedItem, setSelectedItem] = useState<ESGCapItem | null>(null);
@@ -387,7 +83,7 @@ export default function ESGCAP() {
   const totalItems = filteredCAPItems.length;
   const completedItems = filteredCAPItems.filter(i => i.status === 'completed').length;
   const pendingItems = filteredCAPItems.filter(i => i.status === 'pending').length;
-  const inProgressItems = filteredCAPItems.filter(i => i.status === 'in-progress').length;
+  const inProgressItems = filteredCAPItems.filter(i => i.status === 'in_progress').length;
 
   const handleReview = (item: ESGCapItem) => {
     const currentItem = capItems.find(i => i.id === item.id);
@@ -410,6 +106,7 @@ export default function ESGCAP() {
         return item;
       });
       setCapItems(updatedItems);
+      setFilteredCAPItems(updatedItems);
     }
     toast({
       title: "Item Approved",
@@ -429,6 +126,7 @@ export default function ESGCAP() {
         return item;
       });
       setCapItems(updatedItems);
+      setFilteredCAPItems(updatedItems);
     }
     toast({
       title: "Item Rejected",
@@ -437,11 +135,34 @@ export default function ESGCAP() {
     setReviewDialogOpen(false);
   };
 
-  const handleSendReminder = (item: ESGCapItem) => {
-    toast({
-      title: "Reminder Sent",
-      description: `Reminder sent for "${item.item}"`,
-    });
+  const handleSendReminder = async (item: ESGCapItem) => {
+    try {
+      const payload = {
+        reportId: item.reportId,
+        itemId: item.id,
+        itemName: item.item,
+        assignedTo: item.assignedTo,
+        targetDate: item.targetDate
+      };
+  
+      const [res, error] = await EsgddAPIs.sendReminder(payload);
+  
+      if (res) {
+        toast({
+          title: "Reminder Sent",
+          description: "Email reminder sent successfully.",
+        });
+      } else {
+        throw new Error(error || "Failed to send reminder");
+      }
+  
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to send reminder email.",
+        variant: "destructive",
+      });
+    }
   };
 
   const getCompanyInfoList = async () => {
@@ -518,6 +239,7 @@ export default function ESGCAP() {
       return item;
     });
     setCapItems(updatedItems);
+    setFilteredCAPItems(updatedItems);
     setSelectedItem({ ...updatedItem });
     setReviewDialogOpen(false);
   };
@@ -576,6 +298,7 @@ export default function ESGCAP() {
         return item;
       });
       setCapItems(updatedItems);
+      setFilteredCAPItems(updatedItems);
       toast({
         title: "Item Reverted",
         description: `Item "${originalItem.item}" has been reverted to its original state.`,
@@ -593,6 +316,7 @@ export default function ESGCAP() {
         return item;
       });
       setCapItems(updatedItems);
+      setFilteredCAPItems(updatedItems);
       toast({
         title: "Field Reverted",
         description: `Field "${field}" has been reverted to its original value.`,
@@ -690,6 +414,7 @@ export default function ESGCAP() {
     const itemWithId = newItem.id ? newItem : { ...newItem, id: (capItems.length + 1).toString() };
     const updatedItems = [...capItems, itemWithId];
     setCapItems(updatedItems);
+    setFilteredCAPItems(updatedItems);
     saveToLocalStorage(updatedItems);
   };
 
@@ -699,8 +424,8 @@ export default function ESGCAP() {
     );
     const updatedItems = [...capItems, ...itemsWithIds];
     setCapItems(updatedItems);
-    saveToLocalStorage(updatedItems);
     setFilteredCAPItems(updatedItems);
+    saveToLocalStorage(updatedItems);
   };
 
   const saveToLocalStorage = (items: ESGCapItem[]) => {
@@ -814,9 +539,6 @@ export default function ESGCAP() {
               <ArrowLeft className="h-4 w-4 mr-1" />
               <ArrowRight className="h-4 w-4 mr-1" />
               {showComparisonView ? "Exit Comparison View" : "Compare Changes"}
-              {!comparePlanData?.founderPlan?.length && (
-                <span className="ml-2 text-xs text-muted-foreground">(No changes to compare)</span>
-              )}
             </Button>
           </div>
         )}
@@ -834,8 +556,8 @@ export default function ESGCAP() {
             <CardHeader>
               <CardTitle>
                 Corrective Action Plan Items
-                {!isPlanFinalized && <span>(In Approval Phase)</span>}
-                {isPlanFinalized && <span>(Final)</span>}
+                {!isPlanFinalized && <span className="ml-2 text-yellow-600">(In Approval Phase)</span>}
+                {isPlanFinalized && <span className="ml-2 text-green-600">(Final)</span>}
               </CardTitle>
               <CardDescription>
                 Review and approve items in the ESG Corrective Action Plan
@@ -845,9 +567,6 @@ export default function ESGCAP() {
             <CardContent>
               {showComparisonView && comparePlanData ? (
                 <div className="relative">
-                  <div className="absolute top-2 right-2 bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs">
-                    Comparing with previous version
-                  </div>
                   <CAPTable
                     items={comparePlanData.founderPlan}
                     originalItems={comparePlanData.investorPlan}
@@ -881,7 +600,7 @@ export default function ESGCAP() {
                     <Button
                       onClick={handleSubmitAllCap}
                       size="lg"
-                      disabled={showComparisonView}
+                      disabled={isPlanFinalized}
                     >
                       Request CAP Change
                     </Button>
