@@ -406,7 +406,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
 
                 const newItem = {
                     ...itemWithoutId,
-                    id: i.toString()
+                    id: `${Date.now()}-${i}`
                 } as ESGCapItem;
 
                 newItems.push(newItem);
@@ -456,7 +456,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
 
     const downloadTemplate = () => {
         const template = [
-            'Item,Measures,Category,Resource,TargetDate,DealCondition,ActualDate,Status,AssignedTo',
+            'Item,Measures,Category,Priority,Resource,Deliverable,TargetDate,DealCondition,ActualDate,Status,AssignedTo',
             'Improve carbon emissions reporting,Implement tracking system,environmental,Monthly report,2024-03-15,CP,2024-03-20,in_progress,ESG Manager',
             'Enhance worker safety,Create training program,social,Safety manual,2024-04-01,CS,2024-04-15,in_review,HR Manager'
         ].join('\n');
