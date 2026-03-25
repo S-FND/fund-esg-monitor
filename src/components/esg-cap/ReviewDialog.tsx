@@ -104,7 +104,7 @@ export function ReviewDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl">
+      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Review CAP Item</DialogTitle>
           <DialogDescription>
@@ -212,34 +212,6 @@ export function ReviewDialog({
                   </p>
                 )}
               </div>
-
-              <div>
-                <h4 className="font-semibold mb-1">Priority</h4>
-                {canEdit ? (
-                  <Select
-                    value={editedItem.priority}
-                    onValueChange={(value) => handleInputChange('priority', value as CAPPriority)}
-                  >
-                    <SelectTrigger className={isFieldChanged('priority') ? "border-orange-400" : ""}>
-                      <SelectValue placeholder="Select priority" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="High">High</SelectItem>
-                      <SelectItem value="Medium">Medium</SelectItem>
-                      <SelectItem value="Low">Low</SelectItem>
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <p>{editedItem.priority}</p>
-                )}
-                {isFieldChanged('priority') && (
-                  <p className="text-xs text-amber-600 mt-1">
-                    Original: {originalItem?.priority}
-                  </p>
-                )}
-              </div>
-
-            
             </div>
 
             {/* Right Column */}
@@ -351,6 +323,60 @@ export function ReviewDialog({
                 {isFieldChanged('actualDate') && (
                   <p className="text-xs text-amber-600 mt-1">
                     Original: {originalItem?.actualDate || "Not set"}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <h4 className="font-semibold mb-1">Type</h4>
+
+                {canEdit ? (
+                  <Select
+                    value={editedItem.CS || ""}
+                    onValueChange={(value) => handleInputChange("CS", value)}
+                  >
+                    <SelectTrigger className={isFieldChanged("CS") ? "border-orange-400" : ""}>
+                      <SelectValue placeholder="Select Type" />
+                    </SelectTrigger>
+
+                    <SelectContent>
+                      <SelectItem value="CP">CP</SelectItem>
+                      <SelectItem value="CS">CS</SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p>{editedItem.CS || "-"}</p>
+                )}
+
+                {isFieldChanged("CS") && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    Original: {originalItem?.CS || "-"}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <h4 className="font-semibold mb-1">Priority</h4>
+                {canEdit ? (
+                  <Select
+                    value={editedItem.priority}
+                    onValueChange={(value) => handleInputChange('priority', value as CAPPriority)}
+                  >
+                    <SelectTrigger className={isFieldChanged('priority') ? "border-orange-400" : ""}>
+                      <SelectValue placeholder="Select priority" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="High">High</SelectItem>
+                      <SelectItem value="Medium">Medium</SelectItem>
+                      <SelectItem value="Low">Low</SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p>{editedItem.priority}</p>
+                )}
+                {isFieldChanged('priority') && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    Original: {originalItem?.priority}
                   </p>
                 )}
               </div>

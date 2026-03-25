@@ -1,13 +1,22 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
-import { ESGCapItem, CAPStatus, CAPType, CAPPriority } from "@/components/esg-cap/CAPTable";
+import { ESGCapItem, CAPStatus, CAPType, CAPPriority, CAPTable } from "@/components/esg-cap/CAPTable";
 import { ComparePlan, ReviewDialog } from "@/components/esg-cap/ReviewDialog";
 import { FilterControls } from "@/components/esg-cap/FilterControls";
 import { AlertsPanel } from "@/components/esg-cap/AlertsPanel";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { ArrowLeft, ArrowRight, ArrowUp, ArrowDown } from "lucide-react";
+import { 
+  ArrowLeft, 
+  ArrowRight, 
+  ArrowUp, 
+  ArrowDown,
+  FileText,
+  CheckCircle2,
+  Clock,
+  Target
+} from "lucide-react";
 import { http } from "@/utils/httpInterceptor";
 import { useESGCAPAlerts } from "@/hooks/useESGCAPAlerts";
 import { AddCAPDialog } from "@/components/esg-cap/AddCAPDialog";
@@ -39,323 +48,6 @@ interface APIResponse {
   investorPlanFinalStatus: boolean;
 }
 
-const HighlightDiff = ({
-  current,
-  original,
-  length = 50
-}: {
-  current: string;
-  original?: string;
-  length?: number;
-}) => {
-  const [expanded, setExpanded] = useState(false);
-
-  if (!current) return null;
-
-  const displayText =
-    !expanded && current.length > length ? current.slice(0, length) + "..." : current;
-
-  const hasDiff = original && current !== original;
-
-  return (
-    <span className="relative group">
-      <span className={`${hasDiff ? "text-green-600 bg-green-50 px-1 rounded" : ""}`}>
-        {displayText}
-      </span>
-      {hasDiff && !expanded && (
-        <span className="absolute hidden group-hover:block -bottom-6 left-0 text-xs text-red-600 line-through bg-red-50 px-1 rounded">
-          {original}
-        </span>
-      )}
-      {current.length > length && (
-        <button
-          onClick={() => setExpanded(!expanded)}
-          className="ml-1 text-blue-600 hover:underline text-xs"
-        >
-          {expanded ? "View less" : "View full"}
-        </button>
-      )}
-    </span>
-  );
-};
-
-
-const CAPTable = ({
-  items,
-  originalItems,
-  onReview,
-  onSendReminder,
-  isComparisonView,
-  onRevert,
-  onRevertField,
-  finalPlan,
-  progressPercentage
-}: {
-  items: ESGCapItem[];
-  originalItems: ESGCapItem[];
-  onReview: (item: ESGCapItem) => void;
-  onSendReminder: (item: ESGCapItem) => void;
-  isComparisonView: boolean;
-  onRevert: (itemId: string) => void;
-  onRevertField: (itemId: string, field: keyof ESGCapItem) => void;
-  finalPlan: boolean;
-  progressPercentage: number;
-}) => {
-  const [sortConfig, setSortConfig] = useState<{
-    key: keyof ESGCapItem;
-    direction: 'asc' | 'desc';
-  } | null>(null);
-  const requestSort = (key: keyof ESGCapItem) => {
-    let direction: 'asc' | 'desc' = 'asc';
-    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
-      direction = 'desc';
-    }
-    setSortConfig({ key, direction });
-  };
-
-  const sortedItems = useMemo(() => {
-    if (!sortConfig) return items;
-    return [...items].sort((a, b) => {
-      const aValue = a[sortConfig.key];
-      const bValue = b[sortConfig.key];
-
-      if (aValue === undefined || aValue === null) return 1;
-      if (bValue === undefined || bValue === null) return -1;
-
-      if (typeof aValue === 'string' && typeof bValue === 'string') {
-        return sortConfig.direction === 'asc'
-          ? aValue.localeCompare(bValue)
-          : bValue.localeCompare(aValue);
-      }
-
-      if (typeof aValue === 'number' && typeof bValue === 'number') {
-        return sortConfig.direction === 'asc' ? aValue - bValue : bValue - aValue;
-      }
-
-      // For dates
-      if (typeof aValue === 'string' && typeof bValue === 'string') {
-        const dateA = new Date(aValue);
-        const dateB = new Date(bValue);
-        return sortConfig.direction === 'asc'
-          ? dateA.getTime() - dateB.getTime()
-          : dateB.getTime() - dateA.getTime();
-      }
-
-      return 0;
-    });
-  }, [items, sortConfig]);
-
-  const getChangedFields = useCallback((currentItem: ESGCapItem, originalItem?: ESGCapItem) => {
-    if (!originalItem) return {};
-
-    const changes: Record<string, boolean> = {};
-    (Object.keys(currentItem) as Array<keyof ESGCapItem>).forEach((key) => {
-      changes[key] = JSON.stringify(currentItem[key]) !== JSON.stringify(originalItem[key]);
-    });
-    return changes;
-  }, []);
-
-  const SortableHeader = ({
-    field,
-    title
-  }: {
-    field: keyof ESGCapItem;
-    title: string;
-  }) => (
-    <th
-      className="p-3 text-left cursor-pointer hover:bg-muted/50"
-      onClick={() => requestSort(field)}
-    >
-      {title}
-      {sortConfig?.key === field && (
-        sortConfig.direction === 'asc' ?
-          <ArrowUp className="h-4 w-4 inline ml-1" /> :
-          <ArrowDown className="h-4 w-4 inline ml-1" />
-      )}
-    </th>
-  );
-
-  const formatDate = (dateString: string | undefined) => {
-    if (!dateString) return '';
-    try {
-      return new Date(dateString).toLocaleDateString();
-    } catch {
-      return dateString;
-    }
-  };
-
-  const ExpandableText = ({ text, length = 50 }: { text: string; length?: number }) => {
-    const [expanded, setExpanded] = useState(false);
-
-    if (!text) return null;
-
-    if (text.length <= length) {
-      return <span>{text}</span>;
-    }
-
-    return (
-      <span>
-        {expanded ? text : text.slice(0, length) + "..."}
-        <button
-          onClick={() => setExpanded(!expanded)}
-          className="ml-1 text-blue-600 hover:underline text-xs"
-        >
-          {expanded ? "View less" : "View full"}
-        </button>
-      </span>
-    );
-  };
-
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full border-collapse">
-        <thead>
-          <tr className="bg-gray-100">
-            <th className="p-3 text-left w-[60px]">S. No</th>
-            <SortableHeader field="item" title="Item" />
-            <th className="p-3 text-left">Category</th>
-            <SortableHeader field="priority" title="Priority" />
-            <th className="p-3 text-left">Measures and/or Corrective Actions</th>
-            <th className="p-3 text-left">Resource & Responsibility</th>
-            <th className="p-3 text-left">Expected Deliverable</th>
-            <SortableHeader field="targetDate" title="Target Date" />
-            <th className="p-3 text-left">CP/CS</th>
-            <th className="p-3 text-left">Actual Date</th>
-            <th className="p-3 text-left">Status</th>
-            {isComparisonView && <th className="p-3 text-left">Changes</th>}
-            <th className="p-3 text-left">Actions</th>
-            <th className="p-3 text-left">Remarks</th>
-          </tr>
-        </thead>
-        <tbody>
-          {sortedItems.map((item, index) => {
-            const originalItem = originalItems.find(i => i.id === item.id);
-            const changedFields = getChangedFields(item, originalItem);
-            const hasChanges = isComparisonView && Object.values(changedFields).some(Boolean);
-            return (
-              <tr
-                key={item.id}
-                className={`border-t ${hasChanges ? "bg-yellow-50" : ""}`}
-              >
-                <td className="p-3 text-center">{index + 1}</td>
-
-                <td className={`p-3 ${changedFields.item ? "border-l-4 border-yellow-500" : ""}`}>
-                  <HighlightDiff current={item.item} original={originalItem?.item} />
-                </td>
-
-                <td className={`p-3 ${changedFields.category ? "border-l-4 border-yellow-500" : ""}`}>
-                  <HighlightDiff current={item.category || ''} original={originalItem?.category} />
-                </td>
-
-                <td className={`p-3 ${changedFields.priority ? "border-l-4 border-yellow-500" : ""}`}>
-                  <HighlightDiff current={item.priority || ''} original={originalItem?.priority} />
-                </td>
-
-                <td className={`p-3 ${changedFields.measures ? "border-l-4 border-yellow-500" : ""}`}>
-                  <HighlightDiff current={item.measures || ''} original={originalItem?.measures} />
-                </td>
-
-                <td className={`p-3 ${changedFields.resource ? "border-l-4 border-yellow-500" : ""}`}>
-                  <HighlightDiff current={item.resource || ''} original={originalItem?.resource} />
-                </td>
-
-                <td className={`p-3 ${changedFields.deliverable ? "border-l-4 border-yellow-500" : ""}`}>
-                  <HighlightDiff current={item.deliverable || ''} original={originalItem?.deliverable} />
-                </td>
-
-                <td className={`p-3 ${changedFields.targetDate ? "border-l-4 border-yellow-500" : ""}`}>
-                  <HighlightDiff
-                    current={formatDate(item.targetDate)}
-                    original={formatDate(originalItem?.targetDate)}
-                  />
-                </td>
-
-                <td className={`p-3 ${changedFields.CS ? "border-l-4 border-yellow-500" : ""}`}>
-                  <HighlightDiff current={item.CS || ''} original={originalItem?.CS} />
-                </td>
-
-                <td className={`p-3 ${changedFields.actualDate ? "border-l-4 border-yellow-500" : ""}`}>
-                  <HighlightDiff
-                    current={formatDate(item.actualDate)}
-                    original={formatDate(originalItem?.actualDate)}
-                  />
-                </td>
-
-                <td className={`p-3 ${changedFields.status ? "border-l-4 border-yellow-500" : ""}`}>
-                  <HighlightDiff
-                    current={item.status}
-                    original={originalItem?.status}
-                  />
-                </td>
-
-                {isComparisonView && (
-                  <td className="p-3">
-                    {hasChanges ? (
-                      <div className="flex flex-wrap gap-1">
-                        {Object.entries(changedFields).map(([field, hasChanged]) => (
-                          hasChanged && (
-                            <button
-                              key={field}
-                              onClick={() => onRevertField(String(item.id), field as keyof ESGCapItem)}
-                              className="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800 hover:bg-yellow-200 transition-colors"
-                              title={`Revert ${field} to original`}
-                            >
-                              {field}
-                            </button>
-                          )
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="text-gray-400 text-sm">No changes</span>
-                    )}
-                  </td>
-                )}
-
-                <td className="p-3 space-x-2">
-                  <Button
-                    size="sm"
-                    onClick={() => onReview(item)}
-                    disabled={finalPlan}
-                  >
-                    Review
-                  </Button>
-                  {/* {isComparisonView && hasChanges && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onRevert(String(item.id))}
-                    >
-                      Revert All
-                    </Button>
-                  )} */}
-                </td>
-
-                {/* <td className={`p-3 ${changedFields.remarks ? "border-l-4 border-yellow-500" : ""}`}>
-                  <HighlightDiff current={item.remarks || ''} original={originalItem?.remarks} />
-                </td> */}
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-      {progressPercentage > 0 && (
-        <div className="mt-4">
-          <div className="flex justify-between mb-1">
-            <span className="text-sm font-medium">Progress</span>
-            <span className="text-sm">{progressPercentage}%</span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2.5">
-            <div
-              className="bg-green-600 h-2.5 rounded-full"
-              style={{ width: `${progressPercentage}%` }}
-            ></div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
 export default function ESGCAP() {
   const [portfolioCompanies, setPortfolioCompanies] = useState([]);
   const [selectedItem, setSelectedItem] = useState<ESGCapItem | null>(null);
@@ -377,9 +69,8 @@ export default function ESGCAP() {
   useEffect(() => {
     const currentDate = new Date();
     const currentYear = currentDate.getFullYear();
-    const aprilFirstCurrentYear = new Date(currentYear, 3, 1); // April 1st of the current year
+    const aprilFirstCurrentYear = new Date(currentYear, 3, 1);
 
-    // Check if the current date is before April 1st of the current year
     const financialYear =
       currentDate < aprilFirstCurrentYear
         ? `${currentYear - 1}-${currentYear.toString().slice(-2)}`
@@ -387,6 +78,12 @@ export default function ESGCAP() {
 
     setFinancialYear(financialYear);
   }, []);
+
+  // Calculate stats
+  const totalItems = filteredCAPItems.length;
+  const completedItems = filteredCAPItems.filter(i => i.status === 'completed').length;
+  const pendingItems = filteredCAPItems.filter(i => i.status === 'pending').length;
+  const inProgressItems = filteredCAPItems.filter(i => i.status === 'in_progress').length;
 
   const handleReview = (item: ESGCapItem) => {
     const currentItem = capItems.find(i => i.id === item.id);
@@ -409,6 +106,7 @@ export default function ESGCAP() {
         return item;
       });
       setCapItems(updatedItems);
+      setFilteredCAPItems(updatedItems);
     }
     toast({
       title: "Item Approved",
@@ -428,6 +126,7 @@ export default function ESGCAP() {
         return item;
       });
       setCapItems(updatedItems);
+      setFilteredCAPItems(updatedItems);
     }
     toast({
       title: "Item Rejected",
@@ -436,11 +135,34 @@ export default function ESGCAP() {
     setReviewDialogOpen(false);
   };
 
-  const handleSendReminder = (item: ESGCapItem) => {
-    toast({
-      title: "Reminder Sent",
-      description: `Reminder sent for "${item.item}"`,
-    });
+  const handleSendReminder = async (item: ESGCapItem) => {
+    try {
+      const payload = {
+        reportId: item.reportId,
+        itemId: item.id,
+        itemName: item.item,
+        assignedTo: item.assignedTo,
+        targetDate: item.targetDate
+      };
+  
+      const [res, error] = await EsgddAPIs.sendReminder(payload);
+  
+      if (res) {
+        toast({
+          title: "Reminder Sent",
+          description: "Email reminder sent successfully.",
+        });
+      } else {
+        throw new Error(error || "Failed to send reminder");
+      }
+  
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to send reminder email.",
+        variant: "destructive",
+      });
+    }
   };
 
   const getCompanyInfoList = async () => {
@@ -481,7 +203,6 @@ export default function ESGCAP() {
         previousCapItemsRef.current = data.plan || [];
       } else {
         console.error("Error:", error);
-        // reset state when no data
         setPlanData(null);
         setFilteredCAPItems([]);
         setCapItems([]);
@@ -501,10 +222,8 @@ export default function ESGCAP() {
   useEffect(() => {
     if (selectedCompany !== 'all') {
       const company = portfolioCompanies.find(c => c.email === selectedCompany);
-      const entityId = company?.user?.entityId
+      const entityId = company?.user?.entityId;
       if (entityId) {
-        getPlanList(entityId);
-      } else {
         getPlanList(entityId);
       }
     }
@@ -514,21 +233,15 @@ export default function ESGCAP() {
     previousCapItemsRef.current = [...capItems];
 
     const updatedItems = capItems.map(item => {
-      // Use item.id for identification
       if (item.id === updatedItem.id) {
         return { ...updatedItem, changeStatus: 'Edited' };
       }
       return item;
     });
     setCapItems(updatedItems);
+    setFilteredCAPItems(updatedItems);
     setSelectedItem({ ...updatedItem });
     setReviewDialogOpen(false);
-  };
-
-
-  const isAcceptVisible = (): boolean => {
-    if (!planData) return false;
-    return !planData.investorPlanFinalStatus;
   };
 
   const isPlanFinalized = planData ?
@@ -576,7 +289,6 @@ export default function ESGCAP() {
   };
 
   const handleRevertToOriginal = (itemId: string) => {
-    // Find by ID since we're using proper IDs now
     const originalItem = previousCapItemsRef.current.find(item => item.id === itemId);
     if (originalItem) {
       const updatedItems = capItems.map(item => {
@@ -586,6 +298,7 @@ export default function ESGCAP() {
         return item;
       });
       setCapItems(updatedItems);
+      setFilteredCAPItems(updatedItems);
       toast({
         title: "Item Reverted",
         description: `Item "${originalItem.item}" has been reverted to its original state.`,
@@ -603,6 +316,7 @@ export default function ESGCAP() {
         return item;
       });
       setCapItems(updatedItems);
+      setFilteredCAPItems(updatedItems);
       toast({
         title: "Field Reverted",
         description: `Field "${field}" has been reverted to its original value.`,
@@ -617,7 +331,6 @@ export default function ESGCAP() {
     const isFounder = user?.entityType === 2;
 
     try {
-      // Update acceptance flags
       const updatedFinalAcceptance = {
         founderAcceptance: planData.finalAcceptance?.founderAcceptance || false,
         investorAcceptance: planData.finalAcceptance?.investorAcceptance || false,
@@ -625,15 +338,13 @@ export default function ESGCAP() {
         ...(isInvestor && { investorAcceptance: true }),
       };
 
-      // Check if both have accepted
       const bothAccepted =
         updatedFinalAcceptance.founderAcceptance &&
         updatedFinalAcceptance.investorAcceptance;
 
-      // Payload for API (added plan)
       const payload = {
         entityId: planData.entityId,
-        plan: planData.plan || [], // ✅ include the CAP plan
+        plan: planData.plan || [],
         finalAcceptance: updatedFinalAcceptance,
         ...(isFounder && { founderPlanFinalStatus: true }),
         ...(isInvestor && { investorPlanFinalStatus: true }),
@@ -666,7 +377,6 @@ export default function ESGCAP() {
       });
     }
   };
-
 
   const getPriorityWeight = (priority: CAPPriority): number => {
     switch (priority) {
@@ -701,25 +411,23 @@ export default function ESGCAP() {
   }, []);
 
   const handleAddItem = (newItem: ESGCapItem) => {
-    // Ensure newItem has a proper ID
     const itemWithId = newItem.id ? newItem : { ...newItem, id: (capItems.length + 1).toString() };
     const updatedItems = [...capItems, itemWithId];
     setCapItems(updatedItems);
+    setFilteredCAPItems(updatedItems);
     saveToLocalStorage(updatedItems);
   };
 
   const handleAddMultipleItems = (newItems: ESGCapItem[]) => {
-    // Ensure all items have proper IDs
     const itemsWithIds = newItems.map((item, index) =>
       item.id ? item : { ...item, id: (capItems.length + index + 1).toString() }
     );
     const updatedItems = [...capItems, ...itemsWithIds];
     setCapItems(updatedItems);
-    saveToLocalStorage(updatedItems);
     setFilteredCAPItems(updatedItems);
+    saveToLocalStorage(updatedItems);
   };
 
-  // Save to localStorage whenever capItems changes
   const saveToLocalStorage = (items: ESGCapItem[]) => {
     localStorage.setItem('esg-cap-items', JSON.stringify(items));
   };
@@ -728,30 +436,24 @@ export default function ESGCAP() {
     saveToLocalStorage(capItems);
   }, [capItems]);
 
-  // Add this helper
   const canAccept = (): boolean => {
     if (!planData) return false;
 
     const isInvestor = user?.entityType === 1;
     const isFounder = user?.entityType === 2;
 
-    // If already finalized → no accept
     if (planData.finalPlan) return false;
 
-    // Founder case
     if (isFounder) {
       return !planData.founderPlanFinalStatus;
     }
 
-    // Investor case
     if (isInvestor) {
-      // Must wait for founder + not already accepted
       return planData.founderPlanFinalStatus && !planData.investorPlanFinalStatus;
     }
 
     return false;
   };
-
 
   return (
     <div className="space-y-6">
@@ -766,6 +468,57 @@ export default function ESGCAP() {
           onAddItem={handleAddItem}
           onAddMultipleItems={handleAddMultipleItems}
         />
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card className="border-none shadow-sm bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-blue-100">Total Items</p>
+                <p className="text-lg font-bold">{totalItems}</p>
+              </div>
+              <FileText className="h-4 w-4 text-white/80" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-none shadow-sm bg-gradient-to-br from-green-500 to-emerald-600 text-white">
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-green-100">Completed</p>
+                <p className="text-lg font-bold">{completedItems}</p>
+              </div>
+              <CheckCircle2 className="h-4 w-4 text-white/80" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-none shadow-sm bg-gradient-to-br from-yellow-500 to-yellow-600 text-white">
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-yellow-100">Pending</p>
+                <p className="text-lg font-bold">{pendingItems}</p>
+              </div>
+              <Clock className="h-4 w-4 text-white/80" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-none shadow-sm bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-purple-100">In Progress</p>
+                <p className="text-lg font-bold">{inProgressItems}</p>
+              </div>
+              <Target className="h-4 w-4 text-white/80" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="flex items-center justify-between">
@@ -786,9 +539,6 @@ export default function ESGCAP() {
               <ArrowLeft className="h-4 w-4 mr-1" />
               <ArrowRight className="h-4 w-4 mr-1" />
               {showComparisonView ? "Exit Comparison View" : "Compare Changes"}
-              {!comparePlanData?.founderPlan?.length && (
-                <span className="ml-2 text-xs text-muted-foreground">(No changes to compare)</span>
-              )}
             </Button>
           </div>
         )}
@@ -806,8 +556,8 @@ export default function ESGCAP() {
             <CardHeader>
               <CardTitle>
                 Corrective Action Plan Items
-                {!isPlanFinalized && <span>(In Approval Phase)</span>}
-                {isPlanFinalized && <span>(Final)</span>}
+                {!isPlanFinalized && <span className="ml-2 text-yellow-600">(In Approval Phase)</span>}
+                {isPlanFinalized && <span className="ml-2 text-green-600">(Final)</span>}
               </CardTitle>
               <CardDescription>
                 Review and approve items in the ESG Corrective Action Plan
@@ -817,9 +567,6 @@ export default function ESGCAP() {
             <CardContent>
               {showComparisonView && comparePlanData ? (
                 <div className="relative">
-                  <div className="absolute top-2 right-2 bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs">
-                    Comparing with previous version
-                  </div>
                   <CAPTable
                     items={comparePlanData.founderPlan}
                     originalItems={comparePlanData.investorPlan}
@@ -853,20 +600,18 @@ export default function ESGCAP() {
                     <Button
                       onClick={handleSubmitAllCap}
                       size="lg"
-                      disabled={showComparisonView}
+                      disabled={isPlanFinalized}
                     >
                       Request CAP Change
                     </Button>
                     <Button
                       onClick={handleAcceptCap}
                       size="lg"
-                    // disabled={showComparisonView || !canAccept()}
                     >
                       {planData?.investorPlanFinalStatus || planData?.founderPlanFinalStatus
                         ? "Accept CAP"
                         : "Accept CAP"}
                     </Button>
-
                   </>
                 )}
                 {isPlanFinalized && (

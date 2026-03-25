@@ -50,10 +50,10 @@ export function SidebarNavigation() {
         "4": ["Dashboard","Investor General Info", "Funds", "Team", "Portfolio Companies", "ESG DD", "ESG CAP", "Valuation"]
       };
       let accessList;
-      if(user.isParent && (!user.assignedPages || user.assignedPages.length == 0)){
+      if(user?.isParent && (!user?.assignedPages || user.assignedPages.length == 0)){
         accessList=["Dashboard","Investor General Info", "Funds", "Team", "Portfolio Companies", "ESG DD", "ESG CAP", "Valuation"]
       } else if (user?.assignedPages && user.assignedPages.length > 0) {
-        accessList = user.assignedPages.flatMap(p => {
+        accessList = user?.assignedPages?.flatMap(p => {
           const modules = [p.moduleName];
           if (p.moduleName === "ESG DD") modules.push("ESG DD Report", "ESG CAP");
           if (p.moduleName === "Valuation") modules.push("ESG Risk Matrix");
@@ -61,7 +61,7 @@ export function SidebarNavigation() {
           return modules;
         });
       } else{
-         accessList = user.assignedPages.map((p)=>p.moduleName) || ["Dashboard"];
+         accessList = user?.assignedPages?.map((p)=>p.moduleName) || ["Dashboard"];
         
       }
       setAccessibleMenus(accessList);

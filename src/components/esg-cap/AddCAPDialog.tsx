@@ -81,7 +81,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
 
     // Fetch companies from API when dialog opens
     useEffect(() => {
-        if (open) {
+        if (open && companies.length === 0) {
             fetchCompanies();
         }
     }, [open]);
@@ -166,7 +166,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
 
     const updateRow = (id: string, field: keyof CAPFormRow, value: any) => {
         setFormRows(
-            formRows.map(row => 
+            formRows.map(row =>
                 row.id === id ? { ...row, [field]: value } : row
             )
         );
@@ -186,7 +186,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
         }
 
         // Validate all rows
-        const invalidRows = formRows.filter(row => 
+        const invalidRows = formRows.filter(row =>
             !row.item || !row.measures
         );
 
@@ -232,7 +232,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                 dealCondition: row.dealCondition,
                 createdAt: new Date().toISOString(),
             };
-            
+
             // Add ID separately to avoid TypeScript error
             const newItem = {
                 ...itemWithoutId,
@@ -247,7 +247,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                 plan: newItems,
                 email: company.email,
                 financialYear: financialYear,
-                finalAcceptance:{
+                finalAcceptance: {
                     founderAcceptance: false,
                     investorAcceptance: false
                 }
@@ -262,9 +262,9 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                     ...item,
                     id: item.id // Keep the sequential ID
                 }));
-                
+
                 onAddMultipleItems(savedItems);
-                
+
                 toast({
                     title: "CAP Items Added",
                     description: `Successfully added ${newItems.length} CAP items.`,
@@ -303,6 +303,26 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
     };
 
     const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+
+        // ✅ MUST select company first
+        if (!selectedCompany) {
+            toast({
+                title: "Company Required",
+                description: "Please select a company before uploading CSV.",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        if (companies.length === 0) {
+            toast({
+                title: "Companies Not Loaded",
+                description: "Please wait for companies to load before uploading.",
+                variant: "destructive",
+            });
+            return;
+        }
+
         const file = event.target.files?.[0];
         if (!file) return;
 
@@ -315,6 +335,16 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
             return;
         }
 
+        const company = companies.find(c => c.id === selectedCompany);
+        if (!company) {
+            toast({
+                title: "Invalid Company",
+                description: "Selected company not found.",
+                variant: "destructive",
+            });
+            return;
+        }
+
         setUploading(true);
 
         try {
@@ -322,16 +352,28 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
             const lines = text.split('\n').filter(line => line.trim());
 
             if (lines.length < 2) {
-                throw new Error("File must contain at least a header row and one data row");
+                throw new Error("File must contain at least one data row");
             }
 
             const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
 
-            // Updated required headers to match ESGCapItem interface
-            const requiredHeaders = ['company', 'item', 'measures', 'category', 'resource', 'targetdate', 'dealcondition', 'actualdate', 'status', 'assignedto'];
+            // ✅ REMOVED company column
+            const requiredHeaders = [
+                'item',
+                'measures',
+                'category',
+                'priority',        // ✅ added
+                'resource',
+                'deliverable',     // ✅ added
+                'targetdate',
+                'dealcondition',
+                'actualdate',
+                'status',
+                'assignedto'
+              ];
 
             const missingHeaders = requiredHeaders.filter(header =>
-                !headers.some(h => h.includes(header.toLowerCase()))
+                !headers.some(h => h.includes(header))
             );
 
             if (missingHeaders.length > 0) {
@@ -345,35 +387,23 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
 
                 if (values.length < headers.length) continue;
 
-                const companyName = values[headers.findIndex(h => h.includes('company'))];
-                const company = companies.find(c =>
-                    c.name.toLowerCase().includes(companyName.toLowerCase())
-                );
-
-                if (!company) {
-                    console.warn(`Company "${companyName}" not found, skipping row ${i + 1}`);
-                    continue;
-                }
-
-                // Create item without id first
                 const itemWithoutId: Omit<ESGCapItem, 'id'> = {
-                    reportId: company.id,
+                    reportId: selectedCompany, // ✅ ALWAYS dropdown company
                     item: values[headers.findIndex(h => h.includes('item'))] || "",
                     category: (values[headers.findIndex(h => h.includes('category'))] as CAPCategory) || "environmental",
-                    priority: (values[headers.findIndex(h => h.includes('priority'))] as CAPPriority) || "Medium",
+                    priority: "Medium",
                     measures: values[headers.findIndex(h => h.includes('measures'))] || "",
                     resource: values[headers.findIndex(h => h.includes('resource'))] || "",
-                    deliverable: values[headers.findIndex(h => h.includes('deliverable'))] || "",
+                    deliverable: "",
                     targetDate: values[headers.findIndex(h => h.includes('targetdate'))] || "",
-                    CS: values[headers.findIndex(h => h.includes('dealcondition'))] || "none", // Use dealcondition for CS
+                    CS: values[headers.findIndex(h => h.includes('dealcondition'))] || "none",
                     actualDate: values[headers.findIndex(h => h.includes('actualdate'))] || "",
                     status: (values[headers.findIndex(h => h.includes('status'))] as CAPStatus) || "pending",
                     assignedTo: values[headers.findIndex(h => h.includes('assignedto'))] || "",
                     dealCondition: (values[headers.findIndex(h => h.includes('dealcondition'))] || "") as CAPType,
                     createdAt: new Date().toISOString(),
                 };
-                
-                // Add ID separately to avoid TypeScript error
+
                 const newItem = {
                     ...itemWithoutId,
                     id: i.toString()
@@ -382,74 +412,53 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                 newItems.push(newItem);
             }
 
-            if (newItems.length > 0) {
-                // Group items by company for API calls
-                const itemsByCompany: Record<string, ESGCapItem[]> = {};
-                
-                newItems.forEach(item => {
-                    if (!itemsByCompany[item.reportId]) {
-                        itemsByCompany[item.reportId] = [];
-                    }
-                    itemsByCompany[item.reportId].push(item);
-                });
+            if (newItems.length === 0) {
+                throw new Error("No valid items found in file");
+            }
 
-                // Process each company's items
-                for (const [companyId, items] of Object.entries(itemsByCompany)) {
-                    const company = companies.find(c => c.id === companyId);
-                    if (!company) {
-                        throw new Error(`Company not found for uploaded items`);
-                    }
-
-                    const finalData = {
-                        plan: items,
-                        email: company.email,
-                        financialYear: financialYear
-                    };
-
-                    const [result, error] = await EsgddAPIs.saveEscap(finalData);
-
-                    if (result) {
-                        // Update IDs for saved items (keep sequential IDs)
-                        const savedItems: ESGCapItem[] = items.map(item => ({
-                            ...item,
-                            id: item.id // Keep the sequential ID
-                        }));
-                        
-                        onAddMultipleItems(savedItems);
-                    } else {
-                        throw new Error(error || "Failed to save CAP items");
-                    }
+            // ✅ SINGLE API CALL (same as manual)
+            const finalData = {
+                plan: newItems,
+                email: company.email, // 🔥 IMPORTANT FIX
+                financialYear: financialYear,
+                finalAcceptance: {
+                    founderAcceptance: false,
+                    investorAcceptance: false
                 }
+            };
 
-                setOpen(false);
+            const [result, error] = await EsgddAPIs.saveEscap(finalData);
+
+            if (result) {
+                onAddMultipleItems(newItems);
+
                 toast({
                     title: "CAP Items Imported",
-                    description: `Successfully imported ${newItems.length} CAP items.`,
+                    description: `Successfully imported ${newItems.length} items.`,
                 });
+
+                setOpen(false);
             } else {
-                throw new Error("No valid items found in the file");
+                throw new Error(error || "Upload failed");
             }
 
         } catch (error) {
             toast({
                 title: "Import Failed",
-                description: error instanceof Error ? error.message : "Failed to process the file.",
+                description: error instanceof Error ? error.message : "Failed to process file",
                 variant: "destructive",
             });
         } finally {
             setUploading(false);
-            // Reset file input
             event.target.value = '';
         }
     };
 
     const downloadTemplate = () => {
-        // Use actual company names from the API in the template
-        const companyNames = companies.slice(0, 2).map(c => c.name);
         const template = [
-            'Company,Item,Measures,Category,Resource,TargetDate,DealCondition,ActualDate,Status,AssignedTo',
-            `${companyNames[0] || 'TechCorp Inc'},Improve carbon emissions reporting,Implement new carbon tracking system,environmental,Monthly carbon reports,2024-03-15,CP,2024-03-20,in_progress,ESG Manager`,
-            `${companyNames[1] || 'GreenStart Ltd'},Enhance worker safety protocols,Develop comprehensive safety training program,social,Updated safety manual,2024-04-01,CS,2024-04-15,in_review,HR Director`
+            'Item,Measures,Category,Resource,TargetDate,DealCondition,ActualDate,Status,AssignedTo',
+            'Improve carbon emissions reporting,Implement tracking system,environmental,Monthly report,2024-03-15,CP,2024-03-20,in_progress,ESG Manager',
+            'Enhance worker safety,Create training program,social,Safety manual,2024-04-01,CS,2024-04-15,in_review,HR Manager'
         ].join('\n');
 
         const blob = new Blob([template], { type: 'text/csv' });
@@ -464,7 +473,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
 
         toast({
             title: "Template Downloaded",
-            description: "ESG CAP template has been downloaded to your device.",
+            description: "CSV template downloaded successfully.",
         });
     };
 
@@ -517,9 +526,9 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
 
                                     {/* Add Row Button */}
                                     <div className="flex justify-end">
-                                        <Button 
-                                            type="button" 
-                                            variant="outline" 
+                                        <Button
+                                            type="button"
+                                            variant="outline"
                                             onClick={addRow}
                                             className="flex items-center"
                                         >
@@ -533,9 +542,9 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                                         <div key={row.id} className="border rounded-lg p-4 space-y-4">
                                             {formRows.length > 1 && (
                                                 <div className="flex justify-end">
-                                                    <Button 
-                                                        type="button" 
-                                                        variant="ghost" 
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
                                                         size="sm"
                                                         onClick={() => removeRow(row.id)}
                                                         className="text-red-500 hover:text-red-700"
@@ -544,7 +553,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                                                     </Button>
                                                 </div>
                                             )}
-                                            
+
                                             <div>
                                                 <Label htmlFor={`item-${index}`}>Item *</Label>
                                                 <Textarea
@@ -696,7 +705,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                                         </div>
                                     ))}
 
-                                    
+
 
                                     <div className="flex justify-end gap-2 pt-4">
                                         <Button type="button" variant="outline" onClick={() => setOpen(false)}>
@@ -716,13 +725,45 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                             <CardHeader>
                                 <CardTitle>Upload CAP Items from Template</CardTitle>
                             </CardHeader>
+                            {companies.length === 0 && !loadingCompanies && (
+                                <div className="text-sm text-red-500">
+                                    No companies found. Please try reopening the dialog.
+                                </div>
+                            )}
+                            <div>
+                                <Label htmlFor="upload-company">Company *</Label>
+                                <Select
+                                    value={selectedCompany}
+                                    onValueChange={setSelectedCompany}
+                                    disabled={loadingCompanies}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder={loadingCompanies ? "Loading companies..." : "Select company"} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {companies.map(company => (
+                                            <SelectItem key={company.id} value={company.id}>
+                                                {company.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            {selectedCompany && (
+                                <div className="text-sm text-muted-foreground">
+                                    Selected Company:{" "}
+                                    <span className="font-medium">
+                                        {companies.find(c => c.id === selectedCompany)?.name}
+                                    </span>
+                                </div>
+                            )}
                             <CardContent className="space-y-4">
                                 <div className="text-sm text-muted-foreground">
                                     Upload a CSV file with your CAP items. Make sure your file includes the required columns.
                                 </div>
 
                                 <div className="flex gap-2">
-                                    <Button variant="outline" onClick={downloadTemplate}>
+                                    <Button variant="outline" onClick={downloadTemplate} disabled={!selectedCompany}>
                                         <Download className="h-4 w-4 mr-2" />
                                         Download Template
                                     </Button>
@@ -744,7 +785,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                                                     accept=".csv"
                                                     className="sr-only"
                                                     onChange={handleFileUpload}
-                                                    disabled={uploading || loadingCompanies}
+                                                    disabled={uploading || loadingCompanies || companies.length === 0 || !selectedCompany}
                                                 />
                                             </label>
                                             <p className="mt-1 text-xs text-muted-foreground">
@@ -762,7 +803,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
 
                                 <div className="text-xs text-muted-foreground space-y-1">
                                     <p><strong>Required columns:</strong></p>
-                                    <p>• Company, Item, Measures, Category, Resource, TargetDate, DealCondition, ActualDate, Status, AssignedTo</p>
+                                    <p>• Item, Measures, Category, Resource, TargetDate, DealCondition, ActualDate, Status, AssignedTo</p>
                                     <p><strong>Note:</strong> Company names must match existing portfolio companies</p>
                                 </div>
                             </CardContent>
