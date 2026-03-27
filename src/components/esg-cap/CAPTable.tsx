@@ -78,6 +78,19 @@ const getPriorityBadge = (priority: CAPPriority) => {
   }
 };
 
+const getCategoryBadge = (category: string) => {
+  switch (category?.toLowerCase()) {
+    case "environmental":
+      return <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">Environmental</Badge>;
+    case "social":
+      return <Badge className="bg-blue-100 text-blue-700 border-blue-200">Social</Badge>;
+    case "governance":
+      return <Badge className="bg-amber-100 text-amber-700 border-amber-200">Governance</Badge>;
+    default:
+      return <Badge variant="secondary">{category}</Badge>;
+  }
+};
+
 // Render field with changes highlight and revert
 const RenderChangedField = ({
   currentValue,
@@ -146,6 +159,7 @@ export function CAPTable({
               <th className="p-3 text-left">S. No</th>
               <th className="p-3 text-left">Item</th>
               <th className="p-3 text-left">Measures & Corrective Actions</th>
+              <th className="p-3 text-left">Category</th>
               <th className="p-3 text-left">Resource & Responsibility</th>
               <th className="p-3 text-left">Expected Deliverable</th>
               <th className="p-3 text-left">Target Date</th>
@@ -184,6 +198,7 @@ export function CAPTable({
                       onRevertField={onRevertField}
                     />
                   ) : item.measures}</td>
+                  <td className="p-3">{getCategoryBadge(item.category)}</td>
                   <td className="p-3">{originalItem ? (
                     <RenderChangedField
                       currentValue={item.resource}

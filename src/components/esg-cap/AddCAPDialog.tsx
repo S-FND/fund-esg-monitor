@@ -384,29 +384,40 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
 
             for (let i = 1; i < lines.length; i++) {
                 const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+                const getValue = (key: string) => {
+                    const index = headers.findIndex(h => h.includes(key));
+                    return index !== -1 ? values[index] || "" : "";
+                  };
 
-                if (values.length < headers.length) continue;
-
-                const itemWithoutId: Omit<ESGCapItem, 'id'> = {
-                    reportId: selectedCompany, // ✅ ALWAYS dropdown company
-                    item: values[headers.findIndex(h => h.includes('item'))] || "",
-                    category: (values[headers.findIndex(h => h.includes('category'))] as CAPCategory) || "environmental",
-                    priority: "Medium",
-                    measures: values[headers.findIndex(h => h.includes('measures'))] || "",
-                    resource: values[headers.findIndex(h => h.includes('resource'))] || "",
-                    deliverable: "",
-                    targetDate: values[headers.findIndex(h => h.includes('targetdate'))] || "",
-                    CS: values[headers.findIndex(h => h.includes('dealcondition'))] || "none",
-                    actualDate: values[headers.findIndex(h => h.includes('actualdate'))] || "",
-                    status: (values[headers.findIndex(h => h.includes('status'))] as CAPStatus) || "pending",
-                    assignedTo: values[headers.findIndex(h => h.includes('assignedto'))] || "",
-                    dealCondition: (values[headers.findIndex(h => h.includes('dealcondition'))] || "") as CAPType,
+                  const itemValue = getValue('item');
+                  const measuresValue = getValue('measures');
+                  
+                  if (!itemValue || !measuresValue) continue;
+                  
+                  while (values.length < headers.length) {
+                    values.push("");
+                  }
+                  
+                  const itemWithoutId: Omit<ESGCapItem, 'id'> = {
+                    reportId: selectedCompany,
+                    item: itemValue,
+                    measures: measuresValue,
+                    category: (getValue('category') as CAPCategory) || "environmental",
+                    priority: (getValue('priority') as CAPPriority) || "Medium",
+                    resource: getValue('resource'),
+                    deliverable: getValue('deliverable'),
+                    targetDate: getValue('targetdate'),
+                    CS: getValue('dealcondition') || "none",
+                    actualDate: getValue('actualdate'),
+                    status: (getValue('status') as CAPStatus) || "pending",
+                    assignedTo: getValue('assignedto'),
+                    dealCondition: (getValue('dealcondition') || "none") as CAPType,
                     createdAt: new Date().toISOString(),
-                };
+                  };
 
                 const newItem = {
                     ...itemWithoutId,
-                    id: i.toString()
+                    id: `${Date.now()}-${i}`
                 } as ESGCapItem;
 
                 newItems.push(newItem);
@@ -456,7 +467,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
 
     const downloadTemplate = () => {
         const template = [
-            'Item,Measures,Category,Resource,TargetDate,DealCondition,ActualDate,Status,AssignedTo',
+            'Item,Measures,Category,Priority,Resource,Deliverable,TargetDate,DealCondition,ActualDate,Status,AssignedTo',
             'Improve carbon emissions reporting,Implement tracking system,environmental,Monthly report,2024-03-15,CP,2024-03-20,in_progress,ESG Manager',
             'Enhance worker safety,Create training program,social,Safety manual,2024-04-01,CS,2024-04-15,in_review,HR Manager'
         ].join('\n');

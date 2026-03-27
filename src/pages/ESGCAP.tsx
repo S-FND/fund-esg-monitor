@@ -62,7 +62,7 @@ export default function ESGCAP() {
   const previousCapItemsRef = useRef<ESGCapItem[]>([]);
   const [canEdit, setCanEdit] = useState(true);
 
-  const alerts = useESGCAPAlerts(filteredCAPItems, previousCapItemsRef.current);
+  const alerts = useESGCAPAlerts(filteredCAPItems, previousCapItemsRef.current, planData?.finalPlan);
 
   const [financialYear, setFinancialYear] = useState("");
 
@@ -86,13 +86,15 @@ export default function ESGCAP() {
   const inProgressItems = filteredCAPItems.filter(i => i.status === 'in_progress').length;
 
   const handleReview = (item: ESGCapItem) => {
-    const currentItem = capItems.find(i => i.id === item.id);
-    if (currentItem) {
-      const clonedItem = JSON.parse(JSON.stringify(currentItem));
-      setSelectedItem(clonedItem);
-      setReviewDialogOpen(true);
-      setCanEdit(true);
-    }
+    let currentItem =
+      capItems.find(i => i.id === item.id) ||
+      capItems.find(i => i.reportId === item.reportId && i.item === item.item);
+  
+    const finalItem = currentItem || item;
+  
+    setSelectedItem(JSON.parse(JSON.stringify(finalItem)));
+    setReviewDialogOpen(true);
+    setCanEdit(true);
   };
 
   const handleApprove = () => {
@@ -190,11 +192,25 @@ export default function ESGCAP() {
       });
       if (data) {
         setPlanData(data);
-        setFilteredCAPItems(data.plan || []);
-        setCapItems(data.plan || []);
+        // setFilteredCAPItems(data.plan || []);
+        // setCapItems(data.plan || []);
+        const normalizedPlan = (data.plan || []).map((item, index) => ({
+          ...item,
+          id: `${item.reportId}-${index}-${item.createdAt}`
+        }));
+        
+        console.log("✅ FIXED IDS:", normalizedPlan.map(i => i.id));
+        
+        setFilteredCAPItems(normalizedPlan);
+        setCapItems(normalizedPlan);
+        previousCapItemsRef.current = normalizedPlan;
         const latestHistory = data.planHistoryDetails?.[1];
         setComparePlanData({
-          founderPlan: latestHistory?.requestPlan || [],
+          // founderPlan: latestHistory?.requestPlan || [],
+          founderPlan: (latestHistory?.requestPlan || []).map((item, index) => ({
+            ...item,
+            id: item.id || item._id || `${item.reportId}-history-${index}`
+          })),
           investorPlan: data.plan || [],
           founderPlanLastUpdate: latestHistory?.createdAt || 0,
           investorPlanLastUpdate: Date.now()
@@ -411,7 +427,7 @@ export default function ESGCAP() {
   }, []);
 
   const handleAddItem = (newItem: ESGCapItem) => {
-    const itemWithId = newItem.id ? newItem : { ...newItem, id: (capItems.length + 1).toString() };
+    const itemWithId = newItem.id ? newItem : { ...newItem, id: `${Date.now()}-${Math.random()}` };
     const updatedItems = [...capItems, itemWithId];
     setCapItems(updatedItems);
     setFilteredCAPItems(updatedItems);
@@ -550,6 +566,7 @@ export default function ESGCAP() {
             overdueItems={alerts.overdueItems}
             approachingDeadlines={alerts.approachingDeadlines}
             onItemClick={handleReview}
+            finalPlan={isPlanFinalized}
           />
 
           <Card>
