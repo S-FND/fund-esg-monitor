@@ -144,6 +144,7 @@ const Pricing = () => {
           </Card>
         ))}
       </div>
+      </main>
     </div>
   );
 };
