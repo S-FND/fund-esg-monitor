@@ -7,27 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Eye, EyeOff, Copy, Check } from "lucide-react";
-
-const DEMO_CREDENTIALS = [
-  { role: "Fund Manager", emoji: "🏢", email: "demo.manager@fandoro.com", password: "demo123" },
-  { role: "Analyst", emoji: "📊", email: "demo.analyst@fandoro.com", password: "demo123" },
-  { role: "Admin", emoji: "⚙️", email: "demo.admin@fandoro.com", password: "demo123" },
-];
-
-function CopyButton({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false);
-  const handleCopy = () => {
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
-  };
-  return (
-    <button onClick={handleCopy} className="ml-1.5 inline-flex items-center text-muted-foreground hover:text-foreground transition-colors">
-      {copied ? <Check className="h-3.5 w-3.5 text-primary" /> : <Copy className="h-3.5 w-3.5" />}
-    </button>
-  );
-}
+import { Eye, EyeOff } from "lucide-react";
 
 export default function Auth() {
   const [email, setEmail] = useState("");
