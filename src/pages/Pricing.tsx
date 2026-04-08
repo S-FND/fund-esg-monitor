@@ -1,8 +1,10 @@
 
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { CheckCircle2, ArrowRight, Mail } from 'lucide-react';
 
 const pricingPlans = [
   {
@@ -10,6 +12,8 @@ const pricingPlans = [
     audience: "Inv + Startups",
     price: "Rs. 2L",
     category: "Machine Reading, AI Enabled SaaS",
+    cta: "Get Started",
+    ctaAction: "signup",
     features: [
       { label: "ESG DD", color: "bg-green-500/80" },
       { label: "ESG CAP Tracker", color: "bg-green-500/80" },
@@ -21,6 +25,8 @@ const pricingPlans = [
     price: "Rs. 6L",
     category: "Machine Reading, AI Enabled SaaS",
     popular: true,
+    cta: "Get Started",
+    ctaAction: "signup",
     features: [
       { label: "Portfolio Monitoring", color: "bg-yellow-600/80" },
       { label: "ESG DD", color: "bg-green-500/80" },
@@ -32,6 +38,8 @@ const pricingPlans = [
     audience: "Investors",
     price: "Rs. 8L",
     category: "Agentic AI – Workflows",
+    cta: "Contact Sales",
+    ctaAction: "contact",
     features: [
       { label: "Realtime Valuation Impact Modeling", color: "bg-yellow-600/80" },
       { label: "Portfolio Monitoring", color: "bg-yellow-600/80" },
@@ -42,6 +50,16 @@ const pricingPlans = [
 ];
 
 const Pricing = () => {
+  const navigate = useNavigate();
+
+  const handleCtaClick = (action: string) => {
+    if (action === "signup") {
+      navigate("/auth");
+    } else if (action === "contact") {
+      window.location.href = "mailto:sales@fandoro.com?subject=Enterprise%20Inquiry%20-%20Pro%20Plan";
+    }
+  };
+
   return (
     <div className="space-y-8">
       <div>
@@ -53,7 +71,8 @@ const Pricing = () => {
         {pricingPlans.map((plan) => (
           <Card
             key={plan.name}
-            className={`relative flex flex-col ${
+            onClick={() => handleCtaClick(plan.ctaAction)}
+            className={`relative flex flex-col cursor-pointer transition-all hover:shadow-xl hover:-translate-y-1 ${
               plan.popular ? 'border-primary shadow-lg ring-2 ring-primary/20' : ''
             }`}
           >
@@ -90,6 +109,22 @@ const Pricing = () => {
                   </div>
                 ))}
               </div>
+
+              <Button
+                className="w-full mt-auto"
+                variant={plan.ctaAction === "contact" ? "outline" : "default"}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCtaClick(plan.ctaAction);
+                }}
+              >
+                {plan.ctaAction === "contact" ? (
+                  <Mail className="h-4 w-4 mr-2" />
+                ) : (
+                  <ArrowRight className="h-4 w-4 mr-2" />
+                )}
+                {plan.cta}
+              </Button>
             </CardContent>
           </Card>
         ))}
