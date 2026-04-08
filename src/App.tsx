@@ -19,6 +19,7 @@ import {
   ESGCAP,
   Valuation,
   ESGRiskMatrix,
+  Pricing,
   EditFund,
   TeamMemberDetail,
   TeamMemberEdit,
@@ -82,6 +83,7 @@ function App() {
             <Route path="/esg-dd/report" element={<ESGDDReport />} />
             <Route path="/esg-dd/cap" element={<ESGCAP />} />
             <Route path="/valuation" element={<Valuation />} />
+            <Route path="/pricing" element={<Pricing />} />
             <Route path="/esg-dd/risk-matrix" element={<ESGRiskMatrix />} />
             <Route path="/team/:id" element={<TeamMemberDetail />} />
             <Route path="/team/edit/:id" element={<TeamMemberEdit />} />
