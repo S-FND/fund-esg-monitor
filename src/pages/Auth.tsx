@@ -7,27 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Eye, EyeOff, Copy, Check } from "lucide-react";
-
-const DEMO_CREDENTIALS = [
-  { role: "Fund Manager", emoji: "🏢", email: "demo.manager@fandoro.com", password: "demo123" },
-  { role: "Analyst", emoji: "📊", email: "demo.analyst@fandoro.com", password: "demo123" },
-  { role: "Admin", emoji: "⚙️", email: "demo.admin@fandoro.com", password: "demo123" },
-];
-
-function CopyButton({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false);
-  const handleCopy = () => {
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
-  };
-  return (
-    <button onClick={handleCopy} className="ml-1.5 inline-flex items-center text-muted-foreground hover:text-foreground transition-colors">
-      {copied ? <Check className="h-3.5 w-3.5 text-primary" /> : <Copy className="h-3.5 w-3.5" />}
-    </button>
-  );
-}
+import { Eye, EyeOff } from "lucide-react";
 
 export default function Auth() {
   const [email, setEmail] = useState("");
@@ -126,37 +106,6 @@ export default function Auth() {
               </p>
             </div>
 
-            {/* Demo Credentials */}
-            <Card className="border-dashed">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Quick Demo Access</CardTitle>
-                <CardDescription>
-                  Use the credentials below to explore the platform with different roles.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {DEMO_CREDENTIALS.map((cred) => (
-                  <div
-                    key={cred.role}
-                    className="rounded-lg border bg-muted/40 px-4 py-3 space-y-1"
-                  >
-                    <p className="text-sm font-semibold text-foreground">
-                      {cred.emoji} {cred.role}
-                    </p>
-                    <div className="flex items-center text-xs text-muted-foreground">
-                      <span className="font-medium w-16">Email:</span>
-                      <code className="bg-muted px-1.5 py-0.5 rounded text-foreground">{cred.email}</code>
-                      <CopyButton text={cred.email} />
-                    </div>
-                    <div className="flex items-center text-xs text-muted-foreground">
-                      <span className="font-medium w-16">Password:</span>
-                      <code className="bg-muted px-1.5 py-0.5 rounded text-foreground">{cred.password}</code>
-                      <CopyButton text={cred.password} />
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
           </div>
 
           {/* Right: Auth Forms */}
