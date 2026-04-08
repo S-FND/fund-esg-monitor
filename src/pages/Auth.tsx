@@ -107,12 +107,31 @@ export default function Auth() {
 
           </div>
 
-          {/* Right: Auth Forms */}
-          <Card className="shadow-lg">
-            <CardHeader className="text-center pb-2">
-              <CardTitle className="text-2xl">Welcome</CardTitle>
-              <CardDescription>Sign in to your account or create a new one</CardDescription>
-            </CardHeader>
+          {/* Right: Auth Form + Features */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Features List */}
+            <div className="flex flex-col justify-center space-y-4">
+              {[
+                "ESG DD – Machine driven",
+                "Corrective Action Plan tracker",
+                "Integrated operational data",
+                "Portfolio Monitoring",
+                "Real-time Risk identification",
+                "Valuation impact modeling",
+              ].map((item) => (
+                <div key={item} className="flex items-center gap-3">
+                  <div className="h-2 w-2 rounded-full bg-primary shrink-0" />
+                  <span className="text-sm font-medium text-foreground">{item}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Auth Form */}
+            <Card className="shadow-lg">
+              <CardHeader className="text-center pb-2">
+                <CardTitle className="text-2xl">Welcome</CardTitle>
+                <CardDescription>Sign in or create an account</CardDescription>
+              </CardHeader>
             <CardContent>
               <Tabs defaultValue="signin" className="w-full">
                 <TabsList className="grid w-full grid-cols-2 mb-4">
@@ -212,7 +231,8 @@ export default function Auth() {
                 </TabsContent>
               </Tabs>
             </CardContent>
-          </Card>
+            </Card>
+          </div>
         </div>
       </main>
 
