@@ -6,6 +6,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, ArrowRight, Mail, ArrowLeft } from 'lucide-react';
 
+type FeatureType = "core" | "advanced";
+
+interface Feature {
+  label: string;
+  type: FeatureType;
+}
+
 const pricingPlans = [
   {
     name: "Base",
@@ -15,8 +22,8 @@ const pricingPlans = [
     cta: "Get Started",
     ctaAction: "signup",
     features: [
-      { label: "ESG DD", color: "bg-green-500/80" },
-      { label: "ESG CAP Tracker", color: "bg-green-500/80" },
+      { label: "ESG DD", type: "core" as FeatureType },
+      { label: "ESG CAP Tracker", type: "core" as FeatureType },
     ],
   },
   {
@@ -28,9 +35,9 @@ const pricingPlans = [
     cta: "Get Started",
     ctaAction: "signup",
     features: [
-      { label: "Portfolio Monitoring", color: "bg-yellow-600/80" },
-      { label: "ESG DD", color: "bg-green-500/80" },
-      { label: "ESG CAP Tracker", color: "bg-green-500/80" },
+      { label: "Portfolio Monitoring", type: "advanced" as FeatureType },
+      { label: "ESG DD", type: "core" as FeatureType },
+      { label: "ESG CAP Tracker", type: "core" as FeatureType },
     ],
   },
   {
@@ -41,10 +48,10 @@ const pricingPlans = [
     cta: "Contact Sales",
     ctaAction: "contact",
     features: [
-      { label: "Realtime Valuation Impact Modeling", color: "bg-yellow-600/80" },
-      { label: "Portfolio Monitoring", color: "bg-yellow-600/80" },
-      { label: "ESG DD", color: "bg-green-500/80" },
-      { label: "ESG CAP Tracker", color: "bg-green-500/80" },
+      { label: "Realtime Valuation Impact Modeling", type: "advanced" as FeatureType },
+      { label: "Portfolio Monitoring", type: "advanced" as FeatureType },
+      { label: "ESG DD", type: "core" as FeatureType },
+      { label: "ESG CAP Tracker", type: "core" as FeatureType },
     ],
   },
 ];
@@ -77,73 +84,81 @@ const Pricing = () => {
       </header>
 
       <main className="flex-1 px-6 py-8 max-w-6xl mx-auto w-full space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold">Pricing Model</h1>
-        <div className="h-1 w-32 bg-destructive mt-2 rounded" />
-      </div>
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Pricing Model</h1>
+          <div className="h-1 w-32 bg-primary mt-2 rounded" />
+        </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {pricingPlans.map((plan) => (
-          <Card
-            key={plan.name}
-            onClick={() => handleCtaClick(plan.ctaAction)}
-            className={`relative flex flex-col cursor-pointer transition-all hover:shadow-xl hover:-translate-y-1 ${
-              plan.popular ? 'border-primary shadow-lg ring-2 ring-primary/20' : ''
-            }`}
-          >
-            {plan.popular && (
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                <Badge className="bg-primary text-primary-foreground px-3 py-1">
-                  Most Popular
-                </Badge>
-              </div>
-            )}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {pricingPlans.map((plan) => (
+            <Card
+              key={plan.name}
+              onClick={() => handleCtaClick(plan.ctaAction)}
+              className={`relative flex flex-col cursor-pointer transition-all hover:shadow-xl hover:-translate-y-1 border-border ${
+                plan.popular
+                  ? 'border-primary shadow-lg ring-2 ring-primary/20'
+                  : 'hover:border-primary/40'
+              }`}
+            >
+              {plan.popular && (
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                  <Badge className="bg-primary text-primary-foreground px-3 py-1">
+                    Most Popular
+                  </Badge>
+                </div>
+              )}
 
-            <CardHeader className="text-center pb-2">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
-                {plan.category}
-              </p>
-              <CardTitle className="text-2xl">{plan.name}</CardTitle>
-              <p className="text-sm text-muted-foreground">({plan.audience})</p>
-            </CardHeader>
+              <CardHeader className="text-center pb-2">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
+                  {plan.category}
+                </p>
+                <CardTitle className="text-2xl text-foreground">{plan.name}</CardTitle>
+                <p className="text-sm text-muted-foreground">({plan.audience})</p>
+              </CardHeader>
 
-            <CardContent className="flex flex-col flex-1 items-center gap-6">
-              <div className="w-full rounded-lg bg-destructive/85 text-destructive-foreground text-center py-3 px-4">
-                <span className="text-2xl font-bold">{plan.price}</span>
-                <span className="text-sm ml-1">/ year</span>
-              </div>
+              <CardContent className="flex flex-col flex-1 items-center gap-6">
+                <div className="w-full rounded-lg bg-primary text-primary-foreground text-center py-3 px-4">
+                  <span className="text-2xl font-bold">{plan.price}</span>
+                  <span className="text-sm ml-1 opacity-80">/ year</span>
+                </div>
 
-              <div className="w-full space-y-3 flex-1">
-                {plan.features.map((feature) => (
-                  <div
-                    key={feature.label}
-                    className={`flex items-center gap-2 rounded-md px-4 py-3 text-white font-medium text-sm ${feature.color}`}
-                  >
-                    <CheckCircle2 className="h-4 w-4 shrink-0" />
-                    <span>{feature.label}</span>
-                  </div>
-                ))}
-              </div>
+                <div className="w-full space-y-3 flex-1">
+                  {plan.features.map((feature) => (
+                    <div
+                      key={feature.label}
+                      className={`flex items-center gap-2 rounded-md px-4 py-3 font-medium text-sm ${
+                        feature.type === "advanced"
+                          ? "bg-secondary text-secondary-foreground"
+                          : "bg-accent text-accent-foreground"
+                      }`}
+                    >
+                      <CheckCircle2 className={`h-4 w-4 shrink-0 ${
+                        feature.type === "advanced" ? "text-secondary-foreground/80" : "text-primary"
+                      }`} />
+                      <span>{feature.label}</span>
+                    </div>
+                  ))}
+                </div>
 
-              <Button
-                className="w-full mt-auto"
-                variant={plan.ctaAction === "contact" ? "outline" : "default"}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleCtaClick(plan.ctaAction);
-                }}
-              >
-                {plan.ctaAction === "contact" ? (
-                  <Mail className="h-4 w-4 mr-2" />
-                ) : (
-                  <ArrowRight className="h-4 w-4 mr-2" />
-                )}
-                {plan.cta}
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+                <Button
+                  className="w-full mt-auto"
+                  variant={plan.ctaAction === "contact" ? "outline" : "default"}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleCtaClick(plan.ctaAction);
+                  }}
+                >
+                  {plan.ctaAction === "contact" ? (
+                    <Mail className="h-4 w-4 mr-2" />
+                  ) : (
+                    <ArrowRight className="h-4 w-4 mr-2" />
+                  )}
+                  {plan.cta}
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </main>
     </div>
   );
