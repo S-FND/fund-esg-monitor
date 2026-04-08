@@ -106,37 +106,6 @@ export default function Auth() {
               </p>
             </div>
 
-            {/* Demo Credentials */}
-            <Card className="border-dashed">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Quick Demo Access</CardTitle>
-                <CardDescription>
-                  Use the credentials below to explore the platform with different roles.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {DEMO_CREDENTIALS.map((cred) => (
-                  <div
-                    key={cred.role}
-                    className="rounded-lg border bg-muted/40 px-4 py-3 space-y-1"
-                  >
-                    <p className="text-sm font-semibold text-foreground">
-                      {cred.emoji} {cred.role}
-                    </p>
-                    <div className="flex items-center text-xs text-muted-foreground">
-                      <span className="font-medium w-16">Email:</span>
-                      <code className="bg-muted px-1.5 py-0.5 rounded text-foreground">{cred.email}</code>
-                      <CopyButton text={cred.email} />
-                    </div>
-                    <div className="flex items-center text-xs text-muted-foreground">
-                      <span className="font-medium w-16">Password:</span>
-                      <code className="bg-muted px-1.5 py-0.5 rounded text-foreground">{cred.password}</code>
-                      <CopyButton text={cred.password} />
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
           </div>
 
           {/* Right: Auth Forms */}
