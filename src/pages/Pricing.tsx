@@ -199,9 +199,6 @@ const Pricing = () => {
               )}
 
               <CardHeader className="text-center pb-2">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
-                  {plan.category}
-                </p>
                 <CardTitle className="text-2xl text-foreground">{plan.name}</CardTitle>
                 <p className="text-sm text-muted-foreground">({plan.audience})</p>
               </CardHeader>
