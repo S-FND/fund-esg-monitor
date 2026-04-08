@@ -78,14 +78,22 @@ export default function Auth() {
             <img src="/fandoro-logo.png" alt="Fandoro Technologies" className="h-9 w-9" />
             <span className="text-xl font-bold tracking-tight text-foreground">Fandoro</span>
           </div>
-          <a
-            href="https://fandoro.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm text-muted-foreground hover:text-primary transition-colors"
-          >
-            Visit Fandoro.com →
-          </a>
+          <div className="flex items-center gap-6">
+            <a
+              href="/pricing"
+              className="text-sm font-medium text-foreground hover:text-primary transition-colors"
+            >
+              Pricing
+            </a>
+            <a
+              href="https://fandoro.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-muted-foreground hover:text-primary transition-colors"
+            >
+              Visit Fandoro.com →
+            </a>
+          </div>
         </div>
       </header>
 
