@@ -18,7 +18,7 @@ export function SidebarContent() {
 
   useEffect(() => {
     // Without authentication, give access to all modules
-    setAccessibleMenus(["Dashboard", "Funds", "Team", "Portfolio Companies", "ESG DD", "Valuation"]);
+    setAccessibleMenus(["Dashboard", "Funds", "Team", "Portfolio Companies", "ESG DD", "Valuation", "Pricing"]);
   }, []);
 
   // Filter menu items based on user access
