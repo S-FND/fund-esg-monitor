@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "13.0.4"
@@ -25,7 +25,7 @@ export type Database = {
           entity_type: Database["public"]["Enums"]["entity_type"]
           hash: string | null
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           maker_checker_state:
             | Database["public"]["Enums"]["approval_status"]
             | null
@@ -45,7 +45,7 @@ export type Database = {
           entity_type: Database["public"]["Enums"]["entity_type"]
           hash?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           maker_checker_state?:
             | Database["public"]["Enums"]["approval_status"]
             | null
@@ -65,7 +65,7 @@ export type Database = {
           entity_type?: Database["public"]["Enums"]["entity_type"]
           hash?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           maker_checker_state?:
             | Database["public"]["Enums"]["approval_status"]
             | null
@@ -394,25 +394,43 @@ export type Database = {
       }
       tenants: {
         Row: {
+          access_notes: string | null
+          approval_requested_at: string | null
+          approved_at: string | null
+          approved_by: string | null
           created_at: string | null
           description: string | null
           id: string
+          is_approved: boolean
+          is_demo: boolean
           name: string
           settings: Json | null
           updated_at: string | null
         }
         Insert: {
+          access_notes?: string | null
+          approval_requested_at?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
+          is_approved?: boolean
+          is_demo?: boolean
           name: string
           settings?: Json | null
           updated_at?: string | null
         }
         Update: {
+          access_notes?: string | null
+          approval_requested_at?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
+          is_approved?: boolean
+          is_demo?: boolean
           name?: string
           settings?: Json | null
           updated_at?: string | null
@@ -424,10 +442,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      confirm_demo_user: {
-        Args: { user_email: string }
-        Returns: undefined
-      }
+      confirm_demo_user: { Args: { user_email: string }; Returns: undefined }
     }
     Enums: {
       approval_status: "draft" | "pending_approval" | "approved" | "rejected"
