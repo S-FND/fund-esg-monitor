@@ -7,7 +7,8 @@ import {
   ListChecks, 
   Users, 
   FileCheck,
-  Calculator 
+  Calculator,
+  CreditCard
 } from "lucide-react";
 import { NavItem, NavItemWithSubItems } from "./types";
 
@@ -36,6 +37,11 @@ export const mainNavItems: NavItem[] = [
     title: "Team",
     href: "/team",
     icon: Users,
+  },
+  {
+    title: "Pricing",
+    href: "/pricing",
+    icon: CreditCard,
   },
 ];
 
