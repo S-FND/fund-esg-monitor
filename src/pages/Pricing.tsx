@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, ArrowRight, Mail } from 'lucide-react';
+import { CheckCircle2, ArrowRight, Mail, ArrowLeft } from 'lucide-react';
 
 const pricingPlans = [
   {
@@ -61,7 +61,22 @@ const Pricing = () => {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="min-h-screen flex flex-col bg-background">
+      {/* Header */}
+      <header className="w-full border-b bg-card">
+        <div className="max-w-6xl mx-auto flex items-center justify-between px-6 py-4">
+          <div className="flex items-center gap-3">
+            <img src="/fandoro-logo.png" alt="Fandoro Technologies" className="h-9 w-9" />
+            <span className="text-xl font-bold tracking-tight text-foreground">Fandoro</span>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => navigate("/auth")}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Login
+          </Button>
+        </div>
+      </header>
+
+      <main className="flex-1 px-6 py-8 max-w-6xl mx-auto w-full space-y-8">
       <div>
         <h1 className="text-3xl font-bold">Pricing Model</h1>
         <div className="h-1 w-32 bg-destructive mt-2 rounded" />
