@@ -20,6 +20,7 @@ import {
   Valuation,
   ESGRiskMatrix,
   Pricing,
+  TechnicalArchitecture,
   EditFund,
   TeamMemberDetail,
   TeamMemberEdit,
@@ -54,6 +55,7 @@ function App() {
       <Routes>
         <Route path="/auth" element={<Auth />} />
         <Route path="/pricing" element={<Pricing />} />
+        <Route path="/technical-architecture" element={<TechnicalArchitecture />} />
         <Route path="*" element={<Navigate to="/auth" replace />} />
       </Routes>
     );

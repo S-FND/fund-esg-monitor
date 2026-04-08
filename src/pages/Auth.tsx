@@ -86,6 +86,12 @@ export default function Auth() {
               Pricing
             </a>
             <a
+              href="/technical-architecture"
+              className="text-sm font-medium text-foreground hover:text-primary transition-colors"
+            >
+              Technical Architecture
+            </a>
+            <a
               href="https://fandoro.com"
               target="_blank"
               rel="noopener noreferrer"
