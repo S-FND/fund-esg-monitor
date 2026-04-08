@@ -84,7 +84,7 @@ export default function Auth() {
             rel="noopener noreferrer"
             className="text-sm text-muted-foreground hover:text-primary transition-colors"
           >
-            Visit Website →
+            Visit Fandoro.com →
           </a>
         </div>
       </header>
