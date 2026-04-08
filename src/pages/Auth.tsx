@@ -95,14 +95,13 @@ export default function Auth() {
           {/* Left: Branding + Demo Credentials */}
           <div className="space-y-8">
             <div className="space-y-3">
-              <p className="text-sm font-medium uppercase tracking-wider text-primary">ESG Management Platform</p>
+              <p className="text-sm font-medium uppercase tracking-wider text-primary">ESG Intelligence as a Service Platform</p>
               <h1 className="text-3xl md:text-4xl font-bold leading-tight text-foreground">
-                We Help Businesses and Investors be{" "}
-                <span className="text-primary">Responsible</span>
+                Actionating ESG data to enable businesses and investors to{" "}
+                <span className="text-primary">act on ESG risks identified.</span>
               </h1>
               <p className="text-muted-foreground leading-relaxed">
-                Begin your sustainability journey with our AI-powered SaaS Platform.
-                From managing ESG data to insightful analysis, we provide comprehensive solutions.
+                These risks are used as inputs for the ESG Risk modeling on the platform with real time correlation with other influencing factors – regulatory, operational, climate, supplychain etc. to offer decision grade information to investors and startups to de-risk themselves.
               </p>
             </div>
 
