@@ -133,9 +133,9 @@ export default function Auth() {
             </div>
           </div>
 
-          {/* Right Column – 40% (2/5) */}
-          <div className="lg:col-span-2 flex justify-center lg:justify-end">
-            <Card className="w-full max-w-[420px] shadow-lg border border-border/60" style={{ borderRadius: 12, padding: 0 }}>
+          {/* Right Column */}
+          <div className="w-full lg:w-[400px] lg:flex-shrink-0 lg:ml-10">
+            <Card className="w-full shadow-lg border border-border/60" style={{ borderRadius: 12, padding: 0 }}>
               <CardHeader className="text-center px-8 pt-8 pb-2">
                 <CardTitle className="text-2xl font-semibold">Welcome</CardTitle>
                 <CardDescription className="text-sm">Sign in or create an account</CardDescription>
