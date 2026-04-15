@@ -151,7 +151,7 @@ export function CAPTable({
   const getOriginalItem = (id: string) => originalItems.find(item => item.id === id) || null;
 
   return (
-    <>
+    <TooltipProvider>
       <div className="border rounded-md overflow-x-auto">
         <table className="w-full text-sm min-w-[1200px]">
           <thead className="bg-muted">
@@ -167,7 +167,7 @@ export function CAPTable({
               <th className="p-3 text-left">Priority</th>
               <th className="p-3 text-left">Actual Date</th>
               <th className="p-3 text-left">Status</th>
-              <th className="p-3 text-right">Actions</th>
+              <th className="p-3 text-center">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -220,16 +220,17 @@ export function CAPTable({
                     )}
                   </td>
                   <td className="p-3">{getCategoryBadge(item.category)}</td>
-                  <td className="p-3">{originalItem ? (
-                    <RenderChangedField
-                      currentValue={item.resource}
-                      originalValue={originalItem.resource}
-                      isComparisonView={isComparisonView}
-                      itemId={item.id}
-                      fieldName="resource"
-                      onRevertField={onRevertField}
-                    />
-                  ) : item.resource}
+                  <td className="p-3">
+                    {originalItem ? (
+                      <RenderChangedField
+                        currentValue={item.resource}
+                        originalValue={originalItem.resource}
+                        isComparisonView={isComparisonView}
+                        itemId={item.id}
+                        fieldName="resource"
+                        onRevertField={onRevertField}
+                      />
+                    ) : item.resource}
                     {item.assignedTo && <div className="text-xs text-muted-foreground">{item.assignedTo}</div>}
                   </td>
                   <td className="p-3">
@@ -262,7 +263,7 @@ export function CAPTable({
                         )}
                       </div>
                     )}
-                  </td>
+                   </td>
                   <td className="p-3">{item.targetDate || "-"}</td>
                   <td className="p-3">{item.CS || "-"}</td>
                   <td className="p-3">{getPriorityBadge(item.priority)}</td>
@@ -270,16 +271,39 @@ export function CAPTable({
                   <td className="p-3">{getStatusBadge(item.status)}</td>
                   <td className="p-3 text-center align-middle">
                     <div className="flex gap-2 justify-center">
-                      <Button size="sm" variant="outline" onClick={() => onReview(item)}>
-                        <Eye className="h-4 w-4 mr-1" /> Review
-                      </Button>
-                      <Button size="sm" variant="ghost" onClick={() => onSendReminder(item)}>
-                        <Clock className="h-4 w-4" />
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button size="sm" variant="outline" onClick={() => onReview(item)}>
+                            <Eye className="h-4 w-4 mr-1" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Review CAP item</p>
+                        </TooltipContent>
+                      </Tooltip>
+                      
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button size="sm" variant="outline" onClick={() => onSendReminder(item)}>
+                            <Clock className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Send reminder</p>
+                        </TooltipContent>
+                      </Tooltip>
+                      
                       {isComparisonView && onRevert && (
-                        <Button size="sm" variant="outline" className="text-amber-600 border-amber-600" onClick={() => onRevert(item.id)}>
-                          <ArrowLeft className="h-4 w-4 mr-1" /> Revert All
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button size="sm" variant="outline" className="text-amber-600 border-amber-600" onClick={() => onRevert(item.id)}>
+                              <ArrowLeft className="h-4 w-4 mr-1" /> Revert All
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Revert all changes</p>
+                          </TooltipContent>
+                        </Tooltip>
                       )}
                     </div>
                   </td>
@@ -304,6 +328,6 @@ export function CAPTable({
           </div>
         </div>
       </div>
-    </>
+    </TooltipProvider>
   );
 }
