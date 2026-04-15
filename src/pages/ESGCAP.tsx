@@ -544,7 +544,7 @@ export default function ESGCAP() {
           onCompanyChange={setSelectedCompany}
         />
 
-        {!isPlanFinalized && filteredCAPItems.length > 0 && (
+        {/* {!isPlanFinalized && filteredCAPItems.length > 0 && (
           <div className="flex items-center gap-6">
             <Button
               variant="outline"
@@ -557,7 +557,7 @@ export default function ESGCAP() {
               {showComparisonView ? "Exit Comparison View" : "Compare Changes"}
             </Button>
           </div>
-        )}
+        )} */}
       </div>
 
       {filteredCAPItems.length > 0 && (

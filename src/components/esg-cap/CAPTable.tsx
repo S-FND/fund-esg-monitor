@@ -188,16 +188,37 @@ export function CAPTable({
                       />
                     ) : item.item}
                   </td>
-                  <td className="p-3">{originalItem ? (
-                    <RenderChangedField
-                      currentValue={item.measures}
-                      originalValue={originalItem.measures}
-                      isComparisonView={isComparisonView}
-                      itemId={item.id}
-                      fieldName="measures"
-                      onRevertField={onRevertField}
-                    />
-                  ) : item.measures}</td>
+                  <td className="p-3">
+                    {originalItem ? (
+                      <RenderChangedField
+                        currentValue={item.measures}
+                        originalValue={originalItem.measures}
+                        isComparisonView={isComparisonView}
+                        itemId={item.id}
+                        fieldName="measures"
+                        onRevertField={onRevertField}
+                      />
+                    ) : (
+                      <div className="relative group">
+                        <div className="line-clamp-2">{item.measures}</div>
+                        {item.measures && item.measures.length > 100 && (
+                          <button
+                            className="text-blue-500 text-xs hover:underline mt-1 block"
+                            onClick={(e) => {
+                              const target = e.currentTarget.previousElementSibling;
+                              if (target) {
+                                target.classList.toggle('line-clamp-2');
+                                target.classList.toggle('line-clamp-none');
+                                e.currentTarget.textContent = target.classList.contains('line-clamp-none') ? 'Show less' : 'View more';
+                              }
+                            }}
+                          >
+                            View more
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </td>
                   <td className="p-3">{getCategoryBadge(item.category)}</td>
                   <td className="p-3">{originalItem ? (
                     <RenderChangedField
@@ -211,33 +232,56 @@ export function CAPTable({
                   ) : item.resource}
                     {item.assignedTo && <div className="text-xs text-muted-foreground">{item.assignedTo}</div>}
                   </td>
-                  <td className="p-3">{originalItem ? (
-                    <RenderChangedField
-                      currentValue={item.deliverable}
-                      originalValue={originalItem.deliverable}
-                      isComparisonView={isComparisonView}
-                      itemId={item.id}
-                      fieldName="deliverable"
-                      onRevertField={onRevertField}
-                    />
-                  ) : item.deliverable}</td>
+                  <td className="p-3">
+                    {originalItem ? (
+                      <RenderChangedField
+                        currentValue={item.deliverable}
+                        originalValue={originalItem.deliverable}
+                        isComparisonView={isComparisonView}
+                        itemId={item.id}
+                        fieldName="deliverable"
+                        onRevertField={onRevertField}
+                      />
+                    ) : (
+                      <div className="relative group">
+                        <div className="line-clamp-2">{item.deliverable}</div>
+                        {item.deliverable && item.deliverable.length > 100 && (
+                          <button
+                            className="text-blue-500 text-xs hover:underline mt-1 block"
+                            onClick={(e) => {
+                              const target = e.currentTarget.previousElementSibling;
+                              if (target) {
+                                target.classList.toggle('line-clamp-2');
+                                target.classList.toggle('line-clamp-none');
+                                e.currentTarget.textContent = target.classList.contains('line-clamp-none') ? 'Show less' : 'View more';
+                              }
+                            }}
+                          >
+                            View more
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </td>
                   <td className="p-3">{item.targetDate || "-"}</td>
                   <td className="p-3">{item.CS || "-"}</td>
                   <td className="p-3">{getPriorityBadge(item.priority)}</td>
                   <td className="p-3">{item.actualDate || "-"}</td>
                   <td className="p-3">{getStatusBadge(item.status)}</td>
-                  <td className="p-3 text-right flex gap-2 justify-end">
-                    <Button size="sm" variant="outline" onClick={() => onReview(item)}>
-                      <Eye className="h-4 w-4 mr-1" /> Review
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => onSendReminder(item)}>
-                      <Clock className="h-4 w-4" />
-                    </Button>
-                    {isComparisonView && onRevert && (
-                      <Button size="sm" variant="outline" className="text-amber-600 border-amber-600" onClick={() => onRevert(item.id)}>
-                        <ArrowLeft className="h-4 w-4 mr-1" /> Revert All
+                  <td className="p-3 text-center align-middle">
+                    <div className="flex gap-2 justify-center">
+                      <Button size="sm" variant="outline" onClick={() => onReview(item)}>
+                        <Eye className="h-4 w-4 mr-1" /> Review
                       </Button>
-                    )}
+                      <Button size="sm" variant="ghost" onClick={() => onSendReminder(item)}>
+                        <Clock className="h-4 w-4" />
+                      </Button>
+                      {isComparisonView && onRevert && (
+                        <Button size="sm" variant="outline" className="text-amber-600 border-amber-600" onClick={() => onRevert(item.id)}>
+                          <ArrowLeft className="h-4 w-4 mr-1" /> Revert All
+                        </Button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               );
