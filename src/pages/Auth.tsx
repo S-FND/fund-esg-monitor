@@ -7,7 +7,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Shield, BarChart3, FileSearch, Activity, AlertTriangle, TrendingUp } from "lucide-react";
+
+const FEATURES = [
+  { icon: FileSearch, label: "ESG DD – Machine driven" },
+  { icon: Shield, label: "Corrective Action Plan tracker" },
+  { icon: Activity, label: "Integrated operational data" },
+  { icon: BarChart3, label: "Portfolio Monitoring" },
+  { icon: AlertTriangle, label: "Real-time Risk identification" },
+  { icon: TrendingUp, label: "Valuation impact modeling" },
+];
 
 export default function Auth() {
   const [email, setEmail] = useState("");
@@ -72,179 +81,170 @@ export default function Auth() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {/* Header */}
-      <header className="w-full border-b bg-card">
-        <div className="max-w-6xl mx-auto flex items-center justify-between px-6 py-4">
+      <header className="w-full border-b bg-card/80 backdrop-blur-sm sticky top-0 z-50">
+        <div className="mx-auto w-full max-w-[1200px] flex items-center justify-between px-6 py-4 lg:px-8">
           <div className="flex items-center gap-3">
             <img src="/fandoro-logo.png" alt="Fandoro Technologies" className="h-9 w-9" />
             <span className="text-xl font-bold tracking-tight text-foreground">Fandoro</span>
           </div>
-          <div className="flex items-center gap-6">
-            <a
-              href="/pricing"
-              className="text-sm font-medium text-foreground hover:text-primary transition-colors"
-            >
+          <nav className="hidden sm:flex items-center gap-6">
+            <a href="/pricing" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
               Pricing
             </a>
-            <a
-              href="/technical-architecture"
-              className="text-sm font-medium text-foreground hover:text-primary transition-colors"
-            >
+            <a href="/technical-architecture" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
               Technical Architecture
             </a>
-            <a
-              href="https://fandoro.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-muted-foreground hover:text-primary transition-colors"
-            >
+            <a href="https://fandoro.com" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-primary transition-colors">
               Visit Fandoro.com →
             </a>
-          </div>
+          </nav>
         </div>
       </header>
 
       {/* Main */}
-      <main className="flex-1 flex items-center justify-center px-4 py-12">
-        <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
-          {/* Left: Branding + Demo Credentials */}
-          <div className="space-y-8">
-            <div className="space-y-3">
-              <p className="text-sm font-medium uppercase tracking-wider text-primary">ESG Intelligence as a Service Platform</p>
-              <h1 className="text-3xl md:text-4xl font-bold leading-tight text-foreground">
+      <main className="flex-1 flex items-center justify-center px-5 py-12 lg:px-8">
+        <div className="mx-auto w-full max-w-[1200px] grid grid-cols-1 lg:grid-cols-5 gap-12 lg:gap-16 items-center">
+
+          {/* Left Column – 60% (3/5) */}
+          <div className="lg:col-span-3 flex flex-col items-center lg:items-start text-center lg:text-left">
+            <div className="max-w-[520px] space-y-0">
+              <p className="text-sm font-semibold uppercase tracking-widest text-primary mb-4">
+                ESG Intelligence as a Service Platform
+              </p>
+              <h1 className="text-3xl md:text-4xl font-bold leading-tight text-foreground mb-4">
                 Actionating ESG data to enable businesses and investors to{" "}
                 <span className="text-primary">act on ESG risks identified.</span>
               </h1>
-              <p className="text-muted-foreground leading-relaxed">
-                These risks are used as inputs for the ESG Risk modeling on the platform with real time correlation with other influencing factors – regulatory, operational, climate, supplychain etc. to offer decision grade information to investors and startups to de-risk themselves.
+              <p className="text-base text-muted-foreground leading-relaxed mb-8" style={{ lineHeight: 1.6 }}>
+                These risks are used as inputs for the ESG Risk modeling on the platform with real time correlation with other influencing factors – regulatory, operational, climate, supply chain etc. to offer decision grade information to investors and startups to de-risk themselves.
               </p>
-            </div>
 
+              {/* Feature bullets */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {FEATURES.map(({ icon: Icon, label }) => (
+                  <div key={label} className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10">
+                      <Icon className="h-4 w-4 text-primary" />
+                    </div>
+                    <span className="text-sm font-medium text-foreground">{label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
-          {/* Right: Auth Form + Features */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Features List */}
-            <div className="flex flex-col justify-center space-y-4">
-              {[
-                "ESG DD – Machine driven",
-                "Corrective Action Plan tracker",
-                "Integrated operational data",
-                "Portfolio Monitoring",
-                "Real-time Risk identification",
-                "Valuation impact modeling",
-              ].map((item) => (
-                <div key={item} className="flex items-center gap-3">
-                  <div className="h-2 w-2 rounded-full bg-primary shrink-0" />
-                  <span className="text-sm font-medium text-foreground">{item}</span>
-                </div>
-              ))}
-            </div>
-
-            {/* Auth Form */}
-            <Card className="shadow-lg">
-              <CardHeader className="text-center pb-2">
-                <CardTitle className="text-2xl">Welcome</CardTitle>
-                <CardDescription>Sign in or create an account</CardDescription>
+          {/* Right Column – 40% (2/5) */}
+          <div className="lg:col-span-2 flex justify-center lg:justify-end">
+            <Card className="w-full max-w-[420px] shadow-lg border border-border/60" style={{ borderRadius: 12, padding: 0 }}>
+              <CardHeader className="text-center px-8 pt-8 pb-2">
+                <CardTitle className="text-2xl font-semibold">Welcome</CardTitle>
+                <CardDescription className="text-sm">Sign in or create an account</CardDescription>
               </CardHeader>
-            <CardContent>
-              <Tabs defaultValue="signin" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 mb-4">
-                  <TabsTrigger value="signin">Sign In</TabsTrigger>
-                  <TabsTrigger value="signup">Sign Up</TabsTrigger>
-                </TabsList>
+              <CardContent className="px-8 pb-8 pt-2">
+                <Tabs defaultValue="signin" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2 mb-6">
+                    <TabsTrigger value="signin">Sign In</TabsTrigger>
+                    <TabsTrigger value="signup">Sign Up</TabsTrigger>
+                  </TabsList>
 
-                <TabsContent value="signin">
-                  <form onSubmit={handleSignIn} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="signin-email">Email</Label>
-                      <Input
-                        id="signin-email"
-                        type="email"
-                        placeholder="Enter your email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="signin-password">Password</Label>
-                      <div className="relative">
+                  <TabsContent value="signin">
+                    <form onSubmit={handleSignIn} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="signin-email">Email</Label>
                         <Input
-                          id="signin-password"
-                          type={showPassword ? "text" : "password"}
-                          placeholder="Enter your password"
+                          id="signin-email"
+                          type="email"
+                          placeholder="Enter your email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          required
+                          className="h-11"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="signin-password">Password</Label>
+                        <div className="relative">
+                          <Input
+                            id="signin-password"
+                            type={showPassword ? "text" : "password"}
+                            placeholder="Enter your password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                            className="h-11 pr-10"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </button>
+                        </div>
+                      </div>
+                      <Button type="submit" className="w-full h-12 text-sm font-semibold mt-2 hover:shadow-md transition-shadow" disabled={loading}>
+                        {loading ? "Signing in..." : "Sign In"}
+                      </Button>
+                    </form>
+                  </TabsContent>
+
+                  <TabsContent value="signup">
+                    <form onSubmit={handleSignUp} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="signup-name">Full Name</Label>
+                        <Input
+                          id="signup-name"
+                          type="text"
+                          placeholder="Enter your full name"
+                          value={fullName}
+                          onChange={(e) => setFullName(e.target.value)}
+                          required
+                          className="h-11"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="signup-company">Company Name</Label>
+                        <Input
+                          id="signup-company"
+                          type="text"
+                          placeholder="Enter your company name"
+                          value={companyName}
+                          onChange={(e) => setCompanyName(e.target.value)}
+                          required
+                          className="h-11"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="signup-email">Email</Label>
+                        <Input
+                          id="signup-email"
+                          type="email"
+                          placeholder="Enter your email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          required
+                          className="h-11"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="signup-password">Password</Label>
+                        <Input
+                          id="signup-password"
+                          type="password"
+                          placeholder="Create a password"
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
                           required
+                          className="h-11"
                         />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                        >
-                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </button>
                       </div>
-                    </div>
-                    <Button type="submit" className="w-full" disabled={loading}>
-                      {loading ? "Signing in..." : "Sign In"}
-                    </Button>
-                  </form>
-                </TabsContent>
-
-                <TabsContent value="signup">
-                  <form onSubmit={handleSignUp} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-name">Full Name</Label>
-                      <Input
-                        id="signup-name"
-                        type="text"
-                        placeholder="Enter your full name"
-                        value={fullName}
-                        onChange={(e) => setFullName(e.target.value)}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-company">Company Name</Label>
-                      <Input
-                        id="signup-company"
-                        type="text"
-                        placeholder="Enter your company name"
-                        value={companyName}
-                        onChange={(e) => setCompanyName(e.target.value)}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-email">Email</Label>
-                      <Input
-                        id="signup-email"
-                        type="email"
-                        placeholder="Enter your email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-password">Password</Label>
-                      <Input
-                        id="signup-password"
-                        type="password"
-                        placeholder="Create a password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                      />
-                    </div>
-                    <Button type="submit" className="w-full" disabled={loading}>
-                      {loading ? "Creating account..." : "Create Account"}
-                    </Button>
-                  </form>
-                </TabsContent>
-              </Tabs>
-            </CardContent>
+                      <Button type="submit" className="w-full h-12 text-sm font-semibold mt-2 hover:shadow-md transition-shadow" disabled={loading}>
+                        {loading ? "Creating account..." : "Create Account"}
+                      </Button>
+                    </form>
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
             </Card>
           </div>
         </div>
