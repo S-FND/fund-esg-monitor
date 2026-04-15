@@ -102,12 +102,12 @@ export default function Auth() {
       </header>
 
       {/* Main */}
-      <main className="flex-1 flex items-center justify-center px-5 py-12 lg:px-8">
-        <div className="mx-auto w-full max-w-[1200px] grid grid-cols-1 lg:grid-cols-5 gap-12 lg:gap-16 items-center">
+      <main className="flex-1 flex items-center px-5 py-12 lg:px-8">
+        <div className="mx-auto w-full max-w-[1200px] flex flex-col lg:flex-row lg:justify-between lg:items-center gap-12">
 
-          {/* Left Column – 60% (3/5) */}
-          <div className="lg:col-span-3 flex flex-col items-center lg:items-start text-center lg:text-left">
-            <div className="max-w-[520px] space-y-0">
+          {/* Left Column */}
+          <div className="flex-1 max-w-[600px] text-center lg:text-left">
+            <div>
               <p className="text-sm font-semibold uppercase tracking-widest text-primary mb-4">
                 ESG Intelligence as a Service Platform
               </p>
