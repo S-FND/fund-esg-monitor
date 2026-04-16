@@ -2,6 +2,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Eye, ArrowLeft, ArrowRight, Undo } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../ui/dialog";
+import { useState } from "react";
+import { AiDialog } from "./AiDialog";
 
 export type CAPStatus =
   | "pending"
@@ -16,23 +20,112 @@ export type CAPCategory = "environmental" | "social" | "governance";
 export type CAPType = "CP" | "CS" | "none";
 export type CAPPriority = "High" | "Medium" | "Low";
 
-export interface ESGCapItem {
+export type EvidenceType =
+  | "data"
+  | "report"
+  | "training_record"
+  | "audit"
+  | "plan"
+  | "system"
+  | "certificate"
+  | "kpi_metrics";
+
+export interface AiResponse {
   id: string;
-  reportId: string;
-  item: string;
-  category: CAPCategory;
-  CS?: string;
-  priority: CAPPriority;
-  measures: string;
-  resource: string;
-  deliverable: string;
-  targetDate: string;
-  actualDate?: string;
-  status: CAPStatus;
-  assignedTo?: string;
-  dealCondition?: CAPType;
-  createdAt?: string;
+  _index: number;
+
+  // requiredEvidence: {
+  //   types: string[];
+  //   normalizedTypes: string[];
+  //   reasoning: string;
+  //   confidence: number;
+  // };
+
+  requiredEvidence: {
+    types: EvidenceType[];
+    normalizedTypes: EvidenceType[];
+    reasoning: string;
+    confidence: number;
+  };
+
+  documentRequired: boolean;
+  documentType: string | null;
+  sourceType: "internal" | "external" | null;
+
+  sections: string[];
+
+  templates: Template[];
+
+  reasoning: string;
+  confidence: number;
 }
+
+export interface Template {
+  type: "system" | "data" | "report" | string;
+  name: string;
+  format: "checklist" | "table" | "document" | string;
+
+  structure: TemplateStructure;
+}
+export type ESGCapDealCondition = 'CP' | 'CS' | 'none';
+
+export interface TemplateStructure {
+  components?: string[];   // system
+  columns?: string[];      // data
+  sections?: string[];     // report
+
+  // future-proof (very important for your AI system)
+  [key: string]: any;
+}
+
+export interface ESGCapItem {
+  id: string | number;  // Can be string or number based on your API
+  item: string;
+  measures: string;
+  reportId?: string;    // Make optional if not always present
+  issue?: string;       // Make optional if not always present
+  description?: string; // Make optional if not always present
+  category: CAPCategory;
+  recommendation?: string;
+  priority: CAPPriority;
+  status: CAPStatus;
+  deadline?: string;    // This might be your targetDate
+  targetDate?: string;  // Alternative to deadline
+  assignedTo?: string;
+  dealCondition: ESGCapDealCondition;
+  createdAt: string;
+  actualCompletionDate?: string;  // This might be your actualDate
+  acceptedAt?: string;
+  resource?: string;    // From your payload
+  deliverable?: string; // From your payload
+  CS?: string;         // From your payload
+  actualDate?: string;
+  remarks?: string;
+  theme?:"Policy" | "SOP" | "Metrics" | "Logs";
+  data_type?:string;
+  documentType?: string;
+  sections?: string[];
+  sourceType?: string;
+  aiResponseRaw?:AiResponse
+}
+
+// export interface ESGCapItem {
+//   id: string;
+//   reportId: string;
+//   item: string;
+//   category: CAPCategory;
+//   CS?: string;
+//   priority: CAPPriority;
+//   measures: string;
+//   resource: string;
+//   deliverable: string;
+//   targetDate: string;
+//   actualDate?: string;
+//   status: CAPStatus;
+//   assignedTo?: string;
+//   dealCondition?: CAPType;
+//   createdAt?: string;
+// }
 
 interface CAPTableProps {
   items: ESGCapItem[];
@@ -40,8 +133,8 @@ interface CAPTableProps {
   onSendReminder: (item: ESGCapItem) => void;
   originalItems?: ESGCapItem[]; // for comparison
   isComparisonView?: boolean;
-  onRevertField?: (itemId: string, field: keyof ESGCapItem) => void;
-  onRevert?: (itemId: string) => void;
+  onRevertField?: (itemId: string | number, field: keyof ESGCapItem) => void;
+  onRevert?: (itemId: string | number) => void;
   finalPlan?: boolean;
   progressPercentage?: number;
 }
@@ -103,9 +196,9 @@ const RenderChangedField = ({
   currentValue: string;
   originalValue: string;
   isComparisonView?: boolean;
-  itemId?: string;
+  itemId?: string | number;
   fieldName?: keyof ESGCapItem;
-  onRevertField?: (itemId: string, field: keyof ESGCapItem) => void;
+  onRevertField?: (itemId: string | number, field: keyof ESGCapItem) => void;
 }) => {
   const hasChanged = currentValue !== originalValue;
 
@@ -147,8 +240,15 @@ export function CAPTable({
 }: CAPTableProps) {
   const completedItems = items.filter(item => item.status === "completed").length;
   const progressPercentage = items.length > 0 ? Math.round((completedItems / items.length) * 100) : 0;
+  const [isViewAiOpen, setIsViewAiOpen]=useState(false)
+  const [item,setItem]=useState<ESGCapItem>({} as ESGCapItem);
 
-  const getOriginalItem = (id: string) => originalItems.find(item => item.id === id) || null;
+  const getOriginalItem = (id: string | number) => originalItems.find(item => item.id === id) || null;
+
+    const onAiShow=(item:ESGCapItem)=>{
+      setIsViewAiOpen(true);
+      setItem(item);
+    }
 
   return (
     <>
@@ -230,9 +330,17 @@ export function CAPTable({
                     <Button size="sm" variant="outline" onClick={() => onReview(item)}>
                       <Eye className="h-4 w-4 mr-1" /> Review
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={() => onSendReminder(item)}>
+                    {/* <Button size="sm" variant="ghost" onClick={() => onSendReminder(item)}>
                       <Clock className="h-4 w-4" />
-                    </Button>
+                    </Button> */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger>•••</DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <DropdownMenuItem onClick={() => onSendReminder(item)}>Send Reminder</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onAiShow(item)}>Review AI Suggestion</DropdownMenuItem>
+                        {/* <DropdownMenuItem>Mark Complete</DropdownMenuItem> */}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                     {isComparisonView && onRevert && (
                       <Button size="sm" variant="outline" className="text-amber-600 border-amber-600" onClick={() => onRevert(item.id)}>
                         <ArrowLeft className="h-4 w-4 mr-1" /> Revert All
@@ -260,6 +368,116 @@ export function CAPTable({
           </div>
         </div>
       </div>
+      {/* <Dialog open={isViewAiOpen} onOpenChange={setIsViewAiOpen}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{item.item}</DialogTitle>
+            <DialogDescription>
+              ESG Action Plan Details
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6">
+
+            <div>
+              <h3 className="font-semibold mb-2">Basic Information</h3>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <p><b>Category:</b> {item.category}</p>
+                <p><b>Status:</b> {item.status}</p>
+                <p><b>Priority:</b> {item.priority}</p>
+                <p><b>Assigned To:</b> {item.assignedTo}</p>
+                <p><b>Target Date:</b> {item.targetDate}</p>
+                <p><b>Actual Date:</b> {item.actualDate}</p>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="font-semibold mb-2">AI Insights</h3>
+              <p className="text-sm text-muted-foreground">
+                {item.aiResponseRaw?.reasoning}
+              </p>
+              <p className="text-xs mt-1">
+                Confidence: {(item.aiResponseRaw?.confidence * 100).toFixed(0)}%
+              </p>
+            </div>
+
+            
+            {item.aiResponseRaw?.requiredEvidence && (
+              <div>
+                <h3 className="font-semibold mb-2">Required Evidence</h3>
+                <div className="flex flex-wrap gap-2">
+                  {item.aiResponseRaw.requiredEvidence.types.map((type: string, i: number) => (
+                    <span
+                      key={i}
+                      className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded"
+                    >
+                      {type}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            
+            {item.aiResponseRaw?.templates?.length > 0 && (
+              <div>
+                <h3 className="font-semibold mb-2">Suggested Templates</h3>
+
+                <div className="space-y-4">
+                  {item.aiResponseRaw.templates.map((template: any, index: number) => (
+                    <div
+                      key={index}
+                      className="border rounded-lg p-3 bg-muted/20"
+                    >
+                      <p className="font-medium">{template.name}</p>
+                      <p className="text-xs text-muted-foreground mb-2">
+                        Type: {template.type} • Format: {template.format}
+                      </p>
+
+                      
+                      {template.structure?.components && (
+                        <ul className="list-disc ml-5 text-sm">
+                          {template.structure.components.map((c: string, i: number) => (
+                            <li key={i}>{c}</li>
+                          ))}
+                        </ul>
+                      )}
+
+                      {template.structure?.columns && (
+                        <div className="flex flex-wrap gap-2 text-xs">
+                          {template.structure.columns.map((col: string, i: number) => (
+                            <span key={i} className="px-2 py-1 bg-gray-200 rounded">
+                              {col}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {template.structure?.sections && (
+                        <ul className="list-disc ml-5 text-sm">
+                          {template.structure.sections.map((sec: string, i: number) => (
+                            <li key={i}>{sec}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsViewAiOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog> */}
+      <AiDialog isViewAiOpen={isViewAiOpen} onOpenChange={setIsViewAiOpen} item={item} />
     </>
+
+
   );
 }
