@@ -55,7 +55,6 @@ export default function Auth() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, password }),
             });
-            debugger;
             const data = await res.json();
             if (!res.ok || !data.status || !data.user) {
                 toast(data.message || "Invalid credentials");

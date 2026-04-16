@@ -120,12 +120,14 @@ interface AlertsPanelProps {
   overdueItems: ESGCapItem[];
   approachingDeadlines: ESGCapItem[];
   onItemClick: (item: ESGCapItem) => void;
+  finalPlan?: boolean;
 }
 
 export const AlertsPanel = ({
   overdueItems,
   approachingDeadlines,
   onItemClick,
+
 }: AlertsPanelProps) => {
   const [isOpen, setIsOpen] = useState(false);
 

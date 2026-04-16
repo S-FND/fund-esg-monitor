@@ -337,7 +337,7 @@ export function CAPTable({
                       <DropdownMenuTrigger>•••</DropdownMenuTrigger>
                       <DropdownMenuContent>
                         <DropdownMenuItem onClick={() => onSendReminder(item)}>Send Reminder</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onAiShow(item)}>Review AI Suggestion</DropdownMenuItem>
+                        {item.aiResponseRaw && <DropdownMenuItem onClick={() => onAiShow(item)}>Review AI Suggestion</DropdownMenuItem>}
                         {/* <DropdownMenuItem>Mark Complete</DropdownMenuItem> */}
                       </DropdownMenuContent>
                     </DropdownMenu>
