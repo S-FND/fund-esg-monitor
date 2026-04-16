@@ -101,12 +101,12 @@ export interface ESGCapItem {
   CS?: string;         // From your payload
   actualDate?: string;
   remarks?: string;
-  theme?:"Policy" | "SOP" | "Metrics" | "Logs";
-  data_type?:string;
+  theme?: "Policy" | "SOP" | "Metrics" | "Logs";
+  data_type?: string;
   documentType?: string;
   sections?: string[];
   sourceType?: string;
-  aiResponseRaw?:AiResponse
+  aiResponseRaw?: AiResponse
 }
 
 // export interface ESGCapItem {
@@ -240,34 +240,36 @@ export function CAPTable({
 }: CAPTableProps) {
   const completedItems = items.filter(item => item.status === "completed").length;
   const progressPercentage = items.length > 0 ? Math.round((completedItems / items.length) * 100) : 0;
-  const [isViewAiOpen, setIsViewAiOpen]=useState(false)
-  const [item,setItem]=useState<ESGCapItem>({} as ESGCapItem);
+  const [isViewAiOpen, setIsViewAiOpen] = useState(false)
+  const [item, setItem] = useState<ESGCapItem>({} as ESGCapItem);
 
   const getOriginalItem = (id: string | number) => originalItems.find(item => item.id === id) || null;
 
-    const onAiShow=(item:ESGCapItem)=>{
-      setIsViewAiOpen(true);
-      setItem(item);
-    }
+  const onAiShow = (item: ESGCapItem) => {
+    setIsViewAiOpen(true);
+    setItem(item);
+  }
 
   return (
-    <>
+    <TooltipProvider>
       <div className="border rounded-md overflow-x-auto">
         <table className="w-full text-sm min-w-[1200px]">
           <thead className="bg-muted">
             <tr>
               <th className="p-3 text-left">S. No</th>
               <th className="p-3 text-left">Item</th>
-              <th className="p-3 text-left">Measures & Corrective Actions</th>
               <th className="p-3 text-left">Category</th>
+              <th className="p-3 text-left">Priority</th>
+
+
+              <th className="p-3 text-left">Measures & Corrective Actions</th>
               <th className="p-3 text-left">Resource & Responsibility</th>
               <th className="p-3 text-left">Expected Deliverable</th>
               <th className="p-3 text-left">Target Date</th>
               <th className="p-3 text-left">CP/CS</th>
-              <th className="p-3 text-left">Priority</th>
               <th className="p-3 text-left">Actual Date</th>
               <th className="p-3 text-left">Status</th>
-              <th className="p-3 text-right">Actions</th>
+              <th className="p-3 text-center">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -288,64 +290,149 @@ export function CAPTable({
                       />
                     ) : item.item}
                   </td>
-                  <td className="p-3">{originalItem ? (
-                    <RenderChangedField
-                      currentValue={item.measures}
-                      originalValue={originalItem.measures}
-                      isComparisonView={isComparisonView}
-                      itemId={item.id}
-                      fieldName="measures"
-                      onRevertField={onRevertField}
-                    />
-                  ) : item.measures}</td>
                   <td className="p-3">{getCategoryBadge(item.category)}</td>
-                  <td className="p-3">{originalItem ? (
-                    <RenderChangedField
-                      currentValue={item.resource}
-                      originalValue={originalItem.resource}
-                      isComparisonView={isComparisonView}
-                      itemId={item.id}
-                      fieldName="resource"
-                      onRevertField={onRevertField}
-                    />
-                  ) : item.resource}
+                  <td className="p-3">{getPriorityBadge(item.priority)}</td>
+                  <td className="p-3">
+                    {originalItem ? (
+                      <RenderChangedField
+                        currentValue={item.measures}
+                        originalValue={originalItem.measures}
+                        isComparisonView={isComparisonView}
+                        itemId={item.id}
+                        fieldName="measures"
+                        onRevertField={onRevertField}
+                      />
+                    ) : (
+                      <div className="relative group">
+                        <div className="line-clamp-2">{item.measures}</div>
+                        {item.measures && item.measures.length > 100 && (
+                          <button
+                            className="text-blue-500 text-xs hover:underline mt-1 block"
+                            onClick={(e) => {
+                              const target = e.currentTarget.previousElementSibling;
+                              if (target) {
+                                target.classList.toggle('line-clamp-2');
+                                target.classList.toggle('line-clamp-none');
+                                e.currentTarget.textContent = target.classList.contains('line-clamp-none') ? 'Show less' : 'View more';
+                              }
+                            }}
+                          >
+                            View more
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </td>
+                  <td className="p-3">
+                    {originalItem ? (
+                      <RenderChangedField
+                        currentValue={item.resource}
+                        originalValue={originalItem.resource}
+                        isComparisonView={isComparisonView}
+                        itemId={item.id}
+                        fieldName="resource"
+                        onRevertField={onRevertField}
+                      />
+                    ) : item.resource}
                     {item.assignedTo && <div className="text-xs text-muted-foreground">{item.assignedTo}</div>}
                   </td>
-                  <td className="p-3">{originalItem ? (
-                    <RenderChangedField
-                      currentValue={item.deliverable}
-                      originalValue={originalItem.deliverable}
-                      isComparisonView={isComparisonView}
-                      itemId={item.id}
-                      fieldName="deliverable"
-                      onRevertField={onRevertField}
-                    />
-                  ) : item.deliverable}</td>
+                  <td className="p-3">
+                    {originalItem ? (
+                      <RenderChangedField
+                        currentValue={item.deliverable}
+                        originalValue={originalItem.deliverable}
+                        isComparisonView={isComparisonView}
+                        itemId={item.id}
+                        fieldName="deliverable"
+                        onRevertField={onRevertField}
+                      />
+                    ) : (
+                      <div className="relative group">
+                        <div className="line-clamp-2">{item.deliverable}</div>
+                        {item.deliverable && item.deliverable.length > 30 && (
+                          <button
+                            className="text-blue-500 text-xs hover:underline mt-1 block"
+                            onClick={(e) => {
+                              const target = e.currentTarget.previousElementSibling;
+                              if (target) {
+                                target.classList.toggle('line-clamp-2');
+                                target.classList.toggle('line-clamp-none');
+                                e.currentTarget.textContent = target.classList.contains('line-clamp-none') ? 'Show less' : 'View more';
+                              }
+                            }}
+                          >
+                            View more
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </td>
                   <td className="p-3">{item.targetDate || "-"}</td>
                   <td className="p-3">{item.CS || "-"}</td>
-                  <td className="p-3">{getPriorityBadge(item.priority)}</td>
                   <td className="p-3">{item.actualDate || "-"}</td>
                   <td className="p-3">{getStatusBadge(item.status)}</td>
-                  <td className="p-3 text-right flex gap-2 justify-end">
-                    <Button size="sm" variant="outline" onClick={() => onReview(item)}>
-                      <Eye className="h-4 w-4 mr-1" /> Review
-                    </Button>
-                    {/* <Button size="sm" variant="ghost" onClick={() => onSendReminder(item)}>
-                      <Clock className="h-4 w-4" />
-                    </Button> */}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger>•••</DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        <DropdownMenuItem onClick={() => onSendReminder(item)}>Send Reminder</DropdownMenuItem>
-                        {item.aiResponseRaw && <DropdownMenuItem onClick={() => onAiShow(item)}>Review AI Suggestion</DropdownMenuItem>}
-                        {/* <DropdownMenuItem>Mark Complete</DropdownMenuItem> */}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                    {isComparisonView && onRevert && (
-                      <Button size="sm" variant="outline" className="text-amber-600 border-amber-600" onClick={() => onRevert(item.id)}>
-                        <ArrowLeft className="h-4 w-4 mr-1" /> Revert All
-                      </Button>
-                    )}
+                  <td className="p-3 text-right">
+                    <div className="flex gap-2 justify-end items-center">
+                      {/* Review */}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button size="sm" variant="outline" onClick={() => onReview(item)}>
+                            <Eye className="h-4 w-4 mr-1" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Review CAP item</p>
+                        </TooltipContent>
+                      </Tooltip>
+
+                      {/* More actions (dropdown) */}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button size="sm" variant="outline">
+                                •••
+                              </Button>
+                            </DropdownMenuTrigger>
+
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => onSendReminder(item)}>
+                                Send Reminder
+                              </DropdownMenuItem>
+
+                              {item.aiResponseRaw && (
+                                <DropdownMenuItem onClick={() => onAiShow(item)}>
+                                  Review AI Suggestion
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>More actions</p>
+                        </TooltipContent>
+                      </Tooltip>
+
+                      {/* Revert */}
+                      {isComparisonView && onRevert && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-amber-600 border-amber-600"
+                              onClick={() => onRevert(item.id)}
+                            >
+                              <ArrowLeft className="h-4 w-4 mr-1" /> Revert
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Revert all changes</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+
+                    </div>
                   </td>
                 </tr>
               );
@@ -368,116 +455,8 @@ export function CAPTable({
           </div>
         </div>
       </div>
-      {/* <Dialog open={isViewAiOpen} onOpenChange={setIsViewAiOpen}>
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{item.item}</DialogTitle>
-            <DialogDescription>
-              ESG Action Plan Details
-            </DialogDescription>
-          </DialogHeader>
 
-          <div className="space-y-6">
-
-            <div>
-              <h3 className="font-semibold mb-2">Basic Information</h3>
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <p><b>Category:</b> {item.category}</p>
-                <p><b>Status:</b> {item.status}</p>
-                <p><b>Priority:</b> {item.priority}</p>
-                <p><b>Assigned To:</b> {item.assignedTo}</p>
-                <p><b>Target Date:</b> {item.targetDate}</p>
-                <p><b>Actual Date:</b> {item.actualDate}</p>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="font-semibold mb-2">AI Insights</h3>
-              <p className="text-sm text-muted-foreground">
-                {item.aiResponseRaw?.reasoning}
-              </p>
-              <p className="text-xs mt-1">
-                Confidence: {(item.aiResponseRaw?.confidence * 100).toFixed(0)}%
-              </p>
-            </div>
-
-            
-            {item.aiResponseRaw?.requiredEvidence && (
-              <div>
-                <h3 className="font-semibold mb-2">Required Evidence</h3>
-                <div className="flex flex-wrap gap-2">
-                  {item.aiResponseRaw.requiredEvidence.types.map((type: string, i: number) => (
-                    <span
-                      key={i}
-                      className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded"
-                    >
-                      {type}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            
-            {item.aiResponseRaw?.templates?.length > 0 && (
-              <div>
-                <h3 className="font-semibold mb-2">Suggested Templates</h3>
-
-                <div className="space-y-4">
-                  {item.aiResponseRaw.templates.map((template: any, index: number) => (
-                    <div
-                      key={index}
-                      className="border rounded-lg p-3 bg-muted/20"
-                    >
-                      <p className="font-medium">{template.name}</p>
-                      <p className="text-xs text-muted-foreground mb-2">
-                        Type: {template.type} • Format: {template.format}
-                      </p>
-
-                      
-                      {template.structure?.components && (
-                        <ul className="list-disc ml-5 text-sm">
-                          {template.structure.components.map((c: string, i: number) => (
-                            <li key={i}>{c}</li>
-                          ))}
-                        </ul>
-                      )}
-
-                      {template.structure?.columns && (
-                        <div className="flex flex-wrap gap-2 text-xs">
-                          {template.structure.columns.map((col: string, i: number) => (
-                            <span key={i} className="px-2 py-1 bg-gray-200 rounded">
-                              {col}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-
-                      {template.structure?.sections && (
-                        <ul className="list-disc ml-5 text-sm">
-                          {template.structure.sections.map((sec: string, i: number) => (
-                            <li key={i}>{sec}</li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsViewAiOpen(false)}>
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog> */}
       <AiDialog isViewAiOpen={isViewAiOpen} onOpenChange={setIsViewAiOpen} item={item} />
-    </>
-
-
+    </TooltipProvider>
   );
 }

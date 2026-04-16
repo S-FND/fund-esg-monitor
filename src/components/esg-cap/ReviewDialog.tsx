@@ -102,6 +102,26 @@ export function ReviewDialog({
 
   if (!editedItem) return null;
 
+  const ExpandableText = ({ text, maxLength = 150 }: { text: string; maxLength?: number }) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+
+    if (!text || text.length <= maxLength) {
+      return <p>{text}</p>;
+    }
+
+    return (
+      <div>
+        <p className={isExpanded ? '' : 'line-clamp-3'}>{text}</p>
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="text-blue-500 text-xs hover:underline mt-1 block"
+        >
+          {isExpanded ? 'Show less' : 'View more'}
+        </button>
+      </div>
+    );
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -142,11 +162,29 @@ export function ReviewDialog({
                     className={isFieldChanged('measures') ? "border-orange-400" : ""}
                   />
                 ) : (
-                  <p>{editedItem.measures}</p>
+                  <ExpandableText text={editedItem.measures} />
                 )}
                 {isFieldChanged('measures') && (
                   <p className="text-xs text-amber-600 mt-1">
                     Original: {originalItem?.measures}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <h4 className="font-semibold mb-1">Item</h4>
+                {canEdit ? (
+                  <Input
+                    value={editedItem.item}
+                    onChange={(e) => handleInputChange('item', e.target.value)}
+                    className={isFieldChanged('item') ? "border-orange-400" : ""}
+                  />
+                ) : (
+                  <ExpandableText text={editedItem.item} />
+                )}
+                {isFieldChanged('item') && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    Original: {originalItem?.item}
                   </p>
                 )}
               </div>
@@ -160,7 +198,25 @@ export function ReviewDialog({
                     className={isFieldChanged('deliverable') ? "border-orange-400" : ""}
                   />
                 ) : (
-                  <p>{editedItem.deliverable}</p>
+                  <ExpandableText text={editedItem.deliverable} />
+                )}
+                {isFieldChanged('deliverable') && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    Original: {originalItem?.deliverable}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <h4 className="font-semibold mb-1">Expected Deliverable</h4>
+                {canEdit ? (
+                  <Textarea
+                    value={editedItem.deliverable}
+                    onChange={(e) => handleInputChange('deliverable', e.target.value)}
+                    className={isFieldChanged('deliverable') ? "border-orange-400" : ""}
+                  />
+                ) : (
+                  <ExpandableText text={editedItem.deliverable} />
                 )}
                 {isFieldChanged('deliverable') && (
                   <p className="text-xs text-amber-600 mt-1">
@@ -216,7 +272,7 @@ export function ReviewDialog({
 
             {/* Right Column */}
             <div className="space-y-4">
-            <div>
+              <div>
                 <h4 className="font-semibold mb-1">Assigned To</h4>
                 {canEdit ? (
                   <Input
@@ -392,7 +448,7 @@ export function ReviewDialog({
           )}
           {canEdit && (
             // <Button variant="destructive" onClick={onCancelEdit}>
-            <Button variant="destructive"  onClick={() => onOpenChange(false)}>
+            <Button variant="destructive" onClick={() => onOpenChange(false)}>
               <X className="mr-2 h-4 w-4" />
               Cancel
             </Button>
