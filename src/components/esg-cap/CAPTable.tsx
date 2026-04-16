@@ -293,7 +293,7 @@ export function CAPTable({
                   <td className="p-3">{getCategoryBadge(item.category)}</td>
                   <td className="p-3">{getPriorityBadge(item.priority)}</td>
                   <td className="p-3">
-                    {originalItem ? (
+                  {isComparisonView && originalItem ? (
                       <RenderChangedField
                         currentValue={item.measures}
                         originalValue={originalItem.measures}
@@ -337,7 +337,7 @@ export function CAPTable({
                     {item.assignedTo && <div className="text-xs text-muted-foreground">{item.assignedTo}</div>}
                   </td>
                   <td className="p-3">
-                    {originalItem ? (
+                  {isComparisonView && originalItem ? (
                       <RenderChangedField
                         currentValue={item.deliverable}
                         originalValue={originalItem.deliverable}
