@@ -7,10 +7,10 @@ import { FilterControls } from "@/components/esg-cap/FilterControls";
 import { AlertsPanel } from "@/components/esg-cap/AlertsPanel";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { 
-  ArrowLeft, 
-  ArrowRight, 
-  ArrowUp, 
+import {
+  ArrowLeft,
+  ArrowRight,
+  ArrowUp,
   ArrowDown,
   FileText,
   CheckCircle2,
@@ -21,6 +21,7 @@ import { http } from "@/utils/httpInterceptor";
 import { useESGCAPAlerts } from "@/hooks/useESGCAPAlerts";
 import { AddCAPDialog } from "@/components/esg-cap/AddCAPDialog";
 import { EsgddAPIs } from "@/network/esgdd";
+import Loader from "@/components/ui/loader";
 
 interface PlanHistory {
   updateByUserId: string;
@@ -61,6 +62,8 @@ export default function ESGCAP() {
   const [comparePlanData, setComparePlanData] = useState<ComparePlan | null>(null);
   const previousCapItemsRef = useRef<ESGCapItem[]>([]);
   const [canEdit, setCanEdit] = useState(true);
+  const [loading,setLoading]=useState(false);
+  const [loadingMessage,setLoadingMessage]=useState("Loading ...")
 
   const alerts = useESGCAPAlerts(filteredCAPItems, previousCapItemsRef.current, planData?.finalPlan);
 
@@ -89,9 +92,9 @@ export default function ESGCAP() {
     let currentItem =
       capItems.find(i => i.id === item.id) ||
       capItems.find(i => i.reportId === item.reportId && i.item === item.item);
-  
+
     const finalItem = currentItem || item;
-  
+
     setSelectedItem(JSON.parse(JSON.stringify(finalItem)));
     setReviewDialogOpen(true);
     setCanEdit(true);
@@ -146,9 +149,9 @@ export default function ESGCAP() {
         assignedTo: item.assignedTo,
         targetDate: item.targetDate
       };
-  
+
       const [res, error] = await EsgddAPIs.sendReminder(payload);
-  
+
       if (res) {
         toast({
           title: "Reminder Sent",
@@ -157,7 +160,7 @@ export default function ESGCAP() {
       } else {
         throw new Error(error || "Failed to send reminder");
       }
-  
+
     } catch (err) {
       toast({
         title: "Error",
@@ -186,10 +189,13 @@ export default function ESGCAP() {
 
   const getPlanList = async (entityId: string) => {
     try {
+      setLoading(true);
+      setLoadingMessage("Loading plan details ...")
       const entityIdWithYear = `${entityId}?financialYear=${financialYear}`;
       const [data, error] = await EsgddAPIs.getEsgCapPlan({
         entityId: entityIdWithYear,
       });
+      setLoading(false);
       if (data) {
         setPlanData(data);
         // setFilteredCAPItems(data.plan || []);
@@ -198,9 +204,9 @@ export default function ESGCAP() {
           ...item,
           id: `${item.reportId}-${index}-${item.createdAt}`
         }));
-        
+
         console.log("✅ FIXED IDS:", normalizedPlan.map(i => i.id));
-        
+
         setFilteredCAPItems(normalizedPlan);
         setCapItems(normalizedPlan);
         previousCapItemsRef.current = normalizedPlan;
@@ -342,7 +348,8 @@ export default function ESGCAP() {
 
   const handleAcceptCap = async () => {
     if (!planData) return;
-
+    setLoading(true);
+    setLoadingMessage("Accepting plan details & Analyzing action items ...")
     const isInvestor = user?.entityType === 1;
     const isFounder = user?.entityType === 2;
 
@@ -368,7 +375,7 @@ export default function ESGCAP() {
       };
 
       const [result, error] = await EsgddAPIs.esgddAcceptPlan(payload);
-
+      setLoading(false);
       if (result?.data) {
         const userType = isInvestor ? "Investor" : "Founder";
         const message = bothAccepted
@@ -381,7 +388,7 @@ export default function ESGCAP() {
         });
 
         if (selectedCompany !== "all") {
-          await getPlanList(selectedCompany);
+          await getPlanList(planData.entityId);
         }
       }
     } catch (error) {
@@ -473,6 +480,7 @@ export default function ESGCAP() {
 
   return (
     <div className="space-y-6">
+      <Loader show={loading} text={loadingMessage}/>
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">ESG Corrective Action Plan</h1>

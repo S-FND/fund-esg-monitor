@@ -2,6 +2,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Eye, ArrowLeft, ArrowRight, Undo } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../ui/dialog";
+import { useState } from "react";
+import { AiDialog } from "./AiDialog";
 
 export type CAPStatus =
   | "pending"
@@ -16,23 +20,112 @@ export type CAPCategory = "environmental" | "social" | "governance";
 export type CAPType = "CP" | "CS" | "none";
 export type CAPPriority = "High" | "Medium" | "Low";
 
-export interface ESGCapItem {
+export type EvidenceType =
+  | "data"
+  | "report"
+  | "training_record"
+  | "audit"
+  | "plan"
+  | "system"
+  | "certificate"
+  | "kpi_metrics";
+
+export interface AiResponse {
   id: string;
-  reportId: string;
-  item: string;
-  category: CAPCategory;
-  CS?: string;
-  priority: CAPPriority;
-  measures: string;
-  resource: string;
-  deliverable: string;
-  targetDate: string;
-  actualDate?: string;
-  status: CAPStatus;
-  assignedTo?: string;
-  dealCondition?: CAPType;
-  createdAt?: string;
+  _index: number;
+
+  // requiredEvidence: {
+  //   types: string[];
+  //   normalizedTypes: string[];
+  //   reasoning: string;
+  //   confidence: number;
+  // };
+
+  requiredEvidence: {
+    types: EvidenceType[];
+    normalizedTypes: EvidenceType[];
+    reasoning: string;
+    confidence: number;
+  };
+
+  documentRequired: boolean;
+  documentType: string | null;
+  sourceType: "internal" | "external" | null;
+
+  sections: string[];
+
+  templates: Template[];
+
+  reasoning: string;
+  confidence: number;
 }
+
+export interface Template {
+  type: "system" | "data" | "report" | string;
+  name: string;
+  format: "checklist" | "table" | "document" | string;
+
+  structure: TemplateStructure;
+}
+export type ESGCapDealCondition = 'CP' | 'CS' | 'none';
+
+export interface TemplateStructure {
+  components?: string[];   // system
+  columns?: string[];      // data
+  sections?: string[];     // report
+
+  // future-proof (very important for your AI system)
+  [key: string]: any;
+}
+
+export interface ESGCapItem {
+  id: string | number;  // Can be string or number based on your API
+  item: string;
+  measures: string;
+  reportId?: string;    // Make optional if not always present
+  issue?: string;       // Make optional if not always present
+  description?: string; // Make optional if not always present
+  category: CAPCategory;
+  recommendation?: string;
+  priority: CAPPriority;
+  status: CAPStatus;
+  deadline?: string;    // This might be your targetDate
+  targetDate?: string;  // Alternative to deadline
+  assignedTo?: string;
+  dealCondition: ESGCapDealCondition;
+  createdAt: string;
+  actualCompletionDate?: string;  // This might be your actualDate
+  acceptedAt?: string;
+  resource?: string;    // From your payload
+  deliverable?: string; // From your payload
+  CS?: string;         // From your payload
+  actualDate?: string;
+  remarks?: string;
+  theme?: "Policy" | "SOP" | "Metrics" | "Logs";
+  data_type?: string;
+  documentType?: string;
+  sections?: string[];
+  sourceType?: string;
+  aiResponseRaw?: AiResponse
+}
+
+// export interface ESGCapItem {
+//   id: string;
+//   reportId: string;
+//   item: string;
+//   category: CAPCategory;
+//   CS?: string;
+//   priority: CAPPriority;
+//   measures: string;
+//   resource: string;
+//   deliverable: string;
+//   targetDate: string;
+//   actualDate?: string;
+//   status: CAPStatus;
+//   assignedTo?: string;
+//   dealCondition?: CAPType;
+//   createdAt?: string;
+// }
 
 interface CAPTableProps {
   items: ESGCapItem[];
@@ -40,8 +133,8 @@ interface CAPTableProps {
   onSendReminder: (item: ESGCapItem) => void;
   originalItems?: ESGCapItem[]; // for comparison
   isComparisonView?: boolean;
-  onRevertField?: (itemId: string, field: keyof ESGCapItem) => void;
-  onRevert?: (itemId: string) => void;
+  onRevertField?: (itemId: string | number, field: keyof ESGCapItem) => void;
+  onRevert?: (itemId: string | number) => void;
   finalPlan?: boolean;
   progressPercentage?: number;
 }
@@ -103,9 +196,9 @@ const RenderChangedField = ({
   currentValue: string;
   originalValue: string;
   isComparisonView?: boolean;
-  itemId?: string;
+  itemId?: string | number;
   fieldName?: keyof ESGCapItem;
-  onRevertField?: (itemId: string, field: keyof ESGCapItem) => void;
+  onRevertField?: (itemId: string | number, field: keyof ESGCapItem) => void;
 }) => {
   const hasChanged = currentValue !== originalValue;
 
@@ -147,8 +240,15 @@ export function CAPTable({
 }: CAPTableProps) {
   const completedItems = items.filter(item => item.status === "completed").length;
   const progressPercentage = items.length > 0 ? Math.round((completedItems / items.length) * 100) : 0;
+  const [isViewAiOpen, setIsViewAiOpen] = useState(false)
+  const [item, setItem] = useState<ESGCapItem>({} as ESGCapItem);
 
-  const getOriginalItem = (id: string) => originalItems.find(item => item.id === id) || null;
+  const getOriginalItem = (id: string | number) => originalItems.find(item => item.id === id) || null;
+
+  const onAiShow = (item: ESGCapItem) => {
+    setIsViewAiOpen(true);
+    setItem(item);
+  }
 
   return (
     <TooltipProvider>
@@ -158,13 +258,15 @@ export function CAPTable({
             <tr>
               <th className="p-3 text-left">S. No</th>
               <th className="p-3 text-left">Item</th>
-              <th className="p-3 text-left">Measures & Corrective Actions</th>
               <th className="p-3 text-left">Category</th>
+              <th className="p-3 text-left">Priority</th>
+
+
+              <th className="p-3 text-left">Measures & Corrective Actions</th>
               <th className="p-3 text-left">Resource & Responsibility</th>
               <th className="p-3 text-left">Expected Deliverable</th>
               <th className="p-3 text-left">Target Date</th>
               <th className="p-3 text-left">CP/CS</th>
-              <th className="p-3 text-left">Priority</th>
               <th className="p-3 text-left">Actual Date</th>
               <th className="p-3 text-left">Status</th>
               <th className="p-3 text-center">Actions</th>
@@ -188,6 +290,8 @@ export function CAPTable({
                       />
                     ) : item.item}
                   </td>
+                  <td className="p-3">{getCategoryBadge(item.category)}</td>
+                  <td className="p-3">{getPriorityBadge(item.priority)}</td>
                   <td className="p-3">
                     {originalItem ? (
                       <RenderChangedField
@@ -219,7 +323,6 @@ export function CAPTable({
                       </div>
                     )}
                   </td>
-                  <td className="p-3">{getCategoryBadge(item.category)}</td>
                   <td className="p-3">
                     {originalItem ? (
                       <RenderChangedField
@@ -246,7 +349,7 @@ export function CAPTable({
                     ) : (
                       <div className="relative group">
                         <div className="line-clamp-2">{item.deliverable}</div>
-                        {item.deliverable && item.deliverable.length > 100 && (
+                        {item.deliverable && item.deliverable.length > 30 && (
                           <button
                             className="text-blue-500 text-xs hover:underline mt-1 block"
                             onClick={(e) => {
@@ -263,14 +366,14 @@ export function CAPTable({
                         )}
                       </div>
                     )}
-                   </td>
+                  </td>
                   <td className="p-3">{item.targetDate || "-"}</td>
                   <td className="p-3">{item.CS || "-"}</td>
-                  <td className="p-3">{getPriorityBadge(item.priority)}</td>
                   <td className="p-3">{item.actualDate || "-"}</td>
                   <td className="p-3">{getStatusBadge(item.status)}</td>
-                  <td className="p-3 text-center align-middle">
-                    <div className="flex gap-2 justify-center">
+                  <td className="p-3 text-right">
+                    <div className="flex gap-2 justify-end items-center">
+                      {/* Review */}
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button size="sm" variant="outline" onClick={() => onReview(item)}>
@@ -281,23 +384,46 @@ export function CAPTable({
                           <p>Review CAP item</p>
                         </TooltipContent>
                       </Tooltip>
-                      
+
+                      {/* More actions (dropdown) */}
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button size="sm" variant="outline" onClick={() => onSendReminder(item)}>
-                            <Clock className="h-4 w-4" />
-                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button size="sm" variant="outline">
+                                •••
+                              </Button>
+                            </DropdownMenuTrigger>
+
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => onSendReminder(item)}>
+                                Send Reminder
+                              </DropdownMenuItem>
+
+                              {item.aiResponseRaw && (
+                                <DropdownMenuItem onClick={() => onAiShow(item)}>
+                                  Review AI Suggestion
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>Send reminder</p>
+                          <p>More actions</p>
                         </TooltipContent>
                       </Tooltip>
-                      
+
+                      {/* Revert */}
                       {isComparisonView && onRevert && (
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button size="sm" variant="outline" className="text-amber-600 border-amber-600" onClick={() => onRevert(item.id)}>
-                              <ArrowLeft className="h-4 w-4 mr-1" /> Revert All
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-amber-600 border-amber-600"
+                              onClick={() => onRevert(item.id)}
+                            >
+                              <ArrowLeft className="h-4 w-4 mr-1" /> Revert
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>
@@ -305,6 +431,7 @@ export function CAPTable({
                           </TooltipContent>
                         </Tooltip>
                       )}
+
                     </div>
                   </td>
                 </tr>
@@ -328,6 +455,8 @@ export function CAPTable({
           </div>
         </div>
       </div>
+
+      <AiDialog isViewAiOpen={isViewAiOpen} onOpenChange={setIsViewAiOpen} item={item} />
     </TooltipProvider>
   );
 }
