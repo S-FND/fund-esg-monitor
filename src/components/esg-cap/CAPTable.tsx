@@ -1,11 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Eye, ArrowLeft, ArrowRight, Undo } from "lucide-react";
+import { Clock, Eye, ArrowLeft, ArrowRight, Undo, Plus, Trash2 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../ui/dialog";
 import { useState } from "react";
 import { AiDialog } from "./AiDialog";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export type CAPStatus =
   | "pending"
@@ -131,6 +133,8 @@ interface CAPTableProps {
   items: ESGCapItem[];
   onReview: (item: ESGCapItem) => void;
   onSendReminder: (item: ESGCapItem) => void;
+  onAddItem?: (newItem: ESGCapItem) => void;
+  onDeleteItem?: (itemId: string | number) => void;
   originalItems?: ESGCapItem[]; // for comparison
   isComparisonView?: boolean;
   onRevertField?: (itemId: string | number, field: keyof ESGCapItem) => void;
@@ -233,6 +237,8 @@ export function CAPTable({
   items,
   onReview,
   onSendReminder,
+  onAddItem,
+  onDeleteItem,
   originalItems = [],
   isComparisonView = false,
   onRevertField,
@@ -242,6 +248,80 @@ export function CAPTable({
   const progressPercentage = items.length > 0 ? Math.round((completedItems / items.length) * 100) : 0;
   const [isViewAiOpen, setIsViewAiOpen] = useState(false)
   const [item, setItem] = useState<ESGCapItem>({} as ESGCapItem);
+
+  const [deleteDialog, setDeleteDialog] = useState<{
+    open: boolean;
+    item: ESGCapItem | null;
+  }>({
+    open: false,
+    item: null,
+  });
+  const [confirmText, setConfirmText] = useState("");
+
+  const handleDeleteClick = (item: ESGCapItem) => {
+    setDeleteDialog({ open: true, item });
+    setConfirmText("");
+  };
+
+  const confirmDelete = () => {
+    if (deleteDialog.item && confirmText === "DELETE") {
+      onDeleteItem?.(deleteDialog.item.id);
+      setDeleteDialog({ open: false, item: null });
+      setConfirmText("");
+    }
+  };
+
+  const [isAddingRow, setIsAddingRow] = useState(false);
+  const [newRowData, setNewRowData] = useState({
+    item: "",
+    measures: "",
+    category: "social" as CAPCategory,
+    priority: "Medium" as CAPPriority,
+    resource: "",
+    deliverable: "",
+    targetDate: "",
+    dealCondition: "CP" as CAPType,
+    assignedTo: "",
+  });
+
+  const addNewRow = () => {
+    if (!newRowData.item || !newRowData.measures) {
+      alert("Please fill Item and Measures");
+      return;
+    }
+
+    const newItem: ESGCapItem = {
+      id: Date.now(),
+      item: newRowData.item,
+      measures: newRowData.measures,
+      category: newRowData.category,
+      priority: newRowData.priority,
+      status: "pending",
+      dealCondition: newRowData.dealCondition,
+      resource: newRowData.resource,
+      deliverable: newRowData.deliverable,
+      targetDate: newRowData.targetDate,
+      CS: newRowData.dealCondition,
+      assignedTo: newRowData.assignedTo,
+      createdAt: new Date().toISOString(),
+      reportId: items[0]?.reportId || "",
+    };
+
+    onAddItem?.(newItem);
+
+    setNewRowData({
+      item: "",
+      measures: "",
+      category: "social",
+      priority: "Medium",
+      resource: "",
+      deliverable: "",
+      targetDate: "",
+      dealCondition: "CP",
+      assignedTo: "",
+    });
+    setIsAddingRow(false);
+  };
 
   const getOriginalItem = (id: string | number) => originalItems.find(item => item.id === id) || null;
 
@@ -293,7 +373,7 @@ export function CAPTable({
                   <td className="p-3">{getCategoryBadge(item.category)}</td>
                   <td className="p-3">{getPriorityBadge(item.priority)}</td>
                   <td className="p-3">
-                  {isComparisonView && originalItem ? (
+                    {isComparisonView && originalItem ? (
                       <RenderChangedField
                         currentValue={item.measures}
                         originalValue={originalItem.measures}
@@ -337,7 +417,7 @@ export function CAPTable({
                     {item.assignedTo && <div className="text-xs text-muted-foreground">{item.assignedTo}</div>}
                   </td>
                   <td className="p-3">
-                  {isComparisonView && originalItem ? (
+                    {isComparisonView && originalItem ? (
                       <RenderChangedField
                         currentValue={item.deliverable}
                         originalValue={originalItem.deliverable}
@@ -405,6 +485,16 @@ export function CAPTable({
                                   Review AI Suggestion
                                 </DropdownMenuItem>
                               )}
+
+                              {!isComparisonView && onDeleteItem && (
+                                <DropdownMenuItem
+                                  onClick={() => handleDeleteClick(item)}
+                                  className="text-red-600 focus:text-red-600"
+                                >
+                                  {/* <Trash2 className="h-4 w-4 mr-2" /> */}
+                                  Delete Item
+                                </DropdownMenuItem>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TooltipTrigger>
@@ -455,6 +545,137 @@ export function CAPTable({
           </div>
         </div>
       </div>
+
+      {!isComparisonView && onAddItem && (
+        <div className="mt-4 border-t pt-4">
+          {!isAddingRow ? (
+            <Button onClick={() => setIsAddingRow(true)} variant="outline" className="w-full">
+              <Plus className="h-4 w-4 mr-2" />
+              Add New Row
+            </Button>
+          ) : (
+            <div className="border rounded-lg p-4 bg-gray-50">
+              <div className="grid grid-cols-12 gap-2 text-sm">
+                <div className="col-span-2">
+                  <Input placeholder="Item" value={newRowData.item} onChange={(e) => setNewRowData({ ...newRowData, item: e.target.value })} />
+                </div>
+                <div className="col-span-3">
+                  <Input placeholder="Measures" value={newRowData.measures} onChange={(e) => setNewRowData({ ...newRowData, measures: e.target.value })} />
+                </div>
+                <div className="col-span-1">
+                  <Select value={newRowData.category} onValueChange={(v: CAPCategory) => setNewRowData({ ...newRowData, category: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="environmental">Env</SelectItem>
+                      <SelectItem value="social">Soc</SelectItem>
+                      <SelectItem value="governance">Gov</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="col-span-1">
+                  <Select value={newRowData.priority} onValueChange={(v: CAPPriority) => setNewRowData({ ...newRowData, priority: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="High">High</SelectItem>
+                      <SelectItem value="Medium">Med</SelectItem>
+                      <SelectItem value="Low">Low</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="col-span-1">
+                  <Input placeholder="Resource" value={newRowData.resource} onChange={(e) => setNewRowData({ ...newRowData, resource: e.target.value })} />
+                </div>
+                <div className="col-span-1">
+                  <Input placeholder="Deliverable" value={newRowData.deliverable} onChange={(e) => setNewRowData({ ...newRowData, deliverable: e.target.value })} />
+                </div>
+                <div className="col-span-1">
+                  <Input type="date" value={newRowData.targetDate} onChange={(e) => setNewRowData({ ...newRowData, targetDate: e.target.value })} />
+                </div>
+                <div className="col-span-1">
+                  <Select value={newRowData.dealCondition} onValueChange={(v: CAPType) => setNewRowData({ ...newRowData, dealCondition: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="CP">CP</SelectItem>
+                      <SelectItem value="CS">CS</SelectItem>
+                      <SelectItem value="none">None</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="col-span-1">
+                  <Button size="sm" onClick={addNewRow}>Save</Button>
+                  <Button size="sm" variant="ghost" onClick={() => setIsAddingRow(false)}>Cancel</Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialog.open}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteDialog({ open: false, item: null });
+            setConfirmText("");
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-red-600">Delete CAP Item</DialogTitle>
+            <DialogDescription>
+              This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Confirmation Message */}
+          <div className="py-3 text-sm text-gray-600">
+            <p className="mb-2">
+              Are you sure you want to delete{" "}
+              <span className="font-semibold text-gray-800">
+                "{deleteDialog.item?.item}"
+              </span>
+              ?
+            </p>
+            <p className="text-xs text-gray-500">
+              This action cannot be undone. All associated data, including measures,
+              deliverables, and assigned resources will be permanently removed.
+            </p>
+          </div>
+
+          {/* Input */}
+          <div className="mt-3">
+            <Input
+              type="text"
+              placeholder='Type "DELETE" to confirm'
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              className="w-full"
+            />
+          </div>
+
+          <DialogFooter className="mt-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDeleteDialog({ open: false, item: null });
+                setConfirmText("");
+              }}
+            >
+              Cancel
+            </Button>
+
+            <Button
+              variant="destructive"
+              disabled={confirmText !== "DELETE"}
+              onClick={confirmDelete}
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <AiDialog isViewAiOpen={isViewAiOpen} onOpenChange={setIsViewAiOpen} item={item} />
     </TooltipProvider>

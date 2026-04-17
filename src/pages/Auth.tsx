@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Eye, EyeOff, Shield, BarChart3, FileSearch, Activity, AlertTriangle, TrendingUp } from "lucide-react";
 import { http } from "@/utils/httpInterceptor";
 import { useAuth } from "@/contexts/AuthContext";
-import logo from "../assets/fandoro-logo.png"
+import { ModeToggle } from "@/components/ui/mode-toggle";
 
 const FEATURES = [
     { icon: FileSearch, label: "ESG DD – Machine driven" },
@@ -19,6 +19,20 @@ const FEATURES = [
     { icon: BarChart3, label: "Portfolio Monitoring" },
     { icon: AlertTriangle, label: "Real-time Risk identification" },
     { icon: TrendingUp, label: "Valuation impact modeling" },
+];
+
+// Select options for investor type
+const SelectFor = [
+    { value: 1, label: "Investor" },
+    { value: 2, label: "Company" },
+];
+
+// Blocked email domains
+const blockedDomains = [
+    "gmail", "yahoo", "hotmail", "outlook", "protonmail", "icloud",
+    "me", "mac", "aol", "yandex", "ymail", "yahoomail", "mail",
+    "gmx", "tutanota", "fastmail", "rediffmail", "lycos", "india",
+    "rediff", "yopmail"
 ];
 
 export default function Auth() {
@@ -30,7 +44,23 @@ export default function Auth() {
     const [showPassword, setShowPassword] = useState(false);
     const navigate = useNavigate();
     const { toast } = useToast();
-     const { setUser } = useAuth();
+    const { setUser } = useAuth();
+
+    // Signup flow states
+    const [signupStep, setSignupStep] = useState<"email" | "otp" | "register">("email");
+    const [otp, setOtp] = useState("");
+    const [entityType, setEntityType] = useState(0);
+    const [isChecked, setIsChecked] = useState(false);
+    const [enableButton, setEnableButton] = useState(false);
+    const [isValidEmail, setIsValidEmail] = useState(false);
+    const [signupData, setSignupData] = useState({
+        name: "",
+        companyName: "",
+        email: "",
+        password: "",
+        entityType: 0,
+        isInvestor: false,
+    });
 
     useEffect(() => {
         const checkAuth = async () => {
@@ -57,12 +87,10 @@ export default function Auth() {
             });
             const data = await res.json();
             if (!res.ok || !data.status || !data.user) {
-                toast(data.message || "Invalid credentials");
-                // setIsLoading(false);
+                toast({ title: "Error", description: data.message || "Invalid credentials", variant: "destructive" });
+                setLoading(false);
                 return;
             }
-            // const { error } = await http.post("/auth/signin", { email, password });
-            // if (error) throw error;
             const { user, token, access, roleMenu = [] } = data;
             localStorage.setItem("auth_token", token);
             await handleTokenAuth(token);
@@ -78,118 +106,412 @@ export default function Auth() {
     const handleTokenAuth = async (token: string) => {
         const cleanToken = token.replace(/^"|"$/g, '');
         localStorage.setItem('auth_token', cleanToken);
-    
+
         try {
-          const res = await fetch(`${import.meta.env.VITE_API_URL}/investor/general-info/verify-token`, {
-            headers: { Authorization: `Bearer ${cleanToken}` }
-          });
-    
-          if (!res.ok) throw new Error("Invalid credentials");
-    
-          const jsonData = await res.json();
-          localStorage.setItem('user', JSON.stringify(jsonData.data));
-          setUser(jsonData.data);
-          return ;
-        //   loadInitialData();
-        } catch {
-          toast({   title: "Authentication failed", description: "Invalid or expired token.", variant: "destructive" });
-          setTimeout(() => navigate("/"), 3000);
-        }
-      };
-
-    // const login = async (email: string, password: string) => {
-    //     setIsLoading(true);
-    //     try {
-    //         const res = await fetch(import.meta.env.VITE_API_URL + "/auth/login", {
-    //             method: "POST",
-    //             headers: { "Content-Type": "application/json" },
-    //             body: JSON.stringify({ email, password }),
-    //         });
-
-    //         const data = await res.json();
-    //         if (!res.ok || !data.status || !data.user) {
-    //             toast.error(data.message || "Invalid credentials");
-    //             setIsLoading(false);
-    //             return;
-    //         }
-    //         const { user, token, access, roleMenu = [] } = data;
-
-    //         // 👇 Assign _id to companyId if role is company-type and companyId is missing
-    //         if (
-    //             (user.role === 'admin') &&
-    //             !user.companyId
-    //         ) {
-    //             user.companyId = user._id;
-    //         }
-
-    //         //   const rolePermissions = defaultPermissions[user.role] || {};
-    //         //   setUser(user);
-    //         //   setToken(token);
-    //         //   setPermissions(rolePermissions);
-    //         //   localStorage.setItem("fandoro-user", JSON.stringify(user));
-    //         localStorage.setItem("auth_token", token);
-    //         //   localStorage.setItem("fandoro-permissions", JSON.stringify(rolePermissions));
-    //         //   localStorage.setItem("fandoro-access", JSON.stringify(access));
-    //         logger.debug("Login successful, user:", user);
-    //         setUserRole(user.role);
-    //         if (!user.isParent) {
-    //             logger.debug("Individual user detected, setting roleMenu:", roleMenu);
-    //             localStorage.setItem("fandoro-team-access", JSON.stringify(roleMenu));
-    //             setPageAccessList(roleMenu);
-    //         }
-
-    //         toast.success("Login successful!");
-    //         redirectBasedOnRole(user.role);
-    //     } catch (error) {
-    //         logger.error("Login error:", error);
-    //         toast.error("Login failed. Please try again.");
-    //     } finally {
-    //         setIsLoading(false);
-    //     }
-    // };
-
-    const handleSignUp = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setLoading(true);
-        try {
-            const { error } = await supabase.auth.signUp({
-                email,
-                password,
-                options: {
-                    emailRedirectTo: `${window.location.origin}/`,
-                    data: { full_name: fullName, company_name: companyName },
-                },
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/investor/general-info/verify-token`, {
+                headers: { Authorization: `Bearer ${cleanToken}` }
             });
-            if (error) throw error;
-            toast({ title: "Account created!", description: "Please check your email to verify your account." });
-            setEmail(""); setPassword(""); setFullName(""); setCompanyName("");
+
+            if (!res.ok) throw new Error("Invalid credentials");
+
+            const jsonData = await res.json();
+            localStorage.setItem('user', JSON.stringify(jsonData.data));
+            setUser(jsonData.data);
+        } catch {
+            toast({ title: "Authentication failed", description: "Invalid or expired token.", variant: "destructive" });
+            setTimeout(() => navigate("/"), 3000);
+        }
+    };
+
+    // Step 1: Verify Email
+    const verifyUserEmail = async () => {
+        if (!signupData.email || signupData.email.trim() === "") {
+            toast({ title: "Error", description: "Please enter your email ID", variant: "destructive" });
+            return;
+        }
+
+        if (!isValidEmail) {
+            toast({ title: "Error", description: "Please enter valid email ID", variant: "destructive" });
+            return;
+        }
+
+        // Extract domain and check if blocked
+        const domain = signupData.email.split("@")[1]?.split(".")[0];
+        if (blockedDomains.includes(domain)) {
+            toast({ title: "Error", description: "Please enter official email ID", variant: "destructive" });
+            return;
+        }
+
+        setLoading(true);
+
+        try {
+            // Check if email is blocked/available
+            const blockedEmailRes = await fetch(import.meta.env.VITE_API_URL + "/auth/blocked-status", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: signupData.email }),
+            });
+            const blockedEmail = await blockedEmailRes.json();
+
+            if (blockedEmail?.blocked === false) {
+                // Send OTP
+                const verifyRes = await fetch(import.meta.env.VITE_API_URL + "/auth/verify-email", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email: signupData.email }),
+                });
+                const res = await verifyRes.json();
+
+                if (res) {
+                    localStorage.setItem("token", JSON.stringify(res.token));
+                    setSignupStep("otp");
+                    toast({ title: "Success", description: "OTP Sent to your email" });
+                } else {
+                    toast({ title: "Error", description: "Email is already registered", variant: "destructive" });
+                }
+            } else {
+                toast({ title: "Error", description: "Email domain is blocked", variant: "destructive" });
+            }
         } catch (error: any) {
-            toast({ title: "Error creating account", description: error.message, variant: "destructive" });
+            toast({ title: "Error", description: error.message, variant: "destructive" });
         } finally {
             setLoading(false);
         }
     };
 
+    // Step 2: Verify OTP
+    const verifyEmailOTP = async () => {
+        if (!otp || otp.trim() === "") {
+            toast({ title: "Error", description: "Please enter your OTP", variant: "destructive" });
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const res = await fetch(import.meta.env.VITE_API_URL + "/auth/verify-otp", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: signupData.email, otp }),
+            });
+            const data = await res.json();
+
+            if (data) {
+                setSignupStep("register");
+                toast({ title: "Success", description: "OTP Verified" });
+            } else {
+                toast({ title: "Error", description: "Invalid OTP", variant: "destructive" });
+            }
+        } catch (error: any) {
+            toast({ title: "Error", description: error.message, variant: "destructive" });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Step 3: Complete Registration
+    const handleSignUp = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (!enableButton) {
+            toast({ title: "Error", description: "Please fill all required fields", variant: "destructive" });
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const res = await fetch(import.meta.env.VITE_API_URL + "/auth/register", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(signupData),
+            });
+            const data = await res.json();
+
+            if (data.status) {
+                localStorage.setItem("user", JSON.stringify(data.data));
+                localStorage.setItem("token", JSON.stringify(data.token));
+                toast({ title: "Success", description: "Account Created Successfully" });
+                setLoading(false);
+                // Redirect to dashboard or home
+                navigate("/dashboard");
+            } else {
+                toast({ title: "Error", description: data.message || "Registration failed", variant: "destructive" });
+            }
+        } catch (error: any) {
+            toast({ title: "Error", description: error.message, variant: "destructive" });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Handle signup form input changes
+    const handleSignupChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        const { name, value, type } = e.target;
+
+        if (type === "checkbox") {
+            const checked = (e.target as HTMLInputElement).checked;
+            if (name === "isChecked") {
+                setIsChecked(checked);
+            }
+            return;
+        }
+
+        const updatedData = { ...signupData, [name]: value };
+        setSignupData(updatedData);
+
+        // Validate email format
+        if (name === "email") {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            setIsValidEmail(emailRegex.test(value));
+        }
+
+        // Enable/disable register button
+        if (signupStep === "register") {
+            if (
+                updatedData.name !== "" &&
+                updatedData.companyName !== "" &&
+                updatedData.email !== "" &&
+                updatedData.password !== "" &&
+                entityType !== 0 &&
+                isChecked !== false
+            ) {
+                setEnableButton(true);
+            } else {
+                setEnableButton(false);
+            }
+        }
+    };
+
+    const handleEntityTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const value = parseInt(e.target.value); // Get number value
+        setEntityType(value);
+        setSignupData({
+            ...signupData,
+            entityType: value, // Send number instead of string
+            isInvestor: value === 1, // Investor is value 1
+        });
+
+        if (signupStep === "register") {
+            if (
+                signupData.name !== "" &&
+                signupData.companyName !== "" &&
+                signupData.email !== "" &&
+                signupData.password !== "" &&
+                value !== 0 &&
+                isChecked !== false
+            ) {
+                setEnableButton(true);
+            } else {
+                setEnableButton(false);
+            }
+        }
+    };
+
+    // Reset signup form
+    const resetSignup = () => {
+        setSignupStep("email");
+        setOtp("");
+        setEntityType(0);
+        setIsChecked(false);
+        setEnableButton(false);
+        setSignupData({
+            name: "",
+            companyName: "",
+            email: "",
+            password: "",
+            entityType: 0,
+            isInvestor: false,
+        });
+    };
+
+    // Render email step
+    const renderEmailStep = () => (
+        <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+                Please enter your email address to proceed with the registration.
+            </p>
+            <Input
+                placeholder="Email"
+                className="h-11"
+                name="email"
+                type="email"
+                value={signupData.email}
+                onChange={handleSignupChange}
+                required
+            />
+            <Button
+                type="button"
+                className="w-full h-12 text-sm font-semibold mt-2 hover:shadow-lg hover:scale-[1.02] transition-all"
+                onClick={verifyUserEmail}
+                disabled={loading || !signupData.email || !isValidEmail}
+            >
+                {loading ? "Sending..." : "Continue"}
+            </Button>
+        </div>
+    );
+
+    // Render OTP step
+    const renderOTPStep = () => (
+        <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+                Please check your inbox for the OTP. If you don't find it there, kindly check your spam folder.
+            </p>
+            <Input
+                placeholder="Enter OTP"
+                className="h-11"
+                name="otp"
+                type="text"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                required
+            />
+            <Button
+                type="button"
+                className="w-full h-12 text-sm font-semibold mt-2 hover:shadow-lg hover:scale-[1.02] transition-all"
+                onClick={verifyEmailOTP}
+                disabled={loading || !otp}
+            >
+                {loading ? "Verifying..." : "Verify OTP"}
+            </Button>
+            <Button
+                type="button"
+                variant="ghost"
+                className="w-full"
+                onClick={resetSignup}
+            >
+                Back to Email
+            </Button>
+        </div>
+    );
+
+    // Render registration form step
+    const renderRegistrationStep = () => (
+        <form onSubmit={handleSignUp} className="space-y-4">
+            <Input
+                placeholder="Full Name"
+                className="h-11"
+                name="name"
+                value={signupData.name}
+                onChange={handleSignupChange}
+                required
+            />
+            <Input
+                placeholder="Company Name"
+                className="h-11"
+                name="companyName"
+                value={signupData.companyName}
+                onChange={handleSignupChange}
+                required
+            />
+            <Input
+                placeholder="Email"
+                className="h-11"
+                name="email"
+                type="email"
+                value={signupData.email}
+                onChange={handleSignupChange}
+                readOnly
+                required
+            />
+            <Input
+                placeholder="Password"
+                className="h-11"
+                name="password"
+                type="password"
+                value={signupData.password}
+                onChange={handleSignupChange}
+                required
+            />
+
+            <select
+                className="w-full h-11 px-3 rounded-md border border-input bg-background"
+                value={entityType}
+                onChange={handleEntityTypeChange}
+                required
+            >
+                <option value={0}>Select Type</option>
+                {SelectFor.map((option) => (
+                    <option key={option.value} value={option.value}>  {/* Change this line */}
+                        {option.label}
+                    </option>
+                ))}
+            </select>
+
+            {/* Terms and Conditions Checkbox */}
+            <div className="flex items-center space-x-2">
+                <input
+                    type="checkbox"
+                    id="terms"
+                    name="isChecked"
+                    checked={isChecked}
+                    onChange={handleSignupChange}
+                    className="h-4 w-4 rounded border-gray-300"
+                />
+                <label htmlFor="terms" className="text-sm text-muted-foreground">
+                    By clicking 'Register', you agree to the{" "}
+                    <a href="/terms-of-service" target="_blank" className="text-primary hover:underline">
+                        Terms of Service
+                    </a>
+                    {" "}and{" "}
+                    <a href="/privacy-policy" target="_blank" className="text-primary hover:underline">
+                        Privacy Policy
+                    </a>
+                    .
+                </label>
+            </div>
+
+            <div className="flex gap-2">
+                <Button
+                    type="button"
+                    variant="ghost"
+                    className="flex-1"
+                    onClick={resetSignup}
+                >
+                    Back
+                </Button>
+                <Button
+                    type="submit"
+                    className="flex-1 h-12 text-sm font-semibold hover:shadow-lg hover:scale-[1.02] transition-all"
+                    disabled={loading}
+                >
+                    {loading ? "Creating account..." : "Create Account"}
+                </Button>
+            </div>
+        </form>
+    );
+
+    // Render signup content based on step
+    const renderSignupContent = () => {
+        switch (signupStep) {
+            case "email":
+                return renderEmailStep();
+            case "otp":
+                return renderOTPStep();
+            case "register":
+                return renderRegistrationStep();
+            default:
+                return renderEmailStep();
+        }
+    };
+
     return (
         <div className="min-h-screen flex flex-col bg-background w-full">
-
             {/* Header */}
             <header className="w-full border-b bg-card/80 backdrop-blur-sm sticky top-0 z-50">
                 <div className="mx-auto w-full max-w-[1200px] flex items-center justify-between px-6 py-4 lg:px-8">
                     <div className="flex items-center gap-3">
-                        <img src={logo} alt="Fandoro Technologies" className="h-9 w-9" />
-                        <span className="text-xl font-bold tracking-tight text-foreground">Fandoro</span>
+                        <img
+                            src="/logo/logo_no_text_500x500.png"
+                            alt="Fandoro"
+                            className="h-8 w-8"
+                        />
+                        <img src="/logo/logo_text_only_700x150.png" alt="Fandoro Technologies" className="h-9 w-13" />
                     </div>
                     <nav className="hidden sm:flex items-center gap-6">
-                        {/* <a href="/pricing" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
-                            Pricing
-                        </a>
-                        <a href="/technical-architecture" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
-                            Technical Architecture
-                        </a> */}
                         <a href="https://fandoro.com" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-primary transition-colors">
                             Visit Fandoro.com →
                         </a>
+                        <ModeToggle />
+
                     </nav>
                 </div>
             </header>
@@ -197,13 +519,13 @@ export default function Auth() {
             {/* Main */}
             <main className="flex-1 w-full flex items-center relative overflow-hidden">
 
-                {/* 🌈 FULL WIDTH BACKGROUND */}
+                {/* Background */}
                 <div className="absolute inset-0 bg-gradient-to-br from-green-50 via-white to-white" />
 
-                {/* ✨ GLOW EFFECT */}
+                {/* Glow Effect */}
                 <div className="absolute -left-32 top-1/3 w-[500px] h-[500px] bg-green-200/30 blur-[140px] rounded-full" />
 
-                {/* CONTENT */}
+                {/* Content */}
                 <div className="relative z-10 w-full max-w-[1200px] mx-auto px-6 lg:px-8 py-12 flex flex-col lg:flex-row lg:justify-between lg:items-center gap-12 lg:gap-[60px]">
 
                     {/* Left Column */}
@@ -255,7 +577,6 @@ export default function Auth() {
 
                                     <TabsContent value="signin">
                                         <form onSubmit={handleSignIn} className="space-y-4">
-
                                             <div className="space-y-2">
                                                 <Label htmlFor="signin-email">Email</Label>
                                                 <Input
@@ -298,27 +619,25 @@ export default function Auth() {
                                             >
                                                 {loading ? "Signing in..." : "Sign In"}
                                             </Button>
-
                                         </form>
                                     </TabsContent>
 
                                     <TabsContent value="signup">
-                                        <form onSubmit={handleSignUp} className="space-y-4">
+                                        {/* Step indicator */}
+                                        <div className="mb-6">
+                                            <div className="flex justify-between items-center">
+                                                <div className={`flex-1 h-1 rounded-full transition-all ${signupStep === "email" ? "bg-primary" : "bg-green-500"}`} />
+                                                <div className={`flex-1 h-1 rounded-full transition-all mx-1 ${signupStep === "otp" ? "bg-primary" : signupStep === "register" ? "bg-green-500" : "bg-gray-200"}`} />
+                                                <div className={`flex-1 h-1 rounded-full transition-all ${signupStep === "register" ? "bg-primary" : "bg-gray-200"}`} />
+                                            </div>
+                                            <div className="flex justify-between mt-2 text-xs text-muted-foreground">
+                                                <span>Email</span>
+                                                <span>OTP</span>
+                                                <span>Register</span>
+                                            </div>
+                                        </div>
 
-                                            <Input placeholder="Full Name" className="h-11" />
-                                            <Input placeholder="Company Name" className="h-11" />
-                                            <Input placeholder="Email" className="h-11" />
-                                            <Input placeholder="Password" className="h-11" />
-
-                                            <Button
-                                                type="submit"
-                                                className="w-full h-12 text-sm font-semibold mt-2 hover:shadow-lg hover:scale-[1.02] transition-all"
-                                                disabled={loading}
-                                            >
-                                                {loading ? "Creating account..." : "Create Account"}
-                                            </Button>
-
-                                        </form>
+                                        {renderSignupContent()}
                                     </TabsContent>
 
                                 </Tabs>

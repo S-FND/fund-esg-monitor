@@ -171,7 +171,7 @@ export function ReviewDialog({
                 )}
               </div>
 
-              <div>
+              {/* <div>
                 <h4 className="font-semibold mb-1">Item</h4>
                 {canEdit ? (
                   <Input
@@ -205,7 +205,7 @@ export function ReviewDialog({
                     Original: {originalItem?.deliverable}
                   </p>
                 )}
-              </div>
+              </div> */}
 
               <div>
                 <h4 className="font-semibold mb-1">Expected Deliverable</h4>

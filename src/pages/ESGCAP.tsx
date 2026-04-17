@@ -451,6 +451,18 @@ export default function ESGCAP() {
     saveToLocalStorage(updatedItems);
   };
 
+  const handleDeleteItem = (itemId: string | number) => {
+    const updatedItems = capItems.filter(item => item.id !== itemId);
+    setCapItems(updatedItems);
+    setFilteredCAPItems(updatedItems);
+    saveToLocalStorage(updatedItems);
+    
+    toast({
+      title: "Item Deleted",
+      description: "Item has been removed from the plan.",
+    });
+  };
+
   const saveToLocalStorage = (items: ESGCapItem[]) => {
     localStorage.setItem('esg-cap-items', JSON.stringify(items));
   };
@@ -597,6 +609,8 @@ export default function ESGCAP() {
                     originalItems={comparePlanData.investorPlan}
                     onReview={handleReview}
                     onSendReminder={handleSendReminder}
+                    onAddItem={handleAddItem}
+                    onDeleteItem={handleDeleteItem} 
                     isComparisonView={true}
                     onRevert={handleRevertToOriginal}
                     onRevertField={handleRevertField}
@@ -610,6 +624,8 @@ export default function ESGCAP() {
                   originalItems={previousCapItemsRef.current}
                   onReview={handleReview}
                   onSendReminder={handleSendReminder}
+                  onAddItem={handleAddItem}
+                  onDeleteItem={handleDeleteItem} 
                   isComparisonView={false}
                   onRevert={handleRevertToOriginal}
                   onRevertField={handleRevertField}
