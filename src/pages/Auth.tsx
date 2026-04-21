@@ -7,11 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Eye, EyeOff, Shield, BarChart3, FileSearch, Activity, AlertTriangle, TrendingUp } from "lucide-react";
+import { Eye, EyeOff, Shield, BarChart3, FileSearch, Activity, AlertTriangle, TrendingUp, ArrowLeft, Loader2 } from "lucide-react";
 import { http } from "@/utils/httpInterceptor";
 import { useAuth } from "@/contexts/AuthContext";
 import { ModeToggle } from "@/components/ui/mode-toggle";
-
+import { forgotPassword, verifyOtp, resetPassword, checkBlockedStatus } from "./services/auth";
+import { Link } from "react-router-dom";
 const FEATURES = [
     { icon: FileSearch, label: "ESG DD – Machine driven" },
     { icon: Shield, label: "Corrective Action Plan tracker" },
@@ -46,9 +47,20 @@ export default function Auth() {
     const { toast } = useToast();
     const { setUser } = useAuth();
 
+    // Forgot Password States
+    const [showForgotPassword, setShowForgotPassword] = useState(false);
+    const [resetStep, setResetStep] = useState<"email" | "otp" | "password">("email");
+    const [resetEmail, setResetEmail] = useState("");
+    const [otp, setOtp] = useState("");
+    const [newPassword, setNewPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
+    const [resetLoading, setResetLoading] = useState(false);
+    const [resendDisabled, setResendDisabled] = useState(false);
+    const [resendTimer, setResendTimer] = useState(60);
+
     // Signup flow states
     const [signupStep, setSignupStep] = useState<"email" | "otp" | "register">("email");
-    const [otp, setOtp] = useState("");
+    const [signupOtp, setSignupOtp] = useState("");
     const [entityType, setEntityType] = useState(0);
     const [isChecked, setIsChecked] = useState(false);
     const [enableButton, setEnableButton] = useState(false);
@@ -75,6 +87,294 @@ export default function Auth() {
 
         return () => subscription.unsubscribe();
     }, [navigate]);
+
+    // Forgot Password Functions
+    const startResendTimer = () => {
+        setResendDisabled(true);
+        const timer = setInterval(() => {
+            setResendTimer((prev) => {
+                if (prev <= 1) {
+                    clearInterval(timer);
+                    setResendDisabled(false);
+                    return 60;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+    };
+
+    const handleSendOTP = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (!resetEmail) {
+            toast({ title: "Email required", description: "Please enter your email address", variant: "destructive" });
+            return;
+        }
+
+        setResetLoading(true);
+        try {
+            const { error: blockedError } = await checkBlockedStatus(resetEmail);
+            if (blockedError) {
+                toast({ title: "Account blocked", description: blockedError, variant: "destructive" });
+                return;
+            }
+
+            const { error } = await forgotPassword(resetEmail);
+
+            if (error) {
+                toast({ title: "Failed", description: error, variant: "destructive" });
+            } else {
+                toast({ title: "Success", description: `OTP sent to ${resetEmail}` });
+                setResetStep("otp");
+                startResendTimer();
+            }
+        } catch (error: any) {
+            toast({ title: "Error", description: error.message, variant: "destructive" });
+        } finally {
+            setResetLoading(false);
+        }
+    };
+
+    const handleVerifyOTP = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (!otp || otp.length !== 6) {
+            toast({ title: "Invalid OTP", description: "Please enter a valid 6-digit code", variant: "destructive" });
+            return;
+        }
+
+        setResetLoading(true);
+        try {
+            const { error } = await verifyOtp(resetEmail, otp);
+
+            if (error) {
+                toast({ title: "Invalid OTP", description: error, variant: "destructive" });
+            } else {
+                toast({ title: "OTP Verified", description: "Create a new password" });
+                setResetStep("password");
+            }
+        } catch (error: any) {
+            toast({ title: "Error", description: error.message, variant: "destructive" });
+        } finally {
+            setResetLoading(false);
+        }
+    };
+
+    const handleResetPassword = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (newPassword !== confirmPassword) {
+            toast({ title: "Passwords don't match", description: "Please enter matching passwords", variant: "destructive" });
+            return;
+        }
+
+        if (newPassword.length < 8) {
+            toast({ title: "Password too short", description: "Password must be at least 8 characters", variant: "destructive" });
+            return;
+        }
+
+        setResetLoading(true);
+        try {
+            const { error } = await resetPassword(resetEmail, otp, newPassword);
+
+            if (error) {
+                toast({ title: "Failed", description: error, variant: "destructive" });
+            } else {
+                toast({ title: "Success", description: "Password reset successful! Please login." });
+                // Reset forgot password state
+                setShowForgotPassword(false);
+                setResetStep("email");
+                setResetEmail("");
+                setOtp("");
+                setNewPassword("");
+                setConfirmPassword("");
+            }
+        } catch (error: any) {
+            toast({ title: "Error", description: error.message, variant: "destructive" });
+        } finally {
+            setResetLoading(false);
+        }
+    };
+
+    const handleResendOTP = async () => {
+        setResetLoading(true);
+        try {
+            const { error } = await forgotPassword(resetEmail);
+            if (error) {
+                toast({ title: "Failed", description: error, variant: "destructive" });
+            } else {
+                toast({ title: "OTP Resent", description: `New OTP sent to ${resetEmail}` });
+                startResendTimer();
+            }
+        } catch (error: any) {
+            toast({ title: "Error", description: error.message, variant: "destructive" });
+        } finally {
+            setResetLoading(false);
+        }
+    };
+
+    // Render Forgot Password Flow
+    const renderForgotPassword = () => {
+        return (
+            <div className="space-y-4">
+                <Button
+                    variant="ghost"
+                    onClick={() => {
+                        setShowForgotPassword(false);
+                        setResetStep("email");
+                        setResetEmail("");
+                        setOtp("");
+                        setNewPassword("");
+                        setConfirmPassword("");
+                    }}
+                    className="flex items-center gap-2 px-0 mb-4"
+                >
+                    <ArrowLeft className="h-4 w-4" />
+                    Back to login
+                </Button>
+
+                <div className="text-center space-y-2">
+                    <h2 className="text-xl font-semibold">
+                        {resetStep === "email" && "Reset Password"}
+                        {resetStep === "otp" && "Verify Your Email"}
+                        {resetStep === "password" && "Create New Password"}
+                    </h2>
+                    <p className="text-sm text-muted-foreground">
+                        {resetStep === "email" && "Enter your email to receive a verification code"}
+                        {resetStep === "otp" && `Enter the 6-digit code sent to ${resetEmail}`}
+                        {resetStep === "password" && "Create a strong password for your account"}
+                    </p>
+                </div>
+
+                {resetStep === "email" && (
+                    <form onSubmit={handleSendOTP} className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="reset-email">Email Address</Label>
+                            <Input
+                                id="reset-email"
+                                type="email"
+                                placeholder="your@company.com"
+                                value={resetEmail}
+                                onChange={(e) => setResetEmail(e.target.value.toLowerCase())}
+                                className="h-11"
+                                required
+                            />
+                        </div>
+                        <Button type="submit" className="w-full h-11" disabled={resetLoading}>
+                            {resetLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                            Send Verification Code
+                        </Button>
+                    </form>
+                )}
+
+                {resetStep === "otp" && (
+                    <form onSubmit={handleVerifyOTP} className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="otp">Verification Code</Label>
+                            <Input
+                                id="otp"
+                                type="text"
+                                inputMode="numeric"
+                                placeholder="123456"
+                                value={otp}
+                                onChange={(e) => setOtp(e.target.value)}
+                                maxLength={6}
+                                className="h-11 text-center text-lg tracking-widest"
+                                required
+                            />
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <Button
+                                variant="link"
+                                type="button"
+                                onClick={handleResendOTP}
+                                disabled={resendDisabled}
+                                className="px-0 text-sm"
+                            >
+                                {resendDisabled ? `Resend in ${resendTimer}s` : "Resend Code"}
+                            </Button>
+                        </div>
+                        <Button type="submit" className="w-full h-11" disabled={resetLoading}>
+                            {resetLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                            Verify Code
+                        </Button>
+                    </form>
+                )}
+
+                {resetStep === "password" && (
+                    <form onSubmit={handleResetPassword} className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="new-password">New Password</Label>
+                            <div className="relative">
+                                <Input
+                                    id="new-password"
+                                    type={showPassword ? "text" : "password"}
+                                    placeholder="At least 8 characters"
+                                    value={newPassword}
+                                    onChange={(e) => setNewPassword(e.target.value)}
+                                    className="h-11 pr-10"
+                                    required
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                                >
+                                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </button>
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="confirm-password">Confirm Password</Label>
+                            <Input
+                                id="confirm-password"
+                                type={showPassword ? "text" : "password"}
+                                placeholder="Re-enter your password"
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                className="h-11"
+                                required
+                            />
+                        </div>
+                        <div className="text-xs text-muted-foreground space-y-1">
+                            <p>Password must contain:</p>
+                            <ul className="list-disc pl-5 space-y-1">
+                                <li className={newPassword.length >= 8 ? "text-green-500" : ""}>At least 8 characters</li>
+                                <li className={/[A-Z]/.test(newPassword) ? "text-green-500" : ""}>At least one uppercase letter</li>
+                                <li className={/\d/.test(newPassword) ? "text-green-500" : ""}>At least one number</li>
+                            </ul>
+                        </div>
+                        <div className="flex items-start space-x-3">
+                            <div className="pt-1">
+                                <input
+                                    type="checkbox"
+                                    id="terms"
+                                    checked={isChecked}
+                                    onChange={(e) => setIsChecked(e.target.checked)}
+                                    className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                                />
+                            </div>
+                            <label htmlFor="terms" className="text-sm text-muted-foreground">
+                                I agree to the{' '}
+                                <a href="https://sustainability.fandoro.com/terms-of-service/" target="_blank" className="text-primary hover:underline">
+                                    Terms of Service
+                                </a>{' '}
+                                and{' '}
+                                <a href="https://sustainability.fandoro.com/privacy-policy/" target="_blank" className="text-primary hover:underline">
+                                    Privacy Policy
+                                </a>
+                                .
+                            </label>
+                        </div>
+                        <Button type="submit" className="w-full h-11" disabled={resetLoading}>
+                            {resetLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                            Update Password
+                        </Button>
+                    </form>
+                )}
+            </div>
+        );
+    };
 
     const handleSignIn = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -181,7 +481,7 @@ export default function Auth() {
 
     // Step 2: Verify OTP
     const verifyEmailOTP = async () => {
-        if (!otp || otp.trim() === "") {
+        if (!signupOtp || signupOtp.trim() === "") {
             toast({ title: "Error", description: "Please enter your OTP", variant: "destructive" });
             return;
         }
@@ -191,7 +491,7 @@ export default function Auth() {
             const res = await fetch(import.meta.env.VITE_API_URL + "/auth/verify-otp", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email: signupData.email, otp }),
+                body: JSON.stringify({ email: signupData.email, otp: signupOtp }),
             });
             const data = await res.json();
 
@@ -231,7 +531,6 @@ export default function Auth() {
                 localStorage.setItem("token", JSON.stringify(data.token));
                 toast({ title: "Success", description: "Account Created Successfully" });
                 setLoading(false);
-                // Redirect to dashboard or home
                 navigate("/dashboard");
             } else {
                 toast({ title: "Error", description: data.message || "Registration failed", variant: "destructive" });
@@ -282,12 +581,12 @@ export default function Auth() {
     };
 
     const handleEntityTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const value = parseInt(e.target.value); // Get number value
+        const value = parseInt(e.target.value);
         setEntityType(value);
         setSignupData({
             ...signupData,
-            entityType: value, // Send number instead of string
-            isInvestor: value === 1, // Investor is value 1
+            entityType: value,
+            isInvestor: value === 1,
         });
 
         if (signupStep === "register") {
@@ -309,7 +608,7 @@ export default function Auth() {
     // Reset signup form
     const resetSignup = () => {
         setSignupStep("email");
-        setOtp("");
+        setSignupOtp("");
         setEntityType(0);
         setIsChecked(false);
         setEnableButton(false);
@@ -360,15 +659,15 @@ export default function Auth() {
                 className="h-11"
                 name="otp"
                 type="text"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value)}
+                value={signupOtp}
+                onChange={(e) => setSignupOtp(e.target.value)}
                 required
             />
             <Button
                 type="button"
                 className="w-full h-12 text-sm font-semibold mt-2 hover:shadow-lg hover:scale-[1.02] transition-all"
                 onClick={verifyEmailOTP}
-                disabled={loading || !otp}
+                disabled={loading || !signupOtp}
             >
                 {loading ? "Verifying..." : "Verify OTP"}
             </Button>
@@ -430,7 +729,7 @@ export default function Auth() {
             >
                 <option value={0}>Select Type</option>
                 {SelectFor.map((option) => (
-                    <option key={option.value} value={option.value}>  {/* Change this line */}
+                    <option key={option.value} value={option.value}>
                         {option.label}
                     </option>
                 ))}
@@ -511,14 +810,12 @@ export default function Auth() {
                             Visit Fandoro.com →
                         </a>
                         <ModeToggle />
-
                     </nav>
                 </div>
             </header>
 
             {/* Main */}
             <main className="flex-1 w-full flex items-center relative overflow-hidden">
-
                 {/* Background */}
                 <div className="absolute inset-0 bg-gradient-to-br from-green-50 via-white to-white" />
 
@@ -527,18 +824,15 @@ export default function Auth() {
 
                 {/* Content */}
                 <div className="relative z-10 w-full max-w-[1200px] mx-auto px-6 lg:px-8 py-12 flex flex-col lg:flex-row lg:justify-between lg:items-center gap-12 lg:gap-[60px]">
-
                     {/* Left Column */}
                     <div className="flex-1 max-w-[580px] text-left">
                         <p className="text-sm font-semibold uppercase tracking-widest text-primary mb-4">
                             ESG Intelligence as a Service Platform
                         </p>
-
                         <h1 className="text-4xl md:text-5xl font-bold leading-tight tracking-tight text-foreground mb-6">
                             Actionating ESG data to enable businesses and investors to{" "}
                             <span className="text-primary">act on ESG risks identified.</span>
                         </h1>
-
                         <p className="text-lg text-muted-foreground leading-relaxed mb-10">
                             These risks are used as inputs for the ESG Risk modeling on the platform with real time correlation with other influencing factors – regulatory, operational, climate, supply chain etc. to offer decision grade information.
                         </p>
@@ -559,7 +853,6 @@ export default function Auth() {
                     {/* Right Column */}
                     <div className="w-full max-w-[400px]">
                         <Card className="w-full shadow-xl border border-border/50 backdrop-blur-xl bg-white/80 rounded-xl hover:shadow-2xl transition-all duration-300">
-
                             <CardHeader className="text-center px-8 pt-8 pb-2">
                                 <CardTitle className="text-2xl font-semibold">Welcome</CardTitle>
                                 <CardDescription className="text-sm">
@@ -569,57 +862,87 @@ export default function Auth() {
 
                             <CardContent className="px-8 pb-8 pt-2">
                                 <Tabs defaultValue="signin" className="w-full">
-
                                     <TabsList className="grid w-full grid-cols-2 mb-6">
                                         <TabsTrigger value="signin">Sign In</TabsTrigger>
                                         <TabsTrigger value="signup">Sign Up</TabsTrigger>
                                     </TabsList>
 
                                     <TabsContent value="signin">
-                                        <form onSubmit={handleSignIn} className="space-y-4">
-                                            <div className="space-y-2">
-                                                <Label htmlFor="signin-email">Email</Label>
-                                                <Input
-                                                    id="signin-email"
-                                                    type="email"
-                                                    placeholder="Enter your email"
-                                                    value={email}
-                                                    onChange={(e) => setEmail(e.target.value)}
-                                                    required
-                                                    className="h-11 focus-visible:ring-2 focus-visible:ring-primary/50 transition"
-                                                />
-                                            </div>
-
-                                            <div className="space-y-2">
-                                                <Label htmlFor="signin-password">Password</Label>
-                                                <div className="relative">
+                                        {!showForgotPassword ? (
+                                            <form onSubmit={handleSignIn} className="space-y-4">
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="signin-email">Email</Label>
                                                     <Input
-                                                        id="signin-password"
-                                                        type={showPassword ? "text" : "password"}
-                                                        placeholder="Enter your password"
-                                                        value={password}
-                                                        onChange={(e) => setPassword(e.target.value)}
+                                                        id="signin-email"
+                                                        type="email"
+                                                        placeholder="Enter your email"
+                                                        value={email}
+                                                        onChange={(e) => setEmail(e.target.value)}
                                                         required
-                                                        className="h-11 pr-10 focus-visible:ring-2 focus-visible:ring-primary/50 transition"
+                                                        className="h-11 focus-visible:ring-2 focus-visible:ring-primary/50 transition"
                                                     />
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setShowPassword(!showPassword)}
-                                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition"
-                                                    >
-                                                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                                    </button>
                                                 </div>
-                                            </div>
 
-                                            <Button
-                                                type="submit"
-                                                className="w-full h-12 text-sm font-semibold mt-2 hover:shadow-lg hover:scale-[1.02] transition-all"
-                                                disabled={loading}
-                                            >
-                                                {loading ? "Signing in..." : "Sign In"}
-                                            </Button>
-                                        </form>
+                                                <div className="space-y-2">
+                                                    <div className="flex justify-between items-center">
+                                                        <Label htmlFor="signin-password">Password</Label>
+                                                        <Button
+                                                            type="button"
+                                                            variant="link"
+                                                            onClick={() => setShowForgotPassword(true)}
+                                                            className="px-0 text-xs text-primary hover:underline h-auto"
+                                                        >
+                                                            Forgot password?
+                                                        </Button>
+                                                    </div>
+                                                    <div className="relative">
+                                                        <Input
+                                                            id="signin-password"
+                                                            type={showPassword ? "text" : "password"}
+                                                            placeholder="Enter your password"
+                                                            value={password}
+                                                            onChange={(e) => setPassword(e.target.value)}
+                                                            required
+                                                            className="h-11 pr-10 focus-visible:ring-2 focus-visible:ring-primary/50 transition"
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setShowPassword(!showPassword)}
+                                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition"
+                                                        >
+                                                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                                        </button>
+                                                    </div>
+                                                    
+                                                </div>
+                                                <Button
+                                                    type="submit"
+                                                    className="w-full h-12 text-sm font-semibold mt-2 hover:shadow-lg hover:scale-[1.02] transition-all"
+                                                    disabled={loading}
+                                                >
+                                                    {loading ? "Signing in..." : "Sign In"}
+                                                </Button>
+                                                <div className="text-center pt-3">
+                                                        <div className="flex justify-between text-sm">
+                                                            <a
+                                                                href="/terms-of-service"
+                                                                className="text-primary hover:underline"
+                                                            >
+                                                                Terms of Service
+                                                            </a>
+
+                                                            <a
+                                                                href="/privacy-policy"
+                                                                className="text-primary hover:underline"
+                                                            >
+                                                                Privacy Policy
+                                                            </a>
+                                                        </div>
+                                                    </div>
+                                            </form>
+                                        ) : (
+                                            renderForgotPassword()
+                                        )}
                                     </TabsContent>
 
                                     <TabsContent value="signup">
@@ -639,12 +962,10 @@ export default function Auth() {
 
                                         {renderSignupContent()}
                                     </TabsContent>
-
                                 </Tabs>
                             </CardContent>
                         </Card>
                     </div>
-
                 </div>
             </main>
 

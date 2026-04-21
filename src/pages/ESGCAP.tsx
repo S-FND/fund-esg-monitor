@@ -196,7 +196,8 @@ export default function ESGCAP() {
         entityId: entityIdWithYear,
       });
       setLoading(false);
-      if (data) {
+      console.log('data?.plan?.length',data?.plan?.length);
+      if (data?.plan?.length > 0) {
         setPlanData(data);
         // setFilteredCAPItems(data.plan || []);
         // setCapItems(data.plan || []);
@@ -242,9 +243,20 @@ export default function ESGCAP() {
   };
 
   useEffect(() => {
-    if (selectedCompany !== 'all') {
-      const company = portfolioCompanies.find(c => c.email === selectedCompany);
+    if (selectedCompany !== "all") {
+  
+      setFilteredCAPItems([]);
+      setCapItems([]);
+      setPlanData(null);
+  
+      const company = portfolioCompanies.find(
+        c =>
+          c._id === selectedCompany ||   // first try id
+          c.email === selectedCompany    // fallback email
+      );
+  
       const entityId = company?.user?.entityId;
+  
       if (entityId) {
         getPlanList(entityId);
       }

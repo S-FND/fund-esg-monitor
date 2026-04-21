@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useState } from "react";
 import { AiDialog } from "./AiDialog";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export type CAPStatus =
@@ -35,13 +36,6 @@ export type EvidenceType =
 export interface AiResponse {
   id: string;
   _index: number;
-
-  // requiredEvidence: {
-  //   types: string[];
-  //   normalizedTypes: string[];
-  //   reasoning: string;
-  //   confidence: number;
-  // };
 
   requiredEvidence: {
     types: EvidenceType[];
@@ -72,62 +66,51 @@ export interface Template {
 export type ESGCapDealCondition = 'CP' | 'CS' | 'none';
 
 export interface TemplateStructure {
-  components?: string[];   // system
-  columns?: string[];      // data
-  sections?: string[];     // report
-
-  // future-proof (very important for your AI system)
+  components?: string[];
+  columns?: string[];
+  sections?: string[];
   [key: string]: any;
 }
 
 export interface ESGCapItem {
-  id: string | number;  // Can be string or number based on your API
+  id: string | number;
   item: string;
+  issue?: string;
+  relatedFinding?: string;
+  esgLever?: string;
   measures: string;
-  reportId?: string;    // Make optional if not always present
-  issue?: string;       // Make optional if not always present
-  description?: string; // Make optional if not always present
+  reportId?: string;
+  description?: string;
   category: CAPCategory;
   recommendation?: string;
   priority: CAPPriority;
   status: CAPStatus;
-  deadline?: string;    // This might be your targetDate
-  targetDate?: string;  // Alternative to deadline
+  deadline?: string;
+  targetDate?: string;
+  timelineMonth?: number;
   assignedTo?: string;
   dealCondition: ESGCapDealCondition;
   createdAt: string;
-  actualCompletionDate?: string;  // This might be your actualDate
-  acceptedAt?: string;
-  resource?: string;    // From your payload
-  deliverable?: string; // From your payload
-  CS?: string;         // From your payload
+  actualCompletionDate?: string;
   actualDate?: string;
+  acceptedAt?: string;
+  resource?: string;
+  deliverable?: string;
+  statusUpdate?: string;
+  reviewRemarks?: string;
+  lastReviewDate?: string;
+  progressPercentage?: number;
+  implementationSupportNeeded?: string;
+  closureVerifiedBy?: string;
+  CS?: string;
   remarks?: string;
   theme?: "Policy" | "SOP" | "Metrics" | "Logs";
   data_type?: string;
   documentType?: string;
   sections?: string[];
   sourceType?: string;
-  aiResponseRaw?: AiResponse
+  aiResponseRaw?: AiResponse;
 }
-
-// export interface ESGCapItem {
-//   id: string;
-//   reportId: string;
-//   item: string;
-//   category: CAPCategory;
-//   CS?: string;
-//   priority: CAPPriority;
-//   measures: string;
-//   resource: string;
-//   deliverable: string;
-//   targetDate: string;
-//   actualDate?: string;
-//   status: CAPStatus;
-//   assignedTo?: string;
-//   dealCondition?: CAPType;
-//   createdAt?: string;
-// }
 
 interface CAPTableProps {
   items: ESGCapItem[];
@@ -135,7 +118,7 @@ interface CAPTableProps {
   onSendReminder: (item: ESGCapItem) => void;
   onAddItem?: (newItem: ESGCapItem) => void;
   onDeleteItem?: (itemId: string | number) => void;
-  originalItems?: ESGCapItem[]; // for comparison
+  originalItems?: ESGCapItem[];
   isComparisonView?: boolean;
   onRevertField?: (itemId: string | number, field: keyof ESGCapItem) => void;
   onRevert?: (itemId: string | number) => void;
@@ -188,7 +171,6 @@ const getCategoryBadge = (category: string) => {
   }
 };
 
-// Render field with changes highlight and revert
 const RenderChangedField = ({
   currentValue,
   originalValue,
@@ -197,14 +179,14 @@ const RenderChangedField = ({
   fieldName,
   onRevertField
 }: {
-  currentValue: string;
-  originalValue: string;
+  currentValue?: string;
+  originalValue?: string;
   isComparisonView?: boolean;
   itemId?: string | number;
   fieldName?: keyof ESGCapItem;
   onRevertField?: (itemId: string | number, field: keyof ESGCapItem) => void;
 }) => {
-  const hasChanged = currentValue !== originalValue;
+  const hasChanged = (currentValue || "") !== (originalValue || "");
 
   if (!hasChanged || !isComparisonView) return <span>{currentValue}</span>;
 
@@ -246,7 +228,7 @@ export function CAPTable({
 }: CAPTableProps) {
   const completedItems = items.filter(item => item.status === "completed").length;
   const progressPercentage = items.length > 0 ? Math.round((completedItems / items.length) * 100) : 0;
-  const [isViewAiOpen, setIsViewAiOpen] = useState(false)
+  const [isViewAiOpen, setIsViewAiOpen] = useState(false);
   const [item, setItem] = useState<ESGCapItem>({} as ESGCapItem);
 
   const [deleteDialog, setDeleteDialog] = useState<{
@@ -273,15 +255,43 @@ export function CAPTable({
 
   const [isAddingRow, setIsAddingRow] = useState(false);
   const [newRowData, setNewRowData] = useState({
+    // Basic Information
     item: "",
-    measures: "",
     category: "social" as CAPCategory,
     priority: "Medium" as CAPPriority,
+
+    // Issue & Findings
+    issue: "",
+    relatedFinding: "",
+    esgLever: "",
+
+    // Action Details
+    measures: "",
     resource: "",
     deliverable: "",
+    timelineMonth: "",
+
+    // Dates & Conditions
     targetDate: "",
+    actualDate: "",
     dealCondition: "CP" as CAPType,
+
+    // Status & Tracking
+    status: "pending" as CAPStatus,
+    statusUpdate: "",
+    progressPercentage: "",
+
+    // Review & Verification
+    reviewRemarks: "",
+    lastReviewDate: "",
+    implementationSupportNeeded: "",
+    closureVerifiedBy: "",
+
+    // Assignment
     assignedTo: "",
+
+    // Additional
+    remarks: "",
   });
 
   const addNewRow = () => {
@@ -293,32 +303,57 @@ export function CAPTable({
     const newItem: ESGCapItem = {
       id: Date.now(),
       item: newRowData.item,
+      issue: newRowData.issue || undefined,
+      relatedFinding: newRowData.relatedFinding || undefined,
+      esgLever: newRowData.esgLever || undefined,
       measures: newRowData.measures,
       category: newRowData.category,
       priority: newRowData.priority,
-      status: "pending",
-      dealCondition: newRowData.dealCondition,
-      resource: newRowData.resource,
-      deliverable: newRowData.deliverable,
-      targetDate: newRowData.targetDate,
+      resource: newRowData.resource || undefined,
+      deliverable: newRowData.deliverable || undefined,
+      timelineMonth: newRowData.timelineMonth ? Number(newRowData.timelineMonth) : undefined,
+      targetDate: newRowData.targetDate || undefined,
+      actualDate: newRowData.actualDate || undefined,
       CS: newRowData.dealCondition,
-      assignedTo: newRowData.assignedTo,
+      dealCondition: newRowData.dealCondition,
+      status: newRowData.status,
+      statusUpdate: newRowData.statusUpdate || undefined,
+      progressPercentage: newRowData.progressPercentage ? Number(newRowData.progressPercentage) : undefined,
+      reviewRemarks: newRowData.reviewRemarks || undefined,
+      lastReviewDate: newRowData.lastReviewDate || undefined,
+      implementationSupportNeeded: newRowData.implementationSupportNeeded || undefined,
+      closureVerifiedBy: newRowData.closureVerifiedBy || undefined,
+      assignedTo: newRowData.assignedTo || undefined,
+      remarks: newRowData.remarks || undefined,
       createdAt: new Date().toISOString(),
-      reportId: items[0]?.reportId || "",
     };
 
     onAddItem?.(newItem);
 
+    // Reset form
     setNewRowData({
       item: "",
-      measures: "",
       category: "social",
       priority: "Medium",
+      issue: "",
+      relatedFinding: "",
+      esgLever: "",
+      measures: "",
       resource: "",
       deliverable: "",
+      timelineMonth: "",
       targetDate: "",
+      actualDate: "",
       dealCondition: "CP",
+      status: "pending",
+      statusUpdate: "",
+      progressPercentage: "",
+      reviewRemarks: "",
+      lastReviewDate: "",
+      implementationSupportNeeded: "",
+      closureVerifiedBy: "",
       assignedTo: "",
+      remarks: "",
     });
     setIsAddingRow(false);
   };
@@ -328,28 +363,37 @@ export function CAPTable({
   const onAiShow = (item: ESGCapItem) => {
     setIsViewAiOpen(true);
     setItem(item);
-  }
+  };
 
   return (
     <TooltipProvider>
       <div className="border rounded-md overflow-x-auto">
-        <table className="w-full text-sm min-w-[1200px]">
+        <table className="w-full text-sm min-w-[2800px]">
           <thead className="bg-muted">
             <tr>
               <th className="p-3 text-left">S. No</th>
               <th className="p-3 text-left">Item</th>
               <th className="p-3 text-left">Category</th>
               <th className="p-3 text-left">Priority</th>
-
-
+              <th className="p-3 text-left">Issue</th>
+              <th className="p-3 text-left">Related Finding</th>
+              <th className="p-3 text-left">ESG Lever</th> {/* 7 */}
               <th className="p-3 text-left">Measures & Corrective Actions</th>
               <th className="p-3 text-left">Resource & Responsibility</th>
               <th className="p-3 text-left">Expected Deliverable</th>
-              <th className="p-3 text-left">Target Date</th>
-              <th className="p-3 text-left">CP/CS</th>
+              <th className="p-3 text-left">Timeline Month</th>
+              <th className="p-3 text-left">Target Date</th> {/* 12 */}
               <th className="p-3 text-left">Actual Date</th>
+              <th className="p-3 text-left">CP/CS</th>
               <th className="p-3 text-left">Status</th>
-              <th className="p-3 text-center">Actions</th>
+              <th className="p-3 text-left">Current Status Update</th>
+              <th className="p-3 text-left">Review Remarks</th>
+              <th className="p-3 text-left">Last Review Date</th>
+              <th className="p-3 text-left">Implementation Support Needed</th>
+              <th className="p-3 text-left">Closure Verified By</th>
+              <th className="p-3 text-left">Assigned To</th> {/* 21 */}
+              <th className="p-3 text-left">Remarks</th> {/* 22 */}
+              <th className="p-3 text-center">Actions</th> {/* 23 */}
             </tr>
           </thead>
           <tbody>
@@ -358,6 +402,8 @@ export function CAPTable({
               return (
                 <tr key={item.id} className={isComparisonView ? "bg-muted/30" : ""}>
                   <td className="p-3">{index + 1}</td>
+
+                  {/* 1. Item */}
                   <td className="p-3">
                     {originalItem ? (
                       <RenderChangedField
@@ -370,8 +416,65 @@ export function CAPTable({
                       />
                     ) : item.item}
                   </td>
+
+                  {/* 2. Category */}
                   <td className="p-3">{getCategoryBadge(item.category)}</td>
+
+                  {/* 3. Priority */}
                   <td className="p-3">{getPriorityBadge(item.priority)}</td>
+
+                  {/* 4. Issue */}
+                  <td className="p-3">
+                    <div className="relative">
+                      <div className="line-clamp-2">{item.issue || "-"}</div>
+                      {item.issue && item.issue.length > 30 && (
+                        <button className="text-blue-500 text-xs hover:underline mt-1 block" onClick={(e) => {
+                          const target = e.currentTarget.previousElementSibling;
+                          if (target) {
+                            target.classList.toggle('line-clamp-2');
+                            target.classList.toggle('line-clamp-none');
+                            e.currentTarget.textContent = target.classList.contains('line-clamp-none') ? 'Show less' : 'View more';
+                          }
+                        }}>View more</button>
+                      )}
+                    </div>
+                  </td>
+
+                  {/* 5. Related Finding */}
+                  <td className="p-3">
+                    <div className="relative">
+                      <div className="line-clamp-2">{item.relatedFinding || "-"}</div>
+                      {item.relatedFinding && item.relatedFinding.length > 30 && (
+                        <button className="text-blue-500 text-xs hover:underline mt-1 block" onClick={(e) => {
+                          const target = e.currentTarget.previousElementSibling;
+                          if (target) {
+                            target.classList.toggle('line-clamp-2');
+                            target.classList.toggle('line-clamp-none');
+                            e.currentTarget.textContent = target.classList.contains('line-clamp-none') ? 'Show less' : 'View more';
+                          }
+                        }}>View more</button>
+                      )}
+                    </div>
+                  </td>
+
+                  {/* 6. ESG Lever */}
+                  <td className="p-3">
+                    <div className="relative">
+                      <div className="line-clamp-2">{item.esgLever || "-"}</div>
+                      {item.esgLever && item.esgLever.length > 30 && (
+                        <button className="text-blue-500 text-xs hover:underline mt-1 block" onClick={(e) => {
+                          const target = e.currentTarget.previousElementSibling;
+                          if (target) {
+                            target.classList.toggle('line-clamp-2');
+                            target.classList.toggle('line-clamp-none');
+                            e.currentTarget.textContent = target.classList.contains('line-clamp-none') ? 'Show less' : 'View more';
+                          }
+                        }}>View more</button>
+                      )}
+                    </div>
+                  </td>
+
+                  {/* 7. Measures */}
                   <td className="p-3">
                     {isComparisonView && originalItem ? (
                       <RenderChangedField
@@ -386,23 +489,20 @@ export function CAPTable({
                       <div className="relative group">
                         <div className="line-clamp-2">{item.measures}</div>
                         {item.measures && item.measures.length > 100 && (
-                          <button
-                            className="text-blue-500 text-xs hover:underline mt-1 block"
-                            onClick={(e) => {
-                              const target = e.currentTarget.previousElementSibling;
-                              if (target) {
-                                target.classList.toggle('line-clamp-2');
-                                target.classList.toggle('line-clamp-none');
-                                e.currentTarget.textContent = target.classList.contains('line-clamp-none') ? 'Show less' : 'View more';
-                              }
-                            }}
-                          >
-                            View more
-                          </button>
+                          <button className="text-blue-500 text-xs hover:underline mt-1 block" onClick={(e) => {
+                            const target = e.currentTarget.previousElementSibling;
+                            if (target) {
+                              target.classList.toggle('line-clamp-2');
+                              target.classList.toggle('line-clamp-none');
+                              e.currentTarget.textContent = target.classList.contains('line-clamp-none') ? 'Show less' : 'View more';
+                            }
+                          }}>View more</button>
                         )}
                       </div>
                     )}
                   </td>
+
+                  {/* 8. Resource */}
                   <td className="p-3">
                     {originalItem ? (
                       <RenderChangedField
@@ -414,8 +514,9 @@ export function CAPTable({
                         onRevertField={onRevertField}
                       />
                     ) : item.resource}
-                    {item.assignedTo && <div className="text-xs text-muted-foreground">{item.assignedTo}</div>}
                   </td>
+
+                  {/* 9. Deliverable */}
                   <td className="p-3">
                     {isComparisonView && originalItem ? (
                       <RenderChangedField
@@ -430,98 +531,164 @@ export function CAPTable({
                       <div className="relative group">
                         <div className="line-clamp-2">{item.deliverable}</div>
                         {item.deliverable && item.deliverable.length > 30 && (
-                          <button
-                            className="text-blue-500 text-xs hover:underline mt-1 block"
-                            onClick={(e) => {
-                              const target = e.currentTarget.previousElementSibling;
-                              if (target) {
-                                target.classList.toggle('line-clamp-2');
-                                target.classList.toggle('line-clamp-none');
-                                e.currentTarget.textContent = target.classList.contains('line-clamp-none') ? 'Show less' : 'View more';
-                              }
-                            }}
-                          >
-                            View more
-                          </button>
+                          <button className="text-blue-500 text-xs hover:underline mt-1 block" onClick={(e) => {
+                            const target = e.currentTarget.previousElementSibling;
+                            if (target) {
+                              target.classList.toggle('line-clamp-2');
+                              target.classList.toggle('line-clamp-none');
+                              e.currentTarget.textContent = target.classList.contains('line-clamp-none') ? 'Show less' : 'View more';
+                            }
+                          }}>View more</button>
                         )}
                       </div>
                     )}
                   </td>
+
+                  {/* 10. Timeline Month */}
+                  <td className="p-3">{item.timelineMonth || "-"}</td>
+
+                  {/* 11. Target Date */}
                   <td className="p-3">{item.targetDate || "-"}</td>
-                  <td className="p-3">{item.CS || "-"}</td>
+
+                  {/* 12. Actual Date */}
                   <td className="p-3">{item.actualDate || "-"}</td>
+
+                  {/* 13. CP/CS */}
+                  <td className="p-3">{item.CS || "-"}</td>
+
+                  {/* 14. Status */}
                   <td className="p-3">{getStatusBadge(item.status)}</td>
+
+                  {/* 15. Current Status Update */}
+                  <td className="p-3">
+                    <div className="relative">
+                      <div className="line-clamp-2">{item.statusUpdate || "-"}</div>
+                      {item.statusUpdate && item.statusUpdate.length > 30 && (
+                        <button className="text-blue-500 text-xs hover:underline mt-1 block" onClick={(e) => {
+                          const target = e.currentTarget.previousElementSibling;
+                          if (target) {
+                            target.classList.toggle('line-clamp-2');
+                            target.classList.toggle('line-clamp-none');
+                            e.currentTarget.textContent = target.classList.contains('line-clamp-none') ? 'Show less' : 'View more';
+                          }
+                        }}>View more</button>
+                      )}
+                    </div>
+                  </td>
+
+                  {/* 16. Review Remarks */}
+                  <td className="p-3">
+                    <div className="relative">
+                      <div className="line-clamp-2">{item.reviewRemarks || "-"}</div>
+                      {item.reviewRemarks && item.reviewRemarks.length > 30 && (
+                        <button className="text-blue-500 text-xs hover:underline mt-1 block" onClick={(e) => {
+                          const target = e.currentTarget.previousElementSibling;
+                          if (target) {
+                            target.classList.toggle('line-clamp-2');
+                            target.classList.toggle('line-clamp-none');
+                            e.currentTarget.textContent = target.classList.contains('line-clamp-none') ? 'Show less' : 'View more';
+                          }
+                        }}>View more</button>
+                      )}
+                    </div>
+                  </td>
+
+                  {/* 17. Last Review Date */}
+                  <td className="p-3">{item.lastReviewDate || "-"}</td>
+
+                  {/* 18. Implementation Support Needed */}
+                  <td className="p-3">
+                    <div className="relative">
+                      <div className="line-clamp-2">{item.implementationSupportNeeded || "-"}</div>
+                      {item.implementationSupportNeeded && item.implementationSupportNeeded.length > 30 && (
+                        <button className="text-blue-500 text-xs hover:underline mt-1 block" onClick={(e) => {
+                          const target = e.currentTarget.previousElementSibling;
+                          if (target) {
+                            target.classList.toggle('line-clamp-2');
+                            target.classList.toggle('line-clamp-none');
+                            e.currentTarget.textContent = target.classList.contains('line-clamp-none') ? 'Show less' : 'View more';
+                          }
+                        }}>View more</button>
+                      )}
+                    </div>
+                  </td>
+
+                  {/* 19. Closure Verified By */}
+                  <td className="p-3">
+                    <div className="relative">
+                      <div className="line-clamp-2">{item.closureVerifiedBy || "-"}</div>
+                      {item.closureVerifiedBy && item.closureVerifiedBy.length > 30 && (
+                        <button className="text-blue-500 text-xs hover:underline mt-1 block" onClick={(e) => {
+                          const target = e.currentTarget.previousElementSibling;
+                          if (target) {
+                            target.classList.toggle('line-clamp-2');
+                            target.classList.toggle('line-clamp-none');
+                            e.currentTarget.textContent = target.classList.contains('line-clamp-none') ? 'Show less' : 'View more';
+                          }
+                        }}>View more</button>
+                      )}
+                    </div>
+                  </td>
+
+                  {/* 20. Assigned To */}
+                  <td className="p-3">{item.assignedTo || "-"}</td>
+
+                  {/* 21. Remarks */}
+                  <td className="p-3">
+                    <div className="relative">
+                      <div className="line-clamp-2">{item.remarks || "-"}</div>
+                      {item.remarks && item.remarks.length > 30 && (
+                        <button className="text-blue-500 text-xs hover:underline mt-1 block" onClick={(e) => {
+                          const target = e.currentTarget.previousElementSibling;
+                          if (target) {
+                            target.classList.toggle('line-clamp-2');
+                            target.classList.toggle('line-clamp-none');
+                            e.currentTarget.textContent = target.classList.contains('line-clamp-none') ? 'Show less' : 'View more';
+                          }
+                        }}>View more</button>
+                      )}
+                    </div>
+                  </td>
+
+                  {/* Actions */}
                   <td className="p-3 text-right">
                     <div className="flex gap-2 justify-end items-center">
-                      {/* Review */}
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button size="sm" variant="outline" onClick={() => onReview(item)}>
-                            <Eye className="h-4 w-4 mr-1" />
+                            <Eye className="h-4 w-4" />
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Review CAP item</p>
-                        </TooltipContent>
+                        <TooltipContent><p>Review CAP item</p></TooltipContent>
                       </Tooltip>
 
-                      {/* More actions (dropdown) */}
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button size="sm" variant="outline">
-                                •••
-                              </Button>
-                            </DropdownMenuTrigger>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button size="sm" variant="outline">•••</Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => onSendReminder(item)}>Send Reminder</DropdownMenuItem>
+                          {item.aiResponseRaw && (
+                            <DropdownMenuItem onClick={() => onAiShow(item)}>Review AI Suggestion</DropdownMenuItem>
+                          )}
+                          {!isComparisonView && onDeleteItem && (
+                            <DropdownMenuItem onClick={() => handleDeleteClick(item)} className="text-red-600">
+                              Delete Item
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
 
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => onSendReminder(item)}>
-                                Send Reminder
-                              </DropdownMenuItem>
-
-                              {item.aiResponseRaw && (
-                                <DropdownMenuItem onClick={() => onAiShow(item)}>
-                                  Review AI Suggestion
-                                </DropdownMenuItem>
-                              )}
-
-                              {!isComparisonView && onDeleteItem && (
-                                <DropdownMenuItem
-                                  onClick={() => handleDeleteClick(item)}
-                                  className="text-red-600 focus:text-red-600"
-                                >
-                                  {/* <Trash2 className="h-4 w-4 mr-2" /> */}
-                                  Delete Item
-                                </DropdownMenuItem>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>More actions</p>
-                        </TooltipContent>
-                      </Tooltip>
-
-                      {/* Revert */}
                       {isComparisonView && onRevert && (
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-amber-600 border-amber-600"
-                              onClick={() => onRevert(item.id)}
-                            >
-                              <ArrowLeft className="h-4 w-4 mr-1" /> Revert
+                            <Button size="sm" variant="outline" className="text-amber-600 border-amber-600" onClick={() => onRevert(item.id)}>
+                              <ArrowLeft className="h-4 w-4" /> Revert
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Revert all changes</p>
-                          </TooltipContent>
+                          <TooltipContent><p>Revert all changes</p></TooltipContent>
                         </Tooltip>
                       )}
-
                     </div>
                   </td>
                 </tr>
@@ -554,56 +721,278 @@ export function CAPTable({
               Add New Row
             </Button>
           ) : (
-            <div className="border rounded-lg p-4 bg-gray-50">
-              <div className="grid grid-cols-12 gap-2 text-sm">
-                <div className="col-span-2">
-                  <Input placeholder="Item" value={newRowData.item} onChange={(e) => setNewRowData({ ...newRowData, item: e.target.value })} />
+            <div className="border rounded-lg p-6 bg-gray-50 max-h-[600px] overflow-y-auto">
+              <div className="space-y-6">
+                <h3 className="text-lg font-semibold mb-4">Add New CAP Item</h3>
+
+                {/* 1. Item */}
+                <div>
+                  <label className="block mb-1 font-medium text-sm">Item *</label>
+                  <Textarea
+                    value={newRowData.item}
+                    onChange={(e) => setNewRowData({ ...newRowData, item: e.target.value })}
+                    className="min-h-[60px]"
+                    placeholder="Enter CAP item description"
+                  />
                 </div>
-                <div className="col-span-3">
-                  <Input placeholder="Measures" value={newRowData.measures} onChange={(e) => setNewRowData({ ...newRowData, measures: e.target.value })} />
+
+                {/* 2. Category & 3. Priority */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block mb-1 font-medium text-sm">Category</label>
+                    <Select
+                      value={newRowData.category}
+                      onValueChange={(v: CAPCategory) => setNewRowData({ ...newRowData, category: v })}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="environmental">Environmental</SelectItem>
+                        <SelectItem value="social">Social</SelectItem>
+                        <SelectItem value="governance">Governance</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="block mb-1 font-medium text-sm">Priority</label>
+                    <Select
+                      value={newRowData.priority}
+                      onValueChange={(v: CAPPriority) => setNewRowData({ ...newRowData, priority: v })}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="High">High</SelectItem>
+                        <SelectItem value="Medium">Medium</SelectItem>
+                        <SelectItem value="Low">Low</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <div className="col-span-1">
-                  <Select value={newRowData.category} onValueChange={(v: CAPCategory) => setNewRowData({ ...newRowData, category: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="environmental">Env</SelectItem>
-                      <SelectItem value="social">Soc</SelectItem>
-                      <SelectItem value="governance">Gov</SelectItem>
-                    </SelectContent>
-                  </Select>
+
+                {/* 4. Issue & 5. Related Finding */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block mb-1 font-medium text-sm">Issue</label>
+                    <Textarea
+                      value={newRowData.issue}
+                      onChange={(e) => setNewRowData({ ...newRowData, issue: e.target.value })}
+                      placeholder="Describe the issue"
+                      className="min-h-[60px]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block mb-1 font-medium text-sm">Related Finding</label>
+                    <Textarea
+                      value={newRowData.relatedFinding}
+                      onChange={(e) => setNewRowData({ ...newRowData, relatedFinding: e.target.value })}
+                      placeholder="Related audit findings"
+                      className="min-h-[60px]"
+                    />
+                  </div>
                 </div>
-                <div className="col-span-1">
-                  <Select value={newRowData.priority} onValueChange={(v: CAPPriority) => setNewRowData({ ...newRowData, priority: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="High">High</SelectItem>
-                      <SelectItem value="Medium">Med</SelectItem>
-                      <SelectItem value="Low">Low</SelectItem>
-                    </SelectContent>
-                  </Select>
+
+                {/* 6. ESG Lever */}
+                <div>
+                  <label className="block mb-1 font-medium text-sm">ESG Lever</label>
+                  <Input
+                    value={newRowData.esgLever}
+                    onChange={(e) => setNewRowData({ ...newRowData, esgLever: e.target.value })}
+                    placeholder="e.g., Policy, Training, Technology"
+                  />
                 </div>
-                <div className="col-span-1">
-                  <Input placeholder="Resource" value={newRowData.resource} onChange={(e) => setNewRowData({ ...newRowData, resource: e.target.value })} />
+
+                {/* 7. Measures */}
+                <div>
+                  <label className="block mb-1 font-medium text-sm">Measures & Corrective Actions *</label>
+                  <Textarea
+                    value={newRowData.measures}
+                    onChange={(e) => setNewRowData({ ...newRowData, measures: e.target.value })}
+                    className="min-h-[80px]"
+                    placeholder="Describe the corrective actions to be taken"
+                  />
                 </div>
-                <div className="col-span-1">
-                  <Input placeholder="Deliverable" value={newRowData.deliverable} onChange={(e) => setNewRowData({ ...newRowData, deliverable: e.target.value })} />
+
+                {/* 8. Resource & 9. Deliverable */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block mb-1 font-medium text-sm">Resource & Responsibility</label>
+                    <Input
+                      value={newRowData.resource}
+                      onChange={(e) => setNewRowData({ ...newRowData, resource: e.target.value })}
+                      placeholder="Who is responsible?"
+                    />
+                  </div>
+                  <div>
+                    <label className="block mb-1 font-medium text-sm">Expected Deliverable</label>
+                    <Textarea
+                      value={newRowData.deliverable}
+                      onChange={(e) => setNewRowData({ ...newRowData, deliverable: e.target.value })}
+                      placeholder="What will be delivered?"
+                      className="min-h-[60px]"
+                    />
+                  </div>
                 </div>
-                <div className="col-span-1">
-                  <Input type="date" value={newRowData.targetDate} onChange={(e) => setNewRowData({ ...newRowData, targetDate: e.target.value })} />
+
+                {/* 10. Timeline Month & 11. Target Date & 12. Actual Date */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block mb-1 font-medium text-sm">Timeline (Months)</label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={newRowData.timelineMonth}
+                      onChange={(e) => setNewRowData({ ...newRowData, timelineMonth: e.target.value })}
+                      placeholder="e.g., 3"
+                    />
+                  </div>
+                  <div>
+                    <label className="block mb-1 font-medium text-sm">Target Date</label>
+                    <Input
+                      type="date"
+                      value={newRowData.targetDate}
+                      onChange={(e) => setNewRowData({ ...newRowData, targetDate: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block mb-1 font-medium text-sm">Actual Date</label>
+                    <Input
+                      type="date"
+                      value={newRowData.actualDate}
+                      onChange={(e) => setNewRowData({ ...newRowData, actualDate: e.target.value })}
+                    />
+                  </div>
                 </div>
-                <div className="col-span-1">
-                  <Select value={newRowData.dealCondition} onValueChange={(v: CAPType) => setNewRowData({ ...newRowData, dealCondition: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="CP">CP</SelectItem>
-                      <SelectItem value="CS">CS</SelectItem>
-                      <SelectItem value="none">None</SelectItem>
-                    </SelectContent>
-                  </Select>
+
+                {/* 13. CP/CS & 14. Status */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block mb-1 font-medium text-sm">CP/CS</label>
+                    <Select
+                      value={newRowData.dealCondition}
+                      onValueChange={(v: CAPType) => setNewRowData({ ...newRowData, dealCondition: v })}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="CP">CP (Condition Precedent)</SelectItem>
+                        <SelectItem value="CS">CS (Condition Subsequent)</SelectItem>
+                        <SelectItem value="none">None</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="block mb-1 font-medium text-sm">Status</label>
+                    <Select
+                      value={newRowData.status}
+                      onValueChange={(v: CAPStatus) => setNewRowData({ ...newRowData, status: v })}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="in_review">In Review</SelectItem>
+                        <SelectItem value="accepted">Accepted</SelectItem>
+                        <SelectItem value="in_progress">In Progress</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="delayed">Delayed</SelectItem>
+                        <SelectItem value="rejected">Rejected</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <div className="col-span-1">
-                  <Button size="sm" onClick={addNewRow}>Save</Button>
-                  <Button size="sm" variant="ghost" onClick={() => setIsAddingRow(false)}>Cancel</Button>
+
+                {/* 15. Current Status Update */}
+                <div>
+                  <label className="block mb-1 font-medium text-sm">Current Status Update</label>
+                  <Textarea
+                    value={newRowData.statusUpdate}
+                    onChange={(e) => setNewRowData({ ...newRowData, statusUpdate: e.target.value })}
+                    placeholder="Latest update on this action item"
+                    className="min-h-[60px]"
+                  />
+                </div>
+
+                {/* 16. Review Remarks & 17. Last Review Date */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block mb-1 font-medium text-sm">Review Remarks</label>
+                    <Textarea
+                      value={newRowData.reviewRemarks}
+                      onChange={(e) => setNewRowData({ ...newRowData, reviewRemarks: e.target.value })}
+                      placeholder="Reviewer comments"
+                      className="min-h-[60px]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block mb-1 font-medium text-sm">Last Review Date</label>
+                    <Input
+                      type="date"
+                      value={newRowData.lastReviewDate}
+                      onChange={(e) => setNewRowData({ ...newRowData, lastReviewDate: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                {/* 18. Implementation Support & 19. Closure Verified */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block mb-1 font-medium text-sm">Implementation Support Needed</label>
+                    <Textarea
+                      value={newRowData.implementationSupportNeeded}
+                      onChange={(e) => setNewRowData({ ...newRowData, implementationSupportNeeded: e.target.value })}
+                      placeholder="What support is required?"
+                      className="min-h-[60px]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block mb-1 font-medium text-sm">Closure Verified By</label>
+                    <Input
+                      value={newRowData.closureVerifiedBy}
+                      onChange={(e) => setNewRowData({ ...newRowData, closureVerifiedBy: e.target.value })}
+                      placeholder="Name of verifier"
+                    />
+                  </div>
+                </div>
+
+                {/* 20. Assigned To & 21. Remarks */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block mb-1 font-medium text-sm">Assigned To</label>
+                    <Input
+                      value={newRowData.assignedTo}
+                      onChange={(e) => setNewRowData({ ...newRowData, assignedTo: e.target.value })}
+                      placeholder="Person responsible"
+                    />
+                  </div>
+                  <div>
+                    <label className="block mb-1 font-medium text-sm">Remarks</label>
+                    <Textarea
+                      value={newRowData.remarks}
+                      onChange={(e) => setNewRowData({ ...newRowData, remarks: e.target.value })}
+                      placeholder="Additional remarks"
+                      className="min-h-[60px]"
+                    />
+                  </div>
+                </div>
+
+                {/* Progress Percentage - Optional (commented out) */}
+                {/* <div>
+            <label className="block mb-1 font-medium text-sm">Progress (%)</label>
+            <Input
+              type="number"
+              min="0"
+              max="100"
+              value={newRowData.progressPercentage}
+              onChange={(e) => setNewRowData({ ...newRowData, progressPercentage: e.target.value })}
+              placeholder="0-100"
+            />
+          </div> */}
+
+                {/* Actions Buttons */}
+                <div className="flex justify-end gap-2 pt-4 border-t">
+                  <Button size="default" variant="ghost" onClick={() => setIsAddingRow(false)}>
+                    Cancel
+                  </Button>
+                  <Button size="default" onClick={addNewRow}>
+                    Save Item
+                  </Button>
                 </div>
               </div>
             </div>
@@ -629,7 +1018,6 @@ export function CAPTable({
             </DialogDescription>
           </DialogHeader>
 
-          {/* Confirmation Message */}
           <div className="py-3 text-sm text-gray-600">
             <p className="mb-2">
               Are you sure you want to delete{" "}
@@ -644,7 +1032,6 @@ export function CAPTable({
             </p>
           </div>
 
-          {/* Input */}
           <div className="mt-3">
             <Input
               type="text"
@@ -665,7 +1052,6 @@ export function CAPTable({
             >
               Cancel
             </Button>
-
             <Button
               variant="destructive"
               disabled={confirmText !== "DELETE"}
