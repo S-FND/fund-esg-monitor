@@ -279,35 +279,35 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
             toast({ title: "Company Required", description: "Please select a company before uploading CSV.", variant: "destructive" });
             return;
         }
-    
+
         const file = event.target.files?.[0];
         if (!file) return;
         if (!file.name.endsWith('.csv')) {
             toast({ title: "Invalid File Format", description: "Please upload a CSV file.", variant: "destructive" });
             return;
         }
-    
+
         const MAX_FILE_SIZE = 5 * 1024 * 1024;
         if (file.size > MAX_FILE_SIZE) {
             toast({ title: "File Too Large", description: "Please upload a file smaller than 5MB.", variant: "destructive" });
             return;
         }
-    
+
         const company = companies.find(c => c.id === selectedCompany);
         if (!company) {
             toast({ title: "Invalid Company", description: "Selected company not found.", variant: "destructive" });
             return;
         }
-    
+
         setUploading(true);
-    
+
         try {
             const text = await file.text();
             const lines = text.split('\n').filter(line => line.trim());
             if (lines.length < 2) throw new Error("File must contain at least one data row");
-    
+
             const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-            
+
             // Header mapping (friendly name -> field name)
             const headerMapping: Record<string, string> = {
                 'item': 'item',
@@ -332,40 +332,40 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                 'assigned to': 'assignedto',
                 'remarks': 'remarks'
             };
-            
+
             const newItems: ESGCapItem[] = [];
-    
+
             for (let i = 1; i < lines.length; i++) {
                 const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
                 while (values.length < headers.length) values.push("");
-                
+
                 // Helper function to get value by friendly name (defined INSIDE the loop)
                 const getValue = (friendlyName: string) => {
                     const fieldName = headerMapping[friendlyName.toLowerCase()];
                     const index = headers.findIndex(h => h === fieldName || h === friendlyName.toLowerCase());
                     return index !== -1 ? values[index] || "" : "";
                 };
-                
+
                 const itemValue = getValue('item');
                 const measuresValue = getValue('measures');
                 if (!itemValue || !measuresValue) continue;
-    
+
                 const category = getValue('category') as CAPCategory;
                 const validCategories: CAPCategory[] = ['environmental', 'social', 'governance'];
                 const validCategory = validCategories.includes(category) ? category : 'environmental';
-                
+
                 const priority = getValue('priority') as CAPPriority;
                 const validPriorities: CAPPriority[] = ['High', 'Medium', 'Low'];
                 const validPriority = validPriorities.includes(priority) ? priority : 'Medium';
-                
+
                 const status = getValue('status') as CAPStatus;
                 const validStatuses: CAPStatus[] = ['pending', 'in_review', 'accepted', 'in_progress', 'completed', 'delayed', 'rejected'];
                 const validStatus = validStatuses.includes(status) ? status : 'pending';
-                
+
                 const dealCondition = getValue('cp/cs') as CAPType;
                 const validDealConditions: CAPType[] = ['CP', 'CS', 'none'];
                 const validDealCondition = validDealConditions.includes(dealCondition) ? dealCondition : 'none';
-                
+
                 const newItem = {
                     reportId: selectedCompany,
                     item: itemValue,
@@ -393,21 +393,21 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                     remarks: getValue('remarks') || undefined,
                     id: `${Date.now()}-${i}`
                 } as ESGCapItem;
-                
+
                 newItems.push(newItem);
             }
-            
+
             if (newItems.length === 0) throw new Error("No valid items found in file");
-    
+
             const finalData = {
                 plan: newItems,
                 email: company.email,
                 financialYear: financialYear,
                 finalAcceptance: { founderAcceptance: false, investorAcceptance: false }
             };
-    
+
             const [result, error] = await EsgddAPIs.saveEscap(finalData);
-            
+
             if (result) {
                 onAddMultipleItems(newItems);
                 toast({ title: "CAP Items Imported", description: `Successfully imported ${newItems.length} items.` });
@@ -416,7 +416,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
             } else {
                 throw new Error(error || "Upload failed");
             }
-    
+
         } catch (error) {
             console.error("Import error:", error);
             toast({ title: "Import Failed", description: error instanceof Error ? error.message : "Failed to process file", variant: "destructive" });
@@ -431,7 +431,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
             'Item,Category,Priority,Issue,Related Finding,ESG Lever,Measures & Corrective Actions,Resource & Responsibility,Expected Deliverable,Timeline Month,Target Date,Actual Date,CP/CS,Status,Current Status Update,Review Remarks,Last Review Date,Implementation Support Needed,Closure Verified By,Assigned To,Remarks',
             'Improve carbon emissions reporting,environmental,High,Carbon issue,Audit finding,Policy,Implement tracking system,ESG Manager,Monthly report,6,2024-12-31,2024-03-20,CP,in_progress,In progress,Approved,2024-03-01,IT support,John Doe,ESG Manager,Additional notes'
         ].join('\n');
-    
+
         const blob = new Blob([template], { type: 'text/csv' });
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -441,7 +441,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
         link.click();
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
-    
+
         toast({ title: "Template Downloaded", description: "CSV template downloaded successfully." });
     };
 
@@ -576,7 +576,17 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                                                 </div>
                                             </div>
 
-                                            {/* 6. Measures */}
+                                            {/* 6. ESG Lever */}
+                                            <div>
+                                                <Label>ESG Lever</Label>
+                                                <Input
+                                                    value={row.esgLever}
+                                                    onChange={(e) => updateRow(row.id, "esgLever", e.target.value)}
+                                                    placeholder="e.g., Policy, Training, Technology"
+                                                />
+                                            </div>
+
+                                            {/* 7. Measures */}
                                             <div>
                                                 <Label>Measures & Corrective Actions *</Label>
                                                 <Textarea
@@ -587,7 +597,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                                                 />
                                             </div>
 
-                                            {/* 7. Resource & 8. Deliverable */}
+                                            {/* 8. Resource & 9. Deliverable */}
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div>
                                                     <Label>Resource & Responsibility</Label>
@@ -608,8 +618,8 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                                                 </div>
                                             </div>
 
-                                            {/* 9. Timeline Month & 10. CP/CS */}
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            {/* 10. Timeline Month & 11. Target Date & 12. Actual Date */}
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                                 <div>
                                                     <Label>Timeline Month</Label>
                                                     <Input
@@ -620,6 +630,26 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                                                         placeholder="e.g., 3"
                                                     />
                                                 </div>
+                                                <div>
+                                                    <Label>Target Date</Label>
+                                                    <Input
+                                                        type="date"
+                                                        value={row.targetDate}
+                                                        onChange={(e) => updateRow(row.id, "targetDate", e.target.value)}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <Label>Actual Date</Label>
+                                                    <Input
+                                                        type="date"
+                                                        value={row.actualDate}
+                                                        onChange={(e) => updateRow(row.id, "actualDate", e.target.value)}
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* 13. CP/CS & 14. Status */}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div>
                                                     <Label>CP/CS</Label>
                                                     <Select
@@ -634,11 +664,29 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                                                         </SelectContent>
                                                     </Select>
                                                 </div>
+                                                <div>
+                                                    <Label>Status</Label>
+                                                    <Select
+                                                        value={row.status}
+                                                        onValueChange={(value: CAPStatus) => updateRow(row.id, "status", value)}
+                                                    >
+                                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="pending">Pending</SelectItem>
+                                                            <SelectItem value="in_review">In Review</SelectItem>
+                                                            <SelectItem value="accepted">Accepted</SelectItem>
+                                                            <SelectItem value="in_progress">In Progress</SelectItem>
+                                                            <SelectItem value="completed">Completed</SelectItem>
+                                                            <SelectItem value="delayed">Delayed</SelectItem>
+                                                            <SelectItem value="rejected">Rejected</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
                                             </div>
 
-                                            {/* 11. Current Status */}
+                                            {/* 15. Current Status Update */}
                                             <div>
-                                                <Label>Current Status</Label>
+                                                <Label>Current Status Update</Label>
                                                 <Textarea
                                                     value={row.statusUpdate}
                                                     onChange={(e) => updateRow(row.id, "statusUpdate", e.target.value)}
@@ -647,7 +695,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                                                 />
                                             </div>
 
-                                            {/* 12. Review Remarks & 13. Last Review Date */}
+                                            {/* 16. Review Remarks & 17. Last Review Date */}
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div>
                                                     <Label>Review Remarks</Label>
@@ -668,7 +716,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                                                 </div>
                                             </div>
 
-                                            {/* 14. Implementation Support & 15. Closure Verified */}
+                                            {/* 18. Implementation Support & 19. Closure Verified */}
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div>
                                                     <Label>Implementation Support Needed</Label>
@@ -689,68 +737,8 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                                                 </div>
                                             </div>
 
-                                            {/* 16. Actual Date */}
-                                            <div>
-                                                <Label>Actual Date</Label>
-                                                <Input
-                                                    type="date"
-                                                    value={row.actualDate}
-                                                    onChange={(e) => updateRow(row.id, "actualDate", e.target.value)}
-                                                />
-                                            </div>
-
-                                            {/* 17. Status */}
-                                            <div>
-                                                <Label>Status</Label>
-                                                <Select
-                                                    value={row.status}
-                                                    onValueChange={(value: CAPStatus) => updateRow(row.id, "status", value)}
-                                                >
-                                                    <SelectTrigger><SelectValue /></SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="pending">Pending</SelectItem>
-                                                        <SelectItem value="in_review">In Review</SelectItem>
-                                                        <SelectItem value="accepted">Accepted</SelectItem>
-                                                        <SelectItem value="in_progress">In Progress</SelectItem>
-                                                        <SelectItem value="completed">Completed</SelectItem>
-                                                        <SelectItem value="delayed">Delayed</SelectItem>
-                                                        <SelectItem value="rejected">Rejected</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-
-                                            {/* Hidden/Optional Fields */}
+                                            {/* 20. Assigned To & 21. Remarks */}
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                <div>
-                                                    <Label>Target Date</Label>
-                                                    <Input
-                                                        type="date"
-                                                        value={row.targetDate}
-                                                        onChange={(e) => updateRow(row.id, "targetDate", e.target.value)}
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <Label>ESG Lever</Label>
-                                                    <Input
-                                                        value={row.esgLever}
-                                                        onChange={(e) => updateRow(row.id, "esgLever", e.target.value)}
-                                                        placeholder="e.g., Policy, Training, Technology"
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                <div>
-                                                    <Label>Progress (%)</Label>
-                                                    <Input
-                                                        type="number"
-                                                        min="0"
-                                                        max="100"
-                                                        value={row.progressPercentage}
-                                                        onChange={(e) => updateRow(row.id, "progressPercentage", Math.min(100, Math.max(0, Number(e.target.value))))}
-                                                        placeholder="0-100"
-                                                    />
-                                                </div>
                                                 <div>
                                                     <Label>Assigned To</Label>
                                                     <Input
@@ -759,16 +747,6 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                                                         placeholder="Person responsible"
                                                     />
                                                 </div>
-                                            </div>
-
-                                            <div>
-                                                <Label>Remarks</Label>
-                                                <Textarea
-                                                    value={row.remarks}
-                                                    onChange={(e) => updateRow(row.id, "remarks", e.target.value)}
-                                                    placeholder="Additional remarks"
-                                                    className="min-h-[60px]"
-                                                />
                                             </div>
                                         </div>
                                     ))}
