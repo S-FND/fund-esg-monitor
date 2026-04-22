@@ -23,20 +23,30 @@ interface AddCAPDialogProps {
     onAddMultipleItems: (items: ESGCapItem[]) => void;
 }
 
-// Define a single row in the form
 interface CAPFormRow {
     id: string;
     item: string;
     category: CAPCategory;
     priority: CAPPriority;
+    issue: string;
+    relatedFinding: string;
     measures: string;
     resource: string;
     deliverable: string;
-    targetDate: string;
+    timelineMonth: number;
     dealCondition: CAPType;
+    statusUpdate: string;
+    reviewRemarks: string;
+    lastReviewDate: string;
+    implementationSupportNeeded: string;
+    closureVerifiedBy: string;
     actualDate: string;
     status: CAPStatus;
+    targetDate: string;
+    esgLever: string;
+    progressPercentage: number;
     assignedTo: string;
+    remarks: string;
 }
 
 export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProps) {
@@ -50,36 +60,41 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
     useEffect(() => {
         const currentDate = new Date();
         const currentYear = currentDate.getFullYear();
-        const aprilFirstCurrentYear = new Date(currentYear, 3, 1); // April 1st of the current year
+        const aprilFirstCurrentYear = new Date(currentYear, 3, 1);
 
-        // Check if the current date is before April 1st of the current year
-        const financialYear =
-            currentDate < aprilFirstCurrentYear
-                ? `${currentYear - 1}-${currentYear.toString().slice(-2)}`
-                : `${currentYear}-${(currentYear + 1).toString().slice(-2)}`;
+        const financialYear = currentDate < aprilFirstCurrentYear
+            ? `${currentYear - 1}-${currentYear.toString().slice(-2)}`
+            : `${currentYear}-${(currentYear + 1).toString().slice(-2)}`;
 
         setFinancialYear(financialYear);
     }, []);
 
-    // Initialize with one empty row
-    const [formRows, setFormRows] = useState<CAPFormRow[]>([
-        {
-            id: "1", // Start with ID "1"
-            item: "",
-            category: "environmental",
-            priority: "Medium",
-            measures: "",
-            resource: "",
-            deliverable: "",
-            targetDate: "",
-            dealCondition: "none",
-            actualDate: "",
-            status: "pending",
-            assignedTo: "",
-        }
-    ]);
+    const [formRows, setFormRows] = useState<CAPFormRow[]>([{
+        id: "1",
+        item: "",
+        category: "environmental",
+        priority: "Medium",
+        issue: "",
+        relatedFinding: "",
+        measures: "",
+        resource: "",
+        deliverable: "",
+        timelineMonth: 0,
+        dealCondition: "none",
+        statusUpdate: "",
+        reviewRemarks: "",
+        lastReviewDate: "",
+        implementationSupportNeeded: "",
+        closureVerifiedBy: "",
+        actualDate: "",
+        status: "pending",
+        targetDate: "",
+        esgLever: "",
+        progressPercentage: 0,
+        assignedTo: "",
+        remarks: "",
+    }]);
 
-    // Fetch companies from API when dialog opens
     useEffect(() => {
         if (open && companies.length === 0) {
             fetchCompanies();
@@ -90,40 +105,27 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
         setLoadingCompanies(true);
         try {
             const [res, error] = await EsgddAPIs.getCompanyList();
-
-            if (error) {
-                throw new Error(error);
-            }
-
-            if (!res || res.status === false) {
-                throw new Error(`API error: ${res?.message || 'Unknown error'}`);
-            }
+            if (error) throw new Error(error);
+            if (!res || res.status === false) throw new Error(`API error: ${res?.message || 'Unknown error'}`);
 
             const jsondata = res?.data || res;
-            if (jsondata && Array.isArray(jsondata)) {
-                const mappedCompanies = jsondata.map(company => ({
-                    id: company._id || company.id,
-                    name: company.companyName || company.name,
-                    email: company.email || company.companyEmail || ""
-                })).filter(company => company.id && company.name);
+            let mappedCompanies: Company[] = [];
 
-                setCompanies(mappedCompanies);
-            } else if (jsondata && Array.isArray(jsondata.data)) {
-                const mappedCompanies = jsondata.data.map(company => ({
+            if (jsondata && Array.isArray(jsondata)) {
+                mappedCompanies = jsondata.map(company => ({
                     id: company._id || company.id,
                     name: company.companyName || company.name,
                     email: company.email || company.companyEmail || ""
                 })).filter(company => company.id && company.name);
-                setCompanies(mappedCompanies);
-            } else {
-                console.error("Unexpected API response structure:", jsondata);
-                setCompanies([]);
-                toast({
-                    title: "Error",
-                    description: "Unexpected response format from server",
-                    variant: "destructive",
-                });
+            } else if (jsondata && Array.isArray(jsondata.data)) {
+                mappedCompanies = jsondata.data.map(company => ({
+                    id: company._id || company.id,
+                    name: company.companyName || company.name,
+                    email: company.email || company.companyEmail || ""
+                })).filter(company => company.id && company.name);
             }
+
+            setCompanies(mappedCompanies);
         } catch (error) {
             console.error("Error fetching companies:", error);
             setCompanies([]);
@@ -138,25 +140,32 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
     };
 
     const addRow = () => {
-        // Calculate next ID based on current rows count
         const nextId = (formRows.length + 1).toString();
-        setFormRows([
-            ...formRows,
-            {
-                id: nextId,
-                item: "",
-                category: "environmental",
-                priority: "Medium",
-                measures: "",
-                resource: "",
-                deliverable: "",
-                targetDate: "",
-                dealCondition: "none",
-                actualDate: "",
-                status: "pending",
-                assignedTo: "",
-            }
-        ]);
+        setFormRows([...formRows, {
+            id: nextId,
+            item: "",
+            category: "environmental",
+            priority: "Medium",
+            issue: "",
+            relatedFinding: "",
+            measures: "",
+            resource: "",
+            deliverable: "",
+            timelineMonth: 0,
+            dealCondition: "none",
+            statusUpdate: "",
+            reviewRemarks: "",
+            lastReviewDate: "",
+            implementationSupportNeeded: "",
+            closureVerifiedBy: "",
+            actualDate: "",
+            status: "pending",
+            targetDate: "",
+            esgLever: "",
+            progressPercentage: 0,
+            assignedTo: "",
+            remarks: "",
+        }]);
     };
 
     const removeRow = (id: string) => {
@@ -165,80 +174,72 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
     };
 
     const updateRow = (id: string, field: keyof CAPFormRow, value: any) => {
-        setFormRows(
-            formRows.map(row =>
-                row.id === id ? { ...row, [field]: value } : row
-            )
-        );
+        setFormRows(formRows.map(row => row.id === id ? { ...row, [field]: value } : row));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        // Validate company selection
         if (!selectedCompany) {
-            toast({
-                title: "Company Required",
-                description: "Please select a company.",
-                variant: "destructive",
-            });
+            toast({ title: "Company Required", description: "Please select a company.", variant: "destructive" });
             return;
         }
 
-        // Validate all rows
-        const invalidRows = formRows.filter(row =>
-            !row.item || !row.measures
-        );
-
+        const invalidRows = formRows.filter(row => !row.item || !row.measures);
         if (invalidRows.length > 0) {
-            toast({
-                title: "Missing Required Fields",
-                description: "Please fill in all required fields (Item, Measures) for all rows.",
-                variant: "destructive",
-            });
+            toast({ title: "Missing Required Fields", description: "Please fill in all required fields (Item, Measures) for all rows.", variant: "destructive" });
             return;
         }
-
-        // Find the selected company details
-        const company = companies.find(c => c.id === selectedCompany);
-        if (!company) {
-            toast({
-                title: "Invalid Company",
-                description: "Selected company is not valid.",
-                variant: "destructive",
-            });
-            return;
-        }
-
-        // Prepare items for submission with sequential IDs
-        const newItems: ESGCapItem[] = [];
 
         for (let i = 0; i < formRows.length; i++) {
             const row = formRows[i];
-            // Create item without id first
-            const itemWithoutId: Omit<ESGCapItem, 'id'> = {
+            if (row.targetDate && isNaN(new Date(row.targetDate).getTime())) {
+                toast({ title: "Invalid Date", description: `Invalid target date in row ${i + 1}`, variant: "destructive" });
+                return;
+            }
+            if (row.actualDate && isNaN(new Date(row.actualDate).getTime())) {
+                toast({ title: "Invalid Date", description: `Invalid actual date in row ${i + 1}`, variant: "destructive" });
+                return;
+            }
+        }
+
+        const company = companies.find(c => c.id === selectedCompany);
+        if (!company) {
+            toast({ title: "Invalid Company", description: "Selected company is not valid.", variant: "destructive" });
+            return;
+        }
+
+        const newItems: ESGCapItem[] = [];
+        for (let i = 0; i < formRows.length; i++) {
+            const row = formRows[i];
+            const newItem = {
                 reportId: selectedCompany,
                 item: row.item,
                 category: row.category,
                 priority: row.priority,
+                issue: row.issue || undefined,
+                relatedFinding: row.relatedFinding || undefined,
                 measures: row.measures,
-                resource: row.resource,
-                deliverable: row.deliverable,
-                targetDate: row.targetDate,
+                resource: row.resource || undefined,
+                deliverable: row.deliverable || undefined,
+                timelineMonth: row.timelineMonth || undefined,
                 CS: row.dealCondition,
-                actualDate: row.actualDate,
+                statusUpdate: row.statusUpdate || undefined,
+                reviewRemarks: row.reviewRemarks || undefined,
+                lastReviewDate: row.lastReviewDate || undefined,
+                implementationSupportNeeded: row.implementationSupportNeeded || undefined,
+                closureVerifiedBy: row.closureVerifiedBy || undefined,
+                actualDate: row.actualDate || undefined,
                 status: row.status,
-                assignedTo: row.assignedTo,
+                targetDate: row.targetDate || undefined,
+                esgLever: row.esgLever || undefined,
+                progressPercentage: row.progressPercentage || undefined,
+                assignedTo: row.assignedTo || undefined,
+                remarks: row.remarks || undefined,
                 dealCondition: row.dealCondition,
                 createdAt: new Date().toISOString(),
-            };
-
-            // Add ID separately to avoid TypeScript error
-            const newItem = {
-                ...itemWithoutId,
-                id: (i + 1).toString()
+                id: `${Date.now()}-${i}`
             } as ESGCapItem;
-
             newItems.push(newItem);
         }
 
@@ -247,218 +248,178 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                 plan: newItems,
                 email: company.email,
                 financialYear: financialYear,
-                finalAcceptance: {
-                    founderAcceptance: false,
-                    investorAcceptance: false
-                }
-            };
-
-            // Call API to save the plan
-            const [result, error] = await EsgddAPIs.saveEscap(finalData);
-
-            if (result) {
-                // Add to local state after successful API call
-                const savedItems: ESGCapItem[] = newItems.map(item => ({
-                    ...item,
-                    id: item.id // Keep the sequential ID
-                }));
-
-                onAddMultipleItems(savedItems);
-
-                toast({
-                    title: "CAP Items Added",
-                    description: `Successfully added ${newItems.length} CAP items.`,
-                });
-
-                // Reset form with sequential IDs
-                setFormRows([
-                    {
-                        id: "1",
-                        item: "",
-                        category: "environmental",
-                        priority: "Medium",
-                        measures: "",
-                        resource: "",
-                        deliverable: "",
-                        targetDate: "",
-                        dealCondition: "none",
-                        actualDate: "",
-                        status: "pending",
-                        assignedTo: "",
-                    }
-                ]);
-                setSelectedCompany("");
-                setOpen(false);
-            } else {
-                throw new Error(error || "Failed to save CAP items");
-            }
-        } catch (error) {
-            console.error("Error adding CAP items:", error);
-            toast({
-                title: "Error",
-                description: "Failed to add CAP items. Please try again.",
-                variant: "destructive",
-            });
-        }
-    };
-
-    const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-
-        // ✅ MUST select company first
-        if (!selectedCompany) {
-            toast({
-                title: "Company Required",
-                description: "Please select a company before uploading CSV.",
-                variant: "destructive",
-            });
-            return;
-        }
-
-        if (companies.length === 0) {
-            toast({
-                title: "Companies Not Loaded",
-                description: "Please wait for companies to load before uploading.",
-                variant: "destructive",
-            });
-            return;
-        }
-
-        const file = event.target.files?.[0];
-        if (!file) return;
-
-        if (!file.name.endsWith('.csv')) {
-            toast({
-                title: "Invalid File Format",
-                description: "Please upload a CSV file.",
-                variant: "destructive",
-            });
-            return;
-        }
-
-        const company = companies.find(c => c.id === selectedCompany);
-        if (!company) {
-            toast({
-                title: "Invalid Company",
-                description: "Selected company not found.",
-                variant: "destructive",
-            });
-            return;
-        }
-
-        setUploading(true);
-
-        try {
-            const text = await file.text();
-            const lines = text.split('\n').filter(line => line.trim());
-
-            if (lines.length < 2) {
-                throw new Error("File must contain at least one data row");
-            }
-
-            const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-
-            // ✅ REMOVED company column
-            const requiredHeaders = [
-                'item',
-                'measures',
-                'category',
-                'priority',        // ✅ added
-                'resource',
-                'deliverable',     // ✅ added
-                'targetdate',
-                'dealcondition',
-                'actualdate',
-                'status',
-                'assignedto'
-              ];
-
-            const missingHeaders = requiredHeaders.filter(header =>
-                !headers.some(h => h.includes(header))
-            );
-
-            if (missingHeaders.length > 0) {
-                throw new Error(`Missing required columns: ${missingHeaders.join(', ')}`);
-            }
-
-            const newItems: ESGCapItem[] = [];
-
-            for (let i = 1; i < lines.length; i++) {
-                const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
-                const getValue = (key: string) => {
-                    const index = headers.findIndex(h => h.includes(key));
-                    return index !== -1 ? values[index] || "" : "";
-                  };
-
-                  const itemValue = getValue('item');
-                  const measuresValue = getValue('measures');
-                  
-                  if (!itemValue || !measuresValue) continue;
-                  
-                  while (values.length < headers.length) {
-                    values.push("");
-                  }
-                  
-                  const itemWithoutId: Omit<ESGCapItem, 'id'> = {
-                    reportId: selectedCompany,
-                    item: itemValue,
-                    measures: measuresValue,
-                    category: (getValue('category') as CAPCategory) || "environmental",
-                    priority: (getValue('priority') as CAPPriority) || "Medium",
-                    resource: getValue('resource'),
-                    deliverable: getValue('deliverable'),
-                    targetDate: getValue('targetdate'),
-                    CS: getValue('dealcondition') || "none",
-                    actualDate: getValue('actualdate'),
-                    status: (getValue('status') as CAPStatus) || "pending",
-                    assignedTo: getValue('assignedto'),
-                    dealCondition: (getValue('dealcondition') || "none") as CAPType,
-                    createdAt: new Date().toISOString(),
-                  };
-
-                const newItem = {
-                    ...itemWithoutId,
-                    id: `${Date.now()}-${i}`
-                } as ESGCapItem;
-
-                newItems.push(newItem);
-            }
-
-            if (newItems.length === 0) {
-                throw new Error("No valid items found in file");
-            }
-
-            // ✅ SINGLE API CALL (same as manual)
-            const finalData = {
-                plan: newItems,
-                email: company.email, // 🔥 IMPORTANT FIX
-                financialYear: financialYear,
-                finalAcceptance: {
-                    founderAcceptance: false,
-                    investorAcceptance: false
-                }
+                finalAcceptance: { founderAcceptance: false, investorAcceptance: false }
             };
 
             const [result, error] = await EsgddAPIs.saveEscap(finalData);
 
             if (result) {
                 onAddMultipleItems(newItems);
+                toast({ title: "CAP Items Added", description: `Successfully added ${newItems.length} CAP items.` });
+                setFormRows([{
+                    id: "1", item: "", category: "environmental", priority: "Medium", issue: "", relatedFinding: "",
+                    measures: "", resource: "", deliverable: "", timelineMonth: 0, dealCondition: "none",
+                    statusUpdate: "", reviewRemarks: "", lastReviewDate: "", implementationSupportNeeded: "",
+                    closureVerifiedBy: "", actualDate: "", status: "pending", targetDate: "", esgLever: "",
+                    progressPercentage: 0, assignedTo: "", remarks: "",
+                }]);
+                setSelectedCompany("");
+                setOpen(false);
+            } else {
+                throw new Error(error || "Failed to save CAP items");
+            }
+        } catch (error) {
+            console.error("Error saving CAP items:", error);
+            toast({ title: "Error", description: "Failed to add CAP items. Please try again.", variant: "destructive" });
+        }
+    };
 
-                toast({
-                    title: "CAP Items Imported",
-                    description: `Successfully imported ${newItems.length} items.`,
-                });
-
+    const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        if (!selectedCompany) {
+            toast({ title: "Company Required", description: "Please select a company before uploading CSV.", variant: "destructive" });
+            return;
+        }
+    
+        const file = event.target.files?.[0];
+        if (!file) return;
+        if (!file.name.endsWith('.csv')) {
+            toast({ title: "Invalid File Format", description: "Please upload a CSV file.", variant: "destructive" });
+            return;
+        }
+    
+        const MAX_FILE_SIZE = 5 * 1024 * 1024;
+        if (file.size > MAX_FILE_SIZE) {
+            toast({ title: "File Too Large", description: "Please upload a file smaller than 5MB.", variant: "destructive" });
+            return;
+        }
+    
+        const company = companies.find(c => c.id === selectedCompany);
+        if (!company) {
+            toast({ title: "Invalid Company", description: "Selected company not found.", variant: "destructive" });
+            return;
+        }
+    
+        setUploading(true);
+    
+        try {
+            const text = await file.text();
+            const lines = text.split('\n').filter(line => line.trim());
+            if (lines.length < 2) throw new Error("File must contain at least one data row");
+    
+            const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+            
+            // Header mapping (friendly name -> field name)
+            const headerMapping: Record<string, string> = {
+                'item': 'item',
+                'category': 'category',
+                'priority': 'priority',
+                'issue': 'issue',
+                'related finding': 'relatedfinding',
+                'esg lever': 'esglever',
+                'measures & corrective actions': 'measures',
+                'resource & responsibility': 'resource',
+                'expected deliverable': 'deliverable',
+                'timeline month': 'timelinemonth',
+                'target date': 'targetdate',
+                'actual date': 'actualdate',
+                'cp/cs': 'dealcondition',
+                'status': 'status',
+                'current status update': 'statusupdate',
+                'review remarks': 'reviewremarks',
+                'last review date': 'lastreviewdate',
+                'implementation support needed': 'implementationsupportneeded',
+                'closure verified by': 'closureverifiedby',
+                'assigned to': 'assignedto',
+                'remarks': 'remarks'
+            };
+            
+            const newItems: ESGCapItem[] = [];
+    
+            for (let i = 1; i < lines.length; i++) {
+                const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+                while (values.length < headers.length) values.push("");
+                
+                // Helper function to get value by friendly name (defined INSIDE the loop)
+                const getValue = (friendlyName: string) => {
+                    const fieldName = headerMapping[friendlyName.toLowerCase()];
+                    const index = headers.findIndex(h => h === fieldName || h === friendlyName.toLowerCase());
+                    return index !== -1 ? values[index] || "" : "";
+                };
+                
+                const itemValue = getValue('item');
+                const measuresValue = getValue('measures');
+                if (!itemValue || !measuresValue) continue;
+    
+                const category = getValue('category') as CAPCategory;
+                const validCategories: CAPCategory[] = ['environmental', 'social', 'governance'];
+                const validCategory = validCategories.includes(category) ? category : 'environmental';
+                
+                const priority = getValue('priority') as CAPPriority;
+                const validPriorities: CAPPriority[] = ['High', 'Medium', 'Low'];
+                const validPriority = validPriorities.includes(priority) ? priority : 'Medium';
+                
+                const status = getValue('status') as CAPStatus;
+                const validStatuses: CAPStatus[] = ['pending', 'in_review', 'accepted', 'in_progress', 'completed', 'delayed', 'rejected'];
+                const validStatus = validStatuses.includes(status) ? status : 'pending';
+                
+                const dealCondition = getValue('cp/cs') as CAPType;
+                const validDealConditions: CAPType[] = ['CP', 'CS', 'none'];
+                const validDealCondition = validDealConditions.includes(dealCondition) ? dealCondition : 'none';
+                
+                const newItem = {
+                    reportId: selectedCompany,
+                    item: itemValue,
+                    measures: measuresValue,
+                    category: validCategory,
+                    priority: validPriority,
+                    resource: getValue('resource & responsibility') || undefined,
+                    deliverable: getValue('expected deliverable') || undefined,
+                    targetDate: getValue('target date') || undefined,
+                    CS: validDealCondition,
+                    actualDate: getValue('actual date') || undefined,
+                    status: validStatus,
+                    assignedTo: getValue('assigned to') || undefined,
+                    dealCondition: validDealCondition,
+                    createdAt: new Date().toISOString(),
+                    issue: getValue('issue') || undefined,
+                    relatedFinding: getValue('related finding') || undefined,
+                    esgLever: getValue('esg lever') || undefined,
+                    timelineMonth: getValue('timeline month') ? Math.max(0, Number(getValue('timeline month'))) : undefined,
+                    statusUpdate: getValue('current status update') || undefined,
+                    reviewRemarks: getValue('review remarks') || undefined,
+                    lastReviewDate: getValue('last review date') || undefined,
+                    implementationSupportNeeded: getValue('implementation support needed') || undefined,
+                    closureVerifiedBy: getValue('closure verified by') || undefined,
+                    remarks: getValue('remarks') || undefined,
+                    id: `${Date.now()}-${i}`
+                } as ESGCapItem;
+                
+                newItems.push(newItem);
+            }
+            
+            if (newItems.length === 0) throw new Error("No valid items found in file");
+    
+            const finalData = {
+                plan: newItems,
+                email: company.email,
+                financialYear: financialYear,
+                finalAcceptance: { founderAcceptance: false, investorAcceptance: false }
+            };
+    
+            const [result, error] = await EsgddAPIs.saveEscap(finalData);
+            
+            if (result) {
+                onAddMultipleItems(newItems);
+                toast({ title: "CAP Items Imported", description: `Successfully imported ${newItems.length} items.` });
+                setSelectedCompany("");
                 setOpen(false);
             } else {
                 throw new Error(error || "Upload failed");
             }
-
+    
         } catch (error) {
-            toast({
-                title: "Import Failed",
-                description: error instanceof Error ? error.message : "Failed to process file",
-                variant: "destructive",
-            });
+            console.error("Import error:", error);
+            toast({ title: "Import Failed", description: error instanceof Error ? error.message : "Failed to process file", variant: "destructive" });
         } finally {
             setUploading(false);
             event.target.value = '';
@@ -467,11 +428,10 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
 
     const downloadTemplate = () => {
         const template = [
-            'Item,Measures,Category,Priority,Resource,Deliverable,TargetDate,DealCondition,ActualDate,Status,AssignedTo',
-            'Improve carbon emissions reporting,Implement tracking system,environmental,Monthly report,2024-03-15,CP,2024-03-20,in_progress,ESG Manager',
-            'Enhance worker safety,Create training program,social,Safety manual,2024-04-01,CS,2024-04-15,in_review,HR Manager'
+            'Item,Category,Priority,Issue,Related Finding,ESG Lever,Measures & Corrective Actions,Resource & Responsibility,Expected Deliverable,Timeline Month,Target Date,Actual Date,CP/CS,Status,Current Status Update,Review Remarks,Last Review Date,Implementation Support Needed,Closure Verified By,Assigned To,Remarks',
+            'Improve carbon emissions reporting,environmental,High,Carbon issue,Audit finding,Policy,Implement tracking system,ESG Manager,Monthly report,6,2024-12-31,2024-03-20,CP,in_progress,In progress,Approved,2024-03-01,IT support,John Doe,ESG Manager,Additional notes'
         ].join('\n');
-
+    
         const blob = new Blob([template], { type: 'text/csv' });
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -481,25 +441,29 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
         link.click();
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
+    
+        toast({ title: "Template Downloaded", description: "CSV template downloaded successfully." });
+    };
 
-        toast({
-            title: "Template Downloaded",
-            description: "CSV template downloaded successfully.",
-        });
+    const handleCancel = () => {
+        setOpen(false);
+        setSelectedCompany("");
+        setFormRows([{
+            id: "1", item: "", category: "environmental", priority: "Medium", issue: "", relatedFinding: "",
+            measures: "", resource: "", deliverable: "", timelineMonth: 0, dealCondition: "none",
+            statusUpdate: "", reviewRemarks: "", lastReviewDate: "", implementationSupportNeeded: "",
+            closureVerifiedBy: "", actualDate: "", status: "pending", targetDate: "", esgLever: "",
+            progressPercentage: 0, assignedTo: "", remarks: "",
+        }]);
     };
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add CAP Items
-                </Button>
+                <Button><Plus className="h-4 w-4 mr-2" />Add CAP Items</Button>
             </DialogTrigger>
             <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                    <DialogTitle>Add New CAP Items</DialogTitle>
-                </DialogHeader>
+                <DialogHeader><DialogTitle>Add New CAP Items</DialogTitle></DialogHeader>
 
                 <Tabs defaultValue="manual" className="w-full">
                     <TabsList className="grid w-full grid-cols-2">
@@ -509,127 +473,64 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
 
                     <TabsContent value="manual" className="space-y-4">
                         <Card>
-                            <CardHeader>
-                                <CardTitle>Add Multiple CAP Items</CardTitle>
-                            </CardHeader>
+                            <CardHeader><CardTitle>Add Multiple CAP Items</CardTitle></CardHeader>
                             <CardContent>
                                 <div className="space-y-6">
-                                    {/* Company Selection */}
                                     <div>
                                         <Label htmlFor="company">Company *</Label>
-                                        <Select
-                                            value={selectedCompany}
-                                            onValueChange={setSelectedCompany}
-                                            disabled={loadingCompanies}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue placeholder={loadingCompanies ? "Loading companies..." : "Select company"} />
-                                            </SelectTrigger>
+                                        <Select value={selectedCompany} onValueChange={setSelectedCompany} disabled={loadingCompanies}>
+                                            <SelectTrigger><SelectValue placeholder={loadingCompanies ? "Loading companies..." : "Select company"} /></SelectTrigger>
                                             <SelectContent>
                                                 {companies.map(company => (
-                                                    <SelectItem key={company.id} value={company.id.toString()}>
-                                                        {company.name}
-                                                    </SelectItem>
+                                                    <SelectItem key={company.id} value={company.id.toString()}>{company.name}</SelectItem>
                                                 ))}
                                             </SelectContent>
                                         </Select>
                                     </div>
 
-                                    {/* Add Row Button */}
                                     <div className="flex justify-end">
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            onClick={addRow}
-                                            className="flex items-center"
-                                        >
-                                            <Plus className="h-4 w-4 mr-2" />
-                                            Add Another Item
+                                        <Button type="button" variant="outline" onClick={addRow}>
+                                            <Plus className="h-4 w-4 mr-2" />Add Another Item
                                         </Button>
                                     </div>
 
-                                    {/* Form Rows */}
                                     {formRows.map((row, index) => (
                                         <div key={row.id} className="border rounded-lg p-4 space-y-4">
-                                            {formRows.length > 1 && (
-                                                <div className="flex justify-end">
+                                            <div className="flex justify-between items-center">
+                                                <h3 className="font-semibold">Item {index + 1}</h3>
+                                                {formRows.length > 1 && (
                                                     <Button
                                                         type="button"
                                                         variant="ghost"
                                                         size="sm"
                                                         onClick={() => removeRow(row.id)}
-                                                        className="text-red-500 hover:text-red-700"
+                                                        className="text-red-500"
                                                     >
                                                         <Trash2 className="h-4 w-4" />
                                                     </Button>
-                                                </div>
-                                            )}
+                                                )}
+                                            </div>
 
+                                            {/* 1. Item */}
                                             <div>
-                                                <Label htmlFor={`item-${index}`}>Item *</Label>
+                                                <Label>Item *</Label>
                                                 <Textarea
-                                                    id={`item-${index}`}
                                                     value={row.item}
-                                                    onChange={(e) => updateRow(row.id, 'item', e.target.value)}
-                                                    placeholder="Add the CAP item"
+                                                    onChange={(e) => updateRow(row.id, "item", e.target.value)}
                                                     className="min-h-[60px]"
+                                                    placeholder="Enter CAP item description"
                                                 />
                                             </div>
 
-                                            <div>
-                                                <Label htmlFor={`measures-${index}`}>Measures *</Label>
-                                                <Textarea
-                                                    id={`measures-${index}`}
-                                                    value={row.measures}
-                                                    onChange={(e) => updateRow(row.id, 'measures', e.target.value)}
-                                                    placeholder="Describe the measures and/or corrective actions"
-                                                    className="min-h-[60px]"
-                                                />
-                                            </div>
-
-                                            <div>
-                                                <Label htmlFor={`deliverable-${index}`}>Expected Deliverable</Label>
-                                                <Textarea
-                                                    id={`deliverable-${index}`}
-                                                    value={row.deliverable}
-                                                    onChange={(e) => updateRow(row.id, 'deliverable', e.target.value)}
-                                                    placeholder="Expected deliverable"
-                                                    className="min-h-[60px]"
-                                                />
-                                            </div>
-
+                                            {/* 2. Category & 3. Priority */}
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div>
-                                                    <Label htmlFor={`resource-${index}`}>Resource</Label>
-                                                    <Input
-                                                        id={`resource-${index}`}
-                                                        value={row.resource}
-                                                        onChange={(e) => updateRow(row.id, 'resource', e.target.value)}
-                                                        placeholder="Enter the details"
-                                                    />
-                                                </div>
-
-                                                <div>
-                                                    <Label htmlFor={`assignedTo-${index}`}>Assigned To</Label>
-                                                    <Input
-                                                        id={`assignedTo-${index}`}
-                                                        value={row.assignedTo}
-                                                        onChange={(e) => updateRow(row.id, 'assignedTo', e.target.value)}
-                                                        placeholder="Enter the email address"
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                                <div>
-                                                    <Label htmlFor={`category-${index}`}>Category</Label>
+                                                    <Label>Category</Label>
                                                     <Select
                                                         value={row.category}
-                                                        onValueChange={(value: CAPCategory) => updateRow(row.id, 'category', value)}
+                                                        onValueChange={(value: CAPCategory) => updateRow(row.id, "category", value)}
                                                     >
-                                                        <SelectTrigger>
-                                                            <SelectValue />
-                                                        </SelectTrigger>
+                                                        <SelectTrigger><SelectValue /></SelectTrigger>
                                                         <SelectContent>
                                                             <SelectItem value="environmental">Environmental</SelectItem>
                                                             <SelectItem value="social">Social</SelectItem>
@@ -637,33 +538,13 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                                                         </SelectContent>
                                                     </Select>
                                                 </div>
-
                                                 <div>
-                                                    <Label htmlFor={`dealCondition-${index}`}>CP/CS</Label>
-                                                    <Select
-                                                        value={row.dealCondition}
-                                                        onValueChange={(value: CAPType) => updateRow(row.id, 'dealCondition', value)}
-                                                    >
-                                                        <SelectTrigger>
-                                                            <SelectValue />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="CP">CP</SelectItem>
-                                                            <SelectItem value="CS">CS</SelectItem>
-                                                            <SelectItem value="none">None</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
-
-                                                <div>
-                                                    <Label htmlFor={`priority-${index}`}>Priority</Label>
+                                                    <Label>Priority</Label>
                                                     <Select
                                                         value={row.priority}
-                                                        onValueChange={(value: CAPPriority) => updateRow(row.id, 'priority', value)}
+                                                        onValueChange={(value: CAPPriority) => updateRow(row.id, "priority", value)}
                                                     >
-                                                        <SelectTrigger>
-                                                            <SelectValue />
-                                                        </SelectTrigger>
+                                                        <SelectTrigger><SelectValue /></SelectTrigger>
                                                         <SelectContent>
                                                             <SelectItem value="High">High</SelectItem>
                                                             <SelectItem value="Medium">Medium</SelectItem>
@@ -673,25 +554,159 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                                                 </div>
                                             </div>
 
+                                            {/* 4. Issue & 5. Related Finding */}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div>
+                                                    <Label>Issue</Label>
+                                                    <Textarea
+                                                        value={row.issue}
+                                                        onChange={(e) => updateRow(row.id, "issue", e.target.value)}
+                                                        placeholder="Describe the issue"
+                                                        className="min-h-[60px]"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <Label>Related Finding</Label>
+                                                    <Textarea
+                                                        value={row.relatedFinding}
+                                                        onChange={(e) => updateRow(row.id, "relatedFinding", e.target.value)}
+                                                        placeholder="Related audit findings"
+                                                        className="min-h-[60px]"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* 6. Measures */}
                                             <div>
-                                                <Label htmlFor={`targetDate-${index}`}>Target Date</Label>
-                                                <Input
-                                                    id={`targetDate-${index}`}
-                                                    type="date"
-                                                    value={row.targetDate}
-                                                    onChange={(e) => updateRow(row.id, 'targetDate', e.target.value)}
+                                                <Label>Measures & Corrective Actions *</Label>
+                                                <Textarea
+                                                    value={row.measures}
+                                                    onChange={(e) => updateRow(row.id, "measures", e.target.value)}
+                                                    className="min-h-[80px]"
+                                                    placeholder="Describe the corrective actions to be taken"
                                                 />
                                             </div>
 
+                                            {/* 7. Resource & 8. Deliverable */}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div>
+                                                    <Label>Resource & Responsibility</Label>
+                                                    <Input
+                                                        value={row.resource}
+                                                        onChange={(e) => updateRow(row.id, "resource", e.target.value)}
+                                                        placeholder="Who is responsible?"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <Label>Expected Deliverable</Label>
+                                                    <Textarea
+                                                        value={row.deliverable}
+                                                        onChange={(e) => updateRow(row.id, "deliverable", e.target.value)}
+                                                        placeholder="What will be delivered?"
+                                                        className="min-h-[60px]"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* 9. Timeline Month & 10. CP/CS */}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div>
+                                                    <Label>Timeline Month</Label>
+                                                    <Input
+                                                        type="number"
+                                                        min="0"
+                                                        value={row.timelineMonth}
+                                                        onChange={(e) => updateRow(row.id, "timelineMonth", Math.max(0, Number(e.target.value)))}
+                                                        placeholder="e.g., 3"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <Label>CP/CS</Label>
+                                                    <Select
+                                                        value={row.dealCondition}
+                                                        onValueChange={(value: CAPType) => updateRow(row.id, "dealCondition", value)}
+                                                    >
+                                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="CP">CP</SelectItem>
+                                                            <SelectItem value="CS">CS</SelectItem>
+                                                            <SelectItem value="none">None</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                            </div>
+
+                                            {/* 11. Current Status */}
                                             <div>
-                                                <Label htmlFor={`status-${index}`}>Status</Label>
+                                                <Label>Current Status</Label>
+                                                <Textarea
+                                                    value={row.statusUpdate}
+                                                    onChange={(e) => updateRow(row.id, "statusUpdate", e.target.value)}
+                                                    placeholder="Latest update on this action item"
+                                                    className="min-h-[60px]"
+                                                />
+                                            </div>
+
+                                            {/* 12. Review Remarks & 13. Last Review Date */}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div>
+                                                    <Label>Review Remarks</Label>
+                                                    <Textarea
+                                                        value={row.reviewRemarks}
+                                                        onChange={(e) => updateRow(row.id, "reviewRemarks", e.target.value)}
+                                                        placeholder="Reviewer comments"
+                                                        className="min-h-[60px]"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <Label>Last Review Date</Label>
+                                                    <Input
+                                                        type="date"
+                                                        value={row.lastReviewDate}
+                                                        onChange={(e) => updateRow(row.id, "lastReviewDate", e.target.value)}
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* 14. Implementation Support & 15. Closure Verified */}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div>
+                                                    <Label>Implementation Support Needed</Label>
+                                                    <Textarea
+                                                        value={row.implementationSupportNeeded}
+                                                        onChange={(e) => updateRow(row.id, "implementationSupportNeeded", e.target.value)}
+                                                        placeholder="What support is required?"
+                                                        className="min-h-[60px]"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <Label>Closure Verified By</Label>
+                                                    <Input
+                                                        value={row.closureVerifiedBy}
+                                                        onChange={(e) => updateRow(row.id, "closureVerifiedBy", e.target.value)}
+                                                        placeholder="Name of verifier"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* 16. Actual Date */}
+                                            <div>
+                                                <Label>Actual Date</Label>
+                                                <Input
+                                                    type="date"
+                                                    value={row.actualDate}
+                                                    onChange={(e) => updateRow(row.id, "actualDate", e.target.value)}
+                                                />
+                                            </div>
+
+                                            {/* 17. Status */}
+                                            <div>
+                                                <Label>Status</Label>
                                                 <Select
                                                     value={row.status}
-                                                    onValueChange={(value: CAPStatus) => updateRow(row.id, 'status', value)}
+                                                    onValueChange={(value: CAPStatus) => updateRow(row.id, "status", value)}
                                                 >
-                                                    <SelectTrigger>
-                                                        <SelectValue />
-                                                    </SelectTrigger>
+                                                    <SelectTrigger><SelectValue /></SelectTrigger>
                                                     <SelectContent>
                                                         <SelectItem value="pending">Pending</SelectItem>
                                                         <SelectItem value="in_review">In Review</SelectItem>
@@ -704,27 +719,63 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                                                 </Select>
                                             </div>
 
+                                            {/* Hidden/Optional Fields */}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div>
+                                                    <Label>Target Date</Label>
+                                                    <Input
+                                                        type="date"
+                                                        value={row.targetDate}
+                                                        onChange={(e) => updateRow(row.id, "targetDate", e.target.value)}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <Label>ESG Lever</Label>
+                                                    <Input
+                                                        value={row.esgLever}
+                                                        onChange={(e) => updateRow(row.id, "esgLever", e.target.value)}
+                                                        placeholder="e.g., Policy, Training, Technology"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div>
+                                                    <Label>Progress (%)</Label>
+                                                    <Input
+                                                        type="number"
+                                                        min="0"
+                                                        max="100"
+                                                        value={row.progressPercentage}
+                                                        onChange={(e) => updateRow(row.id, "progressPercentage", Math.min(100, Math.max(0, Number(e.target.value))))}
+                                                        placeholder="0-100"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <Label>Assigned To</Label>
+                                                    <Input
+                                                        value={row.assignedTo}
+                                                        onChange={(e) => updateRow(row.id, "assignedTo", e.target.value)}
+                                                        placeholder="Person responsible"
+                                                    />
+                                                </div>
+                                            </div>
+
                                             <div>
-                                                <Label htmlFor={`actualDate-${index}`}>Actual Date</Label>
-                                                <Input
-                                                    id={`actualDate-${index}`}
-                                                    type="date"
-                                                    value={row.actualDate}
-                                                    onChange={(e) => updateRow(row.id, 'actualDate', e.target.value)}
+                                                <Label>Remarks</Label>
+                                                <Textarea
+                                                    value={row.remarks}
+                                                    onChange={(e) => updateRow(row.id, "remarks", e.target.value)}
+                                                    placeholder="Additional remarks"
+                                                    className="min-h-[60px]"
                                                 />
                                             </div>
                                         </div>
                                     ))}
 
-
-
-                                    <div className="flex justify-end gap-2 pt-4">
-                                        <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                                            Cancel
-                                        </Button>
-                                        <Button type="submit" onClick={handleSubmit} disabled={loadingCompanies}>
-                                            Add CAP Items
-                                        </Button>
+                                    <div className="flex justify-end gap-2">
+                                        <Button variant="outline" onClick={handleCancel}>Cancel</Button>
+                                        <Button onClick={handleSubmit} disabled={loadingCompanies}>Add CAP Items</Button>
                                     </div>
                                 </div>
                             </CardContent>
@@ -733,89 +784,42 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
 
                     <TabsContent value="upload" className="space-y-4">
                         <Card>
-                            <CardHeader>
-                                <CardTitle>Upload CAP Items from Template</CardTitle>
-                            </CardHeader>
-                            {companies.length === 0 && !loadingCompanies && (
-                                <div className="text-sm text-red-500">
-                                    No companies found. Please try reopening the dialog.
-                                </div>
-                            )}
-                            <div>
-                                <Label htmlFor="upload-company">Company *</Label>
-                                <Select
-                                    value={selectedCompany}
-                                    onValueChange={setSelectedCompany}
-                                    disabled={loadingCompanies}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder={loadingCompanies ? "Loading companies..." : "Select company"} />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {companies.map(company => (
-                                            <SelectItem key={company.id} value={company.id}>
-                                                {company.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            {selectedCompany && (
-                                <div className="text-sm text-muted-foreground">
-                                    Selected Company:{" "}
-                                    <span className="font-medium">
-                                        {companies.find(c => c.id === selectedCompany)?.name}
-                                    </span>
-                                </div>
-                            )}
+                            <CardHeader><CardTitle>Upload CAP Items from Template</CardTitle></CardHeader>
                             <CardContent className="space-y-4">
-                                <div className="text-sm text-muted-foreground">
-                                    Upload a CSV file with your CAP items. Make sure your file includes the required columns.
+                                <div>
+                                    <Label>Company *</Label>
+                                    <Select value={selectedCompany} onValueChange={setSelectedCompany} disabled={loadingCompanies}>
+                                        <SelectTrigger><SelectValue placeholder={loadingCompanies ? "Loading companies..." : "Select company"} /></SelectTrigger>
+                                        <SelectContent>
+                                            {companies.map(company => (
+                                                <SelectItem key={company.id} value={company.id}>{company.name}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
                                 </div>
 
                                 <div className="flex gap-2">
-                                    <Button variant="outline" onClick={downloadTemplate} disabled={!selectedCompany}>
-                                        <Download className="h-4 w-4 mr-2" />
-                                        Download Template
+                                    <Button variant="outline" onClick={downloadTemplate}>
+                                        <Download className="h-4 w-4 mr-2" />Download Template
                                     </Button>
                                 </div>
 
-                                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6">
+                                <div className="border-2 border-dashed rounded-lg p-6">
                                     <div className="text-center">
                                         <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
-                                        <div className="mt-4">
-                                            <label htmlFor="file-upload" className="cursor-pointer">
-                                                <span className="mt-2 block text-sm font-medium">
-                                                    Drop your CSV file here, or{" "}
-                                                    <span className="text-primary underline">browse</span>
-                                                </span>
-                                                <input
-                                                    id="file-upload"
-                                                    name="file-upload"
-                                                    type="file"
-                                                    accept=".csv"
-                                                    className="sr-only"
-                                                    onChange={handleFileUpload}
-                                                    disabled={uploading || loadingCompanies || companies.length === 0 || !selectedCompany}
-                                                />
-                                            </label>
-                                            <p className="mt-1 text-xs text-muted-foreground">
-                                                CSV files only
-                                            </p>
-                                        </div>
+                                        <label htmlFor="file-upload" className="cursor-pointer mt-4 block">
+                                            <span className="text-sm">Drop CSV here or <span className="text-primary underline">browse</span></span>
+                                            <input id="file-upload" type="file" accept=".csv" className="sr-only" onChange={handleFileUpload} disabled={uploading || !selectedCompany} />
+                                        </label>
+                                        <p className="text-xs text-muted-foreground mt-1">CSV files only (max 5MB)</p>
                                     </div>
                                 </div>
 
-                                {uploading && (
-                                    <div className="text-center text-sm text-muted-foreground">
-                                        Processing file...
-                                    </div>
-                                )}
+                                {uploading && <div className="text-center text-sm">Processing file...</div>}
 
-                                <div className="text-xs text-muted-foreground space-y-1">
-                                    <p><strong>Required columns:</strong></p>
-                                    <p>• Item, Measures, Category, Resource, TargetDate, DealCondition, ActualDate, Status, AssignedTo</p>
-                                    <p><strong>Note:</strong> Company names must match existing portfolio companies</p>
+                                <div className="text-xs space-y-1">
+                                    <p><strong>Required columns:</strong> item, measures</p>
+                                    <p><strong>All columns in order:</strong> item, category, priority, issue, relatedfinding, measures, resource, deliverable, timelinemonth, dealcondition, statusupdate, reviewremarks, lastreviewdate, implementationsupportneeded, closureverifiedby, actualdate, status, targetdate, esglever, progresspercentage, assignedto, remarks</p>
                                 </div>
                             </CardContent>
                         </Card>

@@ -55,6 +55,7 @@ export function ReviewDialog({
   const [originalItem, setOriginalItem] = useState<ESGCapItem | null>(null);
   const [dataEditStatus, setDataEditStatus] = useState(false);
   const { toast } = useToast();
+  
   useEffect(() => {
     if (item) {
       setEditedItem({ ...item });
@@ -70,7 +71,9 @@ export function ReviewDialog({
       setEditedItem({ ...editedItem, [field]: value });
     }
   };
+  
   const [showSaveToast, setShowSaveToast] = useState(false);
+  
   const handleSaveChanges = () => {
     if (editedItem) {
       setDataEditStatus(true);
@@ -102,26 +105,6 @@ export function ReviewDialog({
 
   if (!editedItem) return null;
 
-  const ExpandableText = ({ text, maxLength = 150 }: { text: string; maxLength?: number }) => {
-    const [isExpanded, setIsExpanded] = useState(false);
-
-    if (!text || text.length <= maxLength) {
-      return <p>{text}</p>;
-    }
-
-    return (
-      <div>
-        <p className={isExpanded ? '' : 'line-clamp-3'}>{text}</p>
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="text-blue-500 text-xs hover:underline mt-1 block"
-        >
-          {isExpanded ? 'Show less' : 'View more'}
-        </button>
-      </div>
-    );
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -135,6 +118,7 @@ export function ReviewDialog({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Left Column */}
             <div className="space-y-4">
+              {/* Item */}
               <div>
                 <h4 className="font-semibold mb-1">Item</h4>
                 {canEdit ? (
@@ -146,23 +130,63 @@ export function ReviewDialog({
                 ) : (
                   <p>{editedItem.item}</p>
                 )}
-                {isFieldChanged('issue') && (
+                {isFieldChanged('item') && (
                   <p className="text-xs text-amber-600 mt-1">
                     Original: {originalItem?.item}
                   </p>
                 )}
               </div>
 
+              {/* Issue */}
               <div>
-                <h4 className="font-semibold mb-1">Measures</h4>
+                <h4 className="font-semibold mb-1">Issue</h4>
+                {canEdit ? (
+                  <Textarea
+                    value={editedItem.issue || ''}
+                    onChange={(e) => handleInputChange('issue', e.target.value)}
+                    className={isFieldChanged('issue') ? "border-orange-400" : ""}
+                  />
+                ) : (
+                  <p>{editedItem.issue || '-'}</p>
+                )}
+                {isFieldChanged('issue') && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    Original: {originalItem?.issue || '-'}
+                  </p>
+                )}
+              </div>
+
+              {/* Related Finding */}
+              <div>
+                <h4 className="font-semibold mb-1">Related Finding</h4>
+                {canEdit ? (
+                  <Textarea
+                    value={editedItem.relatedFinding || ''}
+                    onChange={(e) => handleInputChange('relatedFinding', e.target.value)}
+                    className={isFieldChanged('relatedFinding') ? "border-orange-400" : ""}
+                  />
+                ) : (
+                  <p>{editedItem.relatedFinding || '-'}</p>
+                )}
+                {isFieldChanged('relatedFinding') && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    Original: {originalItem?.relatedFinding || '-'}
+                  </p>
+                )}
+              </div>
+
+              {/* Measures & Corrective Actions */}
+              <div>
+                <h4 className="font-semibold mb-1">Measures & Corrective Actions</h4>
                 {canEdit ? (
                   <Textarea
                     value={editedItem.measures}
                     onChange={(e) => handleInputChange('measures', e.target.value)}
                     className={isFieldChanged('measures') ? "border-orange-400" : ""}
+                    rows={3}
                   />
                 ) : (
-                  <ExpandableText text={editedItem.measures} />
+                  <p>{editedItem.measures}</p>
                 )}
                 {isFieldChanged('measures') && (
                   <p className="text-xs text-amber-600 mt-1">
@@ -171,78 +195,7 @@ export function ReviewDialog({
                 )}
               </div>
 
-              <div>
-                <h4 className="font-semibold mb-1">Item</h4>
-                {canEdit ? (
-                  <Input
-                    value={editedItem.item}
-                    onChange={(e) => handleInputChange('item', e.target.value)}
-                    className={isFieldChanged('item') ? "border-orange-400" : ""}
-                  />
-                ) : (
-                  <ExpandableText text={editedItem.item} />
-                )}
-                {isFieldChanged('item') && (
-                  <p className="text-xs text-amber-600 mt-1">
-                    Original: {originalItem?.item}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <h4 className="font-semibold mb-1">Expected Deliverable</h4>
-                {canEdit ? (
-                  <Textarea
-                    value={editedItem.deliverable}
-                    onChange={(e) => handleInputChange('deliverable', e.target.value)}
-                    className={isFieldChanged('deliverable') ? "border-orange-400" : ""}
-                  />
-                ) : (
-                  <ExpandableText text={editedItem.deliverable} />
-                )}
-                {isFieldChanged('deliverable') && (
-                  <p className="text-xs text-amber-600 mt-1">
-                    Original: {originalItem?.deliverable}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <h4 className="font-semibold mb-1">Expected Deliverable</h4>
-                {canEdit ? (
-                  <Textarea
-                    value={editedItem.deliverable}
-                    onChange={(e) => handleInputChange('deliverable', e.target.value)}
-                    className={isFieldChanged('deliverable') ? "border-orange-400" : ""}
-                  />
-                ) : (
-                  <ExpandableText text={editedItem.deliverable} />
-                )}
-                {isFieldChanged('deliverable') && (
-                  <p className="text-xs text-amber-600 mt-1">
-                    Original: {originalItem?.deliverable}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <h4 className="font-semibold mb-1">Resource</h4>
-                {canEdit ? (
-                  <Input
-                    value={editedItem.resource}
-                    onChange={(e) => handleInputChange('resource', e.target.value)}
-                    className={isFieldChanged('resource') ? "border-orange-400" : ""}
-                  />
-                ) : (
-                  <p>{editedItem.resource}</p>
-                )}
-                {isFieldChanged('resource') && (
-                  <p className="text-xs text-amber-600 mt-1">
-                    Original: {originalItem?.resource}
-                  </p>
-                )}
-              </div>
-
+              {/* Category */}
               <div>
                 <h4 className="font-semibold mb-1">Category</h4>
                 {canEdit ? (
@@ -268,10 +221,145 @@ export function ReviewDialog({
                   </p>
                 )}
               </div>
+
+              {/* Priority */}
+              <div>
+                <h4 className="font-semibold mb-1">Priority</h4>
+                {canEdit ? (
+                  <Select
+                    value={editedItem.priority}
+                    onValueChange={(value) => handleInputChange('priority', value as CAPPriority)}
+                  >
+                    <SelectTrigger className={isFieldChanged('priority') ? "border-orange-400" : ""}>
+                      <SelectValue placeholder="Select priority" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="High">High</SelectItem>
+                      <SelectItem value="Medium">Medium</SelectItem>
+                      <SelectItem value="Low">Low</SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p>{editedItem.priority}</p>
+                )}
+                {isFieldChanged('priority') && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    Original: {originalItem?.priority}
+                  </p>
+                )}
+              </div>
+
+              {/* Type (CP/CS) */}
+              <div>
+                <h4 className="font-semibold mb-1">Type (CP/CS)</h4>
+                {canEdit ? (
+                  <Select
+                    value={editedItem.CS || ""}
+                    onValueChange={(value) => handleInputChange("CS", value)}
+                  >
+                    <SelectTrigger className={isFieldChanged("CS") ? "border-orange-400" : ""}>
+                      <SelectValue placeholder="Select Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="CP">CP</SelectItem>
+                      <SelectItem value="CS">CS</SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p>{editedItem.CS || "-"}</p>
+                )}
+                {isFieldChanged("CS") && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    Original: {originalItem?.CS || "-"}
+                  </p>
+                )}
+              </div>
+
+               {/* Implementation Support Needed */}
+               <div>
+                <h4 className="font-semibold mb-1">Implementation Support Needed</h4>
+                {canEdit ? (
+                  <Textarea
+                    value={editedItem.implementationSupportNeeded || ''}
+                    onChange={(e) => handleInputChange('implementationSupportNeeded', e.target.value)}
+                    className={isFieldChanged('implementationSupportNeeded') ? "border-orange-400" : ""}
+                    rows={2}
+                    placeholder="What support is required?"
+                  />
+                ) : (
+                  <p>{editedItem.implementationSupportNeeded || '-'}</p>
+                )}
+                {isFieldChanged('implementationSupportNeeded') && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    Original: {originalItem?.implementationSupportNeeded || '-'}
+                  </p>
+                )}
+              </div>
+
+              {/* Closure Verified By */}
+              <div>
+                <h4 className="font-semibold mb-1">Closure Verified By</h4>
+                {canEdit ? (
+                  <Input
+                    value={editedItem.closureVerifiedBy || ''}
+                    onChange={(e) => handleInputChange('closureVerifiedBy', e.target.value)}
+                    className={isFieldChanged('closureVerifiedBy') ? "border-orange-400" : ""}
+                    placeholder="Name of verifier"
+                  />
+                ) : (
+                  <p>{editedItem.closureVerifiedBy || '-'}</p>
+                )}
+                {isFieldChanged('closureVerifiedBy') && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    Original: {originalItem?.closureVerifiedBy || '-'}
+                  </p>
+                )}
+              </div>
+
+              {/* Remarks */}
+              <div>
+                <h4 className="font-semibold mb-1">Remarks</h4>
+                {canEdit ? (
+                  <Textarea
+                    value={editedItem.remarks || ''}
+                    onChange={(e) => handleInputChange('remarks', e.target.value)}
+                    className={isFieldChanged('remarks') ? "border-orange-400" : ""}
+                    rows={2}
+                    placeholder="Additional remarks..."
+                  />
+                ) : (
+                  <p>{editedItem.remarks || '-'}</p>
+                )}
+                {isFieldChanged('remarks') && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    Original: {originalItem?.remarks || '-'}
+                  </p>
+                )}
+              </div>
             </div>
 
             {/* Right Column */}
             <div className="space-y-4">
+              {/* Resource & Responsibility */}
+              <div>
+                <h4 className="font-semibold mb-1">Resource & Responsibility</h4>
+                {canEdit ? (
+                  <Input
+                    value={editedItem.resource || ''}
+                    onChange={(e) => handleInputChange('resource', e.target.value)}
+                    className={isFieldChanged('resource') ? "border-orange-400" : ""}
+                  />
+                ) : (
+                  <p>{editedItem.resource || '-'}</p>
+                )}
+                {isFieldChanged('resource') && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    Original: {originalItem?.resource || '-'}
+                  </p>
+                )}
+              </div>
+
+              {/* Assigned To */}
               <div>
                 <h4 className="font-semibold mb-1">Assigned To</h4>
                 {canEdit ? (
@@ -289,51 +377,69 @@ export function ReviewDialog({
                   </p>
                 )}
               </div>
+
+              {/* Expected Deliverable */}
+              <div>
+                <h4 className="font-semibold mb-1">Expected Deliverable</h4>
+                {canEdit ? (
+                  <Textarea
+                    value={editedItem.deliverable || ''}
+                    onChange={(e) => handleInputChange('deliverable', e.target.value)}
+                    className={isFieldChanged('deliverable') ? "border-orange-400" : ""}
+                    rows={2}
+                  />
+                ) : (
+                  <p>{editedItem.deliverable || '-'}</p>
+                )}
+                {isFieldChanged('deliverable') && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    Original: {originalItem?.deliverable || '-'}
+                  </p>
+                )}
+              </div>
+
+              {/* Timeline Month */}
+              <div>
+                <h4 className="font-semibold mb-1">Timeline Month</h4>
+                {canEdit ? (
+                  <Input
+                    type="number"
+                    value={editedItem.timelineMonth || ''}
+                    onChange={(e) => handleInputChange('timelineMonth', e.target.value ? Number(e.target.value) : undefined)}
+                    className={isFieldChanged('timelineMonth') ? "border-orange-400" : ""}
+                    placeholder="e.g., 3"
+                  />
+                ) : (
+                  <p>{editedItem.timelineMonth || '-'}</p>
+                )}
+                {isFieldChanged('timelineMonth') && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    Original: {originalItem?.timelineMonth || '-'}
+                  </p>
+                )}
+              </div>
+
+              {/* Target Date */}
               <div>
                 <h4 className="font-semibold mb-1">Target Date</h4>
                 {canEdit ? (
                   <Input
                     type="date"
-                    value={editedItem.targetDate}
+                    value={editedItem.targetDate || ''}
                     onChange={(e) => handleInputChange('targetDate', e.target.value)}
                     className={isFieldChanged('targetDate') ? "border-orange-400" : ""}
                   />
                 ) : (
-                  <p>{editedItem.targetDate}</p>
+                  <p>{editedItem.targetDate || '-'}</p>
                 )}
                 {isFieldChanged('targetDate') && (
                   <p className="text-xs text-amber-600 mt-1">
-                    Original: {originalItem?.targetDate}
+                    Original: {originalItem?.targetDate || '-'}
                   </p>
                 )}
               </div>
 
-              {/* <div>
-                <h4 className="font-semibold mb-1">Deal Condition</h4>
-                {canEdit ? (
-                  <Select
-                    value={editedItem.dealCondition}
-                    onValueChange={(value) => handleInputChange('dealCondition', value as CAPType)}
-                  >
-                    <SelectTrigger className={isFieldChanged('dealCondition') ? "border-orange-400" : ""}>
-                      <SelectValue placeholder="Select deal condition" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="CP">CP</SelectItem>
-                      <SelectItem value="CS">CS</SelectItem>
-                      <SelectItem value="none">None</SelectItem>
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <p>{editedItem.dealCondition}</p>
-                )}
-                {isFieldChanged('dealCondition') && (
-                  <p className="text-xs text-amber-600 mt-1">
-                    Original: {originalItem?.dealCondition}
-                  </p>
-                )}
-              </div> */}
-
+              {/* Status */}
               <div>
                 <h4 className="font-semibold mb-1">Status</h4>
                 {canEdit ? (
@@ -364,6 +470,7 @@ export function ReviewDialog({
                 )}
               </div>
 
+              {/* Actual Date */}
               <div>
                 <h4 className="font-semibold mb-1">Actual Date</h4>
                 {canEdit ? (
@@ -383,59 +490,69 @@ export function ReviewDialog({
                 )}
               </div>
 
+              {/* Current Status Update */}
               <div>
-                <h4 className="font-semibold mb-1">Type</h4>
-
+                <h4 className="font-semibold mb-1">Current Status Update</h4>
                 {canEdit ? (
-                  <Select
-                    value={editedItem.CS || ""}
-                    onValueChange={(value) => handleInputChange("CS", value)}
-                  >
-                    <SelectTrigger className={isFieldChanged("CS") ? "border-orange-400" : ""}>
-                      <SelectValue placeholder="Select Type" />
-                    </SelectTrigger>
-
-                    <SelectContent>
-                      <SelectItem value="CP">CP</SelectItem>
-                      <SelectItem value="CS">CS</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Textarea
+                    value={editedItem.statusUpdate || ''}
+                    onChange={(e) => handleInputChange('statusUpdate', e.target.value)}
+                    className={isFieldChanged('statusUpdate') ? "border-orange-400" : ""}
+                    rows={2}
+                    placeholder="Latest update on this action item..."
+                  />
                 ) : (
-                  <p>{editedItem.CS || "-"}</p>
+                  <p>{editedItem.statusUpdate || '-'}</p>
                 )}
-
-                {isFieldChanged("CS") && (
+                {isFieldChanged('statusUpdate') && (
                   <p className="text-xs text-amber-600 mt-1">
-                    Original: {originalItem?.CS || "-"}
+                    Original: {originalItem?.statusUpdate || '-'}
                   </p>
                 )}
               </div>
 
+              {/* Review Remarks */}
               <div>
-                <h4 className="font-semibold mb-1">Priority</h4>
+                <h4 className="font-semibold mb-1">Review Remarks</h4>
                 {canEdit ? (
-                  <Select
-                    value={editedItem.priority}
-                    onValueChange={(value) => handleInputChange('priority', value as CAPPriority)}
-                  >
-                    <SelectTrigger className={isFieldChanged('priority') ? "border-orange-400" : ""}>
-                      <SelectValue placeholder="Select priority" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="High">High</SelectItem>
-                      <SelectItem value="Medium">Medium</SelectItem>
-                      <SelectItem value="Low">Low</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Textarea
+                    value={editedItem.reviewRemarks || ''}
+                    onChange={(e) => handleInputChange('reviewRemarks', e.target.value)}
+                    className={isFieldChanged('reviewRemarks') ? "border-orange-400" : ""}
+                    rows={2}
+                    placeholder="Reviewer comments..."
+                  />
                 ) : (
-                  <p>{editedItem.priority}</p>
+                  <p>{editedItem.reviewRemarks || '-'}</p>
                 )}
-                {isFieldChanged('priority') && (
+                {isFieldChanged('reviewRemarks') && (
                   <p className="text-xs text-amber-600 mt-1">
-                    Original: {originalItem?.priority}
+                    Original: {originalItem?.reviewRemarks || '-'}
                   </p>
                 )}
               </div>
+
+              {/* Last Review Date */}
+              <div>
+                <h4 className="font-semibold mb-1">Last Review Date</h4>
+                {canEdit ? (
+                  <Input
+                    type="date"
+                    value={editedItem.lastReviewDate || ''}
+                    onChange={(e) => handleInputChange('lastReviewDate', e.target.value)}
+                    className={isFieldChanged('lastReviewDate') ? "border-orange-400" : ""}
+                  />
+                ) : (
+                  <p>{editedItem.lastReviewDate || '-'}</p>
+                )}
+                {isFieldChanged('lastReviewDate') && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    Original: {originalItem?.lastReviewDate || '-'}
+                  </p>
+                )}
+              </div>
+
+             
             </div>
           </div>
         </div>
@@ -447,7 +564,6 @@ export function ReviewDialog({
             </Button>
           )}
           {canEdit && (
-            // <Button variant="destructive" onClick={onCancelEdit}>
             <Button variant="destructive" onClick={() => onOpenChange(false)}>
               <X className="mr-2 h-4 w-4" />
               Cancel

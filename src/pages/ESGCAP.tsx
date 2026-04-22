@@ -196,7 +196,8 @@ export default function ESGCAP() {
         entityId: entityIdWithYear,
       });
       setLoading(false);
-      if (data) {
+      console.log('data?.plan?.length',data?.plan?.length);
+      if (data?.plan?.length > 0) {
         setPlanData(data);
         // setFilteredCAPItems(data.plan || []);
         // setCapItems(data.plan || []);
@@ -242,9 +243,20 @@ export default function ESGCAP() {
   };
 
   useEffect(() => {
-    if (selectedCompany !== 'all') {
-      const company = portfolioCompanies.find(c => c.email === selectedCompany);
+    if (selectedCompany !== "all") {
+  
+      setFilteredCAPItems([]);
+      setCapItems([]);
+      setPlanData(null);
+  
+      const company = portfolioCompanies.find(
+        c =>
+          c._id === selectedCompany ||   // first try id
+          c.email === selectedCompany    // fallback email
+      );
+  
       const entityId = company?.user?.entityId;
+  
       if (entityId) {
         getPlanList(entityId);
       }
@@ -451,6 +463,18 @@ export default function ESGCAP() {
     saveToLocalStorage(updatedItems);
   };
 
+  const handleDeleteItem = (itemId: string | number) => {
+    const updatedItems = capItems.filter(item => item.id !== itemId);
+    setCapItems(updatedItems);
+    setFilteredCAPItems(updatedItems);
+    saveToLocalStorage(updatedItems);
+    
+    toast({
+      title: "Item Deleted",
+      description: "Item has been removed from the plan.",
+    });
+  };
+
   const saveToLocalStorage = (items: ESGCapItem[]) => {
     localStorage.setItem('esg-cap-items', JSON.stringify(items));
   };
@@ -597,6 +621,8 @@ export default function ESGCAP() {
                     originalItems={comparePlanData.investorPlan}
                     onReview={handleReview}
                     onSendReminder={handleSendReminder}
+                    onAddItem={handleAddItem}
+                    onDeleteItem={handleDeleteItem} 
                     isComparisonView={true}
                     onRevert={handleRevertToOriginal}
                     onRevertField={handleRevertField}
@@ -610,6 +636,8 @@ export default function ESGCAP() {
                   originalItems={previousCapItemsRef.current}
                   onReview={handleReview}
                   onSendReminder={handleSendReminder}
+                  onAddItem={handleAddItem}
+                  onDeleteItem={handleDeleteItem} 
                   isComparisonView={false}
                   onRevert={handleRevertToOriginal}
                   onRevertField={handleRevertField}
