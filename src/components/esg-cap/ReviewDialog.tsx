@@ -399,6 +399,24 @@ export function ReviewDialog({
                 )}
               </div>
 
+              <div>
+                <h4 className="font-semibold mb-1">CAP Source</h4>
+                {canEdit ? (
+                  <Input
+                    value={editedItem.capSource || ''}
+                    onChange={(e) => handleInputChange('capSource', e.target.value)}
+                    className={isFieldChanged('capSource') ? "border-orange-400" : ""}
+                  />
+                ) : (
+                  <p>{editedItem.capSource || '-'}</p>
+                )}
+                {isFieldChanged('capSource') && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    Original: {originalItem?.capSource || '-'}
+                  </p>
+                )}
+              </div>
+
               {/* Resource & Responsibility */}
               <div>
                 <h4 className="font-semibold mb-1">Resource & Responsibility</h4>
