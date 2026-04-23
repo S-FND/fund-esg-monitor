@@ -44,6 +44,7 @@ interface CAPFormRow {
     status: CAPStatus;
     targetDate: string;
     esgLever: string;
+    capSource: string;
     progressPercentage: number;
     assignedTo: string;
     remarks: string;
@@ -90,6 +91,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
         status: "pending",
         targetDate: "",
         esgLever: "",
+        capSource: "",
         progressPercentage: 0,
         assignedTo: "",
         remarks: "",
@@ -162,6 +164,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
             status: "pending",
             targetDate: "",
             esgLever: "",
+            capSource: "",
             progressPercentage: 0,
             assignedTo: "",
             remarks: "",
@@ -233,6 +236,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                 status: row.status,
                 targetDate: row.targetDate || undefined,
                 esgLever: row.esgLever || undefined,
+                capSource: row.capSource || undefined,
                 progressPercentage: row.progressPercentage || undefined,
                 assignedTo: row.assignedTo || undefined,
                 remarks: row.remarks || undefined,
@@ -260,7 +264,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                     id: "1", item: "", category: "environmental", priority: "Medium", issue: "", relatedFinding: "",
                     measures: "", resource: "", deliverable: "", timelineMonth: 0, dealCondition: "none",
                     statusUpdate: "", reviewRemarks: "", lastReviewDate: "", implementationSupportNeeded: "",
-                    closureVerifiedBy: "", actualDate: "", status: "pending", targetDate: "", esgLever: "",
+                    closureVerifiedBy: "", actualDate: "", status: "pending", targetDate: "", esgLever: "", capSource: "",
                     progressPercentage: 0, assignedTo: "", remarks: "",
                 }]);
                 setSelectedCompany("");
@@ -306,63 +310,67 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
             const lines = text.split('\n').filter(line => line.trim());
             if (lines.length < 2) throw new Error("File must contain at least one data row");
 
-            const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+            // FIX 1: Better header parsing - remove BOM, trim, lowercase
+            const rawHeaders = lines[0].split(',').map(h => h.trim().replace(/^\uFEFF/, '').toLowerCase());
 
-            // Header mapping (friendly name -> field name)
-            const headerMapping: Record<string, string> = {
-                'item': 'item',
-                'category': 'category',
-                'priority': 'priority',
-                'issue': 'issue',
-                'related finding': 'relatedfinding',
-                'esg lever': 'esglever',
-                'measures & corrective actions': 'measures',
-                'resource & responsibility': 'resource',
-                'expected deliverable': 'deliverable',
-                'timeline month': 'timelinemonth',
-                'target date': 'targetdate',
-                'actual date': 'actualdate',
-                'cp/cs': 'dealcondition',
-                'status': 'status',
-                'current status update': 'statusupdate',
-                'review remarks': 'reviewremarks',
-                'last review date': 'lastreviewdate',
-                'implementation support needed': 'implementationsupportneeded',
-                'closure verified by': 'closureverifiedby',
-                'assigned to': 'assignedto',
-                'remarks': 'remarks'
+            // FIX 2: Flexible header mapping with multiple possible names
+            const getHeaderIndex = (possibleNames: string[]) => {
+                return rawHeaders.findIndex(h => possibleNames.some(name => h.includes(name) || name.includes(h)));
             };
+
+            const idxItem = getHeaderIndex(['item']);
+            const idxMeasures = getHeaderIndex(['measures', 'measures & corrective actions']);
+
+            if (idxItem === -1 || idxMeasures === -1) {
+                throw new Error(`Required columns 'Item' and 'Measures' not found. Found: ${rawHeaders.join(', ')}`);
+            }
 
             const newItems: ESGCapItem[] = [];
 
             for (let i = 1; i < lines.length; i++) {
-                const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
-                while (values.length < headers.length) values.push("");
+                // FIX 3: Handle quoted values properly
+                const values: string[] = [];
+                let current = '';
+                let inQuotes = false;
+                const line = lines[i];
 
-                // Helper function to get value by friendly name (defined INSIDE the loop)
-                const getValue = (friendlyName: string) => {
-                    const fieldName = headerMapping[friendlyName.toLowerCase()];
-                    const index = headers.findIndex(h => h === fieldName || h === friendlyName.toLowerCase());
-                    return index !== -1 ? values[index] || "" : "";
-                };
+                for (let j = 0; j < line.length; j++) {
+                    const char = line[j];
+                    if (char === '"') {
+                        inQuotes = !inQuotes;
+                    } else if (char === ',' && !inQuotes) {
+                        values.push(current.trim());
+                        current = '';
+                    } else {
+                        current += char;
+                    }
+                }
+                values.push(current.trim());
 
-                const itemValue = getValue('item');
-                const measuresValue = getValue('measures');
+                const itemValue = values[idxItem]?.replace(/^"|"$/g, '') || '';
+                const measuresValue = values[idxMeasures]?.replace(/^"|"$/g, '') || '';
+
                 if (!itemValue || !measuresValue) continue;
 
-                const category = getValue('category') as CAPCategory;
+                // Helper to get value by common header names
+                const getVal = (names: string[]) => {
+                    const idx = getHeaderIndex(names);
+                    return idx !== -1 ? values[idx]?.replace(/^"|"$/g, '') || '' : '';
+                };
+
+                const category = getVal(['category']) as CAPCategory;
                 const validCategories: CAPCategory[] = ['environmental', 'social', 'governance'];
                 const validCategory = validCategories.includes(category) ? category : 'environmental';
 
-                const priority = getValue('priority') as CAPPriority;
+                const priority = getVal(['priority']) as CAPPriority;
                 const validPriorities: CAPPriority[] = ['High', 'Medium', 'Low'];
                 const validPriority = validPriorities.includes(priority) ? priority : 'Medium';
 
-                const status = getValue('status') as CAPStatus;
+                const status = getVal(['status']) as CAPStatus;
                 const validStatuses: CAPStatus[] = ['pending', 'in_review', 'accepted', 'in_progress', 'completed', 'delayed', 'rejected'];
                 const validStatus = validStatuses.includes(status) ? status : 'pending';
 
-                const dealCondition = getValue('cp/cs') as CAPType;
+                const dealCondition = getVal(['cp/cs', 'cpcs', 'dealcondition']) as CAPType;
                 const validDealConditions: CAPType[] = ['CP', 'CS', 'none'];
                 const validDealCondition = validDealConditions.includes(dealCondition) ? dealCondition : 'none';
 
@@ -372,25 +380,26 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                     measures: measuresValue,
                     category: validCategory,
                     priority: validPriority,
-                    resource: getValue('resource & responsibility') || undefined,
-                    deliverable: getValue('expected deliverable') || undefined,
-                    targetDate: getValue('target date') || undefined,
+                    resource: getVal(['resource', 'resource & responsibility']) || undefined,
+                    deliverable: getVal(['deliverable', 'expected deliverable']) || undefined,
+                    targetDate: getVal(['target date', 'targetdate']) || undefined,
                     CS: validDealCondition,
-                    actualDate: getValue('actual date') || undefined,
+                    actualDate: getVal(['actual date', 'actualdate']) || undefined,
                     status: validStatus,
-                    assignedTo: getValue('assigned to') || undefined,
+                    assignedTo: getVal(['assigned to', 'assignedto']) || undefined,
                     dealCondition: validDealCondition,
                     createdAt: new Date().toISOString(),
-                    issue: getValue('issue') || undefined,
-                    relatedFinding: getValue('related finding') || undefined,
-                    esgLever: getValue('esg lever') || undefined,
-                    timelineMonth: getValue('timeline month') ? Math.max(0, Number(getValue('timeline month'))) : undefined,
-                    statusUpdate: getValue('current status update') || undefined,
-                    reviewRemarks: getValue('review remarks') || undefined,
-                    lastReviewDate: getValue('last review date') || undefined,
-                    implementationSupportNeeded: getValue('implementation support needed') || undefined,
-                    closureVerifiedBy: getValue('closure verified by') || undefined,
-                    remarks: getValue('remarks') || undefined,
+                    issue: getVal(['issue']) || undefined,
+                    relatedFinding: getVal(['related finding', 'relatedfinding']) || undefined,
+                    esgLever: getVal(['esg lever', 'esglever']) || undefined,
+                    capSource: getVal(['cap source', 'capsource']) || undefined,
+                    timelineMonth: getVal(['timeline month', 'timelinemonth']) ? Math.max(0, Number(getVal(['timeline month', 'timelinemonth']))) : undefined,
+                    statusUpdate: getVal(['status update', 'current status update', 'statusupdate']) || undefined,
+                    reviewRemarks: getVal(['review remarks', 'reviewremarks']) || undefined,
+                    lastReviewDate: getVal(['last review date', 'lastreviewdate']) || undefined,
+                    implementationSupportNeeded: getVal(['implementation support', 'implementation support needed', 'implementationsupportneeded']) || undefined,
+                    closureVerifiedBy: getVal(['closure verified', 'closure verified by', 'closureverifiedby']) || undefined,
+                    remarks: getVal(['remarks']) || undefined,
                     id: `${Date.now()}-${i}`
                 } as ESGCapItem;
 
@@ -428,11 +437,11 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
 
     const downloadTemplate = () => {
         const template = [
-            'Item,Category,Priority,Issue,Related Finding,ESG Lever,Measures & Corrective Actions,Resource & Responsibility,Expected Deliverable,Timeline Month,Target Date,Actual Date,CP/CS,Status,Current Status Update,Review Remarks,Last Review Date,Implementation Support Needed,Closure Verified By,Assigned To,Remarks',
-            'Improve carbon emissions reporting,environmental,High,Carbon issue,Audit finding,Policy,Implement tracking system,ESG Manager,Monthly report,6,2024-12-31,2024-03-20,CP,in_progress,In progress,Approved,2024-03-01,IT support,John Doe,ESG Manager,Additional notes'
+            'Item,Category,Priority,Issue,Related Finding,ESG Lever,CAP Source,Measures,Resource & Responsibility,Expected Deliverable,Timeline Month,Target Date,Actual Date,CP/CS,Status,Current Status Update,Review Remarks,Last Review Date,Implementation Support Needed,Closure Verified By,Assigned To,Remarks',
+            '"Example Item",environmental,Medium,"Issue desc","Finding","Policy","Audit Finding #123","Implement measures","ESG Manager","Report",3,2024-12-31,2024-12-31,CP,in_progress,"Update","Remarks",2024-03-01,"Support","Verifier","assigned@email.com","Notes"'
         ].join('\n');
 
-        const blob = new Blob([template], { type: 'text/csv' });
+        const blob = new Blob(["\uFEFF" + template], { type: 'text/csv;charset=utf-8' });
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
@@ -452,7 +461,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
             id: "1", item: "", category: "environmental", priority: "Medium", issue: "", relatedFinding: "",
             measures: "", resource: "", deliverable: "", timelineMonth: 0, dealCondition: "none",
             statusUpdate: "", reviewRemarks: "", lastReviewDate: "", implementationSupportNeeded: "",
-            closureVerifiedBy: "", actualDate: "", status: "pending", targetDate: "", esgLever: "",
+            closureVerifiedBy: "", actualDate: "", status: "pending", targetDate: "", esgLever: "", capSource: "",
             progressPercentage: 0, assignedTo: "", remarks: "",
         }]);
     };
@@ -481,8 +490,13 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                                         <Select value={selectedCompany} onValueChange={setSelectedCompany} disabled={loadingCompanies}>
                                             <SelectTrigger><SelectValue placeholder={loadingCompanies ? "Loading companies..." : "Select company"} /></SelectTrigger>
                                             <SelectContent>
-                                                {companies.map(company => (
-                                                    <SelectItem key={company.id} value={company.id.toString()}>{company.name}</SelectItem>
+                                                {companies.map((company, index) => (
+                                                    <SelectItem
+                                                        key={`${company.id}-${index}-${company.email}`}
+                                                        value={company.id.toString()}
+                                                    >
+                                                        {company.name}
+                                                    </SelectItem>
                                                 ))}
                                             </SelectContent>
                                         </Select>
@@ -577,13 +591,23 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                                             </div>
 
                                             {/* 6. ESG Lever */}
-                                            <div>
-                                                <Label>ESG Lever</Label>
-                                                <Input
-                                                    value={row.esgLever}
-                                                    onChange={(e) => updateRow(row.id, "esgLever", e.target.value)}
-                                                    placeholder="e.g., Policy, Training, Technology"
-                                                />
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div>
+                                                    <Label>ESG Lever</Label>
+                                                    <Input
+                                                        value={row.esgLever}
+                                                        onChange={(e) => updateRow(row.id, "esgLever", e.target.value)}
+                                                        placeholder="e.g., Policy, Training, Technology"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <Label>CAP Source</Label>
+                                                    <Input
+                                                        value={row.capSource}
+                                                        onChange={(e) => updateRow(row.id, "capSource", e.target.value)}
+                                                        placeholder="e.g., Policy, Training, Technology"
+                                                    />
+                                                </div>
                                             </div>
 
                                             {/* 7. Measures */}
@@ -797,7 +821,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
 
                                 <div className="text-xs space-y-1">
                                     <p><strong>Required columns:</strong> item, measures</p>
-                                    <p><strong>All columns in order:</strong> item, category, priority, issue, relatedfinding, measures, resource, deliverable, timelinemonth, dealcondition, statusupdate, reviewremarks, lastreviewdate, implementationsupportneeded, closureverifiedby, actualdate, status, targetdate, esglever, progresspercentage, assignedto, remarks</p>
+                                    <p><strong>All columns in order:</strong> item, category, priority, issue, relatedfinding, measures, resource, deliverable, timelinemonth, dealcondition, statusupdate, reviewremarks, lastreviewdate, implementationsupportneeded, closureverifiedby, actualdate, status, targetdate, esglever, capSource, progresspercentage, assignedto, remarks</p>
                                 </div>
                             </CardContent>
                         </Card>

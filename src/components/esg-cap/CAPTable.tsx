@@ -78,6 +78,7 @@ export interface ESGCapItem {
   issue?: string;
   relatedFinding?: string;
   esgLever?: string;
+  capSource?: string;
   measures: string;
   reportId?: string;
   description?: string;
@@ -264,6 +265,7 @@ export function CAPTable({
     issue: "",
     relatedFinding: "",
     esgLever: "",
+    capSource: "",
 
     // Action Details
     measures: "",
@@ -306,6 +308,7 @@ export function CAPTable({
       issue: newRowData.issue || undefined,
       relatedFinding: newRowData.relatedFinding || undefined,
       esgLever: newRowData.esgLever || undefined,
+      capSource: newRowData.capSource || undefined,
       measures: newRowData.measures,
       category: newRowData.category,
       priority: newRowData.priority,
@@ -338,6 +341,7 @@ export function CAPTable({
       issue: "",
       relatedFinding: "",
       esgLever: "",
+      capSource: "",
       measures: "",
       resource: "",
       deliverable: "",
@@ -378,6 +382,7 @@ export function CAPTable({
               <th className="p-3 text-left">Issue</th>
               <th className="p-3 text-left">Related Finding</th>
               <th className="p-3 text-left">ESG Lever</th>
+              <th className="p-3 text-left">CAP Source</th>
               <th className="p-3 text-left">Measures & Corrective Actions</th>
               <th className="p-3 text-left">Resource & Responsibility</th>
               <th className="p-3 text-left">Expected Deliverable</th>
@@ -427,17 +432,70 @@ export function CAPTable({
 
                   {/* 4. Issue */}
                   <td className="p-3">
-                    <div className="line-clamp-2">{item.issue || "-"}</div>
+                    <div className="relative">
+                      <div className="line-clamp-2">{item.issue || "-"}</div>
+                      {item.issue && item.issue.length > 30 && (
+                        <button className="text-blue-500 text-xs hover:underline mt-1 block" onClick={(e) => {
+                          const target = e.currentTarget.previousElementSibling;
+                          if (target) {
+                            target.classList.toggle('line-clamp-2');
+                            target.classList.toggle('line-clamp-none');
+                            e.currentTarget.textContent = target.classList.contains('line-clamp-none') ? 'Show less' : 'View more';
+                          }
+                        }}>View more</button>
+                      )}
+                    </div>
                   </td>
 
                   {/* 5. Related Finding */}
                   <td className="p-3">
-                    <div className="line-clamp-2">{item.relatedFinding || "-"}</div>
+                    <div className="relative">
+                      <div className="line-clamp-2">{item.relatedFinding || "-"}</div>
+                      {item.relatedFinding && item.relatedFinding.length > 30 && (
+                        <button className="text-blue-500 text-xs hover:underline mt-1 block" onClick={(e) => {
+                          const target = e.currentTarget.previousElementSibling;
+                          if (target) {
+                            target.classList.toggle('line-clamp-2');
+                            target.classList.toggle('line-clamp-none');
+                            e.currentTarget.textContent = target.classList.contains('line-clamp-none') ? 'Show less' : 'View more';
+                          }
+                        }}>View more</button>
+                      )}
+                    </div>
                   </td>
 
                   {/* 6. ESG Lever */}
                   <td className="p-3">
-                    <div className="line-clamp-2">{item.esgLever || "-"}</div>
+                    <div className="relative">
+                      <div className="line-clamp-2">{item.esgLever || "-"}</div>
+                      {item.esgLever && item.esgLever.length > 30 && (
+                        <button className="text-blue-500 text-xs hover:underline mt-1 block" onClick={(e) => {
+                          const target = e.currentTarget.previousElementSibling;
+                          if (target) {
+                            target.classList.toggle('line-clamp-2');
+                            target.classList.toggle('line-clamp-none');
+                            e.currentTarget.textContent = target.classList.contains('line-clamp-none') ? 'Show less' : 'View more';
+                          }
+                        }}>View more</button>
+                      )}
+                    </div>
+                  </td>
+
+                  {/* 6.1. CAP Source */}
+                   <td className="p-3">
+                    <div className="relative">
+                      <div className="line-clamp-2">{item.capSource || "-"}</div>
+                      {item.capSource && item.capSource.length > 30 && (
+                        <button className="text-blue-500 text-xs hover:underline mt-1 block" onClick={(e) => {
+                          const target = e.currentTarget.previousElementSibling;
+                          if (target) {
+                            target.classList.toggle('line-clamp-2');
+                            target.classList.toggle('line-clamp-none');
+                            e.currentTarget.textContent = target.classList.contains('line-clamp-none') ? 'Show less' : 'View more';
+                          }
+                        }}>View more</button>
+                      )}
+                    </div>
                   </td>
 
                   {/* 7. Measures & Corrective Actions */}
@@ -452,7 +510,19 @@ export function CAPTable({
                         onRevertField={onRevertField}
                       />
                     ) : (
-                      <div className="line-clamp-2">{item.measures}</div>
+                      <div className="relative group">
+                        <div className="line-clamp-2">{item.measures}</div>
+                        {item.measures && item.measures.length > 100 && (
+                          <button className="text-blue-500 text-xs hover:underline mt-1 block" onClick={(e) => {
+                            const target = e.currentTarget.previousElementSibling;
+                            if (target) {
+                              target.classList.toggle('line-clamp-2');
+                              target.classList.toggle('line-clamp-none');
+                              e.currentTarget.textContent = target.classList.contains('line-clamp-none') ? 'Show less' : 'View more';
+                            }
+                          }}>View more</button>
+                        )}
+                      </div>
                     )}
                   </td>
 
@@ -484,7 +554,19 @@ export function CAPTable({
                         onRevertField={onRevertField}
                       />
                     ) : (
-                      <div className="line-clamp-2">{item.deliverable || "-"}</div>
+                      <div className="relative group">
+                        <div className="line-clamp-2">{item.deliverable}</div>
+                        {item.deliverable && item.deliverable.length > 30 && (
+                          <button className="text-blue-500 text-xs hover:underline mt-1 block" onClick={(e) => {
+                            const target = e.currentTarget.previousElementSibling;
+                            if (target) {
+                              target.classList.toggle('line-clamp-2');
+                              target.classList.toggle('line-clamp-none');
+                              e.currentTarget.textContent = target.classList.contains('line-clamp-none') ? 'Show less' : 'View more';
+                            }
+                          }}>View more</button>
+                        )}
+                      </div>
                     )}
                   </td>
 
@@ -505,12 +587,36 @@ export function CAPTable({
 
                   {/* 15. Current Status Update */}
                   <td className="p-3">
-                    <div className="line-clamp-2">{item.statusUpdate || "-"}</div>
+                    <div className="relative">
+                      <div className="line-clamp-2">{item.statusUpdate || "-"}</div>
+                      {item.statusUpdate && item.statusUpdate.length > 30 && (
+                        <button className="text-blue-500 text-xs hover:underline mt-1 block" onClick={(e) => {
+                          const target = e.currentTarget.previousElementSibling;
+                          if (target) {
+                            target.classList.toggle('line-clamp-2');
+                            target.classList.toggle('line-clamp-none');
+                            e.currentTarget.textContent = target.classList.contains('line-clamp-none') ? 'Show less' : 'View more';
+                          }
+                        }}>View more</button>
+                      )}
+                    </div>
                   </td>
 
                   {/* 16. Review Remarks */}
                   <td className="p-3">
-                    <div className="line-clamp-2">{item.reviewRemarks || "-"}</div>
+                    <div className="relative">
+                      <div className="line-clamp-2">{item.reviewRemarks || "-"}</div>
+                      {item.reviewRemarks && item.reviewRemarks.length > 30 && (
+                        <button className="text-blue-500 text-xs hover:underline mt-1 block" onClick={(e) => {
+                          const target = e.currentTarget.previousElementSibling;
+                          if (target) {
+                            target.classList.toggle('line-clamp-2');
+                            target.classList.toggle('line-clamp-none');
+                            e.currentTarget.textContent = target.classList.contains('line-clamp-none') ? 'Show less' : 'View more';
+                          }
+                        }}>View more</button>
+                      )}
+                    </div>
                   </td>
 
                   {/* 17. Last Review Date */}
@@ -518,12 +624,36 @@ export function CAPTable({
 
                   {/* 18. Implementation Support Needed */}
                   <td className="p-3">
-                    <div className="line-clamp-2">{item.implementationSupportNeeded || "-"}</div>
+                    <div className="relative">
+                      <div className="line-clamp-2">{item.implementationSupportNeeded || "-"}</div>
+                      {item.implementationSupportNeeded && item.implementationSupportNeeded.length > 30 && (
+                        <button className="text-blue-500 text-xs hover:underline mt-1 block" onClick={(e) => {
+                          const target = e.currentTarget.previousElementSibling;
+                          if (target) {
+                            target.classList.toggle('line-clamp-2');
+                            target.classList.toggle('line-clamp-none');
+                            e.currentTarget.textContent = target.classList.contains('line-clamp-none') ? 'Show less' : 'View more';
+                          }
+                        }}>View more</button>
+                      )}
+                    </div>
                   </td>
 
                   {/* 19. Closure Verified By */}
                   <td className="p-3">
-                    <div className="line-clamp-2">{item.closureVerifiedBy || "-"}</div>
+                    <div className="relative">
+                      <div className="line-clamp-2">{item.closureVerifiedBy || "-"}</div>
+                      {item.closureVerifiedBy && item.closureVerifiedBy.length > 30 && (
+                        <button className="text-blue-500 text-xs hover:underline mt-1 block" onClick={(e) => {
+                          const target = e.currentTarget.previousElementSibling;
+                          if (target) {
+                            target.classList.toggle('line-clamp-2');
+                            target.classList.toggle('line-clamp-none');
+                            e.currentTarget.textContent = target.classList.contains('line-clamp-none') ? 'Show less' : 'View more';
+                          }
+                        }}>View more</button>
+                      )}
+                    </div>
                   </td>
 
                   {/* 20. Assigned To */}
@@ -668,17 +798,28 @@ export function CAPTable({
                     />
                   </div>
                 </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-                {/* 6. ESG Lever */}
-                <div>
-                  <label className="block mb-1 font-medium text-sm">ESG Lever</label>
-                  <Input
-                    value={newRowData.esgLever}
-                    onChange={(e) => setNewRowData({ ...newRowData, esgLever: e.target.value })}
-                    placeholder="e.g., Policy, Training, Technology"
-                  />
+                  {/* 6. ESG Lever */}
+                  <div>
+                    <label className="block mb-1 font-medium text-sm">ESG Lever</label>
+                    <Input
+                      value={newRowData.esgLever}
+                      onChange={(e) => setNewRowData({ ...newRowData, esgLever: e.target.value })}
+                      placeholder="e.g., Policy, Training, Technology"
+                    />
+                  </div>
+
+                  {/* 6.1. CAP Source */}
+                  <div>
+                    <label className="block mb-1 font-medium text-sm">CAP Source</label>
+                    <Input
+                      value={newRowData.capSource}
+                      onChange={(e) => setNewRowData({ ...newRowData, capSource: e.target.value })}
+                      placeholder="e.g., Policy, Training, Technology"
+                    />
+                  </div>
                 </div>
-
                 {/* 7. Measures */}
                 <div>
                   <label className="block mb-1 font-medium text-sm">Measures & Corrective Actions *</label>
