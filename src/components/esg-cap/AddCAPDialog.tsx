@@ -307,15 +307,37 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
 
         try {
             const text = await file.text();
-            const lines = text.split('\n').filter(line => line.trim());
-            if (lines.length < 2) throw new Error("File must contain at least one data row");
+            const allLines = text.split('\n');
+            // Filter out empty lines and lines that start with '#'
+            const lines = allLines.filter(line => {
+                const trimmed = line.trim();
+                return trimmed && !trimmed.startsWith('#');
+            });
+            if (lines.length < 2) throw new Error("File must contain at least one data row (after removing comments)");
 
             // FIX 1: Better header parsing - remove BOM, trim, lowercase
             const rawHeaders = lines[0].split(',').map(h => h.trim().replace(/^\uFEFF/, '').toLowerCase());
 
-            // FIX 2: Flexible header mapping with multiple possible names
             const getHeaderIndex = (possibleNames: string[]) => {
-                return rawHeaders.findIndex(h => possibleNames.some(name => h.includes(name) || name.includes(h)));
+                for (const name of possibleNames) {
+                    const exactIdx = rawHeaders.findIndex(h => h === name);
+                    if (exactIdx !== -1) return exactIdx;
+                }
+                let bestIdx = -1;
+                let bestLength = 0;
+                for (let i = 0; i < rawHeaders.length; i++) {
+                    const h = rawHeaders[i];
+                    for (const name of possibleNames) {
+                        if (h.includes(name) || name.includes(h)) {
+                            const matchLen = Math.max(h.length, name.length);
+                            if (matchLen > bestLength) {
+                                bestLength = matchLen;
+                                bestIdx = i;
+                            }
+                        }
+                    }
+                }
+                return bestIdx;
             };
 
             const idxItem = getHeaderIndex(['item']);
@@ -358,15 +380,18 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                     return idx !== -1 ? values[idx]?.replace(/^"|"$/g, '') || '' : '';
                 };
 
-                const category = getVal(['category']) as CAPCategory;
+                const category = getVal(['category'])?.toLowerCase() as CAPCategory;
                 const validCategories: CAPCategory[] = ['environmental', 'social', 'governance'];
                 const validCategory = validCategories.includes(category) ? category : 'environmental';
 
                 const priority = getVal(['priority']) as CAPPriority;
                 const validPriorities: CAPPriority[] = ['High', 'Medium', 'Low'];
                 const validPriority = validPriorities.includes(priority) ? priority : 'Medium';
-
-                const status = getVal(['status']) as CAPStatus;
+                
+                let statusRaw = getVal(['status'])?.toLowerCase() || '';
+                // Replace spaces with underscores (e.g., "in progress" -> "in_progress")
+                statusRaw = statusRaw.replace(/\s+/g, '_');
+                const status = statusRaw as CAPStatus;
                 const validStatuses: CAPStatus[] = ['pending', 'in_review', 'accepted', 'in_progress', 'completed', 'delayed', 'rejected'];
                 const validStatus = validStatuses.includes(status) ? status : 'pending';
 
@@ -437,10 +462,17 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
 
     const downloadTemplate = () => {
         const template = [
-            'Item,Category,Priority,Issue,Related Finding,ESG Lever,CAP Source,Measures,Resource & Responsibility,Expected Deliverable,Timeline Month,Target Date,Actual Date,CP/CS,Status,Current Status Update,Review Remarks,Last Review Date,Implementation Support Needed,Closure Verified By,Assigned To,Remarks',
-            '"Example Item",environmental,Medium,"Issue desc","Finding","Policy","Audit Finding #123","Implement measures","ESG Manager","Report",3,2024-12-31,2024-12-31,CP,in_progress,"Update","Remarks",2024-03-01,"Support","Verifier","assigned@email.com","Notes"'
+            // Optional comment row (starting with #) – many CSV readers skip it
+            '# INSTRUCTIONS:',
+            '# - "Status" must be one of: Pending, In Progress, In Review, Accepted, Completed, Delayed, Rejected',
+            '# - "Category" must be one of: environmental, social, Governance',
+            '# - "Priority" must be one of: High, Medium, Low',
+            '# - Required columns: Item, Measures',
+            '#',
+            'Item*,Category,Priority,Issue,Related Finding,ESG Lever,CAP Source,Measures*,Resource & Responsibility,Expected Deliverable,Timeline Month,Target Date,Actual Date,CP/CS,Status,Current Status Update,Review Remarks,Last Review Date,Implementation Support Needed,Closure Verified By,Assigned To,Remarks',
+            '"Example: Improve emissions",environmental,High,"Carbon reporting gaps","Audit finding 2024-01","Policy development","Training material","Implement tracking system","ESG Manager","Monthly report",6,2024-12-31,2024-12-31,CP,"In Progress","[Write your update here, e.g., System implementation 50% complete]","Approved",2024-03-01,"IT support needed","John Doe","jane@example.com","Priority item"'
         ].join('\n');
-
+    
         const blob = new Blob(["\uFEFF" + template], { type: 'text/csv;charset=utf-8' });
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -450,8 +482,8 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
         link.click();
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
-
-        toast({ title: "Template Downloaded", description: "CSV template downloaded successfully." });
+    
+        toast({ title: "Template Downloaded", description: "CSV template with instructions downloaded successfully." });
     };
 
     const handleCancel = () => {
@@ -672,7 +704,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                                                 </div>
                                             </div>
 
-                                            {/* 13. CP/CS & 14. Status */}
+                                            {/* 13. CP/CS */}
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div>
                                                     <Label>CP/CS</Label>
@@ -708,7 +740,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                                                 </div>
                                             </div>
 
-                                            {/* 15. Current Status Update */}
+                                            {/* 15. Current Update */}
                                             <div>
                                                 <Label>Current Status Update</Label>
                                                 <Textarea
