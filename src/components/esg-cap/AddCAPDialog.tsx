@@ -387,7 +387,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                 const priority = getVal(['priority']) as CAPPriority;
                 const validPriorities: CAPPriority[] = ['High', 'Medium', 'Low'];
                 const validPriority = validPriorities.includes(priority) ? priority : 'Medium';
-                
+
                 let statusRaw = getVal(['status'])?.toLowerCase() || '';
                 // Replace spaces with underscores (e.g., "in progress" -> "in_progress")
                 statusRaw = statusRaw.replace(/\s+/g, '_');
@@ -399,6 +399,9 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                 const validDealConditions: CAPType[] = ['CP', 'CS', 'none'];
                 const validDealCondition = validDealConditions.includes(dealCondition) ? dealCondition : 'none';
 
+                const progressPercentage = getVal(['progress percentage', 'progresspercentage', 'progress%']);
+                const progressPercentNum = progressPercentage ? Math.min(100, Math.max(0, Number(progressPercentage))) : undefined;
+
                 const newItem = {
                     reportId: selectedCompany,
                     item: itemValue,
@@ -408,6 +411,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                     resource: getVal(['resource', 'resource & responsibility']) || undefined,
                     deliverable: getVal(['deliverable', 'expected deliverable']) || undefined,
                     targetDate: getVal(['target date', 'targetdate']) || undefined,
+                    progressPercentage: progressPercentNum,
                     CS: validDealCondition,
                     actualDate: getVal(['actual date', 'actualdate']) || undefined,
                     status: validStatus,
@@ -469,10 +473,10 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
             '# - "Priority" must be one of: High, Medium, Low',
             '# - Required columns: Item, Measures',
             '#',
-            'Item*,Category,Priority,Issue,Related Finding,ESG Lever,CAP Source,Measures*,Resource & Responsibility,Expected Deliverable,Timeline Month,Target Date,Actual Date,CP/CS,Status,Current Status Update,Review Remarks,Last Review Date,Implementation Support Needed,Closure Verified By,Assigned To,Remarks',
-            '"Example: Improve emissions",environmental,High,"Carbon reporting gaps","Audit finding 2024-01","Policy development","Training material","Implement tracking system","ESG Manager","Monthly report",6,2024-12-31,2024-12-31,CP,"In Progress","[Write your update here, e.g., System implementation 50% complete]","Approved",2024-03-01,"IT support needed","John Doe","jane@example.com","Priority item"'
+            'Item*,Category,Priority,Issue,Related Finding,ESG Lever,CAP Source,Measures*,Resource & Responsibility,Expected Deliverable,Timeline Month,Target Date,Progress Percentage,Actual Date,CP/CS,Status,Current Status Update,Review Remarks,Last Review Date,Implementation Support Needed,Closure Verified By,Assigned To,Remarks',
+            '"Example: Improve emissions",environmental,High,"Carbon reporting gaps","Audit finding 2024-01","Policy development","Training material","Implement tracking system","ESG Manager","Monthly report",6,2024-12-31,75,2024-12-31,CP,"In Progress","[Write your update here, e.g., System implementation 50% complete]","Approved",2024-03-01,"IT support needed","John Doe","jane@example.com","Priority item"'
         ].join('\n');
-    
+
         const blob = new Blob(["\uFEFF" + template], { type: 'text/csv;charset=utf-8' });
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -482,7 +486,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
         link.click();
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
-    
+
         toast({ title: "Template Downloaded", description: "CSV template with instructions downloaded successfully." });
     };
 
@@ -693,6 +697,23 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                                                         value={row.targetDate}
                                                         onChange={(e) => updateRow(row.id, "targetDate", e.target.value)}
                                                     />
+                                                </div>
+                                                {/* Progress Percentage */}
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <div>
+                                                        <Label>Progress Percentage (%)</Label>
+                                                        <Input
+                                                            type="number"
+                                                            min="0"
+                                                            max="100"
+                                                            value={row.progressPercentage ?? ''}
+                                                            onChange={(e) => {
+                                                                const val = e.target.value === '' ? 0 : Number(e.target.value);
+                                                                updateRow(row.id, "progressPercentage", Math.min(100, Math.max(0, val)));
+                                                            }}
+                                                            placeholder="0-100"
+                                                        />
+                                                    </div>
                                                 </div>
                                                 <div>
                                                     <Label>Actual Date</Label>

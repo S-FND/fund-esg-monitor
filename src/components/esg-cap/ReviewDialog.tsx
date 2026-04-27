@@ -55,7 +55,7 @@ export function ReviewDialog({
   const [originalItem, setOriginalItem] = useState<ESGCapItem | null>(null);
   const [dataEditStatus, setDataEditStatus] = useState(false);
   const { toast } = useToast();
-  
+
   useEffect(() => {
     if (item) {
       setEditedItem({ ...item });
@@ -71,9 +71,9 @@ export function ReviewDialog({
       setEditedItem({ ...editedItem, [field]: value });
     }
   };
-  
+
   const [showSaveToast, setShowSaveToast] = useState(false);
-  
+
   const handleSaveChanges = () => {
     if (editedItem) {
       setDataEditStatus(true);
@@ -243,6 +243,32 @@ export function ReviewDialog({
                 )}
               </div>
 
+              {/* Progress Percentage */}
+              <div>
+                <h4 className="font-semibold mb-1">Progress Percentage</h4>
+                {canEdit ? (
+                  <Input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={editedItem.progressPercentage ?? ''}
+                    onChange={(e) => {
+                      const val = e.target.value === '' ? undefined : Number(e.target.value);
+                      handleInputChange('progressPercentage', val);
+                    }}
+                    className={isFieldChanged('progressPercentage') ? "border-orange-400" : ""}
+                    placeholder="0-100"
+                  />
+                ) : (
+                  <p>{editedItem.progressPercentage !== undefined ? `${editedItem.progressPercentage}%` : '-'}</p>
+                )}
+                {isFieldChanged('progressPercentage') && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    Original: {originalItem?.progressPercentage !== undefined ? `${originalItem.progressPercentage}%` : '-'}
+                  </p>
+                )}
+              </div>
+
               {/* Type (CP/CS) */}
               <div>
                 <h4 className="font-semibold mb-1">Type (CP/CS)</h4>
@@ -333,8 +359,8 @@ export function ReviewDialog({
 
             {/* Right Column */}
             <div className="space-y-4">
-               {/* Category */}
-               <div>
+              {/* Category */}
+              <div>
                 <h4 className="font-semibold mb-1">Category</h4>
                 {canEdit ? (
                   <Select
