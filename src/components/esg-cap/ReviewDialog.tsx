@@ -55,6 +55,7 @@ export function ReviewDialog({
   const [originalItem, setOriginalItem] = useState<ESGCapItem | null>(null);
   const [dataEditStatus, setDataEditStatus] = useState(false);
   const { toast } = useToast();
+
   useEffect(() => {
     if (item) {
       setEditedItem({ ...item });
@@ -70,7 +71,9 @@ export function ReviewDialog({
       setEditedItem({ ...editedItem, [field]: value });
     }
   };
+
   const [showSaveToast, setShowSaveToast] = useState(false);
+
   const handleSaveChanges = () => {
     if (editedItem) {
       setDataEditStatus(true);
@@ -164,7 +167,100 @@ export function ReviewDialog({
                 )}
                 {isFieldChanged('deliverable') && (
                   <p className="text-xs text-amber-600 mt-1">
-                    Original: {originalItem?.deliverable}
+                    Original: {originalItem?.deliverable || '-'}
+                  </p>
+                )}
+              </div>
+
+              {/* Target Date */}
+              <div>
+                <h4 className="font-semibold mb-1">Target Date</h4>
+                {canEdit ? (
+                  <Input
+                    type="date"
+                    value={editedItem.targetDate || ''}
+                    onChange={(e) => handleInputChange('targetDate', e.target.value)}
+                    className={isFieldChanged('targetDate') ? "border-orange-400" : ""}
+                  />
+                ) : (
+                  <p>{editedItem.targetDate || '-'}</p>
+                )}
+                {isFieldChanged('targetDate') && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    Original: {originalItem?.targetDate || '-'}
+                  </p>
+                )}
+              </div>
+
+              {/* Progress Percentage */}
+              <div>
+                <h4 className="font-semibold mb-1">Progress Percentage</h4>
+                {canEdit ? (
+                  <Input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={editedItem.progressPercentage ?? ''}
+                    onChange={(e) => {
+                      const val = e.target.value === '' ? undefined : Number(e.target.value);
+                      handleInputChange('progressPercentage', val);
+                    }}
+                    className={isFieldChanged('progressPercentage') ? "border-orange-400" : ""}
+                    placeholder="0-100"
+                  />
+                ) : (
+                  <p>{editedItem.progressPercentage !== undefined ? `${editedItem.progressPercentage}%` : '-'}</p>
+                )}
+                {isFieldChanged('progressPercentage') && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    Original: {originalItem?.progressPercentage !== undefined ? `${originalItem.progressPercentage}%` : '-'}
+                  </p>
+                )}
+              </div>
+
+              {/* Type (CP/CS) */}
+              <div>
+                <h4 className="font-semibold mb-1">Type (CP/CS)</h4>
+                {canEdit ? (
+                  <Select
+                    value={editedItem.CS || ""}
+                    onValueChange={(value) => handleInputChange("CS", value)}
+                  >
+                    <SelectTrigger className={isFieldChanged("CS") ? "border-orange-400" : ""}>
+                      <SelectValue placeholder="Select Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="CP">CP</SelectItem>
+                      <SelectItem value="CS">CS</SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p>{editedItem.CS || "-"}</p>
+                )}
+                {isFieldChanged("CS") && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    Original: {originalItem?.CS || "-"}
+                  </p>
+                )}
+              </div>
+
+              {/* Current Status Update */}
+              <div>
+                <h4 className="font-semibold mb-1">Current Status Update</h4>
+                {canEdit ? (
+                  <Textarea
+                    value={editedItem.statusUpdate || ''}
+                    onChange={(e) => handleInputChange('statusUpdate', e.target.value)}
+                    className={isFieldChanged('statusUpdate') ? "border-orange-400" : ""}
+                    rows={2}
+                    placeholder="Latest update on this action item..."
+                  />
+                ) : (
+                  <p>{editedItem.statusUpdate || '-'}</p>
+                )}
+                {isFieldChanged('statusUpdate') && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    Original: {originalItem?.statusUpdate || '-'}
                   </p>
                 )}
               </div>
@@ -187,6 +283,29 @@ export function ReviewDialog({
                 )}
               </div>
 
+              <div>
+                <h4 className="font-semibold mb-1">Closure Verified By</h4>
+                {canEdit ? (
+                  <Input
+                    value={editedItem.closureVerifiedBy || ''}
+                    onChange={(e) => handleInputChange('closureVerifiedBy', e.target.value)}
+                    className={isFieldChanged('closureVerifiedBy') ? "border-orange-400" : ""}
+                    placeholder="Name of verifier"
+                  />
+                ) : (
+                  <p>{editedItem.closureVerifiedBy || '-'}</p>
+                )}
+                {isFieldChanged('closureVerifiedBy') && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    Original: {originalItem?.closureVerifiedBy || '-'}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Right Column */}
+            <div className="space-y-4">
+              {/* Category */}
               <div>
                 <h4 className="font-semibold mb-1">Category</h4>
                 {canEdit ? (

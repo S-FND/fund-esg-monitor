@@ -250,7 +250,7 @@ export default function ESGCAP() {
 
   const handleSubmitAllCap = async () => {
     try {
-      console.log('planData planData', planData);
+      // console.log('planData planData', planData);
       const payload = {
         changeRequest: { plan: capItems },
         comment: 'Change Request',
