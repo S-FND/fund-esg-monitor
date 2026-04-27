@@ -2,13 +2,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Eye, ArrowLeft, ArrowRight, Undo, Plus, Trash2, Columns } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../ui/dialog";
-import { useState } from "react";
-import { AiDialog } from "./AiDialog";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export type CAPStatus =
   | "pending"
@@ -23,106 +16,32 @@ export type CAPCategory = "environmental" | "social" | "governance";
 export type CAPType = "CP" | "CS" | "none";
 export type CAPPriority = "High" | "Medium" | "Low";
 
-export type EvidenceType =
-  | "data"
-  | "report"
-  | "training_record"
-  | "audit"
-  | "plan"
-  | "system"
-  | "certificate"
-  | "kpi_metrics";
-
-export interface AiResponse {
-  id: string;
-  _index: number;
-
-  requiredEvidence: {
-    types: EvidenceType[];
-    normalizedTypes: EvidenceType[];
-    reasoning: string;
-    confidence: number;
-  };
-
-  documentRequired: boolean;
-  documentType: string | null;
-  sourceType: "internal" | "external" | null;
-
-  sections: string[];
-
-  templates: Template[];
-
-  reasoning: string;
-  confidence: number;
-}
-
-export interface Template {
-  type: "system" | "data" | "report" | string;
-  name: string;
-  format: "checklist" | "table" | "document" | string;
-
-  structure: TemplateStructure;
-}
-export type ESGCapDealCondition = 'CP' | 'CS' | 'none';
-
-export interface TemplateStructure {
-  components?: string[];
-  columns?: string[];
-  sections?: string[];
-  [key: string]: any;
-}
-
 export interface ESGCapItem {
-  id: string | number;
+  id: string;
+  reportId: string;
   item: string;
-  issue?: string;
-  relatedFinding?: string;
-  esgLever?: string;
-  capSource?: string;
-  measures: string;
-  reportId?: string;
-  description?: string;
   category: CAPCategory;
-  recommendation?: string;
-  priority: CAPPriority;
-  status: CAPStatus;
-  deadline?: string;
-  targetDate?: string;
-  timelineMonth?: number;
-  assignedTo?: string;
-  dealCondition: ESGCapDealCondition;
-  createdAt: string;
-  actualCompletionDate?: string;
-  actualDate?: string;
-  acceptedAt?: string;
-  resource?: string;
-  deliverable?: string;
-  statusUpdate?: string;
-  reviewRemarks?: string;
-  lastReviewDate?: string;
-  progressPercentage?: number;
-  implementationSupportNeeded?: string;
-  closureVerifiedBy?: string;
   CS?: string;
-  remarks?: string;
-  theme?: "Policy" | "SOP" | "Metrics" | "Logs";
-  data_type?: string;
-  documentType?: string;
-  sections?: string[];
-  sourceType?: string;
-  aiResponseRaw?: AiResponse;
+  priority: CAPPriority;
+  measures: string;
+  resource: string;
+  deliverable: string;
+  targetDate: string;
+  actualDate?: string;
+  status: CAPStatus;
+  assignedTo?: string;
+  dealCondition?: CAPType;
+  createdAt?: string;
 }
 
 interface CAPTableProps {
   items: ESGCapItem[];
   onReview: (item: ESGCapItem) => void;
   onSendReminder: (item: ESGCapItem) => void;
-  onAddItem?: (newItem: ESGCapItem) => void;
-  onDeleteItem?: (itemId: string | number) => void;
-  originalItems?: ESGCapItem[];
+  originalItems?: ESGCapItem[]; // for comparison
   isComparisonView?: boolean;
-  onRevertField?: (itemId: string | number, field: keyof ESGCapItem) => void;
-  onRevert?: (itemId: string | number) => void;
+  onRevertField?: (itemId: string, field: keyof ESGCapItem) => void;
+  onRevert?: (itemId: string) => void;
   finalPlan?: boolean;
   progressPercentage?: number;
 }
@@ -159,19 +78,7 @@ const getPriorityBadge = (priority: CAPPriority) => {
   }
 };
 
-const getCategoryBadge = (category: string) => {
-  switch (category?.toLowerCase()) {
-    case "environmental":
-      return <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">Environmental</Badge>;
-    case "social":
-      return <Badge className="bg-blue-100 text-blue-700 border-blue-200">Social</Badge>;
-    case "governance":
-      return <Badge className="bg-amber-100 text-amber-700 border-amber-200">Governance</Badge>;
-    default:
-      return <Badge variant="secondary">{category}</Badge>;
-  }
-};
-
+// Render field with changes highlight and revert
 const RenderChangedField = ({
   currentValue,
   originalValue,
@@ -180,14 +87,14 @@ const RenderChangedField = ({
   fieldName,
   onRevertField
 }: {
-  currentValue?: string;
-  originalValue?: string;
+  currentValue: string;
+  originalValue: string;
   isComparisonView?: boolean;
-  itemId?: string | number;
+  itemId?: string;
   fieldName?: keyof ESGCapItem;
-  onRevertField?: (itemId: string | number, field: keyof ESGCapItem) => void;
+  onRevertField?: (itemId: string, field: keyof ESGCapItem) => void;
 }) => {
-  const hasChanged = (currentValue || "") !== (originalValue || "");
+  const hasChanged = currentValue !== originalValue;
 
   if (!hasChanged || !isComparisonView) return <span>{currentValue}</span>;
 
@@ -220,8 +127,6 @@ export function CAPTable({
   items,
   onReview,
   onSendReminder,
-  onAddItem,
-  onDeleteItem,
   originalItems = [],
   isComparisonView = false,
   onRevertField,
@@ -331,43 +236,7 @@ export function CAPTable({
       createdAt: new Date().toISOString(),
     };
 
-    onAddItem?.(newItem);
-
-    // Reset form
-    setNewRowData({
-      item: "",
-      category: "social",
-      priority: "Medium",
-      issue: "",
-      relatedFinding: "",
-      esgLever: "",
-      capSource: "",
-      measures: "",
-      resource: "",
-      deliverable: "",
-      timelineMonth: "",
-      targetDate: "",
-      actualDate: "",
-      dealCondition: "CP",
-      status: "pending",
-      statusUpdate: "",
-      progressPercentage: "",
-      reviewRemarks: "",
-      lastReviewDate: "",
-      implementationSupportNeeded: "",
-      closureVerifiedBy: "",
-      assignedTo: "",
-      remarks: "",
-    });
-    setIsAddingRow(false);
-  };
-
-  const getOriginalItem = (id: string | number) => originalItems.find(item => item.id === id) || null;
-
-  const onAiShow = (item: ESGCapItem) => {
-    setIsViewAiOpen(true);
-    setItem(item);
-  };
+  const getOriginalItem = (id: string) => originalItems.find(item => item.id === id) || null;
 
   // Helper to render a field with comparison support (used in full view)
   const renderField = (
