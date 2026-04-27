@@ -310,9 +310,8 @@ export default function EditFund() {
         .map((s: string) => s.trim())
         .filter(Boolean);
 
-      const companyIds =
-        fundData?.fundedCompany?.map(
-          (item: any) => item?.companyInfo?.companyInfoId
+        const companyIds = fundData?.companies?.map(
+          (item: any) => item?.companyInfoId
         ).filter(Boolean) || [];
 
       setFormData({
