@@ -56,8 +56,8 @@ export default function TeamMemberDetail() {
   const [selectedFunds, setSelectedFunds] = useState<string[]>([]);
   const [selectedCompanies, setSelectedCompanies] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState("access");
-  const [funds,setFunds]=useState([])
-  const[portfolioCompanyList,setPortfolioCompanyList]=useState([])
+  const [funds, setFunds] = useState([])
+  const [portfolioCompanyList, setPortfolioCompanyList] = useState([])
 
   // Create a comprehensive navigation items list that includes main items and their submenus
   const allNavItems = [
@@ -164,12 +164,15 @@ export default function TeamMemberDetail() {
 
       const jsondata = await res.json();
       const memberData = jsondata['data'][0]['subuser'][0];
-
       if (memberData) {
         setMember(memberData);
         setIsActive(memberData.active || false);
-        setSelectedFunds(memberData.assignedFunds || []);
-        setSelectedCompanies(memberData.assignedCompanies || []);
+        if (memberData.assignedFunds?.length) {
+          setSelectedFunds(memberData.assignedFunds);
+        }
+        if (memberData.assignedCompanies?.length) {
+          setSelectedCompanies(memberData.assignedCompanies);
+        }
 
         // Build initialAccessRights from nav items
         const initialAccessRights: AccessRight[] = [];
@@ -311,7 +314,7 @@ export default function TeamMemberDetail() {
       let payload = {
         accessUrls: {
           funds: selectedFunds,
-          companies:selectedCompanies
+          companies: selectedCompanies
         },
         subUserId: id,
         active: member.active,
@@ -568,25 +571,45 @@ export default function TeamMemberDetail() {
                       </TableHeader>
                       <TableBody>
                         {portfolioCompanyList
-                        .filter(c => c.companyName)
-                        .sort((a, b) => a.companyName.localeCompare(b.companyName))
-                        .map((company) => (
-                          <TableRow key={company._id}>
-                            <TableCell className="w-12">
-                              <Checkbox
-                                checked={selectedCompanies.includes(company._id)}
-                                onCheckedChange={() => toggleCompanySelection(company._id)}
-                                id={`company-${company._id}`}
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <Label htmlFor={`company-${company._id}`} className="cursor-pointer">
-                                {company.companyName}
-                              </Label>
-                            </TableCell>
-                            <TableCell>{company.sector}</TableCell>
-                          </TableRow>
-                        ))}
+                          .filter(c => c.companyName)
+                          .sort((a, b) => a.companyName.localeCompare(b.companyName))
+                          .map((company) => {
+                            console.log(
+                              "company._id:",
+                              company._id,
+                              "selectedCompanies:",
+                              selectedCompanies,
+                              "match:",
+                              selectedCompanies.some(
+                                id => String(id).trim() === String(company._id).trim()
+                              )
+                            );
+
+                            return (
+                              <TableRow key={company._id}>
+                                <TableCell className="w-12">
+                                  <Checkbox
+                                    checked={selectedCompanies.some(
+                                      id => String(id).trim() === String(company._id).trim()
+                                    )}
+                                    onCheckedChange={() => toggleCompanySelection(company._id)}
+                                    id={`company-${company._id}`}
+                                  />
+                                </TableCell>
+
+                                <TableCell>
+                                  <Label
+                                    htmlFor={`company-${company._id}`}
+                                    className="cursor-pointer"
+                                  >
+                                    {company.companyName}
+                                  </Label>
+                                </TableCell>
+
+                                <TableCell>{company.sector}</TableCell>
+                              </TableRow>
+                            );
+                          })}
                       </TableBody>
                     </Table>
 
