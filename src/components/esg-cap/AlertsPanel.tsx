@@ -8,12 +8,11 @@
 //   overdueItems: ESGCapItem[];
 //   approachingDeadlines: ESGCapItem[];
 //   onItemClick: (item: ESGCapItem) => void;
-//   finalPlan?: boolean;
 // }
 
 // export const AlertsPanel = ({ overdueItems, approachingDeadlines, onItemClick }: AlertsPanelProps) => {
 //   const totalAlerts = overdueItems.length + approachingDeadlines.length;
-
+// console.log('overdueItems, approachingDeadlines, onItemClick',overdueItems, approachingDeadlines, onItemClick);
 //   if (totalAlerts === 0) {
 //     return (
 //       <Card className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20">
