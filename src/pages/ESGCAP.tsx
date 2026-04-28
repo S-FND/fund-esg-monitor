@@ -61,6 +61,11 @@ export default function ESGCAP() {
   const [comparePlanData, setComparePlanData] = useState<ComparePlan | null>(null);
   const previousCapItemsRef = useRef<ESGCapItem[]>([]);
   const [canEdit, setCanEdit] = useState(true);
+  const [loading,setLoading]=useState(false);
+  const [loadingMessage,setLoadingMessage]=useState("Loading ...")
+  const [entityId,setEntityId]=useState<string>(null);
+  const [reloadData, setReloadData] = useState(false);
+  const [selectedEntityId,setSelectedEntityId]=useState(null)
 
   const alerts = useESGCAPAlerts(filteredCAPItems, previousCapItemsRef.current);
 
@@ -190,8 +195,19 @@ export default function ESGCAP() {
       });
       if (data) {
         setPlanData(data);
-        setFilteredCAPItems(data.plan || []);
-        setCapItems(data.plan || []);
+        // setFilteredCAPItems(data.plan || []);
+        // setCapItems(data.plan || []);
+        const normalizedPlan = (data.plan || []).map((item, index) => ({
+          ...item,
+          tempId:item.id,
+          id: `${item.reportId}-${index}-${item.createdAt}`
+        }));
+
+        console.log("✅ FIXED IDS:", normalizedPlan.map(i => i.id));
+
+        setFilteredCAPItems(normalizedPlan);
+        setCapItems(normalizedPlan);
+        previousCapItemsRef.current = normalizedPlan;
         const latestHistory = data.planHistoryDetails?.[1];
         setComparePlanData({
           founderPlan: latestHistory?.requestPlan || [],
@@ -224,6 +240,7 @@ export default function ESGCAP() {
       const company = portfolioCompanies.find(c => c.email === selectedCompany);
       const entityId = company?.user?.entityId;
       if (entityId) {
+        setSelectedEntityId(entityId)
         getPlanList(entityId);
       }
     }
@@ -455,6 +472,10 @@ export default function ESGCAP() {
     return false;
   };
 
+  useEffect(()=>{
+    getPlanList(entityId)
+  },[reloadData])
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -577,6 +598,8 @@ export default function ESGCAP() {
                     onRevertField={handleRevertField}
                     finalPlan={isPlanFinalized}
                     progressPercentage={progressPercentage}
+                    companyEntityId={selectedEntityId}
+                    setReloadData={setReloadData}
                   />
                 </div>
               ) : (
@@ -590,6 +613,8 @@ export default function ESGCAP() {
                   onRevertField={handleRevertField}
                   finalPlan={isPlanFinalized}
                   progressPercentage={progressPercentage}
+                  companyEntityId={selectedEntityId}
+                  setReloadData={setReloadData}
                 />
               )}
             </CardContent>

@@ -2,6 +2,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Eye, ArrowLeft, ArrowRight, Undo, Plus, Trash2, Columns } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../ui/dialog";
+import { useState } from "react";
+// import { AiDialog } from "./AiDialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import DocumentSummaryDialog from "./document-summary-review";
+import { http } from "@/utils/httpInterceptor";
+import { toast } from "@/hooks/use-toast";
 
 export type CAPStatus =
   | "pending"
@@ -16,6 +26,116 @@ export type CAPCategory = "environmental" | "social" | "governance";
 export type CAPType = "CP" | "CS" | "none";
 export type CAPPriority = "High" | "Medium" | "Low";
 
+export type EvidenceType =
+  | "data"
+  | "report"
+  | "training_record"
+  | "audit"
+  | "plan"
+  | "system"
+  | "certificate"
+  | "kpi_metrics";
+
+export interface AiResponse {
+  id: string;
+  _index: number;
+
+  requiredEvidence: {
+    types: EvidenceType[];
+    normalizedTypes: EvidenceType[];
+    reasoning: string;
+    confidence: number;
+  };
+
+  documentRequired: boolean;
+  documentType: string | null;
+  sourceType: "internal" | "external" | null;
+
+  sections: string[];
+
+  templates: Template[];
+
+  reasoning: string;
+  confidence: number;
+}
+
+export interface Template {
+  type: "system" | "data" | "report" | string;
+  name: string;
+  format: "checklist" | "table" | "document" | string;
+
+  structure: TemplateStructure;
+}
+export type ESGCapDealCondition = 'CP' | 'CS' | 'none';
+
+export interface TemplateStructure {
+  components?: string[];
+  columns?: string[];
+  sections?: string[];
+  [key: string]: any;
+}
+
+export interface ValidationScores {
+  relevance: number;
+  policyCompleteness: number;
+  regulatoryAlignment: number;
+  structure: number;
+  authenticity: number;
+}
+
+export interface SuggestedImprovement {
+  section: string;
+  suggestion: string;
+  priority: "high" | "medium" | "low";
+}
+
+/**
+ * Main Interface
+ */
+
+export interface IDocumentValidation {
+  _id?: string;
+
+  actionItemId: string;
+  entityId: string;
+  documentId?: string | null;
+
+  s3Link: string;
+  fileName: string;
+
+  status: "draft" | "final";
+
+  // Core Metrics
+  overallScore: number;
+  improvementPercentage: number;
+  confidence: number;
+  valid: boolean;
+
+  // Scores
+  scores: ValidationScores;
+
+  // Analysis
+  missingSections: string[];
+  issues: string[];
+
+  // Improvements
+  suggestedImprovements: SuggestedImprovement[];
+
+  // Summary
+  summary?: string;
+
+  // AI Raw Response
+  rawResponse?: any;
+
+  // Versioning
+  version: number;
+
+  aiInsights?: any;
+
+  // Timestamps (since schema has timestamps: true)
+  createdAt?: Date;
+  updatedAt?: Date;
+}
 export interface ESGCapItem {
   id: string;
   reportId: string;
@@ -30,8 +150,35 @@ export interface ESGCapItem {
   actualDate?: string;
   status: CAPStatus;
   assignedTo?: string;
-  dealCondition?: CAPType;
-  createdAt?: string;
+  dealCondition: ESGCapDealCondition;
+  createdAt: string;
+  actualCompletionDate?: string;
+  actualDate?: string;
+  acceptedAt?: string;
+  resource?: string;
+  deliverable?: string;
+  statusUpdate?: string;
+  reviewRemarks?: string;
+  lastReviewDate?: string;
+  progressPercentage?: number;
+  implementationSupportNeeded?: string;
+  closureVerifiedBy?: string;
+  CS?: string;
+  remarks?: string;
+  theme?: "Policy" | "SOP" | "Metrics" | "Logs";
+  data_type?: string;
+  documentType?: string;
+  sections?: string[];
+  sourceType?: string;
+  aiResponseRaw?: AiResponse;
+  fileUploadedData?: {
+    filename: string;
+    mimetype: string;
+    size: number;
+    s3Link: string;
+    status: 'Accepted' | 'Rejected' | 'Pending';
+    aiSummary: IDocumentValidation;
+  }[]
 }
 
 interface CAPTableProps {
@@ -44,6 +191,8 @@ interface CAPTableProps {
   onRevert?: (itemId: string) => void;
   finalPlan?: boolean;
   progressPercentage?: number;
+  companyEntityId: string
+  setReloadData?: (reload: boolean) => void;
 }
 
 const getStatusBadge = (status: CAPStatus) => {
@@ -130,7 +279,9 @@ export function CAPTable({
   originalItems = [],
   isComparisonView = false,
   onRevertField,
-  onRevert
+  onRevert,
+  companyEntityId,
+  setReloadData
 }: CAPTableProps) {
   const completedItems = items.filter(item => item.status === "completed").length;
   const progressPercentage = items.length > 0 ? Math.round((completedItems / items.length) * 100) : 0;
@@ -236,7 +387,72 @@ export function CAPTable({
       createdAt: new Date().toISOString(),
     };
 
-  const getOriginalItem = (id: string) => originalItems.find(item => item.id === id) || null;
+    onAddItem?.(newItem);
+
+    // Reset form
+    setNewRowData({
+      item: "",
+      category: "social",
+      priority: "Medium",
+      issue: "",
+      relatedFinding: "",
+      esgLever: "",
+      capSource: "",
+      measures: "",
+      resource: "",
+      deliverable: "",
+      timelineMonth: "",
+      targetDate: "",
+      actualDate: "",
+      dealCondition: "CP",
+      status: "pending",
+      statusUpdate: "",
+      progressPercentage: "",
+      reviewRemarks: "",
+      lastReviewDate: "",
+      implementationSupportNeeded: "",
+      closureVerifiedBy: "",
+      assignedTo: "",
+      remarks: "",
+    });
+    setIsAddingRow(false);
+  };
+
+  const handleAcceptDocument = async (payload) => {
+    const {data,error}= await http.post('investor/esgdd/escap/document/accept', {
+      entityId:companyEntityId,
+      itemId: item['_id'],
+      fileName: payload.fileName,
+      status: payload.status,
+      reason: payload.reason
+    })
+    if (error) {
+      toast({
+        title: `${payload.fileName} failed to process`,
+        description: "Please try again or check the document.",
+        variant: "destructive",
+      });
+      return; // ✅ stop execution
+    }
+    
+    if (data?.status) {
+      toast({
+        title: `${payload.fileName} ${payload.status === "Accepted" ? "approved" : "rejected"}`,
+        description: payload.reason ? `Reason: ${payload.reason}` : undefined,
+        variant: "default", // ✅ success style
+      });
+    
+      setIsViewAiOpen(false);
+      setReloadData(true);
+    }
+  }
+
+  const getOriginalItem = (id: string | number) => originalItems.find(item => item.id === id) || null;
+
+  const onAiShow = (item: ESGCapItem) => {
+    setIsViewAiOpen(true);
+    setItem(item);
+  };
 
   // Helper to render a field with comparison support (used in full view)
   const renderField = (
@@ -910,7 +1126,16 @@ export function CAPTable({
         </DialogContent>
       </Dialog>
 
-      <AiDialog isViewAiOpen={isViewAiOpen} onOpenChange={setIsViewAiOpen} item={item} />
+      {/* <AiDialog isViewAiOpen={isViewAiOpen} onOpenChange={setIsViewAiOpen} item={item} /> */}
+      <DocumentSummaryDialog open={isViewAiOpen} files={item.fileUploadedData} onClose={() => setIsViewAiOpen(false)}
+        onSubmit={({ index, status, reason, fileName }) => {
+          handleAcceptDocument({
+            fileIndex: index,
+            status,
+            reason,
+            fileName
+          });
+        }} />
     </TooltipProvider>
   );
 }
