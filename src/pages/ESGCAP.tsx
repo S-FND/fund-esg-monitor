@@ -66,6 +66,7 @@ export default function ESGCAP() {
   const [loadingMessage,setLoadingMessage]=useState("Loading ...")
   const [entityId,setEntityId]=useState<string>(null);
   const [reloadData, setReloadData] = useState(false);
+  const [selectedEntityId,setSelectedEntityId]=useState(null)
 
   const alerts = useESGCAPAlerts(filteredCAPItems, previousCapItemsRef.current, planData?.finalPlan);
 
@@ -247,7 +248,7 @@ export default function ESGCAP() {
 
   useEffect(() => {
     if (selectedCompany !== "all") {
-  
+      
       setFilteredCAPItems([]);
       setCapItems([]);
       setPlanData(null);
@@ -261,6 +262,7 @@ export default function ESGCAP() {
       const entityId = company?.user?.entityId;
   
       if (entityId) {
+        setSelectedEntityId(entityId)
         getPlanList(entityId);
       }
     }
@@ -635,7 +637,7 @@ export default function ESGCAP() {
                     onRevertField={handleRevertField}
                     finalPlan={isPlanFinalized}
                     progressPercentage={progressPercentage}
-                    companyEntityId={entityId}
+                    companyEntityId={selectedEntityId}
                     setReloadData={setReloadData}
                   />
                 </div>
@@ -652,7 +654,7 @@ export default function ESGCAP() {
                   onRevertField={handleRevertField}
                   finalPlan={isPlanFinalized}
                   progressPercentage={progressPercentage}
-                  companyEntityId={entityId}
+                  companyEntityId={selectedEntityId}
                   setReloadData={setReloadData}
                 />
               )}
