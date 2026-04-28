@@ -7,10 +7,10 @@ import { FilterControls } from "@/components/esg-cap/FilterControls";
 import { AlertsPanel } from "@/components/esg-cap/AlertsPanel";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { 
-  ArrowLeft, 
-  ArrowRight, 
-  ArrowUp, 
+import {
+  ArrowLeft,
+  ArrowRight,
+  ArrowUp,
   ArrowDown,
   FileText,
   CheckCircle2,
@@ -21,6 +21,7 @@ import { http } from "@/utils/httpInterceptor";
 import { useESGCAPAlerts } from "@/hooks/useESGCAPAlerts";
 import { AddCAPDialog } from "@/components/esg-cap/AddCAPDialog";
 import { EsgddAPIs } from "@/network/esgdd";
+import Loader from "@/components/ui/loader";
 
 interface PlanHistory {
   updateByUserId: string;
@@ -61,8 +62,10 @@ export default function ESGCAP() {
   const [comparePlanData, setComparePlanData] = useState<ComparePlan | null>(null);
   const previousCapItemsRef = useRef<ESGCapItem[]>([]);
   const [canEdit, setCanEdit] = useState(true);
+  const [loading,setLoading]=useState(false);
+  const [loadingMessage,setLoadingMessage]=useState("Loading ...")
 
-  const alerts = useESGCAPAlerts(filteredCAPItems, previousCapItemsRef.current);
+  const alerts = useESGCAPAlerts(filteredCAPItems, previousCapItemsRef.current, planData?.finalPlan);
 
   const [financialYear, setFinancialYear] = useState("");
 
@@ -86,13 +89,15 @@ export default function ESGCAP() {
   const inProgressItems = filteredCAPItems.filter(i => i.status === 'in_progress').length;
 
   const handleReview = (item: ESGCapItem) => {
-    const currentItem = capItems.find(i => i.id === item.id);
-    if (currentItem) {
-      const clonedItem = JSON.parse(JSON.stringify(currentItem));
-      setSelectedItem(clonedItem);
-      setReviewDialogOpen(true);
-      setCanEdit(true);
-    }
+    let currentItem =
+      capItems.find(i => i.id === item.id) ||
+      capItems.find(i => i.reportId === item.reportId && i.item === item.item);
+
+    const finalItem = currentItem || item;
+
+    setSelectedItem(JSON.parse(JSON.stringify(finalItem)));
+    setReviewDialogOpen(true);
+    setCanEdit(true);
   };
 
   const handleApprove = () => {
@@ -144,9 +149,9 @@ export default function ESGCAP() {
         assignedTo: item.assignedTo,
         targetDate: item.targetDate
       };
-  
+
       const [res, error] = await EsgddAPIs.sendReminder(payload);
-  
+
       if (res) {
         toast({
           title: "Reminder Sent",
@@ -155,7 +160,7 @@ export default function ESGCAP() {
       } else {
         throw new Error(error || "Failed to send reminder");
       }
-  
+
     } catch (err) {
       toast({
         title: "Error",
@@ -184,17 +189,35 @@ export default function ESGCAP() {
 
   const getPlanList = async (entityId: string) => {
     try {
+      setLoading(true);
+      setLoadingMessage("Loading plan details ...")
       const entityIdWithYear = `${entityId}?financialYear=${financialYear}`;
       const [data, error] = await EsgddAPIs.getEsgCapPlan({
         entityId: entityIdWithYear,
       });
-      if (data) {
+      setLoading(false);
+      console.log('data?.plan?.length',data?.plan?.length);
+      if (data?.plan?.length > 0) {
         setPlanData(data);
-        setFilteredCAPItems(data.plan || []);
-        setCapItems(data.plan || []);
+        // setFilteredCAPItems(data.plan || []);
+        // setCapItems(data.plan || []);
+        const normalizedPlan = (data.plan || []).map((item, index) => ({
+          ...item,
+          id: `${item.reportId}-${index}-${item.createdAt}`
+        }));
+
+        console.log("✅ FIXED IDS:", normalizedPlan.map(i => i.id));
+
+        setFilteredCAPItems(normalizedPlan);
+        setCapItems(normalizedPlan);
+        previousCapItemsRef.current = normalizedPlan;
         const latestHistory = data.planHistoryDetails?.[1];
         setComparePlanData({
-          founderPlan: latestHistory?.requestPlan || [],
+          // founderPlan: latestHistory?.requestPlan || [],
+          founderPlan: (latestHistory?.requestPlan || []).map((item, index) => ({
+            ...item,
+            id: item.id || item._id || `${item.reportId}-history-${index}`
+          })),
           investorPlan: data.plan || [],
           founderPlanLastUpdate: latestHistory?.createdAt || 0,
           investorPlanLastUpdate: Date.now()
@@ -220,9 +243,20 @@ export default function ESGCAP() {
   };
 
   useEffect(() => {
-    if (selectedCompany !== 'all') {
-      const company = portfolioCompanies.find(c => c.email === selectedCompany);
+    if (selectedCompany !== "all") {
+  
+      setFilteredCAPItems([]);
+      setCapItems([]);
+      setPlanData(null);
+  
+      const company = portfolioCompanies.find(
+        c =>
+          c._id === selectedCompany ||   // first try id
+          c.email === selectedCompany    // fallback email
+      );
+  
       const entityId = company?.user?.entityId;
+  
       if (entityId) {
         getPlanList(entityId);
       }
@@ -326,7 +360,8 @@ export default function ESGCAP() {
 
   const handleAcceptCap = async () => {
     if (!planData) return;
-
+    setLoading(true);
+    setLoadingMessage("Accepting plan details & Analyzing action items ...")
     const isInvestor = user?.entityType === 1;
     const isFounder = user?.entityType === 2;
 
@@ -352,7 +387,7 @@ export default function ESGCAP() {
       };
 
       const [result, error] = await EsgddAPIs.esgddAcceptPlan(payload);
-
+      setLoading(false);
       if (result?.data) {
         const userType = isInvestor ? "Investor" : "Founder";
         const message = bothAccepted
@@ -365,7 +400,7 @@ export default function ESGCAP() {
         });
 
         if (selectedCompany !== "all") {
-          await getPlanList(selectedCompany);
+          await getPlanList(planData.entityId);
         }
       }
     } catch (error) {
@@ -411,7 +446,7 @@ export default function ESGCAP() {
   }, []);
 
   const handleAddItem = (newItem: ESGCapItem) => {
-    const itemWithId = newItem.id ? newItem : { ...newItem, id: (capItems.length + 1).toString() };
+    const itemWithId = newItem.id ? newItem : { ...newItem, id: `${Date.now()}-${Math.random()}` };
     const updatedItems = [...capItems, itemWithId];
     setCapItems(updatedItems);
     setFilteredCAPItems(updatedItems);
@@ -426,6 +461,18 @@ export default function ESGCAP() {
     setCapItems(updatedItems);
     setFilteredCAPItems(updatedItems);
     saveToLocalStorage(updatedItems);
+  };
+
+  const handleDeleteItem = (itemId: string | number) => {
+    const updatedItems = capItems.filter(item => item.id !== itemId);
+    setCapItems(updatedItems);
+    setFilteredCAPItems(updatedItems);
+    saveToLocalStorage(updatedItems);
+    
+    toast({
+      title: "Item Deleted",
+      description: "Item has been removed from the plan.",
+    });
   };
 
   const saveToLocalStorage = (items: ESGCapItem[]) => {
@@ -457,6 +504,7 @@ export default function ESGCAP() {
 
   return (
     <div className="space-y-6">
+      <Loader show={loading} text={loadingMessage}/>
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">ESG Corrective Action Plan</h1>
@@ -550,6 +598,7 @@ export default function ESGCAP() {
             overdueItems={alerts.overdueItems}
             approachingDeadlines={alerts.approachingDeadlines}
             onItemClick={handleReview}
+            finalPlan={isPlanFinalized}
           />
 
           <Card>
@@ -572,6 +621,8 @@ export default function ESGCAP() {
                     originalItems={comparePlanData.investorPlan}
                     onReview={handleReview}
                     onSendReminder={handleSendReminder}
+                    onAddItem={handleAddItem}
+                    onDeleteItem={handleDeleteItem} 
                     isComparisonView={true}
                     onRevert={handleRevertToOriginal}
                     onRevertField={handleRevertField}
@@ -585,6 +636,8 @@ export default function ESGCAP() {
                   originalItems={previousCapItemsRef.current}
                   onReview={handleReview}
                   onSendReminder={handleSendReminder}
+                  onAddItem={handleAddItem}
+                  onDeleteItem={handleDeleteItem} 
                   isComparisonView={false}
                   onRevert={handleRevertToOriginal}
                   onRevertField={handleRevertField}
