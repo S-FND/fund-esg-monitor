@@ -137,22 +137,18 @@ export interface IDocumentValidation {
   updatedAt?: Date;
 }
 export interface ESGCapItem {
-  id: string | number;
+  id: string;
+  reportId: string;
   item: string;
-  issue?: string;
-  relatedFinding?: string;
-  esgLever?: string;
-  capSource?: string;
-  measures: string;
-  reportId?: string;
-  description?: string;
   category: CAPCategory;
-  recommendation?: string;
+  CS?: string;
   priority: CAPPriority;
+  measures: string;
+  resource: string;
+  deliverable: string;
+  targetDate: string;
+  actualDate?: string;
   status: CAPStatus;
-  deadline?: string;
-  targetDate?: string;
-  timelineMonth?: number;
   assignedTo?: string;
   dealCondition: ESGCapDealCondition;
   createdAt: string;
@@ -189,12 +185,10 @@ interface CAPTableProps {
   items: ESGCapItem[];
   onReview: (item: ESGCapItem) => void;
   onSendReminder: (item: ESGCapItem) => void;
-  onAddItem?: (newItem: ESGCapItem) => void;
-  onDeleteItem?: (itemId: string | number) => void;
-  originalItems?: ESGCapItem[];
+  originalItems?: ESGCapItem[]; // for comparison
   isComparisonView?: boolean;
-  onRevertField?: (itemId: string | number, field: keyof ESGCapItem) => void;
-  onRevert?: (itemId: string | number) => void;
+  onRevertField?: (itemId: string, field: keyof ESGCapItem) => void;
+  onRevert?: (itemId: string) => void;
   finalPlan?: boolean;
   progressPercentage?: number;
   companyEntityId: string
@@ -233,19 +227,7 @@ const getPriorityBadge = (priority: CAPPriority) => {
   }
 };
 
-const getCategoryBadge = (category: string) => {
-  switch (category?.toLowerCase()) {
-    case "environmental":
-      return <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">Environmental</Badge>;
-    case "social":
-      return <Badge className="bg-blue-100 text-blue-700 border-blue-200">Social</Badge>;
-    case "governance":
-      return <Badge className="bg-amber-100 text-amber-700 border-amber-200">Governance</Badge>;
-    default:
-      return <Badge variant="secondary">{category}</Badge>;
-  }
-};
-
+// Render field with changes highlight and revert
 const RenderChangedField = ({
   currentValue,
   originalValue,
@@ -254,14 +236,14 @@ const RenderChangedField = ({
   fieldName,
   onRevertField
 }: {
-  currentValue?: string;
-  originalValue?: string;
+  currentValue: string;
+  originalValue: string;
   isComparisonView?: boolean;
-  itemId?: string | number;
+  itemId?: string;
   fieldName?: keyof ESGCapItem;
-  onRevertField?: (itemId: string | number, field: keyof ESGCapItem) => void;
+  onRevertField?: (itemId: string, field: keyof ESGCapItem) => void;
 }) => {
-  const hasChanged = (currentValue || "") !== (originalValue || "");
+  const hasChanged = currentValue !== originalValue;
 
   if (!hasChanged || !isComparisonView) return <span>{currentValue}</span>;
 
@@ -294,8 +276,6 @@ export function CAPTable({
   items,
   onReview,
   onSendReminder,
-  onAddItem,
-  onDeleteItem,
   originalItems = [],
   isComparisonView = false,
   onRevertField,
