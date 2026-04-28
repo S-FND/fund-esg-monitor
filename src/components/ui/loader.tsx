@@ -35,7 +35,7 @@ export default function Loader({ show, text = "Loading..." }) {
 
     if (!visible) return null;
     return (
-        <div className="fixed inset-0 flex items-center justify-center z-[9999] pointer-events-none">
+        <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
             <div className="absolute top-0 left-0 w-full h-1 bg-transparent">
                 <div
                     className="h-full bg-blue-500 transition-all duration-300"
