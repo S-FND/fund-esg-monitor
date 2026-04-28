@@ -231,6 +231,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                 assignedTo: row.assignedTo,
                 dealCondition: row.dealCondition,
                 createdAt: new Date().toISOString(),
+                insightsApproved:false
             };
 
             // Add ID separately to avoid TypeScript error
@@ -413,6 +414,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                     assignedTo: getValue('assignedto'),
                     dealCondition: (getValue('dealcondition') || "none") as CAPType,
                     createdAt: new Date().toISOString(),
+                    insightsApproved:false
                   };
 
                 const newItem = {

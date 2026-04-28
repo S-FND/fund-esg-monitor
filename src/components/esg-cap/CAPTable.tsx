@@ -79,6 +79,8 @@ export interface TemplateStructure {
 }
 
 export interface ESGCapItem {
+  tempId?:string;
+  _id?:string;
   id: string | number;  // Can be string or number based on your API
   item: string;
   measures: string;
@@ -106,7 +108,9 @@ export interface ESGCapItem {
   documentType?: string;
   sections?: string[];
   sourceType?: string;
-  aiResponseRaw?:AiResponse
+  aiResponseRaw?:AiResponse;
+  insightsApproved:boolean;
+  manualInsights?:AiResponse
 }
 
 // export interface ESGCapItem {
@@ -137,6 +141,8 @@ interface CAPTableProps {
   onRevert?: (itemId: string | number) => void;
   finalPlan?: boolean;
   progressPercentage?: number;
+  companyEntityId:string
+  setReloadData?: (reload: boolean) => void;
 }
 
 const getStatusBadge = (status: CAPStatus) => {
@@ -236,7 +242,9 @@ export function CAPTable({
   originalItems = [],
   isComparisonView = false,
   onRevertField,
-  onRevert
+  onRevert,
+  companyEntityId,
+  setReloadData
 }: CAPTableProps) {
   const completedItems = items.filter(item => item.status === "completed").length;
   const progressPercentage = items.length > 0 ? Math.round((completedItems / items.length) * 100) : 0;
@@ -475,7 +483,7 @@ export function CAPTable({
           </DialogFooter>
         </DialogContent>
       </Dialog> */}
-      <AiDialog isViewAiOpen={isViewAiOpen} onOpenChange={setIsViewAiOpen} item={item} />
+      <AiDialog isViewAiOpen={isViewAiOpen} onOpenChange={setIsViewAiOpen} item={item} companyEntityId={companyEntityId} setReloadData={setReloadData} />
     </>
 
 

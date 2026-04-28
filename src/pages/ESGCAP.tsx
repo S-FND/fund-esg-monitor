@@ -64,6 +64,8 @@ export default function ESGCAP() {
   const [canEdit, setCanEdit] = useState(true);
   const [loading,setLoading]=useState(false);
   const [loadingMessage,setLoadingMessage]=useState("Loading ...")
+  const [entityId,setEntityId]=useState<string>(null);
+  const [reloadData, setReloadData] = useState(false);
 
   const alerts = useESGCAPAlerts(filteredCAPItems, previousCapItemsRef.current, planData?.finalPlan);
 
@@ -202,6 +204,7 @@ export default function ESGCAP() {
         // setCapItems(data.plan || []);
         const normalizedPlan = (data.plan || []).map((item, index) => ({
           ...item,
+          tempId:item.id,
           id: `${item.reportId}-${index}-${item.createdAt}`
         }));
 
@@ -245,6 +248,7 @@ export default function ESGCAP() {
     if (selectedCompany !== 'all') {
       const company = portfolioCompanies.find(c => c.email === selectedCompany);
       const entityId = company?.user?.entityId;
+      setEntityId(entityId)
       if (entityId) {
         getPlanList(entityId);
       }
@@ -478,6 +482,10 @@ export default function ESGCAP() {
     return false;
   };
 
+  useEffect(()=>{
+    getPlanList(entityId)
+  },[reloadData])
+
   return (
     <div className="space-y-6">
       <Loader show={loading} text={loadingMessage}/>
@@ -602,6 +610,8 @@ export default function ESGCAP() {
                     onRevertField={handleRevertField}
                     finalPlan={isPlanFinalized}
                     progressPercentage={progressPercentage}
+                    companyEntityId={entityId}
+                    setReloadData={setReloadData}
                   />
                 </div>
               ) : (
@@ -615,6 +625,8 @@ export default function ESGCAP() {
                   onRevertField={handleRevertField}
                   finalPlan={isPlanFinalized}
                   progressPercentage={progressPercentage}
+                  companyEntityId={entityId}
+                  setReloadData={setReloadData}
                 />
               )}
             </CardContent>
