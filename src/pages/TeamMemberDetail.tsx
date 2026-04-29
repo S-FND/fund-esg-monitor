@@ -56,8 +56,8 @@ export default function TeamMemberDetail() {
   const [selectedFunds, setSelectedFunds] = useState<string[]>([]);
   const [selectedCompanies, setSelectedCompanies] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState("access");
-  const [funds,setFunds]=useState([])
-  const[portfolioCompanyList,setPortfolioCompanyList]=useState([])
+  const [funds, setFunds] = useState([])
+  const [portfolioCompanyList, setPortfolioCompanyList] = useState([])
 
   // Create a comprehensive navigation items list that includes main items and their submenus
   const allNavItems = [
@@ -314,7 +314,7 @@ export default function TeamMemberDetail() {
       let payload = {
         accessUrls: {
           funds: selectedFunds,
-          companies:selectedCompanies
+          companies: selectedCompanies
         },
         subUserId: id,
         active: member.active,
