@@ -127,7 +127,7 @@ export default function TeamMemberEdit() {
         description: `${formData.name}'s information has been updated successfully.`
       });
       setSubmitting(false);
-      // navigate(`/team/${id}`);
+      navigate("/team");
     }, 1000);
     } catch (error) {
       console.error("Error adding team member:", error);
@@ -188,7 +188,7 @@ export default function TeamMemberEdit() {
         <Button 
           variant="outline" 
           size="sm"
-          onClick={() => navigate(`/team/${id}`)} 
+          onClick={() => navigate(-1)}
           className="mr-2"
         >
           <ArrowLeft className="h-4 w-4 mr-1" />
@@ -257,7 +257,7 @@ export default function TeamMemberEdit() {
             </div>
           </CardContent>
           <CardFooter className="flex justify-end">
-            <Button 
+            {/* <Button 
               type="button" 
               variant="outline" 
               onClick={() => navigate(`/team/${id}`)}
@@ -265,7 +265,7 @@ export default function TeamMemberEdit() {
               disabled={submitting}
             >
               Cancel
-            </Button>
+            </Button> */}
             <Button type="submit" disabled={submitting}>
               <Save className="h-4 w-4 mr-1" />
               {submitting ? "Saving..." : "Save Changes"}
