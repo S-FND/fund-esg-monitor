@@ -137,45 +137,6 @@ export interface IDocumentValidation {
   updatedAt?: Date;
 }
 export interface ESGCapItem {
-  id: string;
-  _index: number;
-
-  requiredEvidence: {
-    types: EvidenceType[];
-    normalizedTypes: EvidenceType[];
-    reasoning: string;
-    confidence: number;
-  };
-
-  documentRequired: boolean;
-  documentType: string | null;
-  sourceType: "internal" | "external" | null;
-
-  sections: string[];
-
-  templates: Template[];
-
-  reasoning: string;
-  confidence: number;
-}
-
-export interface Template {
-  type: "system" | "data" | "report" | string;
-  name: string;
-  format: "checklist" | "table" | "document" | string;
-
-  structure: TemplateStructure;
-}
-export type ESGCapDealCondition = 'CP' | 'CS' | 'none';
-
-export interface TemplateStructure {
-  components?: string[];
-  columns?: string[];
-  sections?: string[];
-  [key: string]: any;
-}
-
-export interface ESGCapItem {
   id: string | number;
   item: string;
   issue?: string;
@@ -355,9 +316,6 @@ export function CAPTable({
     item: null,
   });
   const [confirmText, setConfirmText] = useState("");
-
-
- 
 
   const handleDeleteClick = (item: ESGCapItem) => {
     setDeleteDialog({ open: true, item });
@@ -579,33 +537,66 @@ export function CAPTable({
 
   return (
     <TooltipProvider>
+      {/* View toggle button */}
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex gap-2">
+          <Button
+            variant={showFullColumns ? "default" : "outline"}
+            size="sm"
+            onClick={() => setShowFullColumns(!showFullColumns)}
+          >
+            <Columns className="h-4 w-4 mr-2" />
+            {showFullColumns ? "Show Compact View" : "Show All Columns"}
+          </Button>
+        </div>
+        <div className="text-sm text-muted-foreground">
+          {items.length} items
+        </div>
+      </div>
+
       <div className="border rounded-md overflow-x-auto">
-        <table className="w-full text-sm min-w-[2900px]">
+        <table className={`w-full text-sm ${showFullColumns ? 'min-w-[2900px]' : 'min-w-[900px]'}`}>
           <thead className="bg-muted sticky top-0 z-10">
             <tr>
-              <th className="p-3 text-left">S. No</th>
-              <th className="p-3 text-left">Item</th>
-              <th className="p-3 text-left">Category</th>
-              <th className="p-3 text-left">Priority</th>
-              <th className="p-3 text-left">Issue</th>
-              <th className="p-3 text-left">Related Finding</th>
-              <th className="p-3 text-left">ESG Lever</th>
-              <th className="p-3 text-left">CAP Source</th>
-              <th className="p-3 text-left">Measures & Corrective Actions</th>
-              <th className="p-3 text-left">Resource & Responsibility</th>
-              <th className="p-3 text-left">Expected Deliverable</th>
-              <th className="p-3 text-left">Timeline Month</th>
-              <th className="p-3 text-left">Target Date</th>
-              <th className="p-3 text-left">Actual Date</th>
-              <th className="p-3 text-left">CP/CS</th>
-              <th className="p-3 text-left">Status</th>
-              <th className="p-3 text-left">Current Status Update</th>
-              <th className="p-3 text-left">Review Remarks</th>
-              <th className="p-3 text-left">Last Review Date</th>
-              <th className="p-3 text-left">Implementation Support Needed</th>
-              <th className="p-3 text-left">Closure Verified By</th>
-              <th className="p-3 text-left">Assigned To</th>
-              <th className="p-3 text-center">Actions</th>
+              {!showFullColumns ? (
+                // COMPACT VIEW HEADERS
+                <>
+                  <th className="p-3 text-left">S. No</th>
+                  <th className="p-3 text-left">Item</th>
+                  <th className="p-3 text-left">Issue</th>
+                  <th className="p-3 text-left">Measures & Corrective Actions</th>
+                  <th className="p-3 text-left">Progress Percentage</th>
+                  <th className="p-3 text-center">Actions</th>
+                </>
+              ) : (
+                // FULL VIEW HEADERS (all columns + Progress Percentage after Target Date)
+                <>
+                  <th className="p-3 text-left">S. No</th>
+                  <th className="p-3 text-left">Item</th>
+                  <th className="p-3 text-left">Category</th>
+                  <th className="p-3 text-left">Priority</th>
+                  <th className="p-3 text-left">Issue</th>
+                  <th className="p-3 text-left">Related Finding</th>
+                  <th className="p-3 text-left">ESG Lever</th>
+                  <th className="p-3 text-left">CAP Source</th>
+                  <th className="p-3 text-left">Measures & Corrective Actions</th>
+                  <th className="p-3 text-left">Resource & Responsibility</th>
+                  <th className="p-3 text-left">Expected Deliverable</th>
+                  <th className="p-3 text-left">Timeline Month</th>
+                  <th className="p-3 text-left">Target Date</th>
+                  <th className="p-3 text-left">Progress Percentage</th>   {/* NEW */}
+                  <th className="p-3 text-left">Actual Date</th>
+                  <th className="p-3 text-left">CP/CS</th>
+                  <th className="p-3 text-left">Status</th>
+                  <th className="p-3 text-left">Current Status Update</th>
+                  <th className="p-3 text-left">Review Remarks</th>
+                  <th className="p-3 text-left">Last Review Date</th>
+                  <th className="p-3 text-left">Implementation Support Needed</th>
+                  <th className="p-3 text-left">Closure Verified By</th>
+                  <th className="p-3 text-left">Assigned To</th>
+                  <th className="p-3 text-center">Actions</th>
+                </>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -613,301 +604,185 @@ export function CAPTable({
               const originalItem = getOriginalItem(item.id);
               return (
                 <tr key={item.id} className={isComparisonView ? "bg-muted/30 hover:bg-muted/50" : "hover:bg-gray-50"}>
-                  {/* S. No */}
-                  <td className="p-3">{index + 1}</td>
-
-                  {/* 1. Item */}
-                  <td className="p-3">
-                    {originalItem ? (
-                      <RenderChangedField
-                        currentValue={item.item}
-                        originalValue={originalItem.item}
-                        isComparisonView={isComparisonView}
-                        itemId={item.id}
-                        fieldName="item"
-                        onRevertField={onRevertField}
-                      />
-                    ) : (
-                      <div className="line-clamp-2">{item.item}</div>
-                    )}
+                  {!showFullColumns ? (
+                    // COMPACT VIEW ROWS
+                    <>
+                      <td className="p-3">{index + 1}</td>
+                      <td className="p-3">
+                        {renderField(item.item, originalItem?.item, "item", item.id)}
+                      </td>
+                      <td className="p-3">
+                        {renderField(item.issue, originalItem?.issue, "issue", item.id)}
+                      </td>
+                      <td className="p-3">
+                        {renderField(item.measures, originalItem?.measures, "measures", item.id)}
+                      </td>
+                      <td className="p-3">
+                        {renderField(
+                          item.progressPercentage ? `${item.progressPercentage}%` : "-",
+                          originalItem?.progressPercentage ? `${originalItem.progressPercentage}%` : "-",
+                          "progressPercentage",
+                          item.id
+                        )}
+                      </td>
+                      <td className="p-3 text-right">
+                        {/* Actions (same as original) */}
+                        <div className="flex gap-2 justify-end items-center">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button size="sm" variant="outline" onClick={() => onReview(item)}>
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent><p>Review CAP item</p></TooltipContent>
+                          </Tooltip>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button size="sm" variant="outline">•••</Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => onSendReminder(item)}>Send Reminder</DropdownMenuItem>
+                              {item.aiResponseRaw && (
+                                <DropdownMenuItem onClick={() => onAiShow(item)}>Review AI Suggestion</DropdownMenuItem>
+                              )}
+                              {!isComparisonView && onDeleteItem && (
+                                <DropdownMenuItem onClick={() => handleDeleteClick(item)} className="text-red-600">
+                                  Delete Item
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                          {isComparisonView && onRevert && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button size="sm" variant="outline" className="text-amber-600 border-amber-600" onClick={() => onRevert(item.id)}>
+                                  <ArrowLeft className="h-4 w-4" /> Revert
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent><p>Revert all changes</p></TooltipContent>
+                            </Tooltip>
+                          )}
+                        </div>
+                      </td>
+                    </>
+                  ) : (
+                    // FULL VIEW ROWS (including Progress Percentage after Target Date)
+                    <>
+                      <td className="p-3">{index + 1}</td>
+                      <td className="p-3">
+                        {renderField(item.item, originalItem?.item, "item", item.id)}
+                      </td>
+                      <td className="p-3">
+                        {renderField(item.category, originalItem?.category, "category", item.id, true, 'category')}
+                      </td>
+                      <td className="p-3">
+                        {renderField(item.priority, originalItem?.priority, "priority", item.id, true, 'priority')}
+                      </td>
+                      <td className="p-3">
+                        {renderField(item.issue, originalItem?.issue, "issue", item.id)}
+                      </td>
+                      <td className="p-3">
+                        {renderField(item.relatedFinding, originalItem?.relatedFinding, "relatedFinding", item.id)}
+                      </td>
+                      <td className="p-3">
+                        {renderField(item.esgLever, originalItem?.esgLever, "esgLever", item.id)}
+                      </td>
+                      <td className="p-3">
+                        {renderField(item.capSource, originalItem?.capSource, "capSource", item.id)}
+                      </td>
+                      <td className="p-3">
+                        {renderField(item.measures, originalItem?.measures, "measures", item.id)}
+                      </td>
+                      <td className="p-3">
+                        {renderField(item.resource, originalItem?.resource, "resource", item.id)}
+                      </td>
+                      <td className="p-3">
+                        {renderField(item.deliverable, originalItem?.deliverable, "deliverable", item.id)}
+                      </td>
+                      <td className="p-3">
+                        {renderField(item.timelineMonth, originalItem?.timelineMonth, "timelineMonth", item.id)}
+                      </td>
+                      <td className="p-3">
+                        {renderField(item.targetDate, originalItem?.targetDate, "targetDate", item.id)}
+                      </td>
+                      {/* Progress Percentage column (after Target Date) */}
+                      <td className="p-3">
+                        {renderField(
+                          item.progressPercentage ? `${item.progressPercentage}%` : "-",
+                          originalItem?.progressPercentage ? `${originalItem.progressPercentage}%` : "-",
+                          "progressPercentage",
+                          item.id
+                        )}
                   </td>
-
-                  {/* 2. Category */}
-                  <td className="p-3">{getCategoryBadge(item.category)}</td>
-
-                  {/* 3. Priority */}
-                  <td className="p-3">{getPriorityBadge(item.priority)}</td>
-
-                  {/* 4. Issue */}
-                  <td className="p-3">
-                    <div className="relative">
-                      <div className="line-clamp-2">{item.issue || "-"}</div>
-                      {item.issue && item.issue.length > 30 && (
-                        <button className="text-blue-500 text-xs hover:underline mt-1 block" onClick={(e) => {
-                          const target = e.currentTarget.previousElementSibling;
-                          if (target) {
-                            target.classList.toggle('line-clamp-2');
-                            target.classList.toggle('line-clamp-none');
-                            e.currentTarget.textContent = target.classList.contains('line-clamp-none') ? 'Show less' : 'View more';
-                          }
-                        }}>View more</button>
-                      )}
-                    </div>
-                  </td>
-
-                  {/* 5. Related Finding */}
-                  <td className="p-3">
-                    <div className="relative">
-                      <div className="line-clamp-2">{item.relatedFinding || "-"}</div>
-                      {item.relatedFinding && item.relatedFinding.length > 30 && (
-                        <button className="text-blue-500 text-xs hover:underline mt-1 block" onClick={(e) => {
-                          const target = e.currentTarget.previousElementSibling;
-                          if (target) {
-                            target.classList.toggle('line-clamp-2');
-                            target.classList.toggle('line-clamp-none');
-                            e.currentTarget.textContent = target.classList.contains('line-clamp-none') ? 'Show less' : 'View more';
-                          }
-                        }}>View more</button>
-                      )}
-                    </div>
-                  </td>
-
                   {/* 6. ESG Lever */}
-                  <td className="p-3">
-                    <div className="relative">
-                      <div className="line-clamp-2">{item.esgLever || "-"}</div>
-                      {item.esgLever && item.esgLever.length > 30 && (
-                        <button className="text-blue-500 text-xs hover:underline mt-1 block" onClick={(e) => {
-                          const target = e.currentTarget.previousElementSibling;
-                          if (target) {
-                            target.classList.toggle('line-clamp-2');
-                            target.classList.toggle('line-clamp-none');
-                            e.currentTarget.textContent = target.classList.contains('line-clamp-none') ? 'Show less' : 'View more';
-                          }
-                        }}>View more</button>
-                      )}
-                    </div>
-                  </td>
-
-                  {/* 6.1. CAP Source */}
-                   <td className="p-3">
-                    <div className="relative">
-                      <div className="line-clamp-2">{item.capSource || "-"}</div>
-                      {item.capSource && item.capSource.length > 30 && (
-                        <button className="text-blue-500 text-xs hover:underline mt-1 block" onClick={(e) => {
-                          const target = e.currentTarget.previousElementSibling;
-                          if (target) {
-                            target.classList.toggle('line-clamp-2');
-                            target.classList.toggle('line-clamp-none');
-                            e.currentTarget.textContent = target.classList.contains('line-clamp-none') ? 'Show less' : 'View more';
-                          }
-                        }}>View more</button>
-                      )}
-                    </div>
-                  </td>
-
-                  {/* 7. Measures & Corrective Actions */}
-                  <td className="p-3">
-                    {isComparisonView && originalItem ? (
-                      <RenderChangedField
-                        currentValue={item.measures}
-                        originalValue={originalItem.measures}
-                        isComparisonView={isComparisonView}
-                        itemId={item.id}
-                        fieldName="measures"
-                        onRevertField={onRevertField}
-                      />
-                    ) : (
-                      <div className="relative group">
-                        <div className="line-clamp-2">{item.measures}</div>
-                        {item.measures && item.measures.length > 100 && (
-                          <button className="text-blue-500 text-xs hover:underline mt-1 block" onClick={(e) => {
-                            const target = e.currentTarget.previousElementSibling;
-                            if (target) {
-                              target.classList.toggle('line-clamp-2');
-                              target.classList.toggle('line-clamp-none');
-                              e.currentTarget.textContent = target.classList.contains('line-clamp-none') ? 'Show less' : 'View more';
-                            }
-                          }}>View more</button>
-                        )}
-                      </div>
-                    )}
-                  </td>
-
-                  {/* 8. Resource & Responsibility */}
-                  <td className="p-3">
-                    {originalItem ? (
-                      <RenderChangedField
-                        currentValue={item.resource}
-                        originalValue={originalItem.resource}
-                        isComparisonView={isComparisonView}
-                        itemId={item.id}
-                        fieldName="resource"
-                        onRevertField={onRevertField}
-                      />
-                    ) : (
-                      item.resource || "-"
-                    )}
-                  </td>
-
-                  {/* 9. Expected Deliverable */}
-                  <td className="p-3">
-                    {isComparisonView && originalItem ? (
-                      <RenderChangedField
-                        currentValue={item.deliverable}
-                        originalValue={originalItem.deliverable}
-                        isComparisonView={isComparisonView}
-                        itemId={item.id}
-                        fieldName="deliverable"
-                        onRevertField={onRevertField}
-                      />
-                    ) : (
-                      <div className="relative group">
-                        <div className="line-clamp-2">{item.deliverable}</div>
-                        {item.deliverable && item.deliverable.length > 30 && (
-                          <button className="text-blue-500 text-xs hover:underline mt-1 block" onClick={(e) => {
-                            const target = e.currentTarget.previousElementSibling;
-                            if (target) {
-                              target.classList.toggle('line-clamp-2');
-                              target.classList.toggle('line-clamp-none');
-                              e.currentTarget.textContent = target.classList.contains('line-clamp-none') ? 'Show less' : 'View more';
-                            }
-                          }}>View more</button>
-                        )}
-                      </div>
-                    )}
-                  </td>
-
-                  {/* 10. Timeline Month */}
-                  <td className="p-3">{item.timelineMonth || "-"}</td>
-
-                  {/* 11. Target Date */}
-                  <td className="p-3">{item.targetDate || "-"}</td>
-
-                  {/* 12. Actual Date */}
-                  <td className="p-3">{item.actualDate || "-"}</td>
-
-                  {/* 13. CP/CS */}
-                  <td className="p-3">{item.CS || "-"}</td>
-
-                  {/* 14. Status */}
-                  <td className="p-3">{getStatusBadge(item.status)}</td>
-
-                  {/* 15. Current Status Update */}
-                  <td className="p-3">
-                    <div className="relative">
-                      <div className="line-clamp-2">{item.statusUpdate || "-"}</div>
-                      {item.statusUpdate && item.statusUpdate.length > 30 && (
-                        <button className="text-blue-500 text-xs hover:underline mt-1 block" onClick={(e) => {
-                          const target = e.currentTarget.previousElementSibling;
-                          if (target) {
-                            target.classList.toggle('line-clamp-2');
-                            target.classList.toggle('line-clamp-none');
-                            e.currentTarget.textContent = target.classList.contains('line-clamp-none') ? 'Show less' : 'View more';
-                          }
-                        }}>View more</button>
-                      )}
-                    </div>
-                  </td>
-
-                  {/* 16. Review Remarks */}
-                  <td className="p-3">
-                    <div className="relative">
-                      <div className="line-clamp-2">{item.reviewRemarks || "-"}</div>
-                      {item.reviewRemarks && item.reviewRemarks.length > 30 && (
-                        <button className="text-blue-500 text-xs hover:underline mt-1 block" onClick={(e) => {
-                          const target = e.currentTarget.previousElementSibling;
-                          if (target) {
-                            target.classList.toggle('line-clamp-2');
-                            target.classList.toggle('line-clamp-none');
-                            e.currentTarget.textContent = target.classList.contains('line-clamp-none') ? 'Show less' : 'View more';
-                          }
-                        }}>View more</button>
-                      )}
-                    </div>
-                  </td>
-
-                  {/* 17. Last Review Date */}
-                  <td className="p-3">{item.lastReviewDate || "-"}</td>
-
-                  {/* 18. Implementation Support Needed */}
-                  <td className="p-3">
-                    <div className="relative">
-                      <div className="line-clamp-2">{item.implementationSupportNeeded || "-"}</div>
-                      {item.implementationSupportNeeded && item.implementationSupportNeeded.length > 30 && (
-                        <button className="text-blue-500 text-xs hover:underline mt-1 block" onClick={(e) => {
-                          const target = e.currentTarget.previousElementSibling;
-                          if (target) {
-                            target.classList.toggle('line-clamp-2');
-                            target.classList.toggle('line-clamp-none');
-                            e.currentTarget.textContent = target.classList.contains('line-clamp-none') ? 'Show less' : 'View more';
-                          }
-                        }}>View more</button>
-                      )}
-                    </div>
-                  </td>
-
-                  {/* 19. Closure Verified By */}
-                  <td className="p-3">
-                    <div className="relative">
-                      <div className="line-clamp-2">{item.closureVerifiedBy || "-"}</div>
-                      {item.closureVerifiedBy && item.closureVerifiedBy.length > 30 && (
-                        <button className="text-blue-500 text-xs hover:underline mt-1 block" onClick={(e) => {
-                          const target = e.currentTarget.previousElementSibling;
-                          if (target) {
-                            target.classList.toggle('line-clamp-2');
-                            target.classList.toggle('line-clamp-none');
-                            e.currentTarget.textContent = target.classList.contains('line-clamp-none') ? 'Show less' : 'View more';
-                          }
-                        }}>View more</button>
-                      )}
-                    </div>
-                  </td>
-
-                  {/* 20. Assigned To */}
-                  <td className="p-3">{item.assignedTo || "-"}</td>
-
-                  {/* Actions */}
-                  <td className="p-3 text-right">
-                    <div className="flex gap-2 justify-end items-center">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button size="sm" variant="outline" onClick={() => onReview(item)}>
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent><p>Review CAP item</p></TooltipContent>
-                      </Tooltip>
-
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button size="sm" variant="outline">•••</Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => onSendReminder(item)}>Send Reminder</DropdownMenuItem>
-                          {item.aiResponseRaw && (
-                            <DropdownMenuItem onClick={() => onAiShow(item)}>Review AI Suggestion</DropdownMenuItem>
+                      <td className="p-3">
+                        {renderField(item.actualDate, originalItem?.actualDate, "actualDate", item.id)}
+                      </td>
+                      <td className="p-3">
+                        {renderField(item.CS || item.dealCondition, originalItem?.CS || originalItem?.dealCondition, "CS", item.id)}
+                      </td>
+                      <td className="p-3">
+                        {renderField(item.status, originalItem?.status, "status", item.id, true, 'status')}
+                      </td>
+                      <td className="p-3">
+                        {renderField(item.statusUpdate, originalItem?.statusUpdate, "statusUpdate", item.id)}
+                      </td>
+                      <td className="p-3">
+                        {renderField(item.reviewRemarks, originalItem?.reviewRemarks, "reviewRemarks", item.id)}
+                      </td>
+                      <td className="p-3">
+                        {renderField(item.lastReviewDate, originalItem?.lastReviewDate, "lastReviewDate", item.id)}
+                      </td>
+                      <td className="p-3">
+                        {renderField(item.implementationSupportNeeded, originalItem?.implementationSupportNeeded, "implementationSupportNeeded", item.id)}
+                      </td>
+                      <td className="p-3">
+                        {renderField(item.closureVerifiedBy, originalItem?.closureVerifiedBy, "closureVerifiedBy", item.id)}
+                      </td>
+                      <td className="p-3">
+                        {renderField(item.assignedTo, originalItem?.assignedTo, "assignedTo", item.id)}
+                      </td>
+                      <td className="p-3 text-right">
+                        {/* Actions (same as original, re-use the same actions JSX) */}
+                        <div className="flex gap-2 justify-end items-center">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button size="sm" variant="outline" onClick={() => onReview(item)}>
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent><p>Review CAP item</p></TooltipContent>
+                          </Tooltip>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button size="sm" variant="outline">•••</Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => onSendReminder(item)}>Send Reminder</DropdownMenuItem>
+                              {item.aiResponseRaw && (
+                                <DropdownMenuItem onClick={() => onAiShow(item)}>Review AI Suggestion</DropdownMenuItem>
+                              )}
+                              {!isComparisonView && onDeleteItem && (
+                                <DropdownMenuItem onClick={() => handleDeleteClick(item)} className="text-red-600">
+                                  Delete Item
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                          {isComparisonView && onRevert && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button size="sm" variant="outline" className="text-amber-600 border-amber-600" onClick={() => onRevert(item.id)}>
+                                  <ArrowLeft className="h-4 w-4" /> Revert
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent><p>Revert all changes</p></TooltipContent>
+                            </Tooltip>
                           )}
-                          {!isComparisonView && onDeleteItem && (
-                            <DropdownMenuItem onClick={() => handleDeleteClick(item)} className="text-red-600">
-                              Delete Item
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-
-                      {isComparisonView && onRevert && (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button size="sm" variant="outline" className="text-amber-600 border-amber-600" onClick={() => onRevert(item.id)}>
-                              <ArrowLeft className="h-4 w-4" /> Revert
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent><p>Revert all changes</p></TooltipContent>
-                        </Tooltip>
-                      )}
-                    </div>
-                  </td>
+                        </div>
+                      </td>
+                    </>
+                  )}
                 </tr>
               );
             })}
@@ -931,6 +806,7 @@ export function CAPTable({
         </div>
       </div>
 
+      {/* Add New Row section – identical to original (unchanged) */}
       {!isComparisonView && onAddItem && (
         <div className="mt-4 border-t pt-4">
           {!isAddingRow ? (
