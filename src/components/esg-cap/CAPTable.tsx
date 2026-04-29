@@ -5,10 +5,13 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../ui/dialog";
 import { useState } from "react";
-import { AiDialog } from "./AiDialog";
+// import { AiDialog } from "./AiDialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import DocumentSummaryDialog from "./document-summary-review";
+import { http } from "@/utils/httpInterceptor";
+import { toast } from "@/hooks/use-toast";
 
 export type CAPStatus =
   | "pending"
@@ -72,6 +75,67 @@ export interface TemplateStructure {
   [key: string]: any;
 }
 
+export interface ValidationScores {
+  relevance: number;
+  policyCompleteness: number;
+  regulatoryAlignment: number;
+  structure: number;
+  authenticity: number;
+}
+
+export interface SuggestedImprovement {
+  section: string;
+  suggestion: string;
+  priority: "high" | "medium" | "low";
+}
+
+/**
+ * Main Interface
+ */
+
+export interface IDocumentValidation {
+  _id?: string;
+
+  actionItemId: string;
+  entityId: string;
+  documentId?: string | null;
+
+  s3Link: string;
+  fileName: string;
+
+  status: "draft" | "final";
+
+  // Core Metrics
+  overallScore: number;
+  improvementPercentage: number;
+  confidence: number;
+  valid: boolean;
+
+  // Scores
+  scores: ValidationScores;
+
+  // Analysis
+  missingSections: string[];
+  issues: string[];
+
+  // Improvements
+  suggestedImprovements: SuggestedImprovement[];
+
+  // Summary
+  summary?: string;
+
+  // AI Raw Response
+  rawResponse?: any;
+
+  // Versioning
+  version: number;
+
+  aiInsights?: any;
+
+  // Timestamps (since schema has timestamps: true)
+  createdAt?: Date;
+  updatedAt?: Date;
+}
 export interface ESGCapItem {
   id: string | number;
   item: string;
@@ -111,6 +175,14 @@ export interface ESGCapItem {
   sections?: string[];
   sourceType?: string;
   aiResponseRaw?: AiResponse;
+  fileUploadedData?: {
+    filename: string;
+    mimetype: string;
+    size: number;
+    s3Link: string;
+    status: 'Accepted' | 'Rejected' | 'Pending';
+    aiSummary: IDocumentValidation;
+  }[]
 }
 
 interface CAPTableProps {
@@ -125,6 +197,8 @@ interface CAPTableProps {
   onRevert?: (itemId: string | number) => void;
   finalPlan?: boolean;
   progressPercentage?: number;
+  companyEntityId: string
+  setReloadData?: (reload: boolean) => void;
 }
 
 const getStatusBadge = (status: CAPStatus) => {
@@ -225,7 +299,9 @@ export function CAPTable({
   originalItems = [],
   isComparisonView = false,
   onRevertField,
-  onRevert
+  onRevert,
+  companyEntityId,
+  setReloadData
 }: CAPTableProps) {
   const completedItems = items.filter(item => item.status === "completed").length;
   const progressPercentage = items.length > 0 ? Math.round((completedItems / items.length) * 100) : 0;
@@ -361,6 +437,35 @@ export function CAPTable({
     });
     setIsAddingRow(false);
   };
+
+  const handleAcceptDocument = async (payload) => {
+    const {data,error}= await http.post('investor/esgdd/escap/document/accept', {
+      entityId:companyEntityId,
+      itemId: item['_id'],
+      fileName: payload.fileName,
+      status: payload.status,
+      reason: payload.reason
+    })
+    if (error) {
+      toast({
+        title: `${payload.fileName} failed to process`,
+        description: "Please try again or check the document.",
+        variant: "destructive",
+      });
+      return; // ✅ stop execution
+    }
+    
+    if (data?.status) {
+      toast({
+        title: `${payload.fileName} ${payload.status === "Accepted" ? "approved" : "rejected"}`,
+        description: payload.reason ? `Reason: ${payload.reason}` : undefined,
+        variant: "default", // ✅ success style
+      });
+    
+      setIsViewAiOpen(false);
+      setReloadData(true);
+    }
+  }
 
   const getOriginalItem = (id: string | number) => originalItems.find(item => item.id === id) || null;
 
@@ -537,8 +642,8 @@ export function CAPTable({
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem onClick={() => onSendReminder(item)}>Send Reminder</DropdownMenuItem>
-                              {item.aiResponseRaw && (
-                                <DropdownMenuItem onClick={() => onAiShow(item)}>Review AI Suggestion</DropdownMenuItem>
+                              {item.fileUploadedData && item.fileUploadedData.length > 0 && (
+                                <DropdownMenuItem onClick={() => onAiShow(item)}>Document Review Summary</DropdownMenuItem>
                               )}
                               {!isComparisonView && onDeleteItem && (
                                 <DropdownMenuItem onClick={() => handleDeleteClick(item)} className="text-red-600">
@@ -654,8 +759,8 @@ export function CAPTable({
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem onClick={() => onSendReminder(item)}>Send Reminder</DropdownMenuItem>
-                              {item.aiResponseRaw && (
-                                <DropdownMenuItem onClick={() => onAiShow(item)}>Review AI Suggestion</DropdownMenuItem>
+                              {item.fileUploadedData && item.fileUploadedData.length > 0 && (
+                                <DropdownMenuItem onClick={() => onAiShow(item)}>Document Review Summary</DropdownMenuItem>
                               )}
                               {!isComparisonView && onDeleteItem && (
                                 <DropdownMenuItem onClick={() => handleDeleteClick(item)} className="text-red-600">
@@ -1041,7 +1146,16 @@ export function CAPTable({
         </DialogContent>
       </Dialog>
 
-      <AiDialog isViewAiOpen={isViewAiOpen} onOpenChange={setIsViewAiOpen} item={item} />
+      {/* <AiDialog isViewAiOpen={isViewAiOpen} onOpenChange={setIsViewAiOpen} item={item} /> */}
+      <DocumentSummaryDialog open={isViewAiOpen} files={item.fileUploadedData} onClose={() => setIsViewAiOpen(false)}
+        onSubmit={({ index, status, reason, fileName }) => {
+          handleAcceptDocument({
+            fileIndex: index,
+            status,
+            reason,
+            fileName
+          });
+        }} />
     </TooltipProvider>
   );
 }
