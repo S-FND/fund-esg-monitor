@@ -642,8 +642,8 @@ export function CAPTable({
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem onClick={() => onSendReminder(item)}>Send Reminder</DropdownMenuItem>
-                              {item.aiResponseRaw && (
-                                <DropdownMenuItem onClick={() => onAiShow(item)}>Review AI Suggestion</DropdownMenuItem>
+                              {item.fileUploadedData && item.fileUploadedData.length > 0 && (
+                                <DropdownMenuItem onClick={() => onAiShow(item)}>Document Review Summary</DropdownMenuItem>
                               )}
                               {!isComparisonView && onDeleteItem && (
                                 <DropdownMenuItem onClick={() => handleDeleteClick(item)} className="text-red-600">
@@ -759,8 +759,8 @@ export function CAPTable({
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem onClick={() => onSendReminder(item)}>Send Reminder</DropdownMenuItem>
-                              {item.aiResponseRaw && (
-                                <DropdownMenuItem onClick={() => onAiShow(item)}>Review AI Suggestion</DropdownMenuItem>
+                              {item.fileUploadedData && item.fileUploadedData.length > 0 && (
+                                <DropdownMenuItem onClick={() => onAiShow(item)}>Document Review Summary</DropdownMenuItem>
                               )}
                               {!isComparisonView && onDeleteItem && (
                                 <DropdownMenuItem onClick={() => handleDeleteClick(item)} className="text-red-600">
