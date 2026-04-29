@@ -9,6 +9,9 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import DocumentSummaryDialog from "./document-summary-review";
+import { http } from "@/utils/httpInterceptor";
+import { toast } from "@/hooks/use-toast";
 
 export type CAPStatus =
   | "pending"
@@ -34,6 +37,106 @@ export type EvidenceType =
   | "kpi_metrics";
 
 export interface AiResponse {
+  id: string;
+  _index: number;
+
+  requiredEvidence: {
+    types: EvidenceType[];
+    normalizedTypes: EvidenceType[];
+    reasoning: string;
+    confidence: number;
+  };
+
+  documentRequired: boolean;
+  documentType: string | null;
+  sourceType: "internal" | "external" | null;
+
+  sections: string[];
+
+  templates: Template[];
+
+  reasoning: string;
+  confidence: number;
+}
+
+export interface Template {
+  type: "system" | "data" | "report" | string;
+  name: string;
+  format: "checklist" | "table" | "document" | string;
+
+  structure: TemplateStructure;
+}
+export type ESGCapDealCondition = 'CP' | 'CS' | 'none';
+
+export interface TemplateStructure {
+  components?: string[];
+  columns?: string[];
+  sections?: string[];
+  [key: string]: any;
+}
+
+export interface ValidationScores {
+  relevance: number;
+  policyCompleteness: number;
+  regulatoryAlignment: number;
+  structure: number;
+  authenticity: number;
+}
+
+export interface SuggestedImprovement {
+  section: string;
+  suggestion: string;
+  priority: "high" | "medium" | "low";
+}
+
+/**
+ * Main Interface
+ */
+
+export interface IDocumentValidation {
+  _id?: string;
+
+  actionItemId: string;
+  entityId: string;
+  documentId?: string | null;
+
+  s3Link: string;
+  fileName: string;
+
+  status: "draft" | "final";
+
+  // Core Metrics
+  overallScore: number;
+  improvementPercentage: number;
+  confidence: number;
+  valid: boolean;
+
+  // Scores
+  scores: ValidationScores;
+
+  // Analysis
+  missingSections: string[];
+  issues: string[];
+
+  // Improvements
+  suggestedImprovements: SuggestedImprovement[];
+
+  // Summary
+  summary?: string;
+
+  // AI Raw Response
+  rawResponse?: any;
+
+  // Versioning
+  version: number;
+
+  aiInsights?: any;
+
+  // Timestamps (since schema has timestamps: true)
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+export interface ESGCapItem {
   id: string;
   _index: number;
 
@@ -111,6 +214,14 @@ export interface ESGCapItem {
   sections?: string[];
   sourceType?: string;
   aiResponseRaw?: AiResponse;
+  fileUploadedData?: {
+    filename: string;
+    mimetype: string;
+    size: number;
+    s3Link: string;
+    status: 'Accepted' | 'Rejected' | 'Pending';
+    aiSummary: IDocumentValidation;
+  }[]
 }
 
 interface CAPTableProps {
@@ -125,7 +236,7 @@ interface CAPTableProps {
   onRevert?: (itemId: string | number) => void;
   finalPlan?: boolean;
   progressPercentage?: number;
-  companyEntityId:string
+  companyEntityId: string
   setReloadData?: (reload: boolean) => void;
 }
 
@@ -369,11 +480,101 @@ export function CAPTable({
     setIsAddingRow(false);
   };
 
+  const handleAcceptDocument = async (payload) => {
+    const {data,error}= await http.post('investor/esgdd/escap/document/accept', {
+      entityId:companyEntityId,
+      itemId: item['_id'],
+      fileName: payload.fileName,
+      status: payload.status,
+      reason: payload.reason
+    })
+    if (error) {
+      toast({
+        title: `${payload.fileName} failed to process`,
+        description: "Please try again or check the document.",
+        variant: "destructive",
+      });
+      return; // ✅ stop execution
+    }
+    
+    if (data?.status) {
+      toast({
+        title: `${payload.fileName} ${payload.status === "Accepted" ? "approved" : "rejected"}`,
+        description: payload.reason ? `Reason: ${payload.reason}` : undefined,
+        variant: "default", // ✅ success style
+      });
+    
+      setIsViewAiOpen(false);
+      setReloadData(true);
+    }
+  }
+
   const getOriginalItem = (id: string | number) => originalItems.find(item => item.id === id) || null;
 
   const onAiShow = (item: ESGCapItem) => {
     setIsViewAiOpen(true);
     setItem(item);
+  };
+
+  // Helper to render a field with comparison support (used in full view)
+  const renderField = (
+    currentValue: any,
+    originalValue: any,
+    fieldName: keyof ESGCapItem,
+    itemId: string | number,
+    // Special formatting for badges
+    isBadge?: boolean,
+    badgeType?: 'category' | 'priority' | 'status'
+  ) => {
+    if (isComparisonView && originalValue !== undefined && currentValue !== originalValue) {
+      // Show changed field with revert
+      if (isBadge && badgeType) {
+        return (
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <div className="line-through opacity-60">
+                {badgeType === 'category' && getCategoryBadge(originalValue)}
+                {badgeType === 'priority' && getPriorityBadge(originalValue)}
+                {badgeType === 'status' && getStatusBadge(originalValue)}
+              </div>
+              <ArrowRight className="h-3 w-3" />
+              <div>
+                {badgeType === 'category' && getCategoryBadge(currentValue)}
+                {badgeType === 'priority' && getPriorityBadge(currentValue)}
+                {badgeType === 'status' && getStatusBadge(currentValue)}
+              </div>
+            </div>
+            {onRevertField && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onRevertField(itemId, fieldName)}
+                className="text-xs text-amber-600 hover:text-amber-800 h-6 px-2"
+              >
+                <Undo className="h-3 w-3 mr-1" /> Revert
+              </Button>
+            )}
+          </div>
+        );
+      }
+      return (
+        <RenderChangedField
+          currentValue={currentValue}
+          originalValue={originalValue}
+          isComparisonView={true}
+          itemId={itemId}
+          fieldName={fieldName}
+          onRevertField={onRevertField}
+        />
+      );
+    }
+    // No change or not comparison view
+    if (isBadge && badgeType) {
+      if (badgeType === 'category') return getCategoryBadge(currentValue);
+      if (badgeType === 'priority') return getPriorityBadge(currentValue);
+      if (badgeType === 'status') return getStatusBadge(currentValue);
+    }
+    return <span>{currentValue || "-"}</span>;
   };
 
   return (
@@ -1070,6 +1271,15 @@ export function CAPTable({
       </Dialog>
 
       {/* <AiDialog isViewAiOpen={isViewAiOpen} onOpenChange={setIsViewAiOpen} item={item} /> */}
+      <DocumentSummaryDialog open={isViewAiOpen} files={item.fileUploadedData} onClose={() => setIsViewAiOpen(false)}
+        onSubmit={({ index, status, reason, fileName }) => {
+          handleAcceptDocument({
+            fileIndex: index,
+            status,
+            reason,
+            fileName
+          });
+        }} />
     </TooltipProvider>
   );
 }
