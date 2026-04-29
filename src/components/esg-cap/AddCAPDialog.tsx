@@ -36,6 +36,7 @@ interface CAPFormRow {
     timelineMonth: number;
     dealCondition: CAPType;
     statusUpdate: string;
+    investorStatusUpdate: string;
     reviewRemarks: string;
     lastReviewDate: string;
     implementationSupportNeeded: string;
@@ -70,6 +71,19 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
         setFinancialYear(financialYear);
     }, []);
 
+    const parseToDateInput = (value: any): string => {
+        if (!value) return '';
+        // If already YYYY-MM-DD
+        if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+        // Try to parse as Date
+        const date = new Date(value);
+        if (isNaN(date.getTime())) return '';
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+
     const [formRows, setFormRows] = useState<CAPFormRow[]>([{
         id: "1",
         item: "",
@@ -83,6 +97,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
         timelineMonth: 0,
         dealCondition: "none",
         statusUpdate: "",
+        investorStatusUpdate: "",
         reviewRemarks: "",
         lastReviewDate: "",
         implementationSupportNeeded: "",
@@ -156,6 +171,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
             timelineMonth: 0,
             dealCondition: "none",
             statusUpdate: "",
+            investorStatusUpdate: "",
             reviewRemarks: "",
             lastReviewDate: "",
             implementationSupportNeeded: "",
@@ -228,13 +244,14 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                 timelineMonth: row.timelineMonth || undefined,
                 CS: row.dealCondition,
                 statusUpdate: row.statusUpdate || undefined,
+                investorStatusUpdate: row.investorStatusUpdate || undefined,
                 reviewRemarks: row.reviewRemarks || undefined,
-                lastReviewDate: row.lastReviewDate || undefined,
+                lastReviewDate: parseToDateInput(row.lastReviewDate) || undefined,
                 implementationSupportNeeded: row.implementationSupportNeeded || undefined,
                 closureVerifiedBy: row.closureVerifiedBy || undefined,
-                actualDate: row.actualDate || undefined,
+                actualDate: parseToDateInput(row.actualDate) || undefined,
                 status: row.status,
-                targetDate: row.targetDate || undefined,
+                targetDate: parseToDateInput(row.targetDate) || undefined,
                 esgLever: row.esgLever || undefined,
                 capSource: row.capSource || undefined,
                 progressPercentage: row.progressPercentage || undefined,
@@ -263,7 +280,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                 setFormRows([{
                     id: "1", item: "", category: "environmental", priority: "Medium", issue: "", relatedFinding: "",
                     measures: "", resource: "", deliverable: "", timelineMonth: 0, dealCondition: "none",
-                    statusUpdate: "", reviewRemarks: "", lastReviewDate: "", implementationSupportNeeded: "",
+                    statusUpdate: "",investorStatusUpdate: "", reviewRemarks: "", lastReviewDate: "", implementationSupportNeeded: "",
                     closureVerifiedBy: "", actualDate: "", status: "pending", targetDate: "", esgLever: "", capSource: "",
                     progressPercentage: 0, assignedTo: "", remarks: "",
                 }]);
@@ -374,6 +391,10 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                 const validDealConditions: CAPType[] = ['CP', 'CS', 'none'];
                 const validDealCondition = validDealConditions.includes(dealCondition) ? dealCondition : 'none';
 
+                const ftargetDate = parseToDateInput(getVal(['target date', 'targetdate']));
+                const factualDate = parseToDateInput(getVal(['actual date', 'actualdate']));
+                const flastReviewDate = parseToDateInput(getVal(['last review date', 'lastreviewdate'])) || new Date().toISOString().split('T')[0];
+
                 const newItem = {
                     reportId: selectedCompany,
                     item: itemValue,
@@ -382,9 +403,9 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                     priority: validPriority,
                     resource: getVal(['resource', 'resource & responsibility']) || undefined,
                     deliverable: getVal(['deliverable', 'expected deliverable']) || undefined,
-                    targetDate: getVal(['target date', 'targetdate']) || undefined,
+                    targetDate: ftargetDate || undefined,
                     CS: validDealCondition,
-                    actualDate: getVal(['actual date', 'actualdate']) || undefined,
+                    actualDate: factualDate || undefined,
                     status: validStatus,
                     assignedTo: getVal(['assigned to', 'assignedto']) || undefined,
                     dealCondition: validDealCondition,
@@ -395,8 +416,9 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                     capSource: getVal(['cap source', 'capsource']) || undefined,
                     timelineMonth: getVal(['timeline month', 'timelinemonth']) ? Math.max(0, Number(getVal(['timeline month', 'timelinemonth']))) : undefined,
                     statusUpdate: getVal(['status update', 'current status update', 'statusupdate']) || undefined,
+                    investorStatusUpdate: getVal(['status update', 'current status update', 'investorStatusUpdate']) || undefined,
                     reviewRemarks: getVal(['review remarks', 'reviewremarks']) || undefined,
-                    lastReviewDate: getVal(['last review date', 'lastreviewdate']) || undefined,
+                    lastReviewDate: flastReviewDate,
                     implementationSupportNeeded: getVal(['implementation support', 'implementation support needed', 'implementationsupportneeded']) || undefined,
                     closureVerifiedBy: getVal(['closure verified', 'closure verified by', 'closureverifiedby']) || undefined,
                     remarks: getVal(['remarks']) || undefined,
@@ -460,7 +482,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
         setFormRows([{
             id: "1", item: "", category: "environmental", priority: "Medium", issue: "", relatedFinding: "",
             measures: "", resource: "", deliverable: "", timelineMonth: 0, dealCondition: "none",
-            statusUpdate: "", reviewRemarks: "", lastReviewDate: "", implementationSupportNeeded: "",
+            statusUpdate: "",investorStatusUpdate: "", reviewRemarks: "", lastReviewDate: "", implementationSupportNeeded: "",
             closureVerifiedBy: "", actualDate: "", status: "pending", targetDate: "", esgLever: "", capSource: "",
             progressPercentage: 0, assignedTo: "", remarks: "",
         }]);
@@ -709,14 +731,29 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                                             </div>
 
                                             {/* 15. Current Status Update */}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
                                             <div>
-                                                <Label>Current Status Update</Label>
+                                                <Label>Current Status Update (Company)</Label>
                                                 <Textarea
                                                     value={row.statusUpdate}
                                                     onChange={(e) => updateRow(row.id, "statusUpdate", e.target.value)}
+                                                    disabled
                                                     placeholder="Latest update on this action item"
                                                     className="min-h-[60px]"
                                                 />
+                                            </div>
+
+                                             {/* 15.1 Current Status Update Investor*/}
+                                             <div>
+                                                <Label>Current Status Update (Investor)</Label>
+                                                <Textarea
+                                                    value={row.investorStatusUpdate}
+                                                    onChange={(e) => updateRow(row.id, "investorStatusUpdate", e.target.value)}
+                                                    placeholder="Latest update on this action item"
+                                                    className="min-h-[60px]"
+                                                />
+                                            </div>
                                             </div>
 
                                             {/* 16. Review Remarks & 17. Last Review Date */}
@@ -821,7 +858,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
 
                                 <div className="text-xs space-y-1">
                                     <p><strong>Required columns:</strong> item, measures</p>
-                                    <p><strong>All columns in order:</strong> item, category, priority, issue, relatedfinding, measures, resource, deliverable, timelinemonth, dealcondition, statusupdate, reviewremarks, lastreviewdate, implementationsupportneeded, closureverifiedby, actualdate, status, targetdate, esglever, capSource, progresspercentage, assignedto, remarks</p>
+                                    <p><strong>All columns in order:</strong> item, category, priority, issue, relatedfinding, measures, resource, deliverable, timelinemonth, dealcondition, statusupdate, investorStatusUpdate, reviewremarks, lastreviewdate, implementationsupportneeded, closureverifiedby, actualdate, status, targetdate, esglever, capSource, progresspercentage, assignedto, remarks</p>
                                 </div>
                             </CardContent>
                         </Card>

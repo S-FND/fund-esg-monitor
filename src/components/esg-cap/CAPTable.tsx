@@ -162,6 +162,7 @@ export interface ESGCapItem {
   resource?: string;
   deliverable?: string;
   statusUpdate?: string;
+  investorStatusUpdate?: string; 
   reviewRemarks?: string;
   lastReviewDate?: string;
   progressPercentage?: number;
@@ -200,6 +201,21 @@ interface CAPTableProps {
   companyEntityId: string
   setReloadData?: (reload: boolean) => void;
 }
+
+// ==================== DATE FORMATTER HELPERS ====================
+const formatDisplayDate = (dateString?: string): string => {
+  if (!dateString) return '';
+  try {
+    return new Date(dateString).toLocaleDateString();
+  } catch {
+    return dateString;
+  }
+};
+
+const isDateField = (fieldName: string): boolean => {
+  return fieldName === 'targetDate' || fieldName === 'actualDate' || fieldName === 'lastReviewDate';
+};
+// ================================================================
 
 const getStatusBadge = (status: CAPStatus) => {
   switch (status) {
@@ -262,18 +278,25 @@ const RenderChangedField = ({
   onRevertField?: (itemId: string | number, field: keyof ESGCapItem) => void;
 }) => {
   const hasChanged = (currentValue || "") !== (originalValue || "");
+  const formatValue = (val: any) => {
+    if (fieldName && isDateField(fieldName)) return formatDisplayDate(val);
+    return val;
+  };
 
-  if (!hasChanged || !isComparisonView) return <span>{currentValue}</span>;
+  if (!hasChanged || !isComparisonView) {
+    const displayValue = formatValue(currentValue) || "-";
+    return <span>{displayValue}</span>;
+  }
 
   return (
     <div className="flex flex-col">
       <div className="flex items-center gap-1">
         <div className="bg-red-100 p-1 rounded text-red-800 line-through">
-          {fieldName === "priority" ? getPriorityBadge(originalValue as CAPPriority) : originalValue}
+          {fieldName === "priority" ? getPriorityBadge(originalValue as CAPPriority) : formatValue(originalValue)}
         </div>
         <ArrowRight className="h-4 w-4" />
         <div className="bg-green-100 p-1 rounded text-green-800">
-          {fieldName === "priority" ? getPriorityBadge(currentValue as CAPPriority) : currentValue}
+          {fieldName === "priority" ? getPriorityBadge(currentValue as CAPPriority) : formatValue(currentValue)}
         </div>
       </div>
       {onRevertField && itemId && fieldName && (
@@ -357,6 +380,7 @@ export function CAPTable({
     // Status & Tracking
     status: "pending" as CAPStatus,
     statusUpdate: "",
+    investorStatusUpdate:"",
     progressPercentage: "",
 
     // Review & Verification
@@ -397,6 +421,7 @@ export function CAPTable({
       dealCondition: newRowData.dealCondition,
       status: newRowData.status,
       statusUpdate: newRowData.statusUpdate || undefined,
+      investorStatusUpdate: newRowData.investorStatusUpdate || undefined,
       progressPercentage: newRowData.progressPercentage ? Number(newRowData.progressPercentage) : undefined,
       reviewRemarks: newRowData.reviewRemarks || undefined,
       lastReviewDate: newRowData.lastReviewDate || undefined,
@@ -427,6 +452,7 @@ export function CAPTable({
       dealCondition: "CP",
       status: "pending",
       statusUpdate: "",
+      investorStatusUpdate: "",
       progressPercentage: "",
       reviewRemarks: "",
       lastReviewDate: "",
@@ -484,22 +510,31 @@ export function CAPTable({
     isBadge?: boolean,
     badgeType?: 'category' | 'priority' | 'status'
   ) => {
+    const formatValue = (val: any) => {
+      if (isDateField(fieldName)) return formatDisplayDate(val);
+      return val;
+    };
+
     if (isComparisonView && originalValue !== undefined && currentValue !== originalValue) {
       // Show changed field with revert
       if (isBadge && badgeType) {
+        const formatBadge = (val: any) => {
+          if (isDateField(fieldName)) return formatDisplayDate(val);
+          return val;
+        };
         return (
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2">
               <div className="line-through opacity-60">
-                {badgeType === 'category' && getCategoryBadge(originalValue)}
-                {badgeType === 'priority' && getPriorityBadge(originalValue)}
-                {badgeType === 'status' && getStatusBadge(originalValue)}
+                {badgeType === 'category' && getCategoryBadge(formatBadge(originalValue))}
+                {badgeType === 'priority' && getPriorityBadge(formatBadge(originalValue))}
+                {badgeType === 'status' && getStatusBadge(formatBadge(originalValue))}
               </div>
               <ArrowRight className="h-3 w-3" />
               <div>
-                {badgeType === 'category' && getCategoryBadge(currentValue)}
-                {badgeType === 'priority' && getPriorityBadge(currentValue)}
-                {badgeType === 'status' && getStatusBadge(currentValue)}
+                {badgeType === 'category' && getCategoryBadge(formatBadge(currentValue))}
+                {badgeType === 'priority' && getPriorityBadge(formatBadge(currentValue))}
+                {badgeType === 'status' && getStatusBadge(formatBadge(currentValue))}
               </div>
             </div>
             {onRevertField && (
@@ -528,11 +563,13 @@ export function CAPTable({
     }
     // No change or not comparison view
     if (isBadge && badgeType) {
-      if (badgeType === 'category') return getCategoryBadge(currentValue);
-      if (badgeType === 'priority') return getPriorityBadge(currentValue);
-      if (badgeType === 'status') return getStatusBadge(currentValue);
+      const displayValue = formatValue(currentValue);
+      if (badgeType === 'category') return getCategoryBadge(displayValue);
+      if (badgeType === 'priority') return getPriorityBadge(displayValue);
+      if (badgeType === 'status') return getStatusBadge(displayValue);
     }
-    return <span>{currentValue || "-"}</span>;
+    // Default: use formatted value (dates become readable)
+    return <span>{formatValue(currentValue) || "-"}</span>;
   };
 
   return (
@@ -588,7 +625,8 @@ export function CAPTable({
                   <th className="p-3 text-left">Actual Date</th>
                   <th className="p-3 text-left">CP/CS</th>
                   <th className="p-3 text-left">Status</th>
-                  <th className="p-3 text-left">Current Status Update</th>
+                  <th className="p-3 text-left">Company Current Status Update</th>
+                  <th className="p-3 text-left">Investor Current Status Update</th>
                   <th className="p-3 text-left">Review Remarks</th>
                   <th className="p-3 text-left">Last Review Date</th>
                   <th className="p-3 text-left">Implementation Support Needed</th>
@@ -726,6 +764,9 @@ export function CAPTable({
                       </td>
                       <td className="p-3">
                         {renderField(item.statusUpdate, originalItem?.statusUpdate, "statusUpdate", item.id)}
+                      </td>
+                      <td className="p-3">
+                        {renderField(item.investorStatusUpdate, originalItem?.investorStatusUpdate, "investorStatusUpdate", item.id)}
                       </td>
                       <td className="p-3">
                         {renderField(item.reviewRemarks, originalItem?.reviewRemarks, "reviewRemarks", item.id)}
@@ -1004,14 +1045,26 @@ export function CAPTable({
                 </div>
 
                 {/* 15. Current Status Update */}
-                <div>
-                  <label className="block mb-1 font-medium text-sm">Current Status Update</label>
-                  <Textarea
-                    value={newRowData.statusUpdate}
-                    onChange={(e) => setNewRowData({ ...newRowData, statusUpdate: e.target.value })}
-                    placeholder="Latest update on this action item"
-                    className="min-h-[60px]"
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block mb-1 font-medium text-sm">Current Status Update (Company)</label>
+                    <Textarea
+                      value={newRowData.statusUpdate}
+                      disabled={true}
+                      onChange={(e) => setNewRowData({ ...newRowData, statusUpdate: e.target.value })}
+                      placeholder="Latest update on this action item"
+                      className="min-h-[60px]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block mb-1 font-medium text-sm">Current Status Update (Investor)</label>
+                    <Textarea
+                      value={newRowData.investorStatusUpdate}
+                      onChange={(e) => setNewRowData({ ...newRowData, investorStatusUpdate: e.target.value })}
+                      placeholder="Latest update on this action item"
+                      className="min-h-[60px]"
+                    />
+                  </div>
                 </div>
 
                 {/* 16. Review Remarks & 17. Last Review Date */}

@@ -55,7 +55,57 @@ export function ReviewDialog({
   const [originalItem, setOriginalItem] = useState<ESGCapItem | null>(null);
   const [dataEditStatus, setDataEditStatus] = useState(false);
   const { toast } = useToast();
-  
+
+  // Date formatting helper
+  const formatDisplayDate = (dateString?: string): string => {
+    if (!dateString) return '-';
+    try {
+      return new Date(dateString).toLocaleDateString();
+    } catch {
+      return dateString;
+    }
+  };
+
+  // --- Helper (not a hook) ---
+  const getTodayDate = () => new Date().toISOString().split('T')[0];
+
+  // --- useEffect to set default lastReviewDate when dialog opens ---
+  useEffect(() => {
+    if (open && editedItem ) {
+      setEditedItem(prev => ({ ...prev, lastReviewDate: getTodayDate() }));
+    }
+  }, [open, editedItem]);
+
+  const toDateInputValue = (dateString?: string): string => {
+    if (!dateString) return '';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) return dateString;
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '';
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  useEffect(() => {
+    if (!item) return;
+    
+    // Format date fields for <input type="date">
+    const formattedItem = {
+      ...item,
+      targetDate: toDateInputValue(item.targetDate),
+      actualDate: toDateInputValue(item.actualDate),
+      // lastReviewDate: toDateInputValue(item.lastReviewDate),
+    };
+    setEditedItem(formattedItem);
+    
+    // Find original item for comparison
+    const foundOriginal = originalItems.find(orig => orig.id === item.id);
+    setOriginalItem(foundOriginal || { ...item });
+  }, [item, originalItems]);
+
+  // ✅ Core change: editing is only allowed if parent says we can edit AND the plan is NOT finalized
+  const isEditable = canEdit && !finalPlan;
   useEffect(() => {
     if (item) {
       setEditedItem({ ...item });
@@ -74,14 +124,21 @@ export function ReviewDialog({
 
   const [showSaveToast, setShowSaveToast] = useState(false);
 
-  
-  
   const handleSaveChanges = () => {
-    if (editedItem) {
+    if (editedItem && !editedItem ) {
       setDataEditStatus(true);
       onSaveChanges(editedItem);
       toast({
         title: "Please click on 'Request Cap Change'",
+        description: "To save the changes and notify the company about the changes.",
+        duration: Infinity,
+        variant: "destructive",
+      });
+    }else{
+      setDataEditStatus(true);
+      onSaveChanges(editedItem);
+      toast({
+        title: "Please click on 'Update Final Cap'",
         description: "To save the changes and notify the company about the changes.",
         duration: Infinity,
         variant: "destructive",
@@ -113,7 +170,7 @@ export function ReviewDialog({
         <DialogHeader>
           <DialogTitle>Review CAP Item</DialogTitle>
           <DialogDescription>
-            {canEdit ? "Review and edit this CAP item." : "Review this CAP item."}
+            {isEditable ? "Review and edit this CAP item." : "Review this CAP item."}
           </DialogDescription>
         </DialogHeader>
         <div className="py-4">
@@ -123,7 +180,7 @@ export function ReviewDialog({
               {/* Item */}
               <div>
                 <h4 className="font-semibold mb-1">Item</h4>
-                {canEdit ? (
+                {isEditable ? (
                   <Input
                     value={editedItem.item}
                     onChange={(e) => handleInputChange('item', e.target.value)}
@@ -142,7 +199,7 @@ export function ReviewDialog({
               {/* Priority */}
               <div>
                 <h4 className="font-semibold mb-1">Priority</h4>
-                {canEdit ? (
+                {isEditable ? (
                   <Select
                     value={editedItem.priority}
                     onValueChange={(value) => handleInputChange('priority', value as CAPPriority)}
@@ -169,7 +226,7 @@ export function ReviewDialog({
               {/* Related Finding */}
               <div>
                 <h4 className="font-semibold mb-1">Related Finding</h4>
-                {canEdit ? (
+                {isEditable ? (
                   <Textarea
                     value={editedItem.relatedFinding || ''}
                     onChange={(e) => handleInputChange('relatedFinding', e.target.value)}
@@ -188,7 +245,7 @@ export function ReviewDialog({
               {/* Measures & Corrective Actions */}
               <div>
                 <h4 className="font-semibold mb-1">Measures & Corrective Actions</h4>
-                {canEdit ? (
+                {isEditable ? (
                   <Textarea
                     value={editedItem.measures}
                     onChange={(e) => handleInputChange('measures', e.target.value)}
@@ -208,7 +265,7 @@ export function ReviewDialog({
               {/* Expected Deliverable */}
               <div>
                 <h4 className="font-semibold mb-1">Expected Deliverable</h4>
-                {canEdit ? (
+                {isEditable ? (
                   <Textarea
                     value={editedItem.deliverable || ''}
                     onChange={(e) => handleInputChange('deliverable', e.target.value)}
@@ -228,7 +285,7 @@ export function ReviewDialog({
               {/* Target Date */}
               <div>
                 <h4 className="font-semibold mb-1">Target Date</h4>
-                {canEdit ? (
+                {isEditable ? (
                   <Input
                     type="date"
                     value={editedItem.targetDate || ''}
@@ -236,11 +293,37 @@ export function ReviewDialog({
                     className={isFieldChanged('targetDate') ? "border-orange-400" : ""}
                   />
                 ) : (
-                  <p>{editedItem.targetDate || '-'}</p>
+                  <p>{formatDisplayDate(editedItem.targetDate) || '-'}</p>
                 )}
                 {isFieldChanged('targetDate') && (
                   <p className="text-xs text-amber-600 mt-1">
-                    Original: {originalItem?.targetDate || '-'}
+                    Original: {formatDisplayDate(originalItem?.targetDate) || '-'}
+                  </p>
+                )}
+              </div>
+
+              {/* Progress Percentage */}
+              <div>
+                <h4 className="font-semibold mb-1">Progress Percentage</h4>
+                {isEditable ? (
+                  <Input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={editedItem.progressPercentage ?? ''}
+                    onChange={(e) => {
+                      const val = e.target.value === '' ? undefined : Number(e.target.value);
+                      handleInputChange('progressPercentage', val);
+                    }}
+                    className={isFieldChanged('progressPercentage') ? "border-orange-400" : ""}
+                    placeholder="0-100"
+                  />
+                ) : (
+                  <p>{editedItem.progressPercentage !== undefined ? `${editedItem.progressPercentage}%` : '-'}</p>
+                )}
+                {isFieldChanged('progressPercentage') && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    Original: {originalItem?.progressPercentage !== undefined ? `${originalItem.progressPercentage}%` : '-'}
                   </p>
                 )}
               </div>
@@ -248,7 +331,7 @@ export function ReviewDialog({
               {/* Type (CP/CS) */}
               <div>
                 <h4 className="font-semibold mb-1">Type (CP/CS)</h4>
-                {canEdit ? (
+                {isEditable ? (
                   <Select
                     value={editedItem.CS || ""}
                     onValueChange={(value) => handleInputChange("CS", value)}
@@ -273,18 +356,19 @@ export function ReviewDialog({
 
               {/* Current Status Update */}
               <div>
-                <h4 className="font-semibold mb-1">Current Status Update</h4>
-                {canEdit ? (
+                <h4 className="font-semibold mb-1">Current Status Update (Company)</h4>
+                {/* {isEditable ? ( */}
                   <Textarea
                     value={editedItem.statusUpdate || ''}
                     onChange={(e) => handleInputChange('statusUpdate', e.target.value)}
+                    disabled
                     className={isFieldChanged('statusUpdate') ? "border-orange-400" : ""}
                     rows={2}
                     placeholder="Latest update on this action item..."
                   />
-                ) : (
+                {/* ) : (
                   <p>{editedItem.statusUpdate || '-'}</p>
-                )}
+                )} */}
                 {isFieldChanged('statusUpdate') && (
                   <p className="text-xs text-amber-600 mt-1">
                     Original: {originalItem?.statusUpdate || '-'}
@@ -292,42 +376,33 @@ export function ReviewDialog({
                 )}
               </div>
 
-              {/* Last Review Date */}
+              {/* Current Status Update (Investor) */}
               <div>
-                <h4 className="font-semibold mb-1">Last Review Date</h4>
-                {canEdit ? (
-                  <Input
-                    type="date"
-                    value={editedItem.lastReviewDate || ''}
-                    onChange={(e) => handleInputChange('lastReviewDate', e.target.value)}
-                    className={isFieldChanged('lastReviewDate') ? "border-orange-400" : ""}
-                  />
-                ) : (
-                  <p>{editedItem.lastReviewDate || '-'}</p>
-                )}
-                {isFieldChanged('lastReviewDate') && (
-                  <p className="text-xs text-amber-600 mt-1">
-                    Original: {originalItem?.lastReviewDate || '-'}
-                  </p>
+                <h4 className="font-semibold mb-1">Current Status Update (Investor)</h4>
+                <Textarea
+                  value={editedItem.investorStatusUpdate || ''}
+                  onChange={(e) => handleInputChange('investorStatusUpdate', e.target.value)}
+                  className={isFieldChanged('investorStatusUpdate') ? "border-orange-400" : ""}
+                  rows={2}
+                  placeholder="Latest update from investor..."
+                />
+                {isFieldChanged('investorStatusUpdate') && (
+                  <p className="text-xs text-amber-600 mt-1">Original: {originalItem?.investorStatusUpdate}</p>
                 )}
               </div>
 
-              {/* Closure Verified By */}
+              {/* Last Review Date */}
               <div>
-                <h4 className="font-semibold mb-1">Closure Verified By</h4>
-                {canEdit ? (
-                  <Input
-                    value={editedItem.closureVerifiedBy || ''}
-                    onChange={(e) => handleInputChange('closureVerifiedBy', e.target.value)}
-                    className={isFieldChanged('closureVerifiedBy') ? "border-orange-400" : ""}
-                    placeholder="Name of verifier"
-                  />
-                ) : (
-                  <p>{editedItem.closureVerifiedBy || '-'}</p>
-                )}
-                {isFieldChanged('closureVerifiedBy') && (
+                <h4 className="font-semibold mb-1">Last Review Date</h4>
+                <Input
+                  type="date"
+                  value={editedItem.lastReviewDate || ''}
+                  onChange={(e) => handleInputChange('lastReviewDate', e.target.value)}
+                  className={isFieldChanged('lastReviewDate') ? "border-orange-400" : ""}
+                />
+                {isFieldChanged('lastReviewDate') && (
                   <p className="text-xs text-amber-600 mt-1">
-                    Original: {originalItem?.closureVerifiedBy || '-'}
+                    Original: {formatDisplayDate(originalItem?.lastReviewDate) || '-'}
                   </p>
                 )}
               </div>
@@ -338,7 +413,7 @@ export function ReviewDialog({
                {/* Category */}
                <div>
                 <h4 className="font-semibold mb-1">Category</h4>
-                {canEdit ? (
+                {isEditable ? (
                   <Select
                     value={editedItem.category}
                     onValueChange={(value) => handleInputChange('category', value as CAPCategory)}
@@ -365,7 +440,7 @@ export function ReviewDialog({
               {/* Issue */}
               <div>
                 <h4 className="font-semibold mb-1">Issue</h4>
-                {canEdit ? (
+                {isEditable ? (
                   <Textarea
                     value={editedItem.issue || ''}
                     onChange={(e) => handleInputChange('issue', e.target.value)}
@@ -381,10 +456,10 @@ export function ReviewDialog({
                 )}
               </div>
 
-              {/* ESG Lever - ADDED HERE */}
+              {/* ESG Lever */}
               <div>
                 <h4 className="font-semibold mb-1">ESG Lever</h4>
-                {canEdit ? (
+                {isEditable ? (
                   <Input
                     value={editedItem.esgLever || ''}
                     onChange={(e) => handleInputChange('esgLever', e.target.value)}
@@ -401,9 +476,10 @@ export function ReviewDialog({
                 )}
               </div>
 
+              {/* CAP Source */}
               <div>
                 <h4 className="font-semibold mb-1">CAP Source</h4>
-                {canEdit ? (
+                {isEditable ? (
                   <Input
                     value={editedItem.capSource || ''}
                     onChange={(e) => handleInputChange('capSource', e.target.value)}
@@ -422,7 +498,7 @@ export function ReviewDialog({
               {/* Resource & Responsibility */}
               <div>
                 <h4 className="font-semibold mb-1">Resource & Responsibility</h4>
-                {canEdit ? (
+                {isEditable ? (
                   <Input
                     value={editedItem.resource || ''}
                     onChange={(e) => handleInputChange('resource', e.target.value)}
@@ -441,7 +517,7 @@ export function ReviewDialog({
               {/* Timeline Month */}
               <div>
                 <h4 className="font-semibold mb-1">Timeline Month</h4>
-                {canEdit ? (
+                {isEditable ? (
                   <Input
                     type="number"
                     value={editedItem.timelineMonth || ''}
@@ -462,7 +538,7 @@ export function ReviewDialog({
               {/* Actual Date */}
               <div>
                 <h4 className="font-semibold mb-1">Actual Date</h4>
-                {canEdit ? (
+                {isEditable ? (
                   <Input
                     type="date"
                     value={editedItem.actualDate || ''}
@@ -470,11 +546,11 @@ export function ReviewDialog({
                     className={isFieldChanged('actualDate') ? "border-orange-400" : ""}
                   />
                 ) : (
-                  <p>{editedItem.actualDate || "Not set"}</p>
+                  <p>{formatDisplayDate(editedItem.actualDate) || "Not set"}</p>
                 )}
                 {isFieldChanged('actualDate') && (
                   <p className="text-xs text-amber-600 mt-1">
-                    Original: {originalItem?.actualDate || "Not set"}
+                    Original: {formatDisplayDate(originalItem?.actualDate) || "Not set"}
                   </p>
                 )}
               </div>
@@ -482,7 +558,7 @@ export function ReviewDialog({
               {/* Status */}
               <div>
                 <h4 className="font-semibold mb-1">Status</h4>
-                {canEdit ? (
+                {isEditable ? (
                   <Select
                     value={editedItem.status}
                     onValueChange={(value) => handleInputChange('status', value as CAPStatus)}
@@ -513,7 +589,7 @@ export function ReviewDialog({
               {/* Review Remarks */}
               <div>
                 <h4 className="font-semibold mb-1">Review Remarks</h4>
-                {canEdit ? (
+                {/* {isEditable ? ( */}
                   <Textarea
                     value={editedItem.reviewRemarks || ''}
                     onChange={(e) => handleInputChange('reviewRemarks', e.target.value)}
@@ -521,9 +597,9 @@ export function ReviewDialog({
                     rows={2}
                     placeholder="Reviewer comments..."
                   />
-                ) : (
+                {/* ) : (
                   <p>{editedItem.reviewRemarks || '-'}</p>
-                )}
+                )} */}
                 {isFieldChanged('reviewRemarks') && (
                   <p className="text-xs text-amber-600 mt-1">
                     Original: {originalItem?.reviewRemarks || '-'}
@@ -534,7 +610,7 @@ export function ReviewDialog({
               {/* Implementation Support Needed */}
               <div>
                 <h4 className="font-semibold mb-1">Implementation Support Needed</h4>
-                {canEdit ? (
+                {/* {isEditable ? ( */}
                   <Textarea
                     value={editedItem.implementationSupportNeeded || ''}
                     onChange={(e) => handleInputChange('implementationSupportNeeded', e.target.value)}
@@ -542,9 +618,9 @@ export function ReviewDialog({
                     rows={2}
                     placeholder="What support is required?"
                   />
-                ) : (
+                {/* ) : (
                   <p>{editedItem.implementationSupportNeeded || '-'}</p>
-                )}
+                )} */}
                 {isFieldChanged('implementationSupportNeeded') && (
                   <p className="text-xs text-amber-600 mt-1">
                     Original: {originalItem?.implementationSupportNeeded || '-'}
@@ -555,18 +631,38 @@ export function ReviewDialog({
               {/* Assigned To */}
               <div>
                 <h4 className="font-semibold mb-1">Assigned To</h4>
-                {canEdit ? (
+                {/* {isEditable ? ( */}
                   <Input
                     value={editedItem.assignedTo || ''}
                     onChange={(e) => handleInputChange('assignedTo', e.target.value)}
                     className={isFieldChanged('assignedTo') ? "border-orange-400" : ""}
                   />
-                ) : (
+                {/* ) : (
                   <p>{editedItem.assignedTo || 'Not assigned'}</p>
-                )}
+                )} */}
                 {isFieldChanged('assignedTo') && (
                   <p className="text-xs text-amber-600 mt-1">
                     Original: {originalItem?.assignedTo || 'Not assigned'}
+                  </p>
+                )}
+              </div>
+
+              {/* Closure Verified By */}
+              <div>
+                <h4 className="font-semibold mb-1">Closure Verified By</h4>
+                {/* {isEditable ? ( */}
+                  <Input
+                    value={editedItem.closureVerifiedBy || ''}
+                    onChange={(e) => handleInputChange('closureVerifiedBy', e.target.value)}
+                    className={isFieldChanged('closureVerifiedBy') ? "border-orange-400" : ""}
+                    placeholder="Name of verifier"
+                  />
+                {/* ) : (
+                  <p>{editedItem.closureVerifiedBy || '-'}</p>
+                )} */}
+                {isFieldChanged('closureVerifiedBy') && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    Original: {originalItem?.closureVerifiedBy || '-'}
                   </p>
                 )}
               </div>
@@ -574,32 +670,35 @@ export function ReviewDialog({
           </div>
         </div>
         <DialogFooter className="flex flex-wrap gap-2 sm:justify-end pt-4">
-          {canEdit && (
+          {/* Save Changes button appears only when we are in edit mode AND plan not finalized */}
+          {/* {isEditable && ( */}
             <Button variant="outline" onClick={handleSaveChanges}>
               <Save className="mr-2 h-4 w-4" />
               Save Changes
             </Button>
-          )}
-          {canEdit && (
+          {/* )} */}
+          {/* {isEditable && ( */}
             <Button variant="destructive" onClick={() => onOpenChange(false)}>
               <X className="mr-2 h-4 w-4" />
               Cancel
             </Button>
-          )}
-          {!canEdit && (
-            <Button onClick={onSetEdit} disabled={!canEdit}>
+          {/* )} */}
+          {/* Edit button: shown only when parent allows edit AND plan is NOT finalized */}
+          {!canEdit && !finalPlan && (
+            <Button onClick={onSetEdit}>
               <Save className="mr-2 h-4 w-4" />
               Edit
             </Button>
           )}
+          {/* Approve/Reject buttons – they are already hidden when finalPlan via isApproveRejectVisible */}
           {!canEdit && isApproveRejectVisible(comparePlanData, finalPlan) && (
-            <Button variant="destructive" onClick={onReject} disabled={!canEdit}>
+            <Button variant="destructive" onClick={onReject}>
               <X className="mr-2 h-4 w-4" />
               Reject
             </Button>
           )}
           {!canEdit && isApproveRejectVisible(comparePlanData, finalPlan) && (
-            <Button onClick={onApprove} disabled={!canEdit}>
+            <Button onClick={onApprove}>
               <Check className="mr-2 h-4 w-4" />
               Approve
             </Button>
