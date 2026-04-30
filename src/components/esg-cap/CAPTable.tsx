@@ -618,7 +618,7 @@ export function CAPTable({
                   <th className="p-3 text-left">CAP Source</th>
                   <th className="p-3 text-left">Measures & Corrective Actions</th>
                   <th className="p-3 text-left">Resource & Responsibility</th>
-                  <th className="p-3 text-left">Expected Deliverable</th>
+                  <th className="p-3 text-left">Completion Indicator</th>
                   <th className="p-3 text-left">Timeline Month</th>
                   <th className="p-3 text-left">Target Date</th>
                   <th className="p-3 text-left">Progress Percentage</th>   {/* NEW */}
@@ -968,7 +968,7 @@ export function CAPTable({
                     />
                   </div>
                   <div>
-                    <label className="block mb-1 font-medium text-sm">Expected Deliverable</label>
+                    <label className="block mb-1 font-medium text-sm">Completion Indicator</label>
                     <Textarea
                       value={newRowData.deliverable}
                       onChange={(e) => setNewRowData({ ...newRowData, deliverable: e.target.value })}
