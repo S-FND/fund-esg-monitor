@@ -262,9 +262,9 @@ export function ReviewDialog({
                 )}
               </div>
 
-              {/* Expected Deliverable */}
+              {/* Completion Indicator */}
               <div>
-                <h4 className="font-semibold mb-1">Expected Deliverable</h4>
+                <h4 className="font-semibold mb-1">Completion Indicator</h4>
                 {isEditable ? (
                   <Textarea
                     value={editedItem.deliverable || ''}

@@ -324,15 +324,37 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
 
         try {
             const text = await file.text();
-            const lines = text.split('\n').filter(line => line.trim());
-            if (lines.length < 2) throw new Error("File must contain at least one data row");
+            const allLines = text.split('\n');
+            // Filter out empty lines and lines that start with '#'
+            const lines = allLines.filter(line => {
+                const trimmed = line.trim();
+                return trimmed && !trimmed.startsWith('#');
+            });
+            if (lines.length < 2) throw new Error("File must contain at least one data row (after removing comments)");
 
             // FIX 1: Better header parsing - remove BOM, trim, lowercase
             const rawHeaders = lines[0].split(',').map(h => h.trim().replace(/^\uFEFF/, '').toLowerCase());
 
-            // FIX 2: Flexible header mapping with multiple possible names
             const getHeaderIndex = (possibleNames: string[]) => {
-                return rawHeaders.findIndex(h => possibleNames.some(name => h.includes(name) || name.includes(h)));
+                for (const name of possibleNames) {
+                    const exactIdx = rawHeaders.findIndex(h => h === name);
+                    if (exactIdx !== -1) return exactIdx;
+                }
+                let bestIdx = -1;
+                let bestLength = 0;
+                for (let i = 0; i < rawHeaders.length; i++) {
+                    const h = rawHeaders[i];
+                    for (const name of possibleNames) {
+                        if (h.includes(name) || name.includes(h)) {
+                            const matchLen = Math.max(h.length, name.length);
+                            if (matchLen > bestLength) {
+                                bestLength = matchLen;
+                                bestIdx = i;
+                            }
+                        }
+                    }
+                }
+                return bestIdx;
             };
 
             const idxItem = getHeaderIndex(['item']);
@@ -375,7 +397,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                     return idx !== -1 ? values[idx]?.replace(/^"|"$/g, '') || '' : '';
                 };
 
-                const category = getVal(['category']) as CAPCategory;
+                const category = getVal(['category'])?.toLowerCase() as CAPCategory;
                 const validCategories: CAPCategory[] = ['environmental', 'social', 'governance'];
                 const validCategory = validCategories.includes(category) ? category : 'environmental';
 
@@ -383,7 +405,10 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                 const validPriorities: CAPPriority[] = ['High', 'Medium', 'Low'];
                 const validPriority = validPriorities.includes(priority) ? priority : 'Medium';
 
-                const status = getVal(['status']) as CAPStatus;
+                let statusRaw = getVal(['status'])?.toLowerCase() || '';
+                // Replace spaces with underscores (e.g., "in progress" -> "in_progress")
+                statusRaw = statusRaw.replace(/\s+/g, '_');
+                const status = statusRaw as CAPStatus;
                 const validStatuses: CAPStatus[] = ['pending', 'in_review', 'accepted', 'in_progress', 'completed', 'delayed', 'rejected'];
                 const validStatus = validStatuses.includes(status) ? status : 'pending';
 
@@ -391,9 +416,8 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                 const validDealConditions: CAPType[] = ['CP', 'CS', 'none'];
                 const validDealCondition = validDealConditions.includes(dealCondition) ? dealCondition : 'none';
 
-                const ftargetDate = parseToDateInput(getVal(['target date', 'targetdate']));
-                const factualDate = parseToDateInput(getVal(['actual date', 'actualdate']));
-                const flastReviewDate = parseToDateInput(getVal(['last review date', 'lastreviewdate'])) || new Date().toISOString().split('T')[0];
+                const progressPercentage = getVal(['progress percentage', 'progresspercentage', 'progress%']);
+                const progressPercentNum = progressPercentage ? Math.min(100, Math.max(0, Number(progressPercentage))) : undefined;
 
                 const newItem = {
                     reportId: selectedCompany,
@@ -402,10 +426,11 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                     category: validCategory,
                     priority: validPriority,
                     resource: getVal(['resource', 'resource & responsibility']) || undefined,
-                    deliverable: getVal(['deliverable', 'expected deliverable']) || undefined,
-                    targetDate: ftargetDate || undefined,
+                    deliverable: getVal(['indicator', 'completion indicator']) || undefined,
+                    targetDate: getVal(['target date', 'targetdate']) || undefined,
+                    progressPercentage: progressPercentNum,
                     CS: validDealCondition,
-                    actualDate: factualDate || undefined,
+                    actualDate: getVal(['actual date', 'actualdate']) || undefined,
                     status: validStatus,
                     assignedTo: getVal(['assigned to', 'assignedto']) || undefined,
                     dealCondition: validDealCondition,
@@ -415,10 +440,10 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                     esgLever: getVal(['esg lever', 'esglever']) || undefined,
                     capSource: getVal(['cap source', 'capsource']) || undefined,
                     timelineMonth: getVal(['timeline month', 'timelinemonth']) ? Math.max(0, Number(getVal(['timeline month', 'timelinemonth']))) : undefined,
-                    statusUpdate: getVal(['status update', 'current status update', 'statusupdate']) || undefined,
-                    investorStatusUpdate: getVal(['status update', 'current status update', 'investorStatusUpdate']) || undefined,
+                    statusUpdate: getVal(['company current status update', 'comapny current status update', 'company status update', 'statusupdate_company']) || undefined,
+                    investorStatusUpdate: getVal(['investor current status update', 'investorstatus update', 'investor_status_update', 'statusupdate_investor']) || undefined,
                     reviewRemarks: getVal(['review remarks', 'reviewremarks']) || undefined,
-                    lastReviewDate: flastReviewDate,
+                    lastReviewDate: getVal(['last review date', 'lastreviewdate']) || undefined,
                     implementationSupportNeeded: getVal(['implementation support', 'implementation support needed', 'implementationsupportneeded']) || undefined,
                     closureVerifiedBy: getVal(['closure verified', 'closure verified by', 'closureverifiedby']) || undefined,
                     remarks: getVal(['remarks']) || undefined,
@@ -459,8 +484,15 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
 
     const downloadTemplate = () => {
         const template = [
-            'Item,Category,Priority,Issue,Related Finding,ESG Lever,CAP Source,Measures,Resource & Responsibility,Expected Deliverable,Timeline Month,Target Date,Actual Date,CP/CS,Status,Current Status Update,Review Remarks,Last Review Date,Implementation Support Needed,Closure Verified By,Assigned To,Remarks',
-            '"Example Item",environmental,Medium,"Issue desc","Finding","Policy","Audit Finding #123","Implement measures","ESG Manager","Report",3,2024-12-31,2024-12-31,CP,in_progress,"Update","Remarks",2024-03-01,"Support","Verifier","assigned@email.com","Notes"'
+            // Optional comment row (starting with #) – many CSV readers skip it
+            '# INSTRUCTIONS:',
+            '# - "Status" must be one of: Pending, In Progress, In Review, Accepted, Completed, Delayed, Rejected',
+            '# - "Category" must be one of: environmental, social, Governance',
+            '# - "Priority" must be one of: High, Medium, Low',
+            '# - Required columns: Item, Measures',
+            '#',
+            'Item*,Category,Priority,Issue,Related Finding,ESG Lever,CAP Source,Measures*,Resource & Responsibility,Completion Indicator,Timeline Month,Target Date,Progress Percentage,Actual Date,CP/CS,Status,Comapny Current Status Update,Investor Current Status Update,Review Remarks,Last Review Date,Implementation Support Needed,Closure Verified By,Assigned To,Remarks',
+            '"Example: Improve emissions",environmental,High,"Carbon reporting gaps","Audit finding 2024-01","Policy development","Training material","Implement tracking system","ESG Manager","Monthly report",6,2024-12-31,75,2024-12-31,CP,"In Progress","System implementation 50% complete","System complete","Approved",2024-03-01,"IT support needed","John Doe","jane@example.com","Priority item"'
         ].join('\n');
 
         const blob = new Blob(["\uFEFF" + template], { type: 'text/csv;charset=utf-8' });
@@ -473,7 +505,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
 
-        toast({ title: "Template Downloaded", description: "CSV template downloaded successfully." });
+        toast({ title: "Template Downloaded", description: "CSV template with instructions downloaded successfully." });
     };
 
     const handleCancel = () => {
@@ -654,7 +686,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                                                     />
                                                 </div>
                                                 <div>
-                                                    <Label>Expected Deliverable</Label>
+                                                    <Label>Completion Indicator</Label>
                                                     <Textarea
                                                         value={row.deliverable}
                                                         onChange={(e) => updateRow(row.id, "deliverable", e.target.value)}
@@ -857,10 +889,10 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
 
                                 {uploading && <div className="text-center text-sm">Processing file...</div>}
 
-                                <div className="text-xs space-y-1">
+                                {/* <div className="text-xs space-y-1">
                                     <p><strong>Required columns:</strong> item, measures</p>
                                     <p><strong>All columns in order:</strong> item, category, priority, issue, relatedfinding, measures, resource, deliverable, timelinemonth, dealcondition, statusupdate, investorStatusUpdate, reviewremarks, lastreviewdate, implementationsupportneeded, closureverifiedby, actualdate, status, targetdate, esglever, capSource, progresspercentage, assignedto, remarks</p>
-                                </div>
+                                </div> */}
                             </CardContent>
                         </Card>
                     </TabsContent>
