@@ -330,10 +330,7 @@ export default function TeamMemberDetail() {
           });
         }
       } catch (error) {
-
       }
-
-
     }
   };
   const getFundList = async () => {
@@ -570,47 +567,47 @@ export default function TeamMemberDetail() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-  {portfolioCompanyList
-    .filter(c => c.companyName)
-    .sort((a, b) => a.companyName.localeCompare(b.companyName))
-    .map((company) => {
-      console.log(
-        "company._id:",
-        company._id,
-        "selectedCompanies:",
-        selectedCompanies,
-        "match:",
-        selectedCompanies.some(
-          id => String(id).trim() === String(company._id).trim()
-        )
-      );
+                        {portfolioCompanyList
+                          .filter(c => c.companyName)
+                          .sort((a, b) => a.companyName.localeCompare(b.companyName))
+                          .map((company) => {
+                            console.log(
+                              "company._id:",
+                              company._id,
+                              "selectedCompanies:",
+                              selectedCompanies,
+                              "match:",
+                              selectedCompanies.some(
+                                id => String(id).trim() === String(company._id).trim()
+                              )
+                            );
 
-      return (
-        <TableRow key={company._id}>
-          <TableCell className="w-12">
-            <Checkbox
-              checked={selectedCompanies.some(
-                id => String(id).trim() === String(company._id).trim()
-              )}
-              onCheckedChange={() => toggleCompanySelection(company._id)}
-              id={`company-${company._id}`}
-            />
-          </TableCell>
+                            return (
+                              <TableRow key={company._id}>
+                                <TableCell className="w-12">
+                                  <Checkbox
+                                    checked={selectedCompanies.some(
+                                      id => String(id).trim() === String(company._id).trim()
+                                    )}
+                                    onCheckedChange={() => toggleCompanySelection(company._id)}
+                                    id={`company-${company._id}`}
+                                  />
+                                </TableCell>
 
-          <TableCell>
-            <Label
-              htmlFor={`company-${company._id}`}
-              className="cursor-pointer"
-            >
-              {company.companyName}
-            </Label>
-          </TableCell>
+                                <TableCell>
+                                  <Label
+                                    htmlFor={`company-${company._id}`}
+                                    className="cursor-pointer"
+                                  >
+                                    {company.companyName}
+                                  </Label>
+                                </TableCell>
 
-          <TableCell>{company.sector}</TableCell>
-        </TableRow>
-      );
-    })}
-</TableBody>
+                                <TableCell>{company.sector}</TableCell>
+                              </TableRow>
+                            );
+                          })}
+                      </TableBody>
                     </Table>
 
                     <div className="flex justify-end mt-6">
