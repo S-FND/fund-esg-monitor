@@ -23,7 +23,7 @@ export type CAPStatus =
   | "rejected";
 
 export type CAPCategory = "environmental" | "social" | "governance";
-export type CAPType = "CP" | "CS" | "none";
+export type CAPType = "CP" | "CS"| "Roadmap" | "none";
 export type CAPPriority = "High" | "Medium" | "Low";
 
 export type EvidenceType =
@@ -66,7 +66,7 @@ export interface Template {
 
   structure: TemplateStructure;
 }
-export type ESGCapDealCondition = 'CP' | 'CS' | 'none';
+export type ESGCapDealCondition = 'CP' | 'CS' | 'Roadmap' | 'none';
 
 export interface TemplateStructure {
   components?: string[];
@@ -1020,6 +1020,7 @@ export function CAPTable({
                       <SelectContent>
                         <SelectItem value="CP">CP (Condition Precedent)</SelectItem>
                         <SelectItem value="CS">CS (Condition Subsequent)</SelectItem>
+                        <SelectItem value="Roadmap">Roadmap</SelectItem>
                         <SelectItem value="none">None</SelectItem>
                       </SelectContent>
                     </Select>

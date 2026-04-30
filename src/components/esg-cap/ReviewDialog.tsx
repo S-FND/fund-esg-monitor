@@ -342,6 +342,7 @@ export function ReviewDialog({
                     <SelectContent>
                       <SelectItem value="CP">CP</SelectItem>
                       <SelectItem value="CS">CS</SelectItem>
+                      <SelectItem value="Roadmap">Roadmap</SelectItem>
                     </SelectContent>
                   </Select>
                 ) : (

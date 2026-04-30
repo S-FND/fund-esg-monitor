@@ -706,6 +706,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                                                         <SelectContent>
                                                             <SelectItem value="CP">CP</SelectItem>
                                                             <SelectItem value="CS">CS</SelectItem>
+                                                            <SelectItem value="Roadmap">Roadmap</SelectItem>
                                                             <SelectItem value="none">None</SelectItem>
                                                         </SelectContent>
                                                     </Select>
