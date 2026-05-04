@@ -244,7 +244,7 @@ export function ReviewDialog({
 
               {/* Measures & Corrective Actions */}
               <div>
-                <h4 className="font-semibold mb-1">Measures & Corrective Actions</h4>
+                <h4 className="font-semibold mb-1">Completion indicator</h4>
                 {isEditable ? (
                   <Textarea
                     value={editedItem.measures}
@@ -285,16 +285,16 @@ export function ReviewDialog({
               {/* Target Date */}
               <div>
                 <h4 className="font-semibold mb-1">Target Date</h4>
-                {isEditable ? (
+                {/* {isEditable ? ( */}
                   <Input
                     type="date"
                     value={editedItem.targetDate || ''}
                     onChange={(e) => handleInputChange('targetDate', e.target.value)}
                     className={isFieldChanged('targetDate') ? "border-orange-400" : ""}
                   />
-                ) : (
+                {/* ) : (
                   <p>{formatDisplayDate(editedItem.targetDate) || '-'}</p>
-                )}
+                )} */}
                 {isFieldChanged('targetDate') && (
                   <p className="text-xs text-amber-600 mt-1">
                     Original: {formatDisplayDate(originalItem?.targetDate) || '-'}
@@ -305,7 +305,7 @@ export function ReviewDialog({
               {/* Progress Percentage */}
               <div>
                 <h4 className="font-semibold mb-1">Progress Percentage</h4>
-                {isEditable ? (
+                {/* {isEditable ? ( */}
                   <Input
                     type="number"
                     min="0"
@@ -318,9 +318,9 @@ export function ReviewDialog({
                     className={isFieldChanged('progressPercentage') ? "border-orange-400" : ""}
                     placeholder="0-100"
                   />
-                ) : (
+                {/* ) : (
                   <p>{editedItem.progressPercentage !== undefined ? `${editedItem.progressPercentage}%` : '-'}</p>
-                )}
+                )} */}
                 {isFieldChanged('progressPercentage') && (
                   <p className="text-xs text-amber-600 mt-1">
                     Original: {originalItem?.progressPercentage !== undefined ? `${originalItem.progressPercentage}%` : '-'}
@@ -330,7 +330,7 @@ export function ReviewDialog({
 
               {/* Type (CP/CS) */}
               <div>
-                <h4 className="font-semibold mb-1">Type (CP/CS)</h4>
+                <h4 className="font-semibold mb-1">Type (CP/CS/ESG FORWARD AREAS)</h4>
                 {isEditable ? (
                   <Select
                     value={editedItem.CS || ""}
@@ -342,7 +342,7 @@ export function ReviewDialog({
                     <SelectContent>
                       <SelectItem value="CP">CP</SelectItem>
                       <SelectItem value="CS">CS</SelectItem>
-                      <SelectItem value="Roadmap">Roadmap</SelectItem>
+                      <SelectItem value="ESG_FORWARD_AREAS">ESG Forward areas</SelectItem>
                     </SelectContent>
                   </Select>
                 ) : (
@@ -539,16 +539,16 @@ export function ReviewDialog({
               {/* Actual Date */}
               <div>
                 <h4 className="font-semibold mb-1">Actual Date</h4>
-                {isEditable ? (
+                {/* {isEditable ? ( */}
                   <Input
                     type="date"
                     value={editedItem.actualDate || ''}
                     onChange={(e) => handleInputChange('actualDate', e.target.value)}
                     className={isFieldChanged('actualDate') ? "border-orange-400" : ""}
                   />
-                ) : (
+                {/* ) : (
                   <p>{formatDisplayDate(editedItem.actualDate) || "Not set"}</p>
-                )}
+                )} */}
                 {isFieldChanged('actualDate') && (
                   <p className="text-xs text-amber-600 mt-1">
                     Original: {formatDisplayDate(originalItem?.actualDate) || "Not set"}
@@ -559,7 +559,7 @@ export function ReviewDialog({
               {/* Status */}
               <div>
                 <h4 className="font-semibold mb-1">Status</h4>
-                {isEditable ? (
+                {/* {isEditable ? ( */}
                   <Select
                     value={editedItem.status}
                     onValueChange={(value) => handleInputChange('status', value as CAPStatus)}
@@ -577,9 +577,9 @@ export function ReviewDialog({
                       <SelectItem value="rejected">Rejected</SelectItem>
                     </SelectContent>
                   </Select>
-                ) : (
+                {/* ) : (
                   <p>{editedItem.status}</p>
-                )}
+                )} */}
                 {isFieldChanged('status') && (
                   <p className="text-xs text-amber-600 mt-1">
                     Original: {originalItem?.status}

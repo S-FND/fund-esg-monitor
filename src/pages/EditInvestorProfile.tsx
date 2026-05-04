@@ -46,7 +46,7 @@ interface InvestorFormData {
   gstNumber: string;
   esgManagerEmail: string;
   sdgGoal: string[];
-  sdgTarget: any;
+  sdgTarget: any[];
   designation: string;
   address: string;
   esgPolicy?: string;
@@ -83,7 +83,7 @@ export default function EditInvestorProfile() {
     gstNumber: "",
     esgManagerEmail: "",
     sdgGoal: [],
-    sdgTarget: null,
+    sdgTarget: [],
     designation: "",
     address: ""
   });
@@ -131,30 +131,34 @@ export default function EditInvestorProfile() {
   const handleSdgGoalSelect = (goalValue: string) => {
     setFormData((prev) => {
       const currentGoals = Array.isArray(prev.sdgGoal) ? [...prev.sdgGoal] : [];
-      
+
       if (currentGoals.includes(goalValue)) {
         return {
           ...prev,
           sdgGoal: currentGoals.filter(g => g !== goalValue),
-          sdgTarget: null
+          sdgTarget: []
         };
       } else {
         return {
           ...prev,
           sdgGoal: [...currentGoals, goalValue],
-          sdgTarget: null
+          sdgTarget: []
         };
       }
     });
   };
 
   // Handle SDG Targets selection
-  const handleSdgTargetSelect = (targetValue: any) => {
-    setFormData((prev) => ({
-      ...prev,
-      sdgTarget: targetValue
-    }));
-    setOpenTargets(false);
+  const handleSdgTargetSelect = (target: any) => {
+    setFormData((prev) => {
+      const currentTargets = [...prev.sdgTarget];
+      const exists = currentTargets.some(t => t.value === target.value);
+      if (exists) {
+        return { ...prev, sdgTarget: currentTargets.filter(t => t.value !== target.value) };
+      } else {
+        return { ...prev, sdgTarget: [...currentTargets, target] };
+      }
+    });
   };
 
   // Remove a specific SDG goal
@@ -164,112 +168,160 @@ export default function EditInvestorProfile() {
       return {
         ...prev,
         sdgGoal: currentGoals.filter(g => g !== goalToRemove),
-        sdgTarget: null
+        sdgTarget: []
       };
     });
   };
 
   // Remove selected target
-  const removeSdgTarget = () => {
+  const removeSdgTarget = (targetToRemove: any) => {
     setFormData((prev) => ({
       ...prev,
-      sdgTarget: null
+      sdgTarget: prev.sdgTarget.filter(t => t.value !== targetToRemove.value)
     }));
   };
 
   // Get selected goals data
   const getSelectedGoals = () => {
-    const goals = Array.isArray(formData.sdgGoal) ? formData.sdgGoal : [];
-    return sdgGoalsData.filter(goal => goals.includes(goal.value));
+    const goalIds = Array.isArray(formData.sdgGoal) ? formData.sdgGoal : [];
+    if (goalIds.length === 0) return [];
+
+    return sdgGoalsData.filter(goal => {
+      // 1. Direct match on goal.value (e.g., "goal1" vs "goal1")
+      if (goalIds.includes(goal.value)) return true;
+
+      // 2. Match by extracting the numeric part from goal.value
+      const goalNumber = goal.value.match(/\d+/)?.[0];
+      if (goalNumber && goalIds.some(id => id.includes(goalNumber))) return true;
+
+      // 3. Match if the stored text (full label) equals goal.label
+      if (goalIds.includes(goal.label)) return true;
+
+      // 4. Match if the stored numeric string equals goal.value (e.g., "1" vs "goal1")
+      if (goalIds.includes(goalNumber)) return true;
+
+      return false;
+    });
   };
 
   // Check if a goal is selected
   const isGoalSelected = (goalValue: string) => {
-    return Array.isArray(formData.sdgGoal) && formData.sdgGoal.includes(goalValue);
+    const goalIds = Array.isArray(formData.sdgGoal) ? formData.sdgGoal : [];
+    if (goalIds.includes(goalValue)) return true;
+
+    const goalNumber = goalValue.match(/\d+/)?.[0];
+    if (goalNumber && goalIds.some(id => id.includes(goalNumber))) return true;
+
+    return false;
   };
 
   // Get available targets based on selected goals
   const getAvailableTargets = () => {
-    if (!formData.sdgGoal || formData.sdgGoal.length === 0) {
-      return [];
+    if (!formData.sdgGoal?.length) return [];
+
+    const selectedGoalValues = formData.sdgGoal; // e.g., ["goal1", "goal2"]
+
+    // If sdgTargetsData is an array, filter by goal reference
+    if (Array.isArray(sdgTargetsData)) {
+      return sdgTargetsData.filter((target: any) => {
+        const targetGoal = target.goal || target.goalNumber || target.parentGoal;
+        if (!targetGoal) return false;
+        const normalizedTargetGoal = String(targetGoal).toLowerCase().replace(/\s/g, '');
+        return selectedGoalValues.some(goal =>
+          normalizedTargetGoal.includes(goal.replace("goal", "")) ||
+          goal.includes(normalizedTargetGoal)
+        );
+      });
     }
 
-    const selectedGoalValues = Array.isArray(formData.sdgGoal) ? formData.sdgGoal : [];
-    
-    let allTargets: any[] = [];
-    selectedGoalValues.forEach(goalValue => {
-      const category = goalToCategoryMap[goalValue];
-      if (category && sdgTargetsData[category]) {
-        allTargets = [...allTargets, ...sdgTargetsData[category]];
-      }
-    });
+    // If sdgTargetsData is an object with categories
+    if (typeof sdgTargetsData === 'object' && !Array.isArray(sdgTargetsData)) {
+      let allTargets: any[] = [];
+      selectedGoalValues.forEach(goalValue => {
+        const category = goalToCategoryMap[goalValue];
+        if (category && sdgTargetsData[category]) {
+          allTargets.push(...sdgTargetsData[category]);
+        }
+        // fallback: try using the goal number directly as key
+        const goalNumber = goalValue.replace("goal", "");
+        if (sdgTargetsData[goalNumber]) {
+          allTargets.push(...sdgTargetsData[goalNumber]);
+        }
+      });
+      // remove duplicates
+      return allTargets.filter((t, i, self) => self.findIndex(x => x.value === t.value) === i);
+    }
 
-    // Remove duplicates based on value
-    const uniqueTargets = allTargets.filter((target, index, self) =>
-      index === self.findIndex((t) => t.value === target.value)
-    );
-
-    return uniqueTargets;
+    return [];
   };
 
   const getInvestorInfo = async () => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}` + "/investor/general-info/", {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/investor/general-info/`, {
         method: "GET",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
       });
-      if (!res.ok) {
-        return;
-      } else {
-        const jsondata = await res.json();
-        console.log('jsondata', jsondata);
-        if (jsondata['data']) {
-          let sdgGoals: string[] = [];
-          const apiSdgGoal = jsondata['data']['sdgGoal'];
-          
-          if (Array.isArray(apiSdgGoal)) {
-            sdgGoals = apiSdgGoal;
-          } else if (typeof apiSdgGoal === 'string' && apiSdgGoal) {
-            sdgGoals = apiSdgGoal.split(',').map((g: string) => g.trim()).filter(Boolean);
-          }
+      if (!res.ok) return;
 
-          // Map old format to new format if needed
-          sdgGoals = sdgGoals.map(goal => {
-            if (goal.startsWith('Goal')) {
-              const goalNumber = goal.split(' ')[1];
-              return `goal${goalNumber}`;
-            }
-            return goal;
+      const jsondata = await res.json();
+      console.log("📦 API response:", jsondata);
+
+      if (jsondata?.data) {
+        let sdgGoals: string[] = [];
+        const apiSdgGoal = jsondata.data.sdgGoal;
+        if (apiSdgGoal) {
+          const goalLabels = apiSdgGoal.split(', ').map(s => s.trim());
+          sdgGoals = goalLabels.map(label => {
+            const match = label.match(/\d+/);
+            return match ? `goal${match[0]}` : label;
           });
-
-          // Parse SDG Targets if exists
-          let sdgTarget = null;
-          if (jsondata['data']['sdgTarget']) {
-            const targetValue = jsondata['data']['sdgTarget'];
-            // Try to find matching target in the data
-            const allTargets = Object.values(sdgTargetsData).flat();
-            const matchingTarget = allTargets.find(t => t.value === targetValue || t.label === targetValue);
-            sdgTarget = matchingTarget || { value: targetValue, label: targetValue };
-          }
-
-          let investorInfo: InvestorFormData = {
-            investorName: jsondata['data']['investorName'] || "",
-            companyName: jsondata['data']['companyName'] || "",
-            email: jsondata['data']['email'] || "",
-            panNumber: jsondata['data']['panNumber'] || "",
-            gstNumber: jsondata['data']['gstNumber'] || "",
-            esgManagerEmail: jsondata['data']['esgManagerEmail'] || "",
-            sdgGoal: sdgGoals,
-            sdgTarget: sdgTarget,
-            designation: jsondata['data']['designation'] || "",
-            address: jsondata['data']['address'] || "",
-            _id: jsondata['data']['_id']
-          };
-          setFormData(investorInfo);
+          console.log("✅ Parsed goal identifiers:", sdgGoals);
         }
+
+        // ---------- SDG TARGETS ----------
+        let sdgTargets: any[] = [];
+        const apiSdgTarget = jsondata.data.sdgTarget;
+        if (apiSdgTarget) {
+          // Split by comma+space (safe because target descriptions don't contain commas followed by space)
+          const targetStrings = apiSdgTarget.split(', ').map((s: string) => s.trim());
+          console.log("🔹 Target strings from API:", targetStrings);
+
+          // Flatten all targets from your imported JSON
+          const allTargets = Array.isArray(sdgTargetsData)
+            ? sdgTargetsData
+            : Object.values(sdgTargetsData).flat();
+
+          // For each target string, extract the target number (e.g., "1.1" from "1.1 By 2030...")
+          const targetNumbers = targetStrings.map(str => {
+            const match = str.match(/^\d+(?:\.\d+)?/); // matches "1", "1.1", "2.3.1" etc.
+            return match ? match[0] : null;
+          }).filter(Boolean);
+
+          console.log("🔹 Extracted target numbers:", targetNumbers);
+
+          // Match by target.value (which should contain numbers like "1.1")
+          sdgTargets = allTargets.filter((t: any) =>
+            targetNumbers.includes(t.value) || targetStrings.includes(t.label)
+          );
+          console.log("✅ Matched target objects:", sdgTargets);
+        }
+
+        setFormData({
+          investorName: jsondata.data.investorName || "",
+          companyName: jsondata.data.companyName || "",
+          email: jsondata.data.email || "",
+          panNumber: jsondata.data.panNumber || "",
+          gstNumber: jsondata.data.gstNumber || "",
+          esgManagerEmail: jsondata.data.esgManagerEmail || "",
+          sdgGoal: sdgGoals,
+          sdgTarget: sdgTargets,
+          designation: jsondata.data.designation || "",
+          address: jsondata.data.address || "",
+          _id: jsondata.data._id,
+        });
       }
     } catch (error) {
-      console.error("Api call:", error);
+      console.error("❌ API error:", error);
     }
   };
 
@@ -282,13 +334,14 @@ export default function EditInvestorProfile() {
     setUploading(true);
 
     try {
-      const selectedGoalLabels = selectedGoals.map(g => g.displayValue || g.label).join(', ');
-      const selectedTargetLabel = formData.sdgTarget ? formData.sdgTarget.label : '';
-      
+      // const selectedGoalLabels = selectedGoals.map(g => g.displayValue || g.label).join(', ');
+      const selectedGoalLabels = selectedGoals.map(g => g.label).join(', ');
+      const selectedTargetLabels = formData.sdgTarget.map(t => t.label).join(', ');
+
       const submitData = {
         ...formData,
         sdgGoal: selectedGoalLabels,
-        sdgTarget: selectedTargetLabel
+        sdgTarget: selectedTargetLabels
       };
 
       console.log('submitData', submitData);
@@ -514,9 +567,9 @@ export default function EditInvestorProfile() {
                         onChange={handleFileChange}
                         accept=".pdf,.doc,.docx"
                       />
-                      <Button 
-                        type="button" 
-                        onClick={handleUploadClick} 
+                      <Button
+                        type="button"
+                        onClick={handleUploadClick}
                         variant="outline"
                         className="border-gray-300 text-gray-700 hover:bg-gray-100 hover:border-gray-400 gap-2 w-full sm:w-auto"
                       >
@@ -571,14 +624,14 @@ export default function EditInvestorProfile() {
                   <Target className="h-5 w-5 text-blue-600" />
                   <h3 className="font-semibold text-gray-900">Sustainable Development Goals</h3>
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* SDG Goals Dropdown */}
                   <div className="space-y-2">
                     <Label htmlFor="sdgGoal" className="text-gray-700 flex items-center gap-1">
                       SDG Goals <span className="text-red-500">*</span>
                     </Label>
-                    
+
                     <Popover open={openGoals} onOpenChange={setOpenGoals}>
                       <PopoverTrigger asChild>
                         <Button
@@ -586,14 +639,14 @@ export default function EditInvestorProfile() {
                           className="w-full justify-between border-gray-300 bg-white hover:bg-gray-50 text-left font-normal"
                         >
                           <span className="truncate">
-                            {selectedGoals.length > 0 
-                              ? `${selectedGoals.length} goal${selectedGoals.length > 1 ? 's' : ''} selected` 
+                            {selectedGoals.length > 0
+                              ? `${selectedGoals.length} goal${selectedGoals.length > 1 ? 's' : ''} selected`
                               : "Select SDG goals..."}
                           </span>
                           <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-full p-0 max-h-80 overflow-auto" align="start">
+                      <PopoverContent className="w-80 p-0 max-h-80 overflow-auto" align="start">
                         <div className="p-2">
                           <Input
                             placeholder="Search goals..."
@@ -603,13 +656,10 @@ export default function EditInvestorProfile() {
                           />
                           <div className="space-y-1">
                             {sdgGoalsData
-                              .filter(goal => 
-                                goal.label.toLowerCase().includes(searchGoals.toLowerCase()) ||
-                                (goal.displayValue && goal.displayValue.toLowerCase().includes(searchGoals.toLowerCase()))
-                              )
+                              .filter(goal => goal.label.toLowerCase().includes(searchGoals.toLowerCase()))
                               .map((goal) => {
                                 const selected = isGoalSelected(goal.value);
-                                
+
                                 return (
                                   <div
                                     key={goal.value}
@@ -622,8 +672,8 @@ export default function EditInvestorProfile() {
                                     )}
                                   >
                                     {goal.imageUrl && (
-                                      <img 
-                                        src={goal.imageUrl} 
+                                      <img
+                                        src={goal.imageUrl}
                                         alt=""
                                         className="h-5 w-5 object-contain flex-shrink-0"
                                         onError={(e) => {
@@ -634,8 +684,8 @@ export default function EditInvestorProfile() {
                                     <span className="flex-1 text-sm line-clamp-2">{goal.label}</span>
                                     <div className={cn(
                                       "h-4 w-4 border rounded-sm flex items-center justify-center flex-shrink-0",
-                                      selected 
-                                        ? "bg-blue-600 border-blue-600 text-white" 
+                                      selected
+                                        ? "bg-blue-600 border-blue-600 text-white"
                                         : "border-gray-300"
                                     )}>
                                       {selected && <CheckCircle2 className="h-3 w-3" />}
@@ -652,13 +702,13 @@ export default function EditInvestorProfile() {
                     {selectedGoals.length > 0 && (
                       <div className="mt-3 flex flex-wrap gap-2">
                         {selectedGoals.map((goal) => (
-                          <Badge 
+                          <Badge
                             key={goal.value}
                             className="bg-blue-100 text-blue-700 hover:bg-blue-200 border-none px-3 py-1 text-xs font-medium flex items-center gap-1"
                           >
                             {goal.imageUrl && (
-                              <img 
-                                src={goal.imageUrl} 
+                              <img
+                                src={goal.imageUrl}
                                 alt=""
                                 className="h-3 w-3 object-contain"
                                 onError={(e) => {
@@ -666,7 +716,7 @@ export default function EditInvestorProfile() {
                                 }}
                               />
                             )}
-                            <span>{goal.displayValue || goal.value}</span>
+                            <span>{goal.label}</span>
                             <button
                               type="button"
                               onClick={(e) => {
@@ -681,7 +731,7 @@ export default function EditInvestorProfile() {
                         ))}
                       </div>
                     )}
-                    
+
                     <p className="text-xs text-gray-500">Click on goals to select/deselect</p>
                   </div>
 
@@ -690,7 +740,7 @@ export default function EditInvestorProfile() {
                     <Label htmlFor="sdgTarget" className="text-gray-700 flex items-center gap-1">
                       SDG Targets <span className="text-red-500">*</span>
                     </Label>
-                    
+
                     <Popover open={openTargets} onOpenChange={setOpenTargets}>
                       <PopoverTrigger asChild>
                         <Button
@@ -699,12 +749,14 @@ export default function EditInvestorProfile() {
                           disabled={!formData.sdgGoal || formData.sdgGoal.length === 0}
                         >
                           <span className="truncate">
-                            {formData.sdgTarget ? formData.sdgTarget.label : "Select targets..."}
+                            {formData.sdgTarget.length > 0
+                              ? `${formData.sdgTarget.length} target${formData.sdgTarget.length > 1 ? 's' : ''} selected`
+                              : "Select targets..."}
                           </span>
                           <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-full p-0 max-h-80 overflow-auto" align="start">
+                      <PopoverContent className="w-80 p-0 max-h-80 overflow-auto" align="start">
                         <div className="p-2">
                           <Input
                             placeholder="Search targets..."
@@ -714,19 +766,16 @@ export default function EditInvestorProfile() {
                           />
                           <div className="space-y-1">
                             {availableTargets
-                              .filter(target => 
+                              .filter(target =>
                                 target.label.toLowerCase().includes(searchTargets.toLowerCase()) ||
                                 target.value.toLowerCase().includes(searchTargets.toLowerCase())
                               )
                               .map((target) => {
-                                const selected = formData.sdgTarget?.value === target.value;
-                                
+                                const selected = formData.sdgTarget.some((t: any) => t.value === target.value);
                                 return (
                                   <div
                                     key={target.value}
-                                    onClick={() => {
-                                      handleSdgTargetSelect(target);
-                                    }}
+                                    onClick={() => handleSdgTargetSelect(target)}
                                     className={cn(
                                       "flex items-center gap-2 p-2 rounded-md cursor-pointer hover:bg-gray-100",
                                       selected && "bg-blue-50"
@@ -735,8 +784,8 @@ export default function EditInvestorProfile() {
                                     <span className="flex-1 text-sm line-clamp-2">{target.label}</span>
                                     <div className={cn(
                                       "h-4 w-4 border rounded-sm flex items-center justify-center flex-shrink-0",
-                                      selected 
-                                        ? "bg-blue-600 border-blue-600 text-white" 
+                                      selected
+                                        ? "bg-blue-600 border-blue-600 text-white"
                                         : "border-gray-300"
                                     )}>
                                       {selected && <CheckCircle2 className="h-3 w-3" />}
@@ -755,23 +804,19 @@ export default function EditInvestorProfile() {
                     </Popover>
 
                     {/* Selected target display */}
-                    {formData.sdgTarget && (
-                      <div className="mt-2">
-                        <Badge 
-                          className="bg-blue-100 text-blue-700 hover:bg-blue-200 border-none px-3 py-1 text-xs font-medium flex items-center gap-1 w-fit"
-                        >
-                          <span>{formData.sdgTarget.label}</span>
-                          <button
-                            type="button"
-                            onClick={removeSdgTarget}
-                            className="ml-1 hover:text-red-500 transition-colors"
-                          >
-                            <XCircle className="h-3 w-3" />
-                          </button>
-                        </Badge>
+                    {formData.sdgTarget.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {formData.sdgTarget.map((target) => (
+                          <Badge key={target.value} className="bg-blue-100 text-blue-700 border-none px-3 py-1 text-xs flex items-center gap-1">
+                            <span>{target.label}</span>
+                            <button type="button" onClick={() => removeSdgTarget(target)} className="ml-1 hover:text-red-500">
+                              <XCircle className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        ))}
                       </div>
                     )}
-                    
+
                     {(!formData.sdgGoal || formData.sdgGoal.length === 0) && (
                       <p className="text-xs text-amber-600 mt-1">Please select SDG goals first</p>
                     )}
