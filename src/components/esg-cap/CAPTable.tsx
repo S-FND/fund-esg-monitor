@@ -23,7 +23,7 @@ export type CAPStatus =
   | "rejected";
 
 export type CAPCategory = "environmental" | "social" | "governance";
-export type CAPType = "CP" | "CS"| "Roadmap" | "none";
+export type CAPType = "CP" | "CS"| "ESG_FORWARD_AREAS" | "none";
 export type CAPPriority = "High" | "Medium" | "Low";
 
 export type EvidenceType =
@@ -66,7 +66,7 @@ export interface Template {
 
   structure: TemplateStructure;
 }
-export type ESGCapDealCondition = 'CP' | 'CS' | 'Roadmap' | 'none';
+export type ESGCapDealCondition = 'CP' | 'CS' | 'ESG_FORWARD_AREAS' | 'none';
 
 export interface TemplateStructure {
   components?: string[];
@@ -572,6 +572,49 @@ export function CAPTable({
     return <span>{formatValue(currentValue) || "-"}</span>;
   };
 
+  const getSortIcon = (key: string) => {
+    if (sortConfig?.key !== key) return "↕"; // default
+    return sortConfig.direction === "asc" ? "↑" : "↓";
+  };
+
+  const [sortConfig, setSortConfig] = useState<{
+    key: keyof ESGCapItem | "CS";
+    direction: "asc" | "desc";
+  } | null>(null);
+
+  const handleSort = (key: keyof ESGCapItem | "CS") => {
+    setSortConfig((prev) => {
+      if (prev?.key === key) {
+        return { key, direction: prev.direction === "asc" ? "desc" : "asc" };
+      }
+      return { key, direction: "asc" };
+    });
+  };
+
+  const sortedItems = [...items].sort((a, b) => {
+    if (!sortConfig) return 0;
+  
+    let aVal: any = sortConfig.key === "CS" ? (a.CS || a.dealCondition) : a[sortConfig.key];
+    let bVal: any = sortConfig.key === "CS" ? (b.CS || b.dealCondition) : b[sortConfig.key];
+  
+    // priority custom order
+    if (sortConfig.key === "priority") {
+      const order = { High: 3, Medium: 2, Low: 1 };
+      aVal = order[aVal] || 0;
+      bVal = order[bVal] || 0;
+    }
+  
+    // date handling
+    if (sortConfig.key === "targetDate") {
+      aVal = aVal ? new Date(aVal).getTime() : 0;
+      bVal = bVal ? new Date(bVal).getTime() : 0;
+    }
+  
+    if (aVal < bVal) return sortConfig.direction === "asc" ? -1 : 1;
+    if (aVal > bVal) return sortConfig.direction === "asc" ? 1 : -1;
+    return 0;
+  });
+
   return (
     <TooltipProvider>
       {/* View toggle button */}
@@ -601,7 +644,7 @@ export function CAPTable({
                   <th className="p-3 text-left">S. No</th>
                   <th className="p-3 text-left">Item</th>
                   <th className="p-3 text-left">Issue</th>
-                  <th className="p-3 text-left">Measures & Corrective Actions</th>
+                  <th className="p-3 text-left">Completion indicator</th>
                   <th className="p-3 text-left">Progress Percentage</th>
                   <th className="p-3 text-center">Actions</th>
                 </>
@@ -611,19 +654,20 @@ export function CAPTable({
                   <th className="p-3 text-left">S. No</th>
                   <th className="p-3 text-left">Item</th>
                   <th className="p-3 text-left">Category</th>
-                  <th className="p-3 text-left">Priority</th>
+                  {/* <th className="p-3 text-left">Priority</th> */}
+                  <th className="p-3 text-left cursor-pointer" onClick={() => handleSort("priority")}>Priority {getSortIcon("priority")}</th>
                   <th className="p-3 text-left">Issue</th>
                   <th className="p-3 text-left">Related Finding</th>
                   <th className="p-3 text-left">ESG Lever</th>
                   <th className="p-3 text-left">CAP Source</th>
-                  <th className="p-3 text-left">Measures & Corrective Actions</th>
+                  <th className="p-3 text-left">Completion indicator</th>
                   <th className="p-3 text-left">Resource & Responsibility</th>
                   <th className="p-3 text-left">Completion Indicator</th>
                   <th className="p-3 text-left">Timeline Month</th>
-                  <th className="p-3 text-left">Target Date</th>
+                  <th className="p-3 text-left cursor-pointer" onClick={() => handleSort("targetDate")}>Target Date {getSortIcon("targetDate")}</th>
                   <th className="p-3 text-left">Progress Percentage</th>   {/* NEW */}
                   <th className="p-3 text-left">Actual Date</th>
-                  <th className="p-3 text-left">CP/CS</th>
+                    <th className="p-3 text-left cursor-pointer" onClick={() => handleSort("CS")}>CP/CS/ESG Forward areas {getSortIcon("CS")}</th>
                   <th className="p-3 text-left">Status</th>
                   <th className="p-3 text-left">Company Current Status Update</th>
                   <th className="p-3 text-left">Investor Current Status Update</th>
@@ -638,7 +682,7 @@ export function CAPTable({
             </tr>
           </thead>
           <tbody>
-            {items.map((item, index) => {
+            {sortedItems.map((item, index) => {
               const originalItem = getOriginalItem(item.id);
               return (
                 <tr key={item.id} className={isComparisonView ? "bg-muted/30 hover:bg-muted/50" : "hover:bg-gray-50"}>
@@ -851,7 +895,7 @@ export function CAPTable({
       {!isComparisonView && onAddItem && (
         <div className="mt-4 border-t pt-4">
           {!isAddingRow ? (
-            <Button onClick={() => setIsAddingRow(true)} variant="outline" className="w-full">
+            <Button onClick={() => setIsAddingRow(true)} variant="outline" className="w-full" style={{ display: "none" }}>
               <Plus className="h-4 w-4 mr-2" />
               Add New Row
             </Button>
@@ -948,7 +992,7 @@ export function CAPTable({
                 </div>
                 {/* 7. Measures */}
                 <div>
-                  <label className="block mb-1 font-medium text-sm">Measures & Corrective Actions *</label>
+                  <label className="block mb-1 font-medium text-sm">Completion indicator *</label>
                   <Textarea
                     value={newRowData.measures}
                     onChange={(e) => setNewRowData({ ...newRowData, measures: e.target.value })}
@@ -1011,7 +1055,7 @@ export function CAPTable({
                 {/* 13. CP/CS & 14. Status */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block mb-1 font-medium text-sm">CP/CS</label>
+                    <label className="block mb-1 font-medium text-sm">CP/CS/ESG_FORWARD_AREAS</label>
                     <Select
                       value={newRowData.dealCondition}
                       onValueChange={(v: CAPType) => setNewRowData({ ...newRowData, dealCondition: v })}
@@ -1020,7 +1064,7 @@ export function CAPTable({
                       <SelectContent>
                         <SelectItem value="CP">CP (Condition Precedent)</SelectItem>
                         <SelectItem value="CS">CS (Condition Subsequent)</SelectItem>
-                        <SelectItem value="Roadmap">Roadmap</SelectItem>
+                        <SelectItem value="ESG_FORWARD_AREAS">ESG Forward areas</SelectItem>
                         <SelectItem value="none">None</SelectItem>
                       </SelectContent>
                     </Select>

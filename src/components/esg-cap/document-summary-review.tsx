@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { IDocumentValidation } from "./CAPTable";
-import { Eye } from "lucide-react";
+import { Eye,X } from "lucide-react";
 import { http } from "@/utils/httpInterceptor";
 import { toast } from "sonner";
 
@@ -37,6 +37,7 @@ type Props = {
     s3Link: string;
     status: 'Accepted' | 'Rejected' | 'Pending';
     aiSummary: IDocumentValidation;
+    reason?: string;
   }[];
 
   onClose: () => void;
@@ -59,12 +60,18 @@ export default function DocumentSummaryDialog({
   const [reason, setReason] = useState("");
 
   useEffect(() => {
-    if (open) {
-      setSelectedIndex(0);
+  if (open && files.length > 0) {
+    const currentFile = files[selectedIndex];
+    // Pre‑select if status is already Accepted or Rejected
+    if (currentFile.status === "Accepted" || currentFile.status === "Rejected") {
+      setStatus(currentFile.status);
+      setReason(currentFile.reason || "");
+    } else {
       setStatus(null);
       setReason("");
     }
-  }, [open]);
+  }
+}, [open, selectedIndex, files]);
 
   if (!open) return null;
 
@@ -105,7 +112,12 @@ export default function DocumentSummaryDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="bg-white w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-xl flex">
-
+      <button
+            onClick={onClose}
+            className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 z-10"
+          >
+            <X className="h-5 w-5" />
+          </button>
         {/* LEFT PANEL (FILES) */}
         <div className="w-1/3 border-r p-4 overflow-y-auto">
           <p className="font-semibold mb-3">Documents</p>
@@ -139,12 +151,26 @@ export default function DocumentSummaryDialog({
               <div
                 onClick={() => {
                   setSelectedIndex(idx);
-                  setStatus(null);
-                  setReason("");
+                  const newFile = files[idx];
+                  if (newFile.status === "Accepted" || newFile.status === "Rejected") {
+                    setStatus(newFile.status);
+                    setReason(newFile.reason || "");
+                  } else {
+                    setStatus(null);
+                    setReason("");
+                  }
                 }}
                 className="flex-1"
               >
-                <p className="text-sm font-medium">{file.filename}</p>
+                {/* <p className="text-sm font-medium">{file.filename}</p> */}
+                <div className="relative group max-w-[200px]">
+                    <p className="text-sm font-medium whitespace-nowrap overflow-hidden text-ellipsis">
+                      {file.filename}
+                    </p>
+                    <div className="absolute left-0 top-full mt-1 hidden group-hover:block bg-black text-white text-xs px-2 py-1 rounded z-50 whitespace-nowrap">
+                      {file.filename}
+                    </div>
+                  </div>
                 <p className="text-xs text-gray-500">{file.status || "Pending"}</p>
               </div>
 
@@ -278,7 +304,7 @@ export default function DocumentSummaryDialog({
                   checked={status === "Rejected"}
                   onChange={() => setStatus("Rejected")}
                 />{" "}
-                Reject
+                Re-Submit
               </label>
             </div>
 
