@@ -11,11 +11,13 @@ import { Upload, Plus, Download, Trash2 } from "lucide-react";
 import { ESGCapItem, CAPStatus, CAPCategory, CAPPriority, CAPType } from "./CAPTable";
 import { toast } from "@/hooks/use-toast";
 import { EsgddAPIs } from "@/network/esgdd";
+import { useNavigate } from "react-router";
 
 interface Company {
     id: string;
     name: string;
     email: string;
+    dateOfInvestment: string;
 }
 
 interface AddCAPDialogProps {
@@ -43,7 +45,7 @@ interface CAPFormRow {
     closureVerifiedBy: string;
     actualDate: string;
     status: CAPStatus;
-    targetDate: string;
+    targetDate: Date | string;
     esgLever: string;
     capSource: string;
     progressPercentage: number;
@@ -58,6 +60,8 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
     const [loadingCompanies, setLoadingCompanies] = useState(false);
     const [financialYear, setFinancialYear] = useState("");
     const [selectedCompany, setSelectedCompany] = useState<string>("");
+    const [showInvestmentDateAlert, setShowInvestmentDateAlert] = useState(false);
+    const navigate = useNavigate();
 
     useEffect(() => {
         const currentDate = new Date();
@@ -82,7 +86,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const day = String(date.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
-      };
+    };
 
     const [formRows, setFormRows] = useState<CAPFormRow[]>([{
         id: "1",
@@ -118,6 +122,14 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
         }
     }, [open]);
 
+    const formatDate = (date: Date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+
+        return `${year}-${month}-${day}`;
+    };
+
     const fetchCompanies = async () => {
         setLoadingCompanies(true);
         try {
@@ -132,13 +144,15 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                 mappedCompanies = jsondata.map(company => ({
                     id: company._id || company.id,
                     name: company.companyName || company.name,
-                    email: company.email || company.companyEmail || ""
+                    email: company.email || company.companyEmail || "",
+                    dateOfInvestment: company.dateofInvestment || undefined
                 })).filter(company => company.id && company.name);
             } else if (jsondata && Array.isArray(jsondata.data)) {
                 mappedCompanies = jsondata.data.map(company => ({
                     id: company._id || company.id,
                     name: company.companyName || company.name,
-                    email: company.email || company.companyEmail || ""
+                    email: company.email || company.companyEmail || "",
+                    dateOfInvestment: company.dateofInvestment || undefined
                 })).filter(company => company.id && company.name);
             }
 
@@ -192,8 +206,34 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
         setFormRows(formRows.filter(row => row.id !== id));
     };
 
+    // const updateRow = (id: string, field: keyof CAPFormRow, value: any) => {
+    //     setFormRows(formRows.map(row => row.id === id ? { ...row, [field]: value } : row));
+    // };
+
     const updateRow = (id: string, field: keyof CAPFormRow, value: any) => {
-        setFormRows(formRows.map(row => row.id === id ? { ...row, [field]: value } : row));
+        setFormRows(prevRows =>
+            prevRows.map(row => {
+                if (row.id !== id) return row;
+
+                let updatedRow = { ...row, [field]: value };
+
+                // 🎯 Extra logic ONLY for timelineMonth
+                if (field === "timelineMonth" && value) {
+                    const monthsToAdd = Number(value);
+
+                    const baseDate = new Date(); // or row.investmentDate if needed
+                    const targetDate = new Date(
+                        baseDate.getFullYear(),
+                        baseDate.getMonth() + monthsToAdd,
+                        baseDate.getDate()
+                    );
+
+                    updatedRow.targetDate = formatDate(targetDate);
+                }
+
+                return updatedRow;
+            })
+        );
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -280,7 +320,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                 setFormRows([{
                     id: "1", item: "", category: "environmental", priority: "Medium", issue: "", relatedFinding: "",
                     measures: "", resource: "", deliverable: "", timelineMonth: 0, dealCondition: "none",
-                    statusUpdate: "",investorStatusUpdate: "", reviewRemarks: "", lastReviewDate: "", implementationSupportNeeded: "",
+                    statusUpdate: "", investorStatusUpdate: "", reviewRemarks: "", lastReviewDate: "", implementationSupportNeeded: "",
                     closureVerifiedBy: "", actualDate: "", status: "pending", targetDate: "", esgLever: "", capSource: "",
                     progressPercentage: 0, assignedTo: "", remarks: "",
                 }]);
@@ -514,11 +554,23 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
         setFormRows([{
             id: "1", item: "", category: "environmental", priority: "Medium", issue: "", relatedFinding: "",
             measures: "", resource: "", deliverable: "", timelineMonth: 0, dealCondition: "none",
-            statusUpdate: "",investorStatusUpdate: "", reviewRemarks: "", lastReviewDate: "", implementationSupportNeeded: "",
+            statusUpdate: "", investorStatusUpdate: "", reviewRemarks: "", lastReviewDate: "", implementationSupportNeeded: "",
             closureVerifiedBy: "", actualDate: "", status: "pending", targetDate: "", esgLever: "", capSource: "",
             progressPercentage: 0, assignedTo: "", remarks: "",
         }]);
     };
+
+    useEffect(() => {
+        if (selectedCompany) {
+            const company = companies.find(c => c.id === selectedCompany);
+            if (company && !company.dateOfInvestment) {
+                setShowInvestmentDateAlert(true);
+            } else {
+                setShowInvestmentDateAlert(false);
+            }
+        }
+
+    }, [selectedCompany]);
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
@@ -554,6 +606,17 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                                                 ))}
                                             </SelectContent>
                                         </Select>
+                                        {showInvestmentDateAlert && (
+                                            <div className="mt-2 p-3 rounded-md border border-red-300 bg-red-50 text-red-700 text-sm">
+                                                ⚠️ Investment date is missing.{" "}
+                                                <span
+                                                    className="underline cursor-pointer font-medium"
+                                                    onClick={() => navigate(`/portfolio/${selectedCompany}`)}
+                                                >
+                                                    Add investment date
+                                                </span>
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="flex justify-end">
@@ -709,11 +772,14 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                                                     />
                                                 </div>
                                                 <div>
-                                                    <Label>Target Date</Label>
+                                                    <Label>Target Date {row.targetDate instanceof Date ? row.targetDate.toLocaleDateString() : row.targetDate}</Label>
                                                     <Input
                                                         type="date"
-                                                        value={row.targetDate}
+                                                        value={row.targetDate
+                                                            ? new Date(row.targetDate).toISOString().split("T")[0]
+                                                            : ""}
                                                         onChange={(e) => updateRow(row.id, "targetDate", e.target.value)}
+                                                        disabled={true}
                                                     />
                                                 </div>
                                                 <div>
@@ -766,27 +832,27 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                                             {/* 15. Current Status Update */}
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-                                            <div>
-                                                <Label>Current Status Update (Company)</Label>
-                                                <Textarea
-                                                    value={row.statusUpdate}
-                                                    onChange={(e) => updateRow(row.id, "statusUpdate", e.target.value)}
-                                                    disabled
-                                                    placeholder="Latest update on this action item"
-                                                    className="min-h-[60px]"
-                                                />
-                                            </div>
+                                                <div>
+                                                    <Label>Current Status Update (Company)</Label>
+                                                    <Textarea
+                                                        value={row.statusUpdate}
+                                                        onChange={(e) => updateRow(row.id, "statusUpdate", e.target.value)}
+                                                        disabled
+                                                        placeholder="Latest update on this action item"
+                                                        className="min-h-[60px]"
+                                                    />
+                                                </div>
 
-                                             {/* 15.1 Current Status Update Investor*/}
-                                             <div>
-                                                <Label>Current Status Update (Investor)</Label>
-                                                <Textarea
-                                                    value={row.investorStatusUpdate}
-                                                    onChange={(e) => updateRow(row.id, "investorStatusUpdate", e.target.value)}
-                                                    placeholder="Latest update on this action item"
-                                                    className="min-h-[60px]"
-                                                />
-                                            </div>
+                                                {/* 15.1 Current Status Update Investor*/}
+                                                <div>
+                                                    <Label>Current Status Update (Investor)</Label>
+                                                    <Textarea
+                                                        value={row.investorStatusUpdate}
+                                                        onChange={(e) => updateRow(row.id, "investorStatusUpdate", e.target.value)}
+                                                        placeholder="Latest update on this action item"
+                                                        className="min-h-[60px]"
+                                                    />
+                                                </div>
                                             </div>
 
                                             {/* 16. Review Remarks & 17. Last Review Date */}

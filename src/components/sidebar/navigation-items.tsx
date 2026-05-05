@@ -37,6 +37,11 @@ export const mainNavItems: NavItem[] = [
     href: "/team",
     icon: Users,
   },
+  {
+    title: "Audit Logs",
+    href: "/audit-logs",
+    icon: FileText,
+  },
 ];
 
 export const esgDDNavItem: NavItemWithSubItems = {

@@ -16,6 +16,7 @@ import { useState, useEffect } from "react";
 
 // Helper: include all subitems if parent module is accessible
 const getAccessibleSubmenu = (item: typeof esgDDNavItem | typeof valuationNavItem, accessibleMenus: string[]) => {
+  console.log('Checking access for item:', item.title, 'Accessible Menus:', accessibleMenus);
   if (!item) return null;
   // If parent module is accessible, return item with all subItems
   if (accessibleMenus.includes(item.title)) return item;
@@ -42,16 +43,16 @@ export function SidebarNavigation() {
     // For demo purposes, we'll use mock data
     const  fetchUserAccess = async () => {
       // Default mock accesses for demo purposes
-      const mockUserAccess = {
-        // Simulating different access patterns
-        "1": ["Dashboard","Investor General Info", "Funds", "Team", "Portfolio Companies", "ESG DD"],
-        "2": ["ESG DD", "ESG CAP", "Valuation"],
-        "3": ["Dashboard", "Portfolio Companies", "Valuation"],
-        "4": ["Dashboard","Investor General Info", "Funds", "Team", "Portfolio Companies", "ESG DD", "ESG CAP", "Valuation"]
-      };
+      // const mockUserAccess = {
+      //   // Simulating different access patterns
+      //   "1": ["Dashboard","Investor General Info", "Funds", "Team", "Portfolio Companies", "ESG DD"],
+      //   "2": ["ESG DD", "ESG CAP", "Valuation"],
+      //   "3": ["Dashboard", "Portfolio Companies", "Valuation"],
+      //   "4": ["Dashboard","Investor General Info", "Funds", "Team", "Portfolio Companies", "ESG DD", "ESG CAP", "Valuation"]
+      // };
       let accessList;
       if(user?.isParent && (!user?.assignedPages || user.assignedPages.length == 0)){
-        accessList=["Dashboard","Investor General Info", "Funds", "Team", "Portfolio Companies", "ESG DD", "ESG CAP", "Valuation"]
+        accessList=["Dashboard","Investor General Info", "Funds", "Team", "Portfolio Companies", "ESG DD", "ESG CAP", "Valuation","Audit Logs"];
       } else if (user?.assignedPages && user.assignedPages.length > 0) {
         accessList = user?.assignedPages?.flatMap(p => {
           const modules = [p.moduleName];

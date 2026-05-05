@@ -47,6 +47,7 @@ import Categorization from "./pages/Categorization";
 import { http } from "@/utils/httpInterceptor";
 import Login from "./pages/Login";
 import Auth from "./pages/Auth";
+import { AuditLogsPage } from "./components/audit-log/AuditLogsPage";
 
 function App() {
   const { toast } = useToast();
@@ -141,6 +142,7 @@ function App() {
                 <Route path="esg-dd/cap" element={<ESGCAP />} />
                 <Route path="valuation" element={<Valuation />} />
                 <Route path="esg-dd/risk-matrix" element={<ESGRiskMatrix />} />
+                <Route path="/audit-logs" element={<AuditLogsPage />} />
               </Routes>
 
             </ScrollArea>

@@ -67,6 +67,7 @@ export default function ESGCAP() {
   const [entityId,setEntityId]=useState<string>(null);
   const [reloadData, setReloadData] = useState(false);
   const [selectedEntityId,setSelectedEntityId]=useState(null)
+  const [investmentDate,setInvestmentDate]=useState(null);
 
   const alerts = useESGCAPAlerts(filteredCAPItems, previousCapItemsRef.current, planData?.finalPlan);
 
@@ -262,9 +263,11 @@ export default function ESGCAP() {
           c._id === selectedCompany ||   // first try id
           c.email === selectedCompany    // fallback email
       );
-  
+      
       const entityId = company?.user?.entityId;
-  
+      if(company?.dateOfInvestment){
+        setInvestmentDate(company.dateOfInvestment);
+      }
       if (entityId) {
         setSelectedEntityId(entityId)
         getPlanList(entityId);
