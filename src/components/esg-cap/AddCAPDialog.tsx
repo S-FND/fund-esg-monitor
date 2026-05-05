@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Upload, Plus, Download, Trash2 } from "lucide-react";
 import { ESGCapItem, CAPStatus, CAPCategory, CAPPriority, CAPType } from "./CAPTable";
 import { toast } from "@/hooks/use-toast";
-import { EsgddAPIs } from "@/network/esgdd";
+import { EsgddAPIs,esgddChangePlan } from "@/network/esgdd";
 
 interface Company {
     id: string;
@@ -132,13 +132,15 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                 mappedCompanies = jsondata.map(company => ({
                     id: company._id || company.id,
                     name: company.companyName || company.name,
-                    email: company.email || company.companyEmail || ""
+                    email: company.email || company.companyEmail || "",
+                    user: company.user || ''
                 })).filter(company => company.id && company.name);
             } else if (jsondata && Array.isArray(jsondata.data)) {
                 mappedCompanies = jsondata.data.map(company => ({
                     id: company._id || company.id,
                     name: company.companyName || company.name,
-                    email: company.email || company.companyEmail || ""
+                    email: company.email || company.companyEmail || "",
+                    user: company.user || ''
                 })).filter(company => company.id && company.name);
             }
 
@@ -196,187 +198,118 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
         setFormRows(formRows.map(row => row.id === id ? { ...row, [field]: value } : row));
     };
 
-    // const handleSubmit = async (e: React.FormEvent) => {
-    //     e.preventDefault();
-
-    //     if (!selectedCompany) {
-    //         toast({ title: "Company Required", description: "Please select a company.", variant: "destructive" });
-    //         return;
-    //     }
-
-    //     const invalidRows = formRows.filter(row => !row.item || !row.measures);
-    //     if (invalidRows.length > 0) {
-    //         toast({ title: "Missing Required Fields", description: "Please fill in all required fields (Item, Measures) for all rows.", variant: "destructive" });
-    //         return;
-    //     }
-
-    //     for (let i = 0; i < formRows.length; i++) {
-    //         const row = formRows[i];
-    //         if (row.targetDate && isNaN(new Date(row.targetDate).getTime())) {
-    //             toast({ title: "Invalid Date", description: `Invalid target date in row ${i + 1}`, variant: "destructive" });
-    //             return;
-    //         }
-    //         if (row.actualDate && isNaN(new Date(row.actualDate).getTime())) {
-    //             toast({ title: "Invalid Date", description: `Invalid actual date in row ${i + 1}`, variant: "destructive" });
-    //             return;
-    //         }
-    //     }
-
-    //     const company = companies.find(c => c.id === selectedCompany);
-    //     if (!company) {
-    //         toast({ title: "Invalid Company", description: "Selected company is not valid.", variant: "destructive" });
-    //         return;
-    //     }
-
-    //     const newItems: ESGCapItem[] = [];
-    //     for (let i = 0; i < formRows.length; i++) {
-    //         const row = formRows[i];
-    //         const newItem = {
-    //             reportId: selectedCompany,
-    //             item: row.item,
-    //             category: row.category,
-    //             priority: row.priority,
-    //             issue: row.issue || undefined,
-    //             relatedFinding: row.relatedFinding || undefined,
-    //             measures: row.measures,
-    //             resource: row.resource || undefined,
-    //             deliverable: row.deliverable || undefined,
-    //             timelineMonth: row.timelineMonth || undefined,
-    //             CS: row.dealCondition,
-    //             statusUpdate: row.statusUpdate || undefined,
-    //             investorStatusUpdate: row.investorStatusUpdate || undefined,
-    //             reviewRemarks: row.reviewRemarks || undefined,
-    //             lastReviewDate: parseToDateInput(row.lastReviewDate) || undefined,
-    //             implementationSupportNeeded: row.implementationSupportNeeded || undefined,
-    //             closureVerifiedBy: row.closureVerifiedBy || undefined,
-    //             actualDate: parseToDateInput(row.actualDate) || undefined,
-    //             status: row.status,
-    //             targetDate: parseToDateInput(row.targetDate) || undefined,
-    //             esgLever: row.esgLever || undefined,
-    //             capSource: row.capSource || undefined,
-    //             progressPercentage: row.progressPercentage || undefined,
-    //             assignedTo: row.assignedTo || undefined,
-    //             remarks: row.remarks || undefined,
-    //             dealCondition: row.dealCondition,
-    //             createdAt: new Date().toISOString(),
-    //             id: `${Date.now()}-${i}`
-    //         } as ESGCapItem;
-    //         newItems.push(newItem);
-    //     }
-
-    //     try {
-    //         const finalData = {
-    //             plan: newItems,
-    //             email: company.email,
-    //             financialYear: financialYear,
-    //             finalAcceptance: { founderAcceptance: false, investorAcceptance: false }
-    //         };
-
-    //         const [result, error] = await EsgddAPIs.saveEscap(finalData);
-
-    //         if (result) {
-    //             onAddMultipleItems(newItems);
-    //             toast({ title: "CAP Items Added", description: `Successfully added ${newItems.length} CAP items.` });
-    //             setFormRows([{
-    //                 id: "1", item: "", category: "environmental", priority: "Medium", issue: "", relatedFinding: "",
-    //                 measures: "", resource: "", deliverable: "", timelineMonth: 0, dealCondition: "none",
-    //                 statusUpdate: "",investorStatusUpdate: "", reviewRemarks: "", lastReviewDate: "", implementationSupportNeeded: "",
-    //                 closureVerifiedBy: "", actualDate: "", status: "pending", targetDate: "", esgLever: "", capSource: "",
-    //                 progressPercentage: 0, assignedTo: "", remarks: "",
-    //             }]);
-    //             setSelectedCompany("");
-    //             setOpen(false);
-    //         } else {
-    //             throw new Error(error || "Failed to save CAP items");
-    //         }
-    //     } catch (error) {
-    //         console.error("Error saving CAP items:", error);
-    //         toast({ title: "Error", description: "Failed to add CAP items. Please try again.", variant: "destructive" });
-    //     }
-    // };
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-      
+
         if (!selectedCompany) {
-          toast({ title: "Company Required", description: "Please select a company.", variant: "destructive" });
-          return;
+            toast({ title: "Company Required", description: "Please select a company.", variant: "destructive" });
+            return;
         }
-      
+
         const invalidRows = formRows.filter(row => !row.item || !row.measures);
         if (invalidRows.length > 0) {
-          toast({ title: "Missing Required Fields", description: "Please fill in all required fields (Item, Measures) for all rows.", variant: "destructive" });
-          return;
+            toast({ title: "Missing Required Fields", description: "Please fill in all required fields (Item, Measures) for all rows.", variant: "destructive" });
+            return;
         }
-      
+
         for (let i = 0; i < formRows.length; i++) {
-          const row = formRows[i];
-          if (row.targetDate && isNaN(new Date(row.targetDate).getTime())) {
-            toast({ title: "Invalid Date", description: `Invalid target date in row ${i + 1}`, variant: "destructive" });
-            return;
-          }
-          if (row.actualDate && isNaN(new Date(row.actualDate).getTime())) {
-            toast({ title: "Invalid Date", description: `Invalid actual date in row ${i + 1}`, variant: "destructive" });
-            return;
-          }
+            const row = formRows[i];
+            if (row.targetDate && isNaN(new Date(row.targetDate).getTime())) {
+                toast({ title: "Invalid Date", description: `Invalid target date in row ${i + 1}`, variant: "destructive" });
+                return;
+            }
+            if (row.actualDate && isNaN(new Date(row.actualDate).getTime())) {
+                toast({ title: "Invalid Date", description: `Invalid actual date in row ${i + 1}`, variant: "destructive" });
+                return;
+            }
         }
-      
+
         const company = companies.find(c => c.id === selectedCompany);
         if (!company) {
-          toast({ title: "Invalid Company", description: "Selected company is not valid.", variant: "destructive" });
-          return;
+            toast({ title: "Invalid Company", description: "Selected company is not valid.", variant: "destructive" });
+            return;
         }
-      
+
         const newItems: ESGCapItem[] = [];
         for (let i = 0; i < formRows.length; i++) {
-          const row = formRows[i];
-          const newItem = {
-            reportId: selectedCompany,
-            item: row.item,
-            category: row.category,
-            priority: row.priority,
-            issue: row.issue || undefined,
-            relatedFinding: row.relatedFinding || undefined,
-            measures: row.measures,
-            resource: row.resource || undefined,
-            deliverable: row.deliverable || undefined,
-            timelineMonth: row.timelineMonth || undefined,
-            CS: row.dealCondition,
-            statusUpdate: row.statusUpdate || undefined,
-            investorStatusUpdate: row.investorStatusUpdate || undefined,
-            reviewRemarks: row.reviewRemarks || undefined,
-            lastReviewDate: parseToDateInput(row.lastReviewDate) || undefined,
-            implementationSupportNeeded: row.implementationSupportNeeded || undefined,
-            closureVerifiedBy: row.closureVerifiedBy || undefined,
-            actualDate: parseToDateInput(row.actualDate) || undefined,
-            status: row.status,
-            targetDate: parseToDateInput(row.targetDate) || undefined,
-            esgLever: row.esgLever || undefined,
-            capSource: row.capSource || undefined,
-            progressPercentage: row.progressPercentage || undefined,
-            assignedTo: row.assignedTo || undefined,
-            remarks: row.remarks || undefined,
-            dealCondition: row.dealCondition,
-            createdAt: new Date().toISOString(),
-            id: `${Date.now()}-${i}`
-          } as ESGCapItem;
-          newItems.push(newItem);
+            const row = formRows[i];
+            const newItem = {
+                reportId: selectedCompany,
+                item: row.item,
+                category: row.category,
+                priority: row.priority,
+                issue: row.issue || undefined,
+                relatedFinding: row.relatedFinding || undefined,
+                measures: row.measures,
+                resource: row.resource || undefined,
+                deliverable: row.deliverable || undefined,
+                timelineMonth: row.timelineMonth || undefined,
+                CS: row.dealCondition,
+                statusUpdate: row.statusUpdate || undefined,
+                investorStatusUpdate: row.investorStatusUpdate || undefined,
+                reviewRemarks: row.reviewRemarks || undefined,
+                lastReviewDate: parseToDateInput(row.lastReviewDate) || undefined,
+                implementationSupportNeeded: row.implementationSupportNeeded || undefined,
+                closureVerifiedBy: row.closureVerifiedBy || undefined,
+                actualDate: parseToDateInput(row.actualDate) || undefined,
+                status: row.status,
+                targetDate: parseToDateInput(row.targetDate) || undefined,
+                esgLever: row.esgLever || undefined,
+                capSource: row.capSource || undefined,
+                progressPercentage: row.progressPercentage || undefined,
+                assignedTo: row.assignedTo || undefined,
+                remarks: row.remarks || undefined,
+                dealCondition: row.dealCondition,
+                createdAt: new Date().toISOString(),
+                id: `${Date.now()}-${i}`
+            } as ESGCapItem;
+            newItems.push(newItem);
         }
-      
-        // ✅ Only update local state – do NOT call saveEscap
-        onAddMultipleItems(newItems);
-        toast({ title: "CAP Items Added", description: `Successfully added ${newItems.length} CAP items locally.` });
-      
-        // Reset form and close
-        setFormRows([{
-          id: "1", item: "", category: "environmental", priority: "Medium", issue: "", relatedFinding: "",
-          measures: "", resource: "", deliverable: "", timelineMonth: 0, dealCondition: "none",
-          statusUpdate: "", investorStatusUpdate: "", reviewRemarks: "", lastReviewDate: "", implementationSupportNeeded: "",
-          closureVerifiedBy: "", actualDate: "", status: "pending", targetDate: "", esgLever: "", capSource: "",
-          progressPercentage: 0, assignedTo: "", remarks: "",
-        }]);
-        setSelectedCompany("");
-        setOpen(false);
-      };
+
+        try {
+            // Get entityId from the selected company (same as in upload)
+            const entityId = company?.user?.entityId;
+            if (!entityId) throw new Error("Entity ID missing");
+        
+            // Fetch existing plan
+            const [existingData] = await EsgddAPIs.getEsgCapPlan({ entityId: `${entityId}?financialYear=${financialYear}` });
+            const existingPlan = existingData?.plan || [];
+        
+            // Merge existing + new items
+            const mergedPlan = [...existingPlan, ...newItems];
+        
+            if (existingPlan.length > 0) {
+                // Use change request API
+                const [res, err] = await EsgddAPIs.esgddChangePlan({
+                    changeRequest: { plan: mergedPlan },
+                    comment: 'Add items via manual entry',
+                    entityId,
+                });
+                if (!res) throw new Error(err || "Change request failed");
+            } else {
+                // Create new plan
+                const [res, err] = await EsgddAPIs.saveEscap({
+                    plan: mergedPlan,
+                    email: company.email,
+                    financialYear,
+                    finalAcceptance: { founderAcceptance: false, investorAcceptance: false }
+                });
+                if (!res) throw new Error(err || "Failed to create plan");
+            }
+        
+            // Update local UI
+            onAddMultipleItems(newItems);
+            toast({ title: "CAP Items Added", description: `Successfully added ${newItems.length} CAP items.` });
+            
+            // Reset form and close
+            setFormRows([/* initial empty row */]);
+            setSelectedCompany("");
+            setOpen(false);
+        } catch (error) {
+            console.error("Error adding CAP items:", error);
+            toast({ title: "Error", description: "Failed to add CAP items. Please try again.", variant: "destructive" });
+        }
+    };
 
     const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         if (!selectedCompany) {
@@ -492,7 +425,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                 // Replace spaces with underscores (e.g., "in progress" -> "in_progress")
                 statusRaw = statusRaw.replace(/\s+/g, '_');
                 const status = statusRaw as CAPStatus;
-                const validStatuses: CAPStatus[] = ['pending', 'in_review', 'accepted', 'in_progress', 'completed', 'delayed', 'rejected'];
+                const validStatuses: CAPStatus[] = ['pending', 'in_review', 'accepted', 'completed', 'overdue'];
                 const validStatus = validStatuses.includes(status) ? status : 'pending';
 
                 const dealCondition = getVal(['cp/cs', 'cpcs', 'dealcondition']) as CAPType;
@@ -538,24 +471,40 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
 
             if (newItems.length === 0) throw new Error("No valid items found in file");
 
-            const finalData = {
-                plan: newItems,
-                email: company.email,
-                financialYear: financialYear,
-                finalAcceptance: { founderAcceptance: false, investorAcceptance: false }
-            };
+            const entityId = company?.user?.entityId;
+            if (!entityId) throw new Error("Entity ID missing");
 
-            const [result, error] = await EsgddAPIs.saveEscap(finalData);
+            // Fetch existing plan
+            const [existingData] = await EsgddAPIs.getEsgCapPlan({ entityId: `${entityId}?financialYear=${financialYear}` });
+            const existingPlan = existingData?.plan || [];
 
-            if (result) {
-                onAddMultipleItems(newItems);
-                toast({ title: "CAP Items Imported", description: `Successfully imported ${newItems.length} items.` });
-                setSelectedCompany("");
-                setOpen(false);
+            // Merge
+            const mergedPlan = [...existingPlan, ...newItems];
+
+            if (existingPlan.length > 0) {
+                // Use change request API
+                const [res, err] = await EsgddAPIs.esgddChangePlan({
+                    changeRequest: { plan: mergedPlan },
+                    comment: 'Add items via CSV',
+                    entityId,
+                });
+                if (!res) throw new Error(err || "Change request failed");
             } else {
-                throw new Error(error || "Upload failed");
+                // Create new plan
+                const [res, err] = await EsgddAPIs.saveEscap({
+                    plan: mergedPlan,
+                    email: company.email,
+                    financialYear,
+                    finalAcceptance: { founderAcceptance: false, investorAcceptance: false }
+                });
+                if (!res) throw new Error(err || "Failed to create plan");
             }
 
+            // Update UI
+            onAddMultipleItems(newItems);
+            toast({ title: "CAP Items Imported", description: `Imported ${newItems.length} items.` });
+            setSelectedCompany("");
+            setOpen(false);
         } catch (error) {
             console.error("Import error:", error);
             toast({ title: "Import Failed", description: error instanceof Error ? error.message : "Failed to process file", variant: "destructive" });

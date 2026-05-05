@@ -18,7 +18,7 @@ export type CAPStatus =
   | "in_review"
   | "accepted"
   | "completed"
-  | "Overdue";
+  | "overdue";
 
 export type CAPCategory = "environmental" | "social" | "governance";
 export type CAPType = "CP" | "CS"| "ESG_FORWARD_AREAS" | "none";
@@ -223,7 +223,7 @@ const getStatusBadge = (status: CAPStatus) => {
     //   return <Badge variant="outline">In Progress</Badge>;
     case "completed":
       return <Badge variant="default" className="bg-green-500 hover:bg-green-600">Completed</Badge>;
-    case "Overdue":
+    case "overdue":
       return <Badge variant="outline">Overdue</Badge>;
     // case "rejected":
     //   return <Badge variant="destructive">{status.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}</Badge>;

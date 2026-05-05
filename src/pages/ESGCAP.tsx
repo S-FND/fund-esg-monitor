@@ -93,7 +93,7 @@ export default function ESGCAP() {
   const totalItems = filteredCAPItems.length;
   const completedItems = filteredCAPItems.filter(i => i.status === 'completed').length;
   const pendingItems = filteredCAPItems.filter(i => i.status === 'pending').length;
-  const inProgressItems = filteredCAPItems.filter(i => i.status === 'in_progress').length;
+  const inProgressItems = filteredCAPItems.filter(i => i.status === 'overdue').length;
 
   const handleReview = (item: ESGCapItem) => {
     let currentItem =
