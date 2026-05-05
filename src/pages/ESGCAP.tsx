@@ -7,10 +7,10 @@ import { FilterControls } from "@/components/esg-cap/FilterControls";
 import { AlertsPanel } from "@/components/esg-cap/AlertsPanel";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { 
-  ArrowLeft, 
-  ArrowRight, 
-  ArrowUp, 
+import {
+  ArrowLeft,
+  ArrowRight,
+  ArrowUp,
   ArrowDown,
   FileText,
   CheckCircle2,
@@ -21,6 +21,7 @@ import { http } from "@/utils/httpInterceptor";
 import { useESGCAPAlerts } from "@/hooks/useESGCAPAlerts";
 import { AddCAPDialog } from "@/components/esg-cap/AddCAPDialog";
 import { EsgddAPIs } from "@/network/esgdd";
+import Loader from "@/components/ui/loader";
 
 interface PlanHistory {
   updateByUserId: string;
@@ -67,10 +68,14 @@ export default function ESGCAP() {
   const [reloadData, setReloadData] = useState(false);
   const [selectedEntityId,setSelectedEntityId]=useState(null)
 
-  const alerts = useESGCAPAlerts(filteredCAPItems, previousCapItemsRef.current);
+  const alerts = useESGCAPAlerts(filteredCAPItems, previousCapItemsRef.current, planData?.finalPlan);
 
   const [financialYear, setFinancialYear] = useState("");
 
+  const [isEditingFinalized, setIsEditingFinalized] = useState(false);
+  const originalPlanRef = useRef<ESGCapItem[]>([]);
+  const [isSavingFinalized, setIsSavingFinalized] = useState(false);
+  
   useEffect(() => {
     const currentDate = new Date();
     const currentYear = currentDate.getFullYear();
@@ -91,13 +96,15 @@ export default function ESGCAP() {
   const inProgressItems = filteredCAPItems.filter(i => i.status === 'in_progress').length;
 
   const handleReview = (item: ESGCapItem) => {
-    const currentItem = capItems.find(i => i.id === item.id);
-    if (currentItem) {
-      const clonedItem = JSON.parse(JSON.stringify(currentItem));
-      setSelectedItem(clonedItem);
-      setReviewDialogOpen(true);
-      setCanEdit(true);
-    }
+    let currentItem =
+      capItems.find(i => i.id === item.id) ||
+      capItems.find(i => i.reportId === item.reportId && i.item === item.item);
+
+    const finalItem = currentItem || item;
+
+    setSelectedItem(JSON.parse(JSON.stringify(finalItem)));
+    setReviewDialogOpen(true);
+    setCanEdit(true);
   };
 
   const handleApprove = () => {
@@ -149,9 +156,9 @@ export default function ESGCAP() {
         assignedTo: item.assignedTo,
         targetDate: item.targetDate
       };
-  
+
       const [res, error] = await EsgddAPIs.sendReminder(payload);
-  
+
       if (res) {
         toast({
           title: "Reminder Sent",
@@ -160,7 +167,7 @@ export default function ESGCAP() {
       } else {
         throw new Error(error || "Failed to send reminder");
       }
-  
+
     } catch (err) {
       toast({
         title: "Error",
@@ -189,11 +196,15 @@ export default function ESGCAP() {
 
   const getPlanList = async (entityId: string) => {
     try {
+      setLoading(true);
+      setLoadingMessage("Loading plan details ...")
       const entityIdWithYear = `${entityId}?financialYear=${financialYear}`;
       const [data, error] = await EsgddAPIs.getEsgCapPlan({
         entityId: entityIdWithYear,
       });
-      if (data) {
+      setLoading(false);
+      console.log('data?.plan?.length',data?.plan?.length);
+      if (data?.plan?.length > 0) {
         setPlanData(data);
         // setFilteredCAPItems(data.plan || []);
         // setCapItems(data.plan || []);
@@ -210,7 +221,11 @@ export default function ESGCAP() {
         previousCapItemsRef.current = normalizedPlan;
         const latestHistory = data.planHistoryDetails?.[1];
         setComparePlanData({
-          founderPlan: latestHistory?.requestPlan || [],
+          // founderPlan: latestHistory?.requestPlan || [],
+          founderPlan: (latestHistory?.requestPlan || []).map((item, index) => ({
+            ...item,
+            id: item.id || item._id || `${item.reportId}-history-${index}`
+          })),
           investorPlan: data.plan || [],
           founderPlanLastUpdate: latestHistory?.createdAt || 0,
           investorPlanLastUpdate: Date.now()
@@ -236,9 +251,20 @@ export default function ESGCAP() {
   };
 
   useEffect(() => {
-    if (selectedCompany !== 'all') {
-      const company = portfolioCompanies.find(c => c.email === selectedCompany);
+    if (selectedCompany !== "all") {
+  
+      setFilteredCAPItems([]);
+      setCapItems([]);
+      setPlanData(null);
+  
+      const company = portfolioCompanies.find(
+        c =>
+          c._id === selectedCompany ||   // first try id
+          c.email === selectedCompany    // fallback email
+      );
+  
       const entityId = company?.user?.entityId;
+  
       if (entityId) {
         setSelectedEntityId(entityId)
         getPlanList(entityId);
@@ -247,6 +273,12 @@ export default function ESGCAP() {
   }, [selectedCompany, portfolioCompanies]);
 
   const handleSaveChanges = (updatedItem: ESGCapItem) => {
+    // 🔁 If plan is finalized and not already editing, start edit mode
+    if (isPlanFinalized && !isEditingFinalized) {
+      originalPlanRef.current = JSON.parse(JSON.stringify(capItems));
+      setIsEditingFinalized(true);
+    }
+
     previousCapItemsRef.current = [...capItems];
 
     const updatedItems = capItems.map(item => {
@@ -343,7 +375,8 @@ export default function ESGCAP() {
 
   const handleAcceptCap = async () => {
     if (!planData) return;
-
+    setLoading(true);
+    setLoadingMessage("Accepting plan details & Analyzing action items ...")
     const isInvestor = user?.entityType === 1;
     const isFounder = user?.entityType === 2;
 
@@ -369,7 +402,7 @@ export default function ESGCAP() {
       };
 
       const [result, error] = await EsgddAPIs.esgddAcceptPlan(payload);
-
+      setLoading(false);
       if (result?.data) {
         const userType = isInvestor ? "Investor" : "Founder";
         const message = bothAccepted
@@ -382,7 +415,7 @@ export default function ESGCAP() {
         });
 
         if (selectedCompany !== "all") {
-          await getPlanList(selectedCompany);
+          await getPlanList(planData.entityId);
         }
       }
     } catch (error) {
@@ -428,7 +461,12 @@ export default function ESGCAP() {
   }, []);
 
   const handleAddItem = (newItem: ESGCapItem) => {
-    const itemWithId = newItem.id ? newItem : { ...newItem, id: (capItems.length + 1).toString() };
+    if (isPlanFinalized && !isEditingFinalized) {
+      originalPlanRef.current = JSON.parse(JSON.stringify(capItems));
+      setIsEditingFinalized(true);
+    }
+
+    const itemWithId = newItem.id ? newItem : { ...newItem, id: `${Date.now()}-${Math.random()}` };
     const updatedItems = [...capItems, itemWithId];
     setCapItems(updatedItems);
     setFilteredCAPItems(updatedItems);
@@ -443,6 +481,18 @@ export default function ESGCAP() {
     setCapItems(updatedItems);
     setFilteredCAPItems(updatedItems);
     saveToLocalStorage(updatedItems);
+  };
+
+  const handleDeleteItem = (itemId: string | number) => {
+    const updatedItems = capItems.filter(item => item.id !== itemId);
+    setCapItems(updatedItems);
+    setFilteredCAPItems(updatedItems);
+    saveToLocalStorage(updatedItems);
+    
+    toast({
+      title: "Item Deleted",
+      description: "Item has been removed from the plan.",
+    });
   };
 
   const saveToLocalStorage = (items: ESGCapItem[]) => {
@@ -476,8 +526,54 @@ export default function ESGCAP() {
     getPlanList(entityId)
   },[reloadData])
 
+  const handleEditFinalizedPlan = () => {
+    // Save a deep copy of the current plan to revert on cancel
+    originalPlanRef.current = JSON.parse(JSON.stringify(capItems));
+    setIsEditingFinalized(true);
+  };
+
+  const handleCancelFinalizedEdit = () => {
+    // Restore the original plan from ref
+    setCapItems(originalPlanRef.current);
+    setFilteredCAPItems(originalPlanRef.current);
+    setIsEditingFinalized(false);
+    originalPlanRef.current = [];
+  };
+
+  const handleSaveFinalizedEdits = async () => {
+    try {
+      const payload = {
+        entityId: planData?.entityId,
+        updatedPlan: capItems,   // ✅ use current capItems directly
+        reason: "Investor edited the finalized plan",
+      };
+      const response = await http.post('investor/esgdd/escap/edit-finalized-plan', payload);
+      if (response.data) {
+        toast({
+          title: "Finalized Plan Updated",
+          description: "The finalized CAP plan has been successfully edited.",
+        });
+        // Refresh data from backend to get the updated acceptedPlan
+        if (planData?.entityId) {
+          await getPlanList(planData.entityId);
+        }
+        setIsEditingFinalized(false);
+        originalPlanRef.current = [];
+      }
+    } catch (error) {
+      console.error("Error updating finalized plan:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update the finalized plan.",
+        variant: "destructive",
+      });
+    }
+  };
+
+
   return (
     <div className="space-y-6">
+      <Loader show={loading} text={loadingMessage}/>
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">ESG Corrective Action Plan</h1>
@@ -549,7 +645,7 @@ export default function ESGCAP() {
           onCompanyChange={setSelectedCompany}
         />
 
-        {!isPlanFinalized && filteredCAPItems.length > 0 && (
+        {/* {!isPlanFinalized && filteredCAPItems.length > 0 && (
           <div className="flex items-center gap-6">
             <Button
               variant="outline"
@@ -562,7 +658,7 @@ export default function ESGCAP() {
               {showComparisonView ? "Exit Comparison View" : "Compare Changes"}
             </Button>
           </div>
-        )}
+        )} */}
       </div>
 
       {filteredCAPItems.length > 0 && (
@@ -571,6 +667,7 @@ export default function ESGCAP() {
             overdueItems={alerts.overdueItems}
             approachingDeadlines={alerts.approachingDeadlines}
             onItemClick={handleReview}
+            finalPlan={isPlanFinalized}
           />
 
           <Card>
@@ -593,10 +690,13 @@ export default function ESGCAP() {
                     originalItems={comparePlanData.investorPlan}
                     onReview={handleReview}
                     onSendReminder={handleSendReminder}
+                    onAddItem={handleAddItem}
+                    onDeleteItem={handleDeleteItem} 
                     isComparisonView={true}
                     onRevert={handleRevertToOriginal}
                     onRevertField={handleRevertField}
-                    finalPlan={isPlanFinalized}
+                    // finalPlan={isPlanFinalized}
+                    finalPlan={isEditingFinalized ? false : isPlanFinalized}
                     progressPercentage={progressPercentage}
                     companyEntityId={selectedEntityId}
                     setReloadData={setReloadData}
@@ -608,10 +708,13 @@ export default function ESGCAP() {
                   originalItems={previousCapItemsRef.current}
                   onReview={handleReview}
                   onSendReminder={handleSendReminder}
+                  onAddItem={handleAddItem}
+                  onDeleteItem={handleDeleteItem} 
                   isComparisonView={false}
                   onRevert={handleRevertToOriginal}
                   onRevertField={handleRevertField}
-                  finalPlan={isPlanFinalized}
+                  // finalPlan={isPlanFinalized}
+                  finalPlan={isEditingFinalized ? false : isPlanFinalized}
                   progressPercentage={progressPercentage}
                   companyEntityId={selectedEntityId}
                   setReloadData={setReloadData}
@@ -639,11 +742,25 @@ export default function ESGCAP() {
                     </Button>
                   </>
                 )}
-                {isPlanFinalized && (
-                  <div className="text-sm text-muted-foreground">
-                    Plan has been finalized and accepted
-                  </div>
-                )}
+                {/* {isPlanFinalized && !isEditingFinalized && (
+                  <Button
+                    onClick={handleEditFinalizedPlan}
+                    size="lg"
+                    variant="outline"
+                  >
+                    Update Final Plan
+                  </Button>
+                )} */}
+                {isPlanFinalized && isEditingFinalized && (
+                    <>
+                      <Button onClick={handleSaveFinalizedEdits} size="lg" variant="default">
+                        Save Finalized Edits
+                      </Button>
+                      <Button onClick={handleCancelFinalizedEdit} size="lg" variant="ghost">
+                        Cancel
+                      </Button>
+                    </>
+                  )}
               </CardFooter>
             )}
           </Card>
@@ -660,7 +777,7 @@ export default function ESGCAP() {
         onCancelEdit={() => setCanEdit(false)}
         onSaveChanges={handleSaveChanges}
         onOpenChange={setReviewDialogOpen}
-        finalPlan={isPlanFinalized}
+        finalPlan={isEditingFinalized ? false : isPlanFinalized}
         originalItems={previousCapItemsRef.current}
         comparePlanData={comparePlanData}
       />

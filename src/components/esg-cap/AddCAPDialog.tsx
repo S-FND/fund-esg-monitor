@@ -36,6 +36,7 @@ interface CAPFormRow {
     timelineMonth: number;
     dealCondition: CAPType;
     statusUpdate: string;
+    investorStatusUpdate: string;
     reviewRemarks: string;
     lastReviewDate: string;
     implementationSupportNeeded: string;
@@ -70,6 +71,19 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
         setFinancialYear(financialYear);
     }, []);
 
+    const parseToDateInput = (value: any): string => {
+        if (!value) return '';
+        // If already YYYY-MM-DD
+        if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+        // Try to parse as Date
+        const date = new Date(value);
+        if (isNaN(date.getTime())) return '';
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+
     const [formRows, setFormRows] = useState<CAPFormRow[]>([{
         id: "1",
         item: "",
@@ -83,6 +97,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
         timelineMonth: 0,
         dealCondition: "none",
         statusUpdate: "",
+        investorStatusUpdate: "",
         reviewRemarks: "",
         lastReviewDate: "",
         implementationSupportNeeded: "",
@@ -156,6 +171,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
             timelineMonth: 0,
             dealCondition: "none",
             statusUpdate: "",
+            investorStatusUpdate: "",
             reviewRemarks: "",
             lastReviewDate: "",
             implementationSupportNeeded: "",
@@ -228,13 +244,14 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                 timelineMonth: row.timelineMonth || undefined,
                 CS: row.dealCondition,
                 statusUpdate: row.statusUpdate || undefined,
+                investorStatusUpdate: row.investorStatusUpdate || undefined,
                 reviewRemarks: row.reviewRemarks || undefined,
-                lastReviewDate: row.lastReviewDate || undefined,
+                lastReviewDate: parseToDateInput(row.lastReviewDate) || undefined,
                 implementationSupportNeeded: row.implementationSupportNeeded || undefined,
                 closureVerifiedBy: row.closureVerifiedBy || undefined,
-                actualDate: row.actualDate || undefined,
+                actualDate: parseToDateInput(row.actualDate) || undefined,
                 status: row.status,
-                targetDate: row.targetDate || undefined,
+                targetDate: parseToDateInput(row.targetDate) || undefined,
                 esgLever: row.esgLever || undefined,
                 capSource: row.capSource || undefined,
                 progressPercentage: row.progressPercentage || undefined,
@@ -263,7 +280,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                 setFormRows([{
                     id: "1", item: "", category: "environmental", priority: "Medium", issue: "", relatedFinding: "",
                     measures: "", resource: "", deliverable: "", timelineMonth: 0, dealCondition: "none",
-                    statusUpdate: "", reviewRemarks: "", lastReviewDate: "", implementationSupportNeeded: "",
+                    statusUpdate: "",investorStatusUpdate: "", reviewRemarks: "", lastReviewDate: "", implementationSupportNeeded: "",
                     closureVerifiedBy: "", actualDate: "", status: "pending", targetDate: "", esgLever: "", capSource: "",
                     progressPercentage: 0, assignedTo: "", remarks: "",
                 }]);
@@ -409,7 +426,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                     category: validCategory,
                     priority: validPriority,
                     resource: getVal(['resource', 'resource & responsibility']) || undefined,
-                    deliverable: getVal(['deliverable', 'expected deliverable']) || undefined,
+                    deliverable: getVal(['indicator', 'completion indicator']) || undefined,
                     targetDate: getVal(['target date', 'targetdate']) || undefined,
                     progressPercentage: progressPercentNum,
                     CS: validDealCondition,
@@ -423,7 +440,8 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                     esgLever: getVal(['esg lever', 'esglever']) || undefined,
                     capSource: getVal(['cap source', 'capsource']) || undefined,
                     timelineMonth: getVal(['timeline month', 'timelinemonth']) ? Math.max(0, Number(getVal(['timeline month', 'timelinemonth']))) : undefined,
-                    statusUpdate: getVal(['status update', 'current status update', 'statusupdate']) || undefined,
+                    statusUpdate: getVal(['company current status update', 'comapny current status update', 'company status update', 'statusupdate_company']) || undefined,
+                    investorStatusUpdate: getVal(['investor current status update', 'investorstatus update', 'investor_status_update', 'statusupdate_investor']) || undefined,
                     reviewRemarks: getVal(['review remarks', 'reviewremarks']) || undefined,
                     lastReviewDate: getVal(['last review date', 'lastreviewdate']) || undefined,
                     implementationSupportNeeded: getVal(['implementation support', 'implementation support needed', 'implementationsupportneeded']) || undefined,
@@ -473,8 +491,8 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
             '# - "Priority" must be one of: High, Medium, Low',
             '# - Required columns: Item, Measures',
             '#',
-            'Item*,Category,Priority,Issue,Related Finding,ESG Lever,CAP Source,Measures*,Resource & Responsibility,Expected Deliverable,Timeline Month,Target Date,Progress Percentage,Actual Date,CP/CS,Status,Current Status Update,Review Remarks,Last Review Date,Implementation Support Needed,Closure Verified By,Assigned To,Remarks',
-            '"Example: Improve emissions",environmental,High,"Carbon reporting gaps","Audit finding 2024-01","Policy development","Training material","Implement tracking system","ESG Manager","Monthly report",6,2024-12-31,75,2024-12-31,CP,"In Progress","[Write your update here, e.g., System implementation 50% complete]","Approved",2024-03-01,"IT support needed","John Doe","jane@example.com","Priority item"'
+            'Item*,Category,Priority,Issue,Related Finding,ESG Lever,CAP Source,Measures*,Resource & Responsibility,Completion Indicator,Timeline Month,Target Date,Progress Percentage,Actual Date,CP/CS,Status,Comapny Current Status Update,Investor Current Status Update,Review Remarks,Last Review Date,Implementation Support Needed,Closure Verified By,Assigned To,Remarks',
+            '"Example: Improve emissions",environmental,High,"Carbon reporting gaps","Audit finding 2024-01","Policy development","Training material","Implement tracking system","ESG Manager","Monthly report",6,2024-12-31,75,2024-12-31,CP,"In Progress","System implementation 50% complete","System complete","Approved",2024-03-01,"IT support needed","John Doe","jane@example.com","Priority item"'
         ].join('\n');
 
         const blob = new Blob(["\uFEFF" + template], { type: 'text/csv;charset=utf-8' });
@@ -496,7 +514,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
         setFormRows([{
             id: "1", item: "", category: "environmental", priority: "Medium", issue: "", relatedFinding: "",
             measures: "", resource: "", deliverable: "", timelineMonth: 0, dealCondition: "none",
-            statusUpdate: "", reviewRemarks: "", lastReviewDate: "", implementationSupportNeeded: "",
+            statusUpdate: "",investorStatusUpdate: "", reviewRemarks: "", lastReviewDate: "", implementationSupportNeeded: "",
             closureVerifiedBy: "", actualDate: "", status: "pending", targetDate: "", esgLever: "", capSource: "",
             progressPercentage: 0, assignedTo: "", remarks: "",
         }]);
@@ -668,7 +686,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                                                     />
                                                 </div>
                                                 <div>
-                                                    <Label>Expected Deliverable</Label>
+                                                    <Label>Completion Indicator</Label>
                                                     <Textarea
                                                         value={row.deliverable}
                                                         onChange={(e) => updateRow(row.id, "deliverable", e.target.value)}
@@ -698,23 +716,6 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                                                         onChange={(e) => updateRow(row.id, "targetDate", e.target.value)}
                                                     />
                                                 </div>
-                                                {/* Progress Percentage */}
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                    <div>
-                                                        <Label>Progress Percentage (%)</Label>
-                                                        <Input
-                                                            type="number"
-                                                            min="0"
-                                                            max="100"
-                                                            value={row.progressPercentage ?? ''}
-                                                            onChange={(e) => {
-                                                                const val = e.target.value === '' ? 0 : Number(e.target.value);
-                                                                updateRow(row.id, "progressPercentage", Math.min(100, Math.max(0, val)));
-                                                            }}
-                                                            placeholder="0-100"
-                                                        />
-                                                    </div>
-                                                </div>
                                                 <div>
                                                     <Label>Actual Date</Label>
                                                     <Input
@@ -725,7 +726,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                                                 </div>
                                             </div>
 
-                                            {/* 13. CP/CS */}
+                                            {/* 13. CP/CS & 14. Status */}
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div>
                                                     <Label>CP/CS</Label>
@@ -737,6 +738,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                                                         <SelectContent>
                                                             <SelectItem value="CP">CP</SelectItem>
                                                             <SelectItem value="CS">CS</SelectItem>
+                                                            <SelectItem value="Roadmap">Roadmap</SelectItem>
                                                             <SelectItem value="none">None</SelectItem>
                                                         </SelectContent>
                                                     </Select>
@@ -761,15 +763,30 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                                                 </div>
                                             </div>
 
-                                            {/* 15. Current Update */}
+                                            {/* 15. Current Status Update */}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
                                             <div>
-                                                <Label>Current Status Update</Label>
+                                                <Label>Current Status Update (Company)</Label>
                                                 <Textarea
                                                     value={row.statusUpdate}
                                                     onChange={(e) => updateRow(row.id, "statusUpdate", e.target.value)}
+                                                    disabled
                                                     placeholder="Latest update on this action item"
                                                     className="min-h-[60px]"
                                                 />
+                                            </div>
+
+                                             {/* 15.1 Current Status Update Investor*/}
+                                             <div>
+                                                <Label>Current Status Update (Investor)</Label>
+                                                <Textarea
+                                                    value={row.investorStatusUpdate}
+                                                    onChange={(e) => updateRow(row.id, "investorStatusUpdate", e.target.value)}
+                                                    placeholder="Latest update on this action item"
+                                                    className="min-h-[60px]"
+                                                />
+                                            </div>
                                             </div>
 
                                             {/* 16. Review Remarks & 17. Last Review Date */}
@@ -872,10 +889,10 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
 
                                 {uploading && <div className="text-center text-sm">Processing file...</div>}
 
-                                <div className="text-xs space-y-1">
+                                {/* <div className="text-xs space-y-1">
                                     <p><strong>Required columns:</strong> item, measures</p>
-                                    <p><strong>All columns in order:</strong> item, category, priority, issue, relatedfinding, measures, resource, deliverable, timelinemonth, dealcondition, statusupdate, reviewremarks, lastreviewdate, implementationsupportneeded, closureverifiedby, actualdate, status, targetdate, esglever, capSource, progresspercentage, assignedto, remarks</p>
-                                </div>
+                                    <p><strong>All columns in order:</strong> item, category, priority, issue, relatedfinding, measures, resource, deliverable, timelinemonth, dealcondition, statusupdate, investorStatusUpdate, reviewremarks, lastreviewdate, implementationsupportneeded, closureverifiedby, actualdate, status, targetdate, esglever, capSource, progresspercentage, assignedto, remarks</p>
+                                </div> */}
                             </CardContent>
                         </Card>
                     </TabsContent>

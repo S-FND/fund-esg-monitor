@@ -23,7 +23,7 @@ export type CAPStatus =
   | "rejected";
 
 export type CAPCategory = "environmental" | "social" | "governance";
-export type CAPType = "CP" | "CS" | "none";
+export type CAPType = "CP" | "CS"| "Roadmap" | "none";
 export type CAPPriority = "High" | "Medium" | "Low";
 
 export type EvidenceType =
@@ -66,7 +66,7 @@ export interface Template {
 
   structure: TemplateStructure;
 }
-export type ESGCapDealCondition = 'CP' | 'CS' | 'none';
+export type ESGCapDealCondition = 'CP' | 'CS' | 'Roadmap' | 'none';
 
 export interface TemplateStructure {
   components?: string[];
@@ -137,18 +137,22 @@ export interface IDocumentValidation {
   updatedAt?: Date;
 }
 export interface ESGCapItem {
-  id: string;
-  reportId: string;
+  id: string | number;
   item: string;
-  category: CAPCategory;
-  CS?: string;
-  priority: CAPPriority;
+  issue?: string;
+  relatedFinding?: string;
+  esgLever?: string;
+  capSource?: string;
   measures: string;
-  resource: string;
-  deliverable: string;
-  targetDate: string;
-  actualDate?: string;
+  reportId?: string;
+  description?: string;
+  category: CAPCategory;
+  recommendation?: string;
+  priority: CAPPriority;
   status: CAPStatus;
+  deadline?: string;
+  targetDate?: string;
+  timelineMonth?: number;
   assignedTo?: string;
   dealCondition: ESGCapDealCondition;
   createdAt: string;
@@ -158,6 +162,7 @@ export interface ESGCapItem {
   resource?: string;
   deliverable?: string;
   statusUpdate?: string;
+  investorStatusUpdate?: string; 
   reviewRemarks?: string;
   lastReviewDate?: string;
   progressPercentage?: number;
@@ -185,15 +190,32 @@ interface CAPTableProps {
   items: ESGCapItem[];
   onReview: (item: ESGCapItem) => void;
   onSendReminder: (item: ESGCapItem) => void;
-  originalItems?: ESGCapItem[]; // for comparison
+  onAddItem?: (newItem: ESGCapItem) => void;
+  onDeleteItem?: (itemId: string | number) => void;
+  originalItems?: ESGCapItem[];
   isComparisonView?: boolean;
-  onRevertField?: (itemId: string, field: keyof ESGCapItem) => void;
-  onRevert?: (itemId: string) => void;
+  onRevertField?: (itemId: string | number, field: keyof ESGCapItem) => void;
+  onRevert?: (itemId: string | number) => void;
   finalPlan?: boolean;
   progressPercentage?: number;
   companyEntityId: string
   setReloadData?: (reload: boolean) => void;
 }
+
+// ==================== DATE FORMATTER HELPERS ====================
+const formatDisplayDate = (dateString?: string): string => {
+  if (!dateString) return '';
+  try {
+    return new Date(dateString).toLocaleDateString();
+  } catch {
+    return dateString;
+  }
+};
+
+const isDateField = (fieldName: string): boolean => {
+  return fieldName === 'targetDate' || fieldName === 'actualDate' || fieldName === 'lastReviewDate';
+};
+// ================================================================
 
 const getStatusBadge = (status: CAPStatus) => {
   switch (status) {
@@ -227,7 +249,19 @@ const getPriorityBadge = (priority: CAPPriority) => {
   }
 };
 
-// Render field with changes highlight and revert
+const getCategoryBadge = (category: string) => {
+  switch (category?.toLowerCase()) {
+    case "environmental":
+      return <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">Environmental</Badge>;
+    case "social":
+      return <Badge className="bg-blue-100 text-blue-700 border-blue-200">Social</Badge>;
+    case "governance":
+      return <Badge className="bg-amber-100 text-amber-700 border-amber-200">Governance</Badge>;
+    default:
+      return <Badge variant="secondary">{category}</Badge>;
+  }
+};
+
 const RenderChangedField = ({
   currentValue,
   originalValue,
@@ -236,26 +270,33 @@ const RenderChangedField = ({
   fieldName,
   onRevertField
 }: {
-  currentValue: string;
-  originalValue: string;
+  currentValue?: string;
+  originalValue?: string;
   isComparisonView?: boolean;
-  itemId?: string;
+  itemId?: string | number;
   fieldName?: keyof ESGCapItem;
-  onRevertField?: (itemId: string, field: keyof ESGCapItem) => void;
+  onRevertField?: (itemId: string | number, field: keyof ESGCapItem) => void;
 }) => {
-  const hasChanged = currentValue !== originalValue;
+  const hasChanged = (currentValue || "") !== (originalValue || "");
+  const formatValue = (val: any) => {
+    if (fieldName && isDateField(fieldName)) return formatDisplayDate(val);
+    return val;
+  };
 
-  if (!hasChanged || !isComparisonView) return <span>{currentValue}</span>;
+  if (!hasChanged || !isComparisonView) {
+    const displayValue = formatValue(currentValue) || "-";
+    return <span>{displayValue}</span>;
+  }
 
   return (
     <div className="flex flex-col">
       <div className="flex items-center gap-1">
         <div className="bg-red-100 p-1 rounded text-red-800 line-through">
-          {fieldName === "priority" ? getPriorityBadge(originalValue as CAPPriority) : originalValue}
+          {fieldName === "priority" ? getPriorityBadge(originalValue as CAPPriority) : formatValue(originalValue)}
         </div>
         <ArrowRight className="h-4 w-4" />
         <div className="bg-green-100 p-1 rounded text-green-800">
-          {fieldName === "priority" ? getPriorityBadge(currentValue as CAPPriority) : currentValue}
+          {fieldName === "priority" ? getPriorityBadge(currentValue as CAPPriority) : formatValue(currentValue)}
         </div>
       </div>
       {onRevertField && itemId && fieldName && (
@@ -276,6 +317,8 @@ export function CAPTable({
   items,
   onReview,
   onSendReminder,
+  onAddItem,
+  onDeleteItem,
   originalItems = [],
   isComparisonView = false,
   onRevertField,
@@ -337,6 +380,7 @@ export function CAPTable({
     // Status & Tracking
     status: "pending" as CAPStatus,
     statusUpdate: "",
+    investorStatusUpdate:"",
     progressPercentage: "",
 
     // Review & Verification
@@ -377,6 +421,7 @@ export function CAPTable({
       dealCondition: newRowData.dealCondition,
       status: newRowData.status,
       statusUpdate: newRowData.statusUpdate || undefined,
+      investorStatusUpdate: newRowData.investorStatusUpdate || undefined,
       progressPercentage: newRowData.progressPercentage ? Number(newRowData.progressPercentage) : undefined,
       reviewRemarks: newRowData.reviewRemarks || undefined,
       lastReviewDate: newRowData.lastReviewDate || undefined,
@@ -407,6 +452,7 @@ export function CAPTable({
       dealCondition: "CP",
       status: "pending",
       statusUpdate: "",
+      investorStatusUpdate: "",
       progressPercentage: "",
       reviewRemarks: "",
       lastReviewDate: "",
@@ -464,22 +510,31 @@ export function CAPTable({
     isBadge?: boolean,
     badgeType?: 'category' | 'priority' | 'status'
   ) => {
+    const formatValue = (val: any) => {
+      if (isDateField(fieldName)) return formatDisplayDate(val);
+      return val;
+    };
+
     if (isComparisonView && originalValue !== undefined && currentValue !== originalValue) {
       // Show changed field with revert
       if (isBadge && badgeType) {
+        const formatBadge = (val: any) => {
+          if (isDateField(fieldName)) return formatDisplayDate(val);
+          return val;
+        };
         return (
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2">
               <div className="line-through opacity-60">
-                {badgeType === 'category' && getCategoryBadge(originalValue)}
-                {badgeType === 'priority' && getPriorityBadge(originalValue)}
-                {badgeType === 'status' && getStatusBadge(originalValue)}
+                {badgeType === 'category' && getCategoryBadge(formatBadge(originalValue))}
+                {badgeType === 'priority' && getPriorityBadge(formatBadge(originalValue))}
+                {badgeType === 'status' && getStatusBadge(formatBadge(originalValue))}
               </div>
               <ArrowRight className="h-3 w-3" />
               <div>
-                {badgeType === 'category' && getCategoryBadge(currentValue)}
-                {badgeType === 'priority' && getPriorityBadge(currentValue)}
-                {badgeType === 'status' && getStatusBadge(currentValue)}
+                {badgeType === 'category' && getCategoryBadge(formatBadge(currentValue))}
+                {badgeType === 'priority' && getPriorityBadge(formatBadge(currentValue))}
+                {badgeType === 'status' && getStatusBadge(formatBadge(currentValue))}
               </div>
             </div>
             {onRevertField && (
@@ -508,11 +563,13 @@ export function CAPTable({
     }
     // No change or not comparison view
     if (isBadge && badgeType) {
-      if (badgeType === 'category') return getCategoryBadge(currentValue);
-      if (badgeType === 'priority') return getPriorityBadge(currentValue);
-      if (badgeType === 'status') return getStatusBadge(currentValue);
+      const displayValue = formatValue(currentValue);
+      if (badgeType === 'category') return getCategoryBadge(displayValue);
+      if (badgeType === 'priority') return getPriorityBadge(displayValue);
+      if (badgeType === 'status') return getStatusBadge(displayValue);
     }
-    return <span>{currentValue || "-"}</span>;
+    // Default: use formatted value (dates become readable)
+    return <span>{formatValue(currentValue) || "-"}</span>;
   };
 
   return (
@@ -561,14 +618,15 @@ export function CAPTable({
                   <th className="p-3 text-left">CAP Source</th>
                   <th className="p-3 text-left">Measures & Corrective Actions</th>
                   <th className="p-3 text-left">Resource & Responsibility</th>
-                  <th className="p-3 text-left">Expected Deliverable</th>
+                  <th className="p-3 text-left">Completion Indicator</th>
                   <th className="p-3 text-left">Timeline Month</th>
                   <th className="p-3 text-left">Target Date</th>
                   <th className="p-3 text-left">Progress Percentage</th>   {/* NEW */}
                   <th className="p-3 text-left">Actual Date</th>
                   <th className="p-3 text-left">CP/CS</th>
                   <th className="p-3 text-left">Status</th>
-                  <th className="p-3 text-left">Current Status Update</th>
+                  <th className="p-3 text-left">Company Current Status Update</th>
+                  <th className="p-3 text-left">Investor Current Status Update</th>
                   <th className="p-3 text-left">Review Remarks</th>
                   <th className="p-3 text-left">Last Review Date</th>
                   <th className="p-3 text-left">Implementation Support Needed</th>
@@ -622,8 +680,8 @@ export function CAPTable({
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem onClick={() => onSendReminder(item)}>Send Reminder</DropdownMenuItem>
-                              {item.aiResponseRaw && (
-                                <DropdownMenuItem onClick={() => onAiShow(item)}>Review AI Suggestion</DropdownMenuItem>
+                              {item.fileUploadedData && item.fileUploadedData.length > 0 && (
+                                <DropdownMenuItem onClick={() => onAiShow(item)}>Document Review Summary</DropdownMenuItem>
                               )}
                               {!isComparisonView && onDeleteItem && (
                                 <DropdownMenuItem onClick={() => handleDeleteClick(item)} className="text-red-600">
@@ -708,6 +766,9 @@ export function CAPTable({
                         {renderField(item.statusUpdate, originalItem?.statusUpdate, "statusUpdate", item.id)}
                       </td>
                       <td className="p-3">
+                        {renderField(item.investorStatusUpdate, originalItem?.investorStatusUpdate, "investorStatusUpdate", item.id)}
+                      </td>
+                      <td className="p-3">
                         {renderField(item.reviewRemarks, originalItem?.reviewRemarks, "reviewRemarks", item.id)}
                       </td>
                       <td className="p-3">
@@ -739,8 +800,8 @@ export function CAPTable({
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem onClick={() => onSendReminder(item)}>Send Reminder</DropdownMenuItem>
-                              {item.aiResponseRaw && (
-                                <DropdownMenuItem onClick={() => onAiShow(item)}>Review AI Suggestion</DropdownMenuItem>
+                              {item.fileUploadedData && item.fileUploadedData.length > 0 && (
+                                <DropdownMenuItem onClick={() => onAiShow(item)}>Document Review Summary</DropdownMenuItem>
                               )}
                               {!isComparisonView && onDeleteItem && (
                                 <DropdownMenuItem onClick={() => handleDeleteClick(item)} className="text-red-600">
@@ -907,7 +968,7 @@ export function CAPTable({
                     />
                   </div>
                   <div>
-                    <label className="block mb-1 font-medium text-sm">Expected Deliverable</label>
+                    <label className="block mb-1 font-medium text-sm">Completion Indicator</label>
                     <Textarea
                       value={newRowData.deliverable}
                       onChange={(e) => setNewRowData({ ...newRowData, deliverable: e.target.value })}
@@ -959,6 +1020,7 @@ export function CAPTable({
                       <SelectContent>
                         <SelectItem value="CP">CP (Condition Precedent)</SelectItem>
                         <SelectItem value="CS">CS (Condition Subsequent)</SelectItem>
+                        <SelectItem value="Roadmap">Roadmap</SelectItem>
                         <SelectItem value="none">None</SelectItem>
                       </SelectContent>
                     </Select>
@@ -984,14 +1046,26 @@ export function CAPTable({
                 </div>
 
                 {/* 15. Current Status Update */}
-                <div>
-                  <label className="block mb-1 font-medium text-sm">Current Status Update</label>
-                  <Textarea
-                    value={newRowData.statusUpdate}
-                    onChange={(e) => setNewRowData({ ...newRowData, statusUpdate: e.target.value })}
-                    placeholder="Latest update on this action item"
-                    className="min-h-[60px]"
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block mb-1 font-medium text-sm">Current Status Update (Company)</label>
+                    <Textarea
+                      value={newRowData.statusUpdate}
+                      disabled={true}
+                      onChange={(e) => setNewRowData({ ...newRowData, statusUpdate: e.target.value })}
+                      placeholder="Latest update on this action item"
+                      className="min-h-[60px]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block mb-1 font-medium text-sm">Current Status Update (Investor)</label>
+                    <Textarea
+                      value={newRowData.investorStatusUpdate}
+                      onChange={(e) => setNewRowData({ ...newRowData, investorStatusUpdate: e.target.value })}
+                      placeholder="Latest update on this action item"
+                      className="min-h-[60px]"
+                    />
+                  </div>
                 </div>
 
                 {/* 16. Review Remarks & 17. Last Review Date */}
