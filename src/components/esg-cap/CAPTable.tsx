@@ -17,10 +17,8 @@ export type CAPStatus =
   | "pending"
   | "in_review"
   | "accepted"
-  | "in_progress"
   | "completed"
-  | "delayed"
-  | "rejected";
+  | "overdue";
 
 export type CAPCategory = "environmental" | "social" | "governance";
 export type CAPType = "CP" | "CS"| "ESG_FORWARD_AREAS" | "none";
@@ -221,13 +219,14 @@ const getStatusBadge = (status: CAPStatus) => {
   switch (status) {
     case "pending":
       return <Badge variant="secondary">Pending</Badge>;
-    case "in_progress":
-      return <Badge variant="outline">In Progress</Badge>;
+    // case "in_progress":
+    //   return <Badge variant="outline">In Progress</Badge>;
     case "completed":
       return <Badge variant="default" className="bg-green-500 hover:bg-green-600">Completed</Badge>;
-    case "delayed":
-    case "rejected":
-      return <Badge variant="destructive">{status.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}</Badge>;
+    case "overdue":
+      return <Badge variant="outline">Overdue</Badge>;
+    // case "rejected":
+    //   return <Badge variant="destructive">{status.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}</Badge>;
     case "in_review":
     case "accepted":
       return <Badge variant="outline">{status.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}</Badge>;
@@ -573,7 +572,7 @@ export function CAPTable({
   };
 
   const getSortIcon = (key: string) => {
-    if (sortConfig?.key !== key) return "↕"; // default
+    if (sortConfig?.key !== key) return "↑↓"; // default
     return sortConfig.direction === "asc" ? "↑" : "↓";
   };
 
@@ -660,7 +659,7 @@ export function CAPTable({
                   <th className="p-3 text-left">Related Finding</th>
                   <th className="p-3 text-left">ESG Lever</th>
                   <th className="p-3 text-left">CAP Source</th>
-                  <th className="p-3 text-left">Completion indicator</th>
+                  <th className="p-3 text-left">Measures & Corrective Actions</th>
                   <th className="p-3 text-left">Resource & Responsibility</th>
                   <th className="p-3 text-left">Completion Indicator</th>
                   <th className="p-3 text-left">Timeline Month</th>
@@ -697,7 +696,7 @@ export function CAPTable({
                         {renderField(item.issue, originalItem?.issue, "issue", item.id)}
                       </td>
                       <td className="p-3">
-                        {renderField(item.measures, originalItem?.measures, "measures", item.id)}
+                        {renderField(item.deliverable, originalItem?.deliverable, "deliverable", item.id)}
                       </td>
                       <td className="p-3">
                         {renderField(
@@ -992,7 +991,7 @@ export function CAPTable({
                 </div>
                 {/* 7. Measures */}
                 <div>
-                  <label className="block mb-1 font-medium text-sm">Completion indicator *</label>
+                  <label className="block mb-1 font-medium text-sm">Measures & Corrective Actions *</label>
                   <Textarea
                     value={newRowData.measures}
                     onChange={(e) => setNewRowData({ ...newRowData, measures: e.target.value })}
@@ -1080,10 +1079,8 @@ export function CAPTable({
                         <SelectItem value="pending">Pending</SelectItem>
                         <SelectItem value="in_review">In Review</SelectItem>
                         <SelectItem value="accepted">Accepted</SelectItem>
-                        <SelectItem value="in_progress">In Progress</SelectItem>
                         <SelectItem value="completed">Completed</SelectItem>
-                        <SelectItem value="delayed">Delayed</SelectItem>
-                        <SelectItem value="rejected">Rejected</SelectItem>
+                        <SelectItem value="delayed">Overdue</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
