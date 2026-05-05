@@ -573,7 +573,7 @@ export function CAPTable({
   };
 
   const getSortIcon = (key: string) => {
-    if (sortConfig?.key !== key) return "↕"; // default
+    if (sortConfig?.key !== key) return "↑↓"; // default
     return sortConfig.direction === "asc" ? "↑" : "↓";
   };
 
@@ -660,7 +660,7 @@ export function CAPTable({
                   <th className="p-3 text-left">Related Finding</th>
                   <th className="p-3 text-left">ESG Lever</th>
                   <th className="p-3 text-left">CAP Source</th>
-                  <th className="p-3 text-left">Completion indicator</th>
+                  <th className="p-3 text-left">Measures & Corrective Actions</th>
                   <th className="p-3 text-left">Resource & Responsibility</th>
                   <th className="p-3 text-left">Completion Indicator</th>
                   <th className="p-3 text-left">Timeline Month</th>
@@ -697,7 +697,7 @@ export function CAPTable({
                         {renderField(item.issue, originalItem?.issue, "issue", item.id)}
                       </td>
                       <td className="p-3">
-                        {renderField(item.measures, originalItem?.measures, "measures", item.id)}
+                        {renderField(item.deliverable, originalItem?.deliverable, "deliverable", item.id)}
                       </td>
                       <td className="p-3">
                         {renderField(
@@ -992,7 +992,7 @@ export function CAPTable({
                 </div>
                 {/* 7. Measures */}
                 <div>
-                  <label className="block mb-1 font-medium text-sm">Completion indicator *</label>
+                  <label className="block mb-1 font-medium text-sm">Measures & Corrective Actions *</label>
                   <Textarea
                     value={newRowData.measures}
                     onChange={(e) => setNewRowData({ ...newRowData, measures: e.target.value })}

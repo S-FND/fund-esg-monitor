@@ -441,7 +441,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
             };
 
             const idxItem = getHeaderIndex(['item']);
-            const idxMeasures = getHeaderIndex(['measures', 'Completion indicator']);
+            const idxMeasures = getHeaderIndex(['measures', 'Measures & Corrective Actions']);
 
             if (idxItem === -1 || idxMeasures === -1) {
                 throw new Error(`Required columns 'Item' and 'Measures' not found. Found: ${rawHeaders.join(', ')}`);
@@ -749,7 +749,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
 
                                             {/* 7. Measures */}
                                             <div>
-                                                <Label>Completion indicator *</Label>
+                                                <Label>Measures & Corrective Actions *</Label>
                                                 <Textarea
                                                     value={row.measures}
                                                     onChange={(e) => updateRow(row.id, "measures", e.target.value)}

@@ -196,6 +196,7 @@ export default function ESGCAP() {
 
   const getPlanList = async (entityId: string) => {
     try {
+      if (!entityId) return;
       setLoading(true);
       setLoadingMessage("Loading plan details ...")
       const entityIdWithYear = `${entityId}?financialYear=${financialYear}`;

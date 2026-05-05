@@ -244,7 +244,7 @@ export function ReviewDialog({
 
               {/* Measures & Corrective Actions */}
               <div>
-                <h4 className="font-semibold mb-1">Completion indicator</h4>
+                <h4 className="font-semibold mb-1">Measures & Corrective Actions</h4>
                 {isEditable ? (
                   <Textarea
                     value={editedItem.measures}
