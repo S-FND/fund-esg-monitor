@@ -1080,10 +1080,8 @@ export function CAPTable({
                         <SelectItem value="pending">Pending</SelectItem>
                         <SelectItem value="in_review">In Review</SelectItem>
                         <SelectItem value="accepted">Accepted</SelectItem>
-                        <SelectItem value="in_progress">In Progress</SelectItem>
                         <SelectItem value="completed">Completed</SelectItem>
-                        <SelectItem value="delayed">Delayed</SelectItem>
-                        <SelectItem value="rejected">Rejected</SelectItem>
+                        <SelectItem value="delayed">Overdue</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

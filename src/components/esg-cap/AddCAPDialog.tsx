@@ -569,10 +569,10 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
         const template = [
             // Optional comment row (starting with #) – many CSV readers skip it
             '# INSTRUCTIONS:',
-            '# - "Status" must be one of: Pending, In Progress, In Review, Accepted, Completed, Delayed, Rejected',
-            '# - "Category" must be one of: environmental, social, Governance',
-            '# - "Priority" must be one of: High, Medium, Low',
-            '# - Required columns: Item, Measures',
+            '# - "Status" must be one of: Pending/ In Review/ Accepted/ Completed/ Overdue',
+            '# - "Category" must be one of: environmental/ social/ Governance',
+            '# - "Priority" must be one of: High/ Medium/ Low',
+            '# - Required columns: Item and Measures',
             '#',
             'Item*,Category,Priority,Issue,Related Finding,ESG Lever,CAP Source,Measures*,Resource & Responsibility,Completion Indicator,Timeline Month,Target Date,Progress Percentage,Actual Date,CP/CS,Status,Comapny Current Status Update,Investor Current Status Update,Review Remarks,Last Review Date,Implementation Support Needed,Closure Verified By,Assigned To,Remarks',
             '"Example: Improve emissions",environmental,High,"Carbon reporting gaps","Audit finding 2024-01","Policy development","Training material","Implement tracking system","ESG Manager","Monthly report",6,2024-12-31,75,2024-12-31,CP,"In Progress","System implementation 50% complete","System complete","Approved",2024-03-01,"IT support needed","John Doe","jane@example.com","Priority item"'
@@ -837,10 +837,8 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                                                             <SelectItem value="pending">Pending</SelectItem>
                                                             <SelectItem value="in_review">In Review</SelectItem>
                                                             <SelectItem value="accepted">Accepted</SelectItem>
-                                                            <SelectItem value="in_progress">In Progress</SelectItem>
                                                             <SelectItem value="completed">Completed</SelectItem>
-                                                            <SelectItem value="delayed">Delayed</SelectItem>
-                                                            <SelectItem value="rejected">Rejected</SelectItem>
+                                                            <SelectItem value="overdue">Overdue</SelectItem>
                                                         </SelectContent>
                                                     </Select>
                                                 </div>
