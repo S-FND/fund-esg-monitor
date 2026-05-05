@@ -67,7 +67,12 @@ export function ReviewDialog({
   };
 
   // --- Helper (not a hook) ---
-  const getTodayDate = () => new Date().toISOString().split('T')[0];
+  const getTodayDate = () => {
+    const d = new Date();
+    const offset = d.getTimezoneOffset();
+    const local = new Date(d.getTime() - offset * 60000);
+    return local.toISOString().split("T")[0];
+  };
 
   // --- useEffect to set default lastReviewDate when dialog opens ---
   useEffect(() => {
@@ -77,14 +82,18 @@ export function ReviewDialog({
   }, [open, editedItem]);
 
   const toDateInputValue = (dateString?: string): string => {
-    if (!dateString) return '';
+    if (!dateString) return "";
+  
+    // already correct format
     if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) return dateString;
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return '';
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+  
+    const d = new Date(dateString);
+    if (isNaN(d.getTime())) return "";
+  
+    const offset = d.getTimezoneOffset();
+    const local = new Date(d.getTime() - offset * 60000);
+  
+    return local.toISOString().split("T")[0];
   };
 
   useEffect(() => {
@@ -106,15 +115,15 @@ export function ReviewDialog({
 
   // ✅ Core change: editing is only allowed if parent says we can edit AND the plan is NOT finalized
   const isEditable = canEdit && !finalPlan;
-  useEffect(() => {
-    if (item) {
-      setEditedItem({ ...item });
+  // useEffect(() => {
+  //   if (item) {
+  //     setEditedItem({ ...item });
 
-      // Find the corresponding original item
-      const foundOriginal = originalItems.find(orig => orig.id === item.id);
-      setOriginalItem(foundOriginal || { ...item });
-    }
-  }, [item, originalItems]);
+  //     // Find the corresponding original item
+  //     const foundOriginal = originalItems.find(orig => orig.id === item.id);
+  //     setOriginalItem(foundOriginal || { ...item });
+  //   }
+  // }, [item, originalItems]);
 
   const handleInputChange = (field: keyof ESGCapItem, value: any) => {
     if (editedItem) {
@@ -125,7 +134,7 @@ export function ReviewDialog({
   const [showSaveToast, setShowSaveToast] = useState(false);
 
   const handleSaveChanges = () => {
-    if (editedItem && !editedItem ) {
+    if (editedItem) {
       setDataEditStatus(true);
       onSaveChanges(editedItem);
       toast({

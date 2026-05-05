@@ -76,11 +76,11 @@ export const AlertsPanel = ({
               <div className="space-y-2">
                 {overdueItems.map((item) => {
                   const priorityColor =
-                    {
-                      High: "bg-red-100 text-red-800",
-                      Medium: "bg-yellow-100 text-yellow-800",
-                      Low: "bg-green-100 text-green-800",
-                    }[item.priority] || "bg-gray-100 text-gray-800";
+                  {
+                    High: "bg-red-600 text-white",
+                    Medium: "bg-amber-600 text-white",
+                    Low: "bg-emerald-600 text-white",
+                  }[item.priority] || "bg-gray-600 text-white";
 
                   return (
                     <div
