@@ -288,7 +288,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
             if (existingPlan.length > 0) {
                 // Use change request API
                 const [res, err] = await EsgddAPIs.esgddChangePlan({
-                    changeRequest: { plan: mergedPlan },
+                    changeRequest: { plan: [mergedPlan] },
                     comment: 'Add items via manual entry',
                     entityId,
                 });
@@ -296,7 +296,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
             } else {
                 // Create new plan
                 const [res, err] = await EsgddAPIs.saveEscap({
-                    plan: mergedPlan,
+                    plan: [mergedPlan],
                     email: company.email,
                     financialYear,
                     finalAcceptance: { founderAcceptance: false, investorAcceptance: false }
@@ -684,14 +684,14 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
       
                 if (existingPlan.length > 0) {
                   const [res, err] = await EsgddAPIs.esgddChangePlan({
-                    changeRequest: { plan: mergedPlan },
+                    changeRequest: { plan: [mergedPlan] },
                     comment: "Add items via CSV",
                     entityId,
                   });
                   if (!res) throw new Error(err || "Change request failed");
                 } else {
                   const [res, err] = await EsgddAPIs.saveEscap({
-                    plan: mergedPlan,
+                    plan: [mergedPlan],
                     email: company.email,
                     financialYear,
                     finalAcceptance: { founderAcceptance: false, investorAcceptance: false },
