@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Upload, Plus, Download, Trash2 } from "lucide-react";
 import { ESGCapItem, CAPStatus, CAPCategory, CAPPriority, CAPType } from "./CAPTable";
 import { toast } from "@/hooks/use-toast";
-import { EsgddAPIs } from "@/network/esgdd";
+import { EsgddAPIs,esgddChangePlan } from "@/network/esgdd";
 
 interface Company {
     id: string;
@@ -132,13 +132,15 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                 mappedCompanies = jsondata.map(company => ({
                     id: company._id || company.id,
                     name: company.companyName || company.name,
-                    email: company.email || company.companyEmail || ""
+                    email: company.email || company.companyEmail || "",
+                    user: company.user || ''
                 })).filter(company => company.id && company.name);
             } else if (jsondata && Array.isArray(jsondata.data)) {
                 mappedCompanies = jsondata.data.map(company => ({
                     id: company._id || company.id,
                     name: company.companyName || company.name,
-                    email: company.email || company.companyEmail || ""
+                    email: company.email || company.companyEmail || "",
+                    user: company.user || ''
                 })).filter(company => company.id && company.name);
             }
 
@@ -265,32 +267,46 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
         }
 
         try {
-            const finalData = {
-                plan: newItems,
-                email: company.email,
-                financialYear: financialYear,
-                finalAcceptance: { founderAcceptance: false, investorAcceptance: false }
-            };
-
-            const [result, error] = await EsgddAPIs.saveEscap(finalData);
-
-            if (result) {
-                onAddMultipleItems(newItems);
-                toast({ title: "CAP Items Added", description: `Successfully added ${newItems.length} CAP items.` });
-                setFormRows([{
-                    id: "1", item: "", category: "environmental", priority: "Medium", issue: "", relatedFinding: "",
-                    measures: "", resource: "", deliverable: "", timelineMonth: 0, dealCondition: "none",
-                    statusUpdate: "",investorStatusUpdate: "", reviewRemarks: "", lastReviewDate: "", implementationSupportNeeded: "",
-                    closureVerifiedBy: "", actualDate: "", status: "pending", targetDate: "", esgLever: "", capSource: "",
-                    progressPercentage: 0, assignedTo: "", remarks: "",
-                }]);
-                setSelectedCompany("");
-                setOpen(false);
+            // Get entityId from the selected company (same as in upload)
+            const entityId = company?.user?.entityId;
+            if (!entityId) throw new Error("Entity ID missing");
+        
+            // Fetch existing plan
+            const [existingData] = await EsgddAPIs.getEsgCapPlan({ entityId: `${entityId}?financialYear=${financialYear}` });
+            const existingPlan = existingData?.plan || [];
+        
+            // Merge existing + new items
+            const mergedPlan = [...existingPlan, ...newItems];
+        
+            if (existingPlan.length > 0) {
+                // Use change request API
+                const [res, err] = await EsgddAPIs.esgddChangePlan({
+                    changeRequest: { plan: mergedPlan },
+                    comment: 'Add items via manual entry',
+                    entityId,
+                });
+                if (!res) throw new Error(err || "Change request failed");
             } else {
-                throw new Error(error || "Failed to save CAP items");
+                // Create new plan
+                const [res, err] = await EsgddAPIs.saveEscap({
+                    plan: mergedPlan,
+                    email: company.email,
+                    financialYear,
+                    finalAcceptance: { founderAcceptance: false, investorAcceptance: false }
+                });
+                if (!res) throw new Error(err || "Failed to create plan");
             }
+        
+            // Update local UI
+            onAddMultipleItems(newItems);
+            toast({ title: "CAP Items Added", description: `Successfully added ${newItems.length} CAP items.` });
+            
+            // Reset form and close
+            setFormRows([/* initial empty row */]);
+            setSelectedCompany("");
+            setOpen(false);
         } catch (error) {
-            console.error("Error saving CAP items:", error);
+            console.error("Error adding CAP items:", error);
             toast({ title: "Error", description: "Failed to add CAP items. Please try again.", variant: "destructive" });
         }
     };
@@ -358,7 +374,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
             };
 
             const idxItem = getHeaderIndex(['item']);
-            const idxMeasures = getHeaderIndex(['measures', 'measures & corrective actions']);
+            const idxMeasures = getHeaderIndex(['measures', 'Measures & Corrective Actions']);
 
             if (idxItem === -1 || idxMeasures === -1) {
                 throw new Error(`Required columns 'Item' and 'Measures' not found. Found: ${rawHeaders.join(', ')}`);
@@ -409,7 +425,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                 // Replace spaces with underscores (e.g., "in progress" -> "in_progress")
                 statusRaw = statusRaw.replace(/\s+/g, '_');
                 const status = statusRaw as CAPStatus;
-                const validStatuses: CAPStatus[] = ['pending', 'in_review', 'accepted', 'in_progress', 'completed', 'delayed', 'rejected'];
+                const validStatuses: CAPStatus[] = ['pending', 'in_review', 'accepted', 'completed', 'overdue'];
                 const validStatus = validStatuses.includes(status) ? status : 'pending';
 
                 const dealCondition = getVal(['cp/cs', 'cpcs', 'dealcondition']) as CAPType;
@@ -455,24 +471,40 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
 
             if (newItems.length === 0) throw new Error("No valid items found in file");
 
-            const finalData = {
-                plan: newItems,
-                email: company.email,
-                financialYear: financialYear,
-                finalAcceptance: { founderAcceptance: false, investorAcceptance: false }
-            };
+            const entityId = company?.user?.entityId;
+            if (!entityId) throw new Error("Entity ID missing");
 
-            const [result, error] = await EsgddAPIs.saveEscap(finalData);
+            // Fetch existing plan
+            const [existingData] = await EsgddAPIs.getEsgCapPlan({ entityId: `${entityId}?financialYear=${financialYear}` });
+            const existingPlan = existingData?.plan || [];
 
-            if (result) {
-                onAddMultipleItems(newItems);
-                toast({ title: "CAP Items Imported", description: `Successfully imported ${newItems.length} items.` });
-                setSelectedCompany("");
-                setOpen(false);
+            // Merge
+            const mergedPlan = [...existingPlan, ...newItems];
+
+            if (existingPlan.length > 0) {
+                // Use change request API
+                const [res, err] = await EsgddAPIs.esgddChangePlan({
+                    changeRequest: { plan: mergedPlan },
+                    comment: 'Add items via CSV',
+                    entityId,
+                });
+                if (!res) throw new Error(err || "Change request failed");
             } else {
-                throw new Error(error || "Upload failed");
+                // Create new plan
+                const [res, err] = await EsgddAPIs.saveEscap({
+                    plan: mergedPlan,
+                    email: company.email,
+                    financialYear,
+                    finalAcceptance: { founderAcceptance: false, investorAcceptance: false }
+                });
+                if (!res) throw new Error(err || "Failed to create plan");
             }
 
+            // Update UI
+            onAddMultipleItems(newItems);
+            toast({ title: "CAP Items Imported", description: `Imported ${newItems.length} items.` });
+            setSelectedCompany("");
+            setOpen(false);
         } catch (error) {
             console.error("Import error:", error);
             toast({ title: "Import Failed", description: error instanceof Error ? error.message : "Failed to process file", variant: "destructive" });
@@ -486,10 +518,10 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
         const template = [
             // Optional comment row (starting with #) – many CSV readers skip it
             '# INSTRUCTIONS:',
-            '# - "Status" must be one of: Pending, In Progress, In Review, Accepted, Completed, Delayed, Rejected',
-            '# - "Category" must be one of: environmental, social, Governance',
-            '# - "Priority" must be one of: High, Medium, Low',
-            '# - Required columns: Item, Measures',
+            '# - "Status" must be one of: Pending/ In Review/ Accepted/ Completed/ Overdue',
+            '# - "Category" must be one of: environmental/ social/ Governance',
+            '# - "Priority" must be one of: High/ Medium/ Low',
+            '# - Required columns: Item and Measures',
             '#',
             'Item*,Category,Priority,Issue,Related Finding,ESG Lever,CAP Source,Measures*,Resource & Responsibility,Completion Indicator,Timeline Month,Target Date,Progress Percentage,Actual Date,CP/CS,Status,Comapny Current Status Update,Investor Current Status Update,Review Remarks,Last Review Date,Implementation Support Needed,Closure Verified By,Assigned To,Remarks',
             '"Example: Improve emissions",environmental,High,"Carbon reporting gaps","Audit finding 2024-01","Policy development","Training material","Implement tracking system","ESG Manager","Monthly report",6,2024-12-31,75,2024-12-31,CP,"In Progress","System implementation 50% complete","System complete","Approved",2024-03-01,"IT support needed","John Doe","jane@example.com","Priority item"'
@@ -729,7 +761,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                                             {/* 13. CP/CS & 14. Status */}
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div>
-                                                    <Label>CP/CS</Label>
+                                                    <Label>CP/CS/ESG FORWARD AREAS</Label>
                                                     <Select
                                                         value={row.dealCondition}
                                                         onValueChange={(value: CAPType) => updateRow(row.id, "dealCondition", value)}
@@ -738,7 +770,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                                                         <SelectContent>
                                                             <SelectItem value="CP">CP</SelectItem>
                                                             <SelectItem value="CS">CS</SelectItem>
-                                                            <SelectItem value="Roadmap">Roadmap</SelectItem>
+                                                            <SelectItem value="ESG_FORWARD_AREAS">ESG Forward areas</SelectItem>
                                                             <SelectItem value="none">None</SelectItem>
                                                         </SelectContent>
                                                     </Select>
@@ -754,10 +786,8 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                                                             <SelectItem value="pending">Pending</SelectItem>
                                                             <SelectItem value="in_review">In Review</SelectItem>
                                                             <SelectItem value="accepted">Accepted</SelectItem>
-                                                            <SelectItem value="in_progress">In Progress</SelectItem>
                                                             <SelectItem value="completed">Completed</SelectItem>
-                                                            <SelectItem value="delayed">Delayed</SelectItem>
-                                                            <SelectItem value="rejected">Rejected</SelectItem>
+                                                            <SelectItem value="overdue">Overdue</SelectItem>
                                                         </SelectContent>
                                                     </Select>
                                                 </div>
