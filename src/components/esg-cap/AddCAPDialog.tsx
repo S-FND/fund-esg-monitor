@@ -11,7 +11,7 @@ import { Upload, Plus, Download, Trash2 } from "lucide-react";
 import { ESGCapItem, CAPStatus, CAPCategory, CAPPriority, CAPType } from "./CAPTable";
 import { toast } from "@/hooks/use-toast";
 import { EsgddAPIs,esgddChangePlan } from "@/network/esgdd";
-
+import Papa from 'papaparse';
 interface Company {
     id: string;
     name: string;
@@ -82,6 +82,13 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const day = String(date.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
+      };
+
+      const parseDateDMY = (dateStr: string): string => {
+        if (!dateStr) return '';
+        const [day, month, year] = dateStr.split('-');
+        if (!day || !month || !year) return '';
+        return `${year}-${month.padStart(2,'0')}-${day.padStart(2,'0')}`;
       };
 
     const [formRows, setFormRows] = useState<CAPFormRow[]>([{
@@ -311,208 +318,410 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
         }
     };
 
+    // const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    //     if (!selectedCompany) {
+    //         toast({ title: "Company Required", description: "Please select a company before uploading CSV.", variant: "destructive" });
+    //         return;
+    //     }
+
+    //     const file = event.target.files?.[0];
+    //     if (!file) return;
+    //     if (!file.name.endsWith('.csv')) {
+    //         toast({ title: "Invalid File Format", description: "Please upload a CSV file.", variant: "destructive" });
+    //         return;
+    //     }
+
+    //     const MAX_FILE_SIZE = 5 * 1024 * 1024;
+    //     if (file.size > MAX_FILE_SIZE) {
+    //         toast({ title: "File Too Large", description: "Please upload a file smaller than 5MB.", variant: "destructive" });
+    //         return;
+    //     }
+
+    //     const company = companies.find(c => c.id === selectedCompany);
+    //     if (!company) {
+    //         toast({ title: "Invalid Company", description: "Selected company not found.", variant: "destructive" });
+    //         return;
+    //     }
+
+    //     setUploading(true);
+
+    //     try {
+    //         const text = await file.text();
+    //         const allLines = text.split('\n');
+    //         // Filter out empty lines and lines that start with '#'
+    //         const lines = allLines.filter(line => {
+    //             const trimmed = line.trim();
+    //             return trimmed && !trimmed.startsWith('#');
+    //         });
+    //         if (lines.length < 2) throw new Error("File must contain at least one data row (after removing comments)");
+
+    //         // FIX 1: Better header parsing - remove BOM, trim, lowercase
+    //         const rawHeaders = lines[0].split(',').map(h => h.trim().replace(/^\uFEFF/, '').toLowerCase());
+
+    //         const getHeaderIndex = (possibleNames: string[]) => {
+    //             for (const name of possibleNames) {
+    //                 const exactIdx = rawHeaders.findIndex(h => h === name);
+    //                 if (exactIdx !== -1) return exactIdx;
+    //             }
+    //             let bestIdx = -1;
+    //             let bestLength = 0;
+    //             for (let i = 0; i < rawHeaders.length; i++) {
+    //                 const h = rawHeaders[i];
+    //                 for (const name of possibleNames) {
+    //                     if (h.includes(name) || name.includes(h)) {
+    //                         const matchLen = Math.max(h.length, name.length);
+    //                         if (matchLen > bestLength) {
+    //                             bestLength = matchLen;
+    //                             bestIdx = i;
+    //                         }
+    //                     }
+    //                 }
+    //             }
+    //             return bestIdx;
+    //         };
+
+    //         const idxItem = getHeaderIndex(['item']);
+    //         const idxMeasures = getHeaderIndex(['measures', 'Measures & Corrective Actions']);
+
+    //         if (idxItem === -1 || idxMeasures === -1) {
+    //             throw new Error(`Required columns 'Item' and 'Measures' not found. Found: ${rawHeaders.join(', ')}`);
+    //         }
+
+    //         const newItems: ESGCapItem[] = [];
+
+    //         for (let i = 1; i < lines.length; i++) {
+    //             // FIX 3: Handle quoted values properly
+    //             const values: string[] = [];
+    //             let current = '';
+    //             let inQuotes = false;
+    //             const line = lines[i];
+
+    //             for (let j = 0; j < line.length; j++) {
+    //                 const char = line[j];
+    //                 if (char === '"') {
+    //                     inQuotes = !inQuotes;
+    //                 } else if (char === ',' && !inQuotes) {
+    //                     values.push(current.trim());
+    //                     current = '';
+    //                 } else {
+    //                     current += char;
+    //                 }
+    //             }
+    //             values.push(current.trim());
+
+    //             const itemValue = values[idxItem]?.replace(/^"|"$/g, '') || '';
+    //             const measuresValue = values[idxMeasures]?.replace(/^"|"$/g, '') || '';
+
+    //             if (!itemValue || !measuresValue) continue;
+
+    //             // Helper to get value by common header names
+    //             const getVal = (names: string[]) => {
+    //                 const idx = getHeaderIndex(names);
+    //                 return idx !== -1 ? values[idx]?.replace(/^"|"$/g, '') || '' : '';
+    //             };
+
+    //             const category = getVal(['category'])?.toLowerCase() as CAPCategory;
+    //             const validCategories: CAPCategory[] = ['environmental', 'social', 'governance'];
+    //             const validCategory = validCategories.includes(category) ? category : 'environmental';
+
+    //             const priority = getVal(['priority']) as CAPPriority;
+    //             const validPriorities: CAPPriority[] = ['High', 'Medium', 'Low'];
+    //             const validPriority = validPriorities.includes(priority) ? priority : 'Medium';
+
+    //             let statusRaw = getVal(['status'])?.toLowerCase() || '';
+    //             // Replace spaces with underscores (e.g., "in progress" -> "in_progress")
+    //             statusRaw = statusRaw.replace(/\s+/g, '_');
+    //             const status = statusRaw as CAPStatus;
+    //             const validStatuses: CAPStatus[] = ['pending', 'in_review', 'accepted', 'completed', 'overdue'];
+    //             const validStatus = validStatuses.includes(status) ? status : 'pending';
+
+    //             const dealCondition = getVal(['cp/cs', 'cpcs', 'dealcondition']) as CAPType;
+    //             const validDealConditions: CAPType[] = ['CP', 'CS', 'none'];
+    //             const validDealCondition = validDealConditions.includes(dealCondition) ? dealCondition : 'none';
+
+    //             const progressPercentage = getVal(['progress percentage', 'progresspercentage', 'progress%']);
+    //             const progressPercentNum = progressPercentage ? Math.min(100, Math.max(0, Number(progressPercentage))) : undefined;
+
+    //             const newItem = {
+    //                 reportId: selectedCompany,
+    //                 item: itemValue,
+    //                 measures: measuresValue,
+    //                 category: validCategory,
+    //                 priority: validPriority,
+    //                 resource: getVal(['resource', 'resource & responsibility']) || undefined,
+    //                 deliverable: getVal(['indicator', 'completion indicator']) || undefined,
+    //                 targetDate: getVal(['target date', 'targetdate']) || undefined,
+    //                 progressPercentage: progressPercentNum,
+    //                 CS: validDealCondition,
+    //                 actualDate: getVal(['actual date', 'actualdate']) || undefined,
+    //                 status: validStatus,
+    //                 assignedTo: getVal(['assigned to', 'assignedto']) || undefined,
+    //                 dealCondition: validDealCondition,
+    //                 createdAt: new Date().toISOString(),
+    //                 issue: getVal(['issue']) || undefined,
+    //                 relatedFinding: getVal(['related finding', 'relatedfinding']) || undefined,
+    //                 esgLever: getVal(['esg lever', 'esglever']) || undefined,
+    //                 capSource: getVal(['cap source', 'capsource']) || undefined,
+    //                 timelineMonth: getVal(['timeline month', 'timelinemonth']) ? Math.max(0, Number(getVal(['timeline month', 'timelinemonth']))) : undefined,
+    //                 statusUpdate: getVal(['company current status update', 'comapny current status update', 'company status update', 'statusupdate_company']) || undefined,
+    //                 investorStatusUpdate: getVal(['investor current status update', 'investorstatus update', 'investor_status_update', 'statusupdate_investor']) || undefined,
+    //                 reviewRemarks: getVal(['review remarks', 'reviewremarks']) || undefined,
+    //                 lastReviewDate: getVal(['last review date', 'lastreviewdate']) || undefined,
+    //                 implementationSupportNeeded: getVal(['implementation support', 'implementation support needed', 'implementationsupportneeded']) || undefined,
+    //                 closureVerifiedBy: getVal(['closure verified', 'closure verified by', 'closureverifiedby']) || undefined,
+    //                 remarks: getVal(['remarks']) || undefined,
+    //                 id: `${Date.now()}-${i}`
+    //             } as ESGCapItem;
+
+    //             newItems.push(newItem);
+    //         }
+
+    //         if (newItems.length === 0) throw new Error("No valid items found in file");
+
+    //         const entityId = company?.user?.entityId;
+    //         if (!entityId) throw new Error("Entity ID missing");
+
+    //         // Fetch existing plan
+    //         const [existingData] = await EsgddAPIs.getEsgCapPlan({ entityId: `${entityId}?financialYear=${financialYear}` });
+    //         const existingPlan = existingData?.plan || [];
+
+    //         // Merge
+    //         const mergedPlan = [...existingPlan, ...newItems];
+
+    //         if (existingPlan.length > 0) {
+    //             // Use change request API
+    //             const [res, err] = await EsgddAPIs.esgddChangePlan({
+    //                 changeRequest: { plan: mergedPlan },
+    //                 comment: 'Add items via CSV',
+    //                 entityId,
+    //             });
+    //             if (!res) throw new Error(err || "Change request failed");
+    //         } else {
+    //             // Create new plan
+    //             const [res, err] = await EsgddAPIs.saveEscap({
+    //                 plan: mergedPlan,
+    //                 email: company.email,
+    //                 financialYear,
+    //                 finalAcceptance: { founderAcceptance: false, investorAcceptance: false }
+    //             });
+    //             if (!res) throw new Error(err || "Failed to create plan");
+    //         }
+
+    //         // Update UI
+    //         onAddMultipleItems(newItems);
+    //         toast({ title: "CAP Items Imported", description: `Imported ${newItems.length} items.` });
+    //         setSelectedCompany("");
+    //         setOpen(false);
+    //     } catch (error) {
+    //         console.error("Import error:", error);
+    //         toast({ title: "Import Failed", description: error instanceof Error ? error.message : "Failed to process file", variant: "destructive" });
+    //     } finally {
+    //         setUploading(false);
+    //         event.target.value = '';
+    //     }
+    // };
+
     const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         if (!selectedCompany) {
-            toast({ title: "Company Required", description: "Please select a company before uploading CSV.", variant: "destructive" });
-            return;
+          toast({ title: "Company Required", description: "Please select a company.", variant: "destructive" });
+          return;
         }
-
         const file = event.target.files?.[0];
-        if (!file) return;
-        if (!file.name.endsWith('.csv')) {
-            toast({ title: "Invalid File Format", description: "Please upload a CSV file.", variant: "destructive" });
-            return;
+        if (!file || !file.name.endsWith('.csv')) {
+          toast({ title: "Invalid File", description: "Please upload a CSV file.", variant: "destructive" });
+          return;
         }
-
-        const MAX_FILE_SIZE = 5 * 1024 * 1024;
-        if (file.size > MAX_FILE_SIZE) {
-            toast({ title: "File Too Large", description: "Please upload a file smaller than 5MB.", variant: "destructive" });
-            return;
-        }
-
         const company = companies.find(c => c.id === selectedCompany);
-        if (!company) {
-            toast({ title: "Invalid Company", description: "Selected company not found.", variant: "destructive" });
-            return;
-        }
-
+        if (!company) return;
+      
         setUploading(true);
-
+      
         try {
-            const text = await file.text();
-            const allLines = text.split('\n');
-            // Filter out empty lines and lines that start with '#'
-            const lines = allLines.filter(line => {
-                const trimmed = line.trim();
-                return trimmed && !trimmed.startsWith('#');
-            });
-            if (lines.length < 2) throw new Error("File must contain at least one data row (after removing comments)");
-
-            // FIX 1: Better header parsing - remove BOM, trim, lowercase
-            const rawHeaders = lines[0].split(',').map(h => h.trim().replace(/^\uFEFF/, '').toLowerCase());
-
-            const getHeaderIndex = (possibleNames: string[]) => {
-                for (const name of possibleNames) {
-                    const exactIdx = rawHeaders.findIndex(h => h === name);
-                    if (exactIdx !== -1) return exactIdx;
-                }
-                let bestIdx = -1;
-                let bestLength = 0;
-                for (let i = 0; i < rawHeaders.length; i++) {
-                    const h = rawHeaders[i];
-                    for (const name of possibleNames) {
-                        if (h.includes(name) || name.includes(h)) {
-                            const matchLen = Math.max(h.length, name.length);
-                            if (matchLen > bestLength) {
-                                bestLength = matchLen;
-                                bestIdx = i;
-                            }
-                        }
-                    }
-                }
-                return bestIdx;
-            };
-
-            const idxItem = getHeaderIndex(['item']);
-            const idxMeasures = getHeaderIndex(['measures', 'Measures & Corrective Actions']);
-
-            if (idxItem === -1 || idxMeasures === -1) {
-                throw new Error(`Required columns 'Item' and 'Measures' not found. Found: ${rawHeaders.join(', ')}`);
+          let text = await file.text();
+      
+          // Remove BOM
+          if (text.charCodeAt(0) === 0xFEFF) {
+            text = text.slice(1);
+          }
+      
+          const lines = text.split(/\r?\n/);
+      
+          // Find header line (contains both 'Item*' and 'Measures*')
+          let headerIndex = -1;
+          for (let i = 0; i < lines.length; i++) {
+            const trimmed = lines[i].trim();
+            if (trimmed.includes('Item*') && trimmed.includes('Measures*')) {
+              headerIndex = i;
+              break;
             }
-
-            const newItems: ESGCapItem[] = [];
-
-            for (let i = 1; i < lines.length; i++) {
-                // FIX 3: Handle quoted values properly
-                const values: string[] = [];
-                let current = '';
-                let inQuotes = false;
-                const line = lines[i];
-
-                for (let j = 0; j < line.length; j++) {
-                    const char = line[j];
-                    if (char === '"') {
-                        inQuotes = !inQuotes;
-                    } else if (char === ',' && !inQuotes) {
-                        values.push(current.trim());
-                        current = '';
-                    } else {
-                        current += char;
+          }
+      
+          if (headerIndex === -1) {
+            throw new Error("Could not find header row with 'Item*' and 'Measures*'");
+          }
+      
+          // Take from header line onward
+          const relevantLines = lines.slice(headerIndex);
+          const cleanCSV = relevantLines.join('\n');
+      
+          Papa.parse(cleanCSV, {
+            header: true,
+            skipEmptyLines: true,
+            transformHeader: (h) => h.trim().toLowerCase(),
+            complete: async (results) => {
+              try {
+                const fields = results.meta.fields;
+                console.log("Parsed headers:", fields);
+      
+                const rows = results.data as any[];
+                const newItems: ESGCapItem[] = [];
+      
+                const getField = (row: any, possibleNames: string[]): string => {
+                  for (const name of possibleNames) {
+                    const val = row[name];
+                    if (val !== undefined && val !== null && val !== "") {
+                      return String(val).trim();
                     }
-                }
-                values.push(current.trim());
-
-                const itemValue = values[idxItem]?.replace(/^"|"$/g, '') || '';
-                const measuresValue = values[idxMeasures]?.replace(/^"|"$/g, '') || '';
-
-                if (!itemValue || !measuresValue) continue;
-
-                // Helper to get value by common header names
-                const getVal = (names: string[]) => {
-                    const idx = getHeaderIndex(names);
-                    return idx !== -1 ? values[idx]?.replace(/^"|"$/g, '') || '' : '';
+                  }
+                  return "";
                 };
-
-                const category = getVal(['category'])?.toLowerCase() as CAPCategory;
-                const validCategories: CAPCategory[] = ['environmental', 'social', 'governance'];
-                const validCategory = validCategories.includes(category) ? category : 'environmental';
-
-                const priority = getVal(['priority']) as CAPPriority;
-                const validPriorities: CAPPriority[] = ['High', 'Medium', 'Low'];
-                const validPriority = validPriorities.includes(priority) ? priority : 'Medium';
-
-                let statusRaw = getVal(['status'])?.toLowerCase() || '';
-                // Replace spaces with underscores (e.g., "in progress" -> "in_progress")
-                statusRaw = statusRaw.replace(/\s+/g, '_');
-                const status = statusRaw as CAPStatus;
-                const validStatuses: CAPStatus[] = ['pending', 'in_review', 'accepted', 'completed', 'overdue'];
-                const validStatus = validStatuses.includes(status) ? status : 'pending';
-
-                const dealCondition = getVal(['cp/cs', 'cpcs', 'dealcondition']) as CAPType;
-                const validDealConditions: CAPType[] = ['CP', 'CS', 'none'];
-                const validDealCondition = validDealConditions.includes(dealCondition) ? dealCondition : 'none';
-
-                const progressPercentage = getVal(['progress percentage', 'progresspercentage', 'progress%']);
-                const progressPercentNum = progressPercentage ? Math.min(100, Math.max(0, Number(progressPercentage))) : undefined;
-
-                const newItem = {
+      
+                for (const row of rows) {
+                  const item = getField(row, ["item*", "item"]);
+                  const measures = getField(row, ["measures*", "measures"]);
+      
+                  if (!item || !measures) continue;
+      
+                  // Status mapping
+                  let statusRaw = getField(row, ["status"]).toLowerCase().replace(/\s+/g, "_");
+                  const statusMap: Record<string, CAPStatus> = {
+                    not_started: "pending",
+                    in_progress: "in_review",
+                    completed: "completed",
+                    overdue: "overdue",
+                    accepted: "accepted",
+                  };
+                  const status = statusMap[statusRaw] || "pending";
+      
+                  // Parse DD-MM-YYYY dates
+                  const parseDateDMY = (d: string) => {
+                    if (!d) return "";
+                    const parts = d.split("-");
+                    if (parts.length === 3) {
+                      return `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`;
+                    }
+                    return d;
+                  };
+      
+                  const targetDateRaw = getField(row, ["target date", "targetdate"]);
+                  const actualDateRaw = getField(row, ["actual date", "actualdate"]);
+                  const lastReviewRaw = getField(row, ["last review date", "lastreviewdate"]);
+      
+                  const category = getField(row, ["category"]).toLowerCase();
+                  const validCategory: CAPCategory = ["environmental", "social", "governance"].includes(category)
+                    ? (category as CAPCategory)
+                    : "environmental";
+      
+                  const priorityRaw = getField(row, ["priority"]);
+                  const validPriority: CAPPriority = ["high", "medium", "low"].includes(priorityRaw.toLowerCase())
+                    ? (priorityRaw as CAPPriority)
+                    : "Medium";
+      
+                  const dealConditionRaw = getField(row, ["cp/cs", "cpcs", "dealcondition"]).toUpperCase();
+                  const validDealCondition: CAPType = ["CP", "CS", "NONE"].includes(dealConditionRaw)
+                    ? (dealConditionRaw as CAPType)
+                    : "none";
+      
+                  const progressRaw = getField(row, ["progress percentage", "progresspercentage", "progress%"]);
+                  const progressPercentage = progressRaw ? Math.min(100, Math.max(0, Number(progressRaw))) : undefined;
+      
+                  newItems.push({
                     reportId: selectedCompany,
-                    item: itemValue,
-                    measures: measuresValue,
+                    id: `${Date.now()}-${Math.random()}`,
+                    item,
+                    measures,
                     category: validCategory,
                     priority: validPriority,
-                    resource: getVal(['resource', 'resource & responsibility']) || undefined,
-                    deliverable: getVal(['indicator', 'completion indicator']) || undefined,
-                    targetDate: getVal(['target date', 'targetdate']) || undefined,
-                    progressPercentage: progressPercentNum,
-                    CS: validDealCondition,
-                    actualDate: getVal(['actual date', 'actualdate']) || undefined,
-                    status: validStatus,
-                    assignedTo: getVal(['assigned to', 'assignedto']) || undefined,
+                    issue: getField(row, ["issue"]) || undefined,
+                    relatedFinding: getField(row, ["related finding", "relatedfinding"]) || undefined,
+                    resource: getField(row, ["resource & responsibility", "resource", "resource_responsibility"]) || undefined,
+                    deliverable: getField(row, ["completion indicator", "indicator", "completionindicator"]) || undefined,
+                    timelineMonth: (() => {
+                      const val = getField(row, ["timeline month", "timelinemonth"]);
+                      return val ? Math.max(0, Number(val)) : undefined;
+                    })(),
+                    targetDate: parseDateDMY(targetDateRaw),
+                    actualDate: parseDateDMY(actualDateRaw),
+                    status,
                     dealCondition: validDealCondition,
+                    progressPercentage,
+                    assignedTo: getField(row, ["assigned to", "assignedto"]) || undefined,
+                    esgLever: getField(row, ["esg lever", "esglever"]) || undefined,
+                    capSource: getField(row, ["cap source", "capsource"]) || undefined,
+                    statusUpdate: getField(row, ["company current status update", "comapny current status update", "companycurrentstatusupdate"]) || undefined,
+                    investorStatusUpdate: getField(row, ["investor current status update", "investorcurrentstatusupdate"]) || undefined,
+                    reviewRemarks: getField(row, ["review remarks", "reviewremarks"]) || undefined,
+                    lastReviewDate: parseDateDMY(lastReviewRaw),
+                    implementationSupportNeeded: getField(row, ["implementation support needed", "implementationsupportneeded"]) || undefined,
+                    closureVerifiedBy: getField(row, ["closure verified by", "closureverifiedby"]) || undefined,
+                    remarks: getField(row, ["remarks"]) || undefined,
                     createdAt: new Date().toISOString(),
-                    issue: getVal(['issue']) || undefined,
-                    relatedFinding: getVal(['related finding', 'relatedfinding']) || undefined,
-                    esgLever: getVal(['esg lever', 'esglever']) || undefined,
-                    capSource: getVal(['cap source', 'capsource']) || undefined,
-                    timelineMonth: getVal(['timeline month', 'timelinemonth']) ? Math.max(0, Number(getVal(['timeline month', 'timelinemonth']))) : undefined,
-                    statusUpdate: getVal(['company current status update', 'comapny current status update', 'company status update', 'statusupdate_company']) || undefined,
-                    investorStatusUpdate: getVal(['investor current status update', 'investorstatus update', 'investor_status_update', 'statusupdate_investor']) || undefined,
-                    reviewRemarks: getVal(['review remarks', 'reviewremarks']) || undefined,
-                    lastReviewDate: getVal(['last review date', 'lastreviewdate']) || undefined,
-                    implementationSupportNeeded: getVal(['implementation support', 'implementation support needed', 'implementationsupportneeded']) || undefined,
-                    closureVerifiedBy: getVal(['closure verified', 'closure verified by', 'closureverifiedby']) || undefined,
-                    remarks: getVal(['remarks']) || undefined,
-                    id: `${Date.now()}-${i}`
-                } as ESGCapItem;
-
-                newItems.push(newItem);
-            }
-
-            if (newItems.length === 0) throw new Error("No valid items found in file");
-
-            const entityId = company?.user?.entityId;
-            if (!entityId) throw new Error("Entity ID missing");
-
-            // Fetch existing plan
-            const [existingData] = await EsgddAPIs.getEsgCapPlan({ entityId: `${entityId}?financialYear=${financialYear}` });
-            const existingPlan = existingData?.plan || [];
-
-            // Merge
-            const mergedPlan = [...existingPlan, ...newItems];
-
-            if (existingPlan.length > 0) {
-                // Use change request API
-                const [res, err] = await EsgddAPIs.esgddChangePlan({
+                  } as ESGCapItem);
+                }
+      
+                if (newItems.length === 0) {
+                  throw new Error("No valid items found. Make sure 'Item*' and 'Measures*' columns contain data.");
+                }
+      
+                const entityId = (company as any).user?.entityId || (company as any).entityId;
+                if (!entityId) throw new Error("Entity ID missing");
+      
+                const [existingData, fetchError] = await EsgddAPIs.getEsgCapPlan({ entityId, financialYear });
+                if (fetchError) throw new Error(fetchError);
+      
+                const existingPlan = existingData?.plan || [];
+                const mergedPlan = [...existingPlan, ...newItems];
+      
+                if (existingPlan.length > 0) {
+                  const [res, err] = await EsgddAPIs.esgddChangePlan({
                     changeRequest: { plan: mergedPlan },
-                    comment: 'Add items via CSV',
+                    comment: "Add items via CSV",
                     entityId,
-                });
-                if (!res) throw new Error(err || "Change request failed");
-            } else {
-                // Create new plan
-                const [res, err] = await EsgddAPIs.saveEscap({
+                  });
+                  if (!res) throw new Error(err || "Change request failed");
+                } else {
+                  const [res, err] = await EsgddAPIs.saveEscap({
                     plan: mergedPlan,
                     email: company.email,
                     financialYear,
-                    finalAcceptance: { founderAcceptance: false, investorAcceptance: false }
-                });
-                if (!res) throw new Error(err || "Failed to create plan");
-            }
-
-            // Update UI
-            onAddMultipleItems(newItems);
-            toast({ title: "CAP Items Imported", description: `Imported ${newItems.length} items.` });
-            setSelectedCompany("");
-            setOpen(false);
-        } catch (error) {
-            console.error("Import error:", error);
-            toast({ title: "Import Failed", description: error instanceof Error ? error.message : "Failed to process file", variant: "destructive" });
-        } finally {
-            setUploading(false);
-            event.target.value = '';
+                    finalAcceptance: { founderAcceptance: false, investorAcceptance: false },
+                  });
+                  if (!res) throw new Error(err || "Failed to create plan");
+                }
+      
+                onAddMultipleItems(newItems);
+                toast({ title: "Success", description: `Imported ${newItems.length} items.` });
+                setOpen(false);
+              } catch (err: any) {
+                console.error("Import error:", err);
+                toast({ title: "Import Failed", description: err.message, variant: "destructive" });
+              } finally {
+                setUploading(false);
+                event.target.value = "";
+              }
+            },
+            error: (err) => {
+              console.error("CSV parse error:", err);
+              toast({ title: "CSV Parse Error", description: err.message, variant: "destructive" });
+              setUploading(false);
+            },
+          });
+        } catch (err: any) {
+          console.error("File read error:", err);
+          toast({ title: "Error", description: err.message, variant: "destructive" });
+          setUploading(false);
         }
-    };
+      };
 
     const downloadTemplate = () => {
         const template = [
@@ -523,7 +732,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
             '# - "Priority" must be one of: High/ Medium/ Low',
             '# - Required columns: Item and Measures',
             '#',
-            'Item*,Category,Priority,Issue,Related Finding,ESG Lever,CAP Source,Measures*,Resource & Responsibility,Completion Indicator,Timeline Month,Target Date,Progress Percentage,Actual Date,CP/CS,Status,Comapny Current Status Update,Investor Current Status Update,Review Remarks,Last Review Date,Implementation Support Needed,Closure Verified By,Assigned To,Remarks',
+            'Item*,Category,Priority,Issue,Related Finding,ESG Lever,CAP Source,Measures*,Resource & Responsibility,Completion Indicator,Timeline Month,Target Date,Progress Percentage,Actual Date,CP/CS,Status,Company Current Status Update,Investor Current Status Update,Review Remarks,Last Review Date,Implementation Support Needed,Closure Verified By,Assigned To,Remarks',
             '"Example: Improve emissions",environmental,High,"Carbon reporting gaps","Audit finding 2024-01","Policy development","Training material","Implement tracking system","ESG Manager","Monthly report",6,2024-12-31,75,2024-12-31,CP,"In Progress","System implementation 50% complete","System complete","Approved",2024-03-01,"IT support needed","John Doe","jane@example.com","Priority item"'
         ].join('\n');
 
