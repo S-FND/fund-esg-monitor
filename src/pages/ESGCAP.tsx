@@ -98,7 +98,7 @@ export default function ESGCAP() {
   const totalItems = filteredCAPItems.length;
   const completedItems = filteredCAPItems.filter(i => i.status === 'completed').length;
   const pendingItems = filteredCAPItems.filter(i => i.status === 'pending').length;
-  const inProgressItems = filteredCAPItems.filter(i => i.status === 'in_progress').length;
+  const inProgressItems = filteredCAPItems.filter(i => i.status === 'overdue').length;
 
   const handleReview = (item: ESGCapItem) => {
     let currentItem =
@@ -201,6 +201,7 @@ export default function ESGCAP() {
 
   const getPlanList = async (entityId: string) => {
     try {
+      if (!entityId) return;
       setLoading(true);
       setLoadingMessage("Loading plan details ...")
       const entityIdWithYear = `${entityId}?financialYear=${financialYear}`;
