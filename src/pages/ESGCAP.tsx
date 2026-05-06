@@ -22,6 +22,7 @@ import { useESGCAPAlerts } from "@/hooks/useESGCAPAlerts";
 import { AddCAPDialog } from "@/components/esg-cap/AddCAPDialog";
 import { EsgddAPIs } from "@/network/esgdd";
 import Loader from "@/components/ui/loader";
+import AuditDrawer, { AuditLog } from "./AuditDrawer";
 
 interface PlanHistory {
   updateByUserId: string;
@@ -62,12 +63,15 @@ export default function ESGCAP() {
   const [comparePlanData, setComparePlanData] = useState<ComparePlan | null>(null);
   const previousCapItemsRef = useRef<ESGCapItem[]>([]);
   const [canEdit, setCanEdit] = useState(true);
-  const [loading,setLoading]=useState(false);
-  const [loadingMessage,setLoadingMessage]=useState("Loading ...")
-  const [entityId,setEntityId]=useState<string>(null);
+  const [loading, setLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState("Loading ...")
+  const [entityId, setEntityId] = useState<string>(null);
   const [reloadData, setReloadData] = useState(false);
-  const [selectedEntityId,setSelectedEntityId]=useState(null)
-  const [investmentDate,setInvestmentDate]=useState(null);
+  const [selectedEntityId, setSelectedEntityId] = useState(null)
+  const [investmentDate, setInvestmentDate] = useState(null);
+  const [auditOpen, setAuditOpen] = useState(false);
+  const [selectedLog, setSelectedLog] = useState(null);
+  const [logs, setLogs] = useState<AuditLog[]>([]);
 
   const alerts = useESGCAPAlerts(filteredCAPItems, previousCapItemsRef.current, planData?.finalPlan);
 
@@ -76,7 +80,7 @@ export default function ESGCAP() {
   const [isEditingFinalized, setIsEditingFinalized] = useState(false);
   const originalPlanRef = useRef<ESGCapItem[]>([]);
   const [isSavingFinalized, setIsSavingFinalized] = useState(false);
-  
+
   useEffect(() => {
     const currentDate = new Date();
     const currentYear = currentDate.getFullYear();
@@ -204,14 +208,14 @@ export default function ESGCAP() {
         entityId: entityIdWithYear,
       });
       setLoading(false);
-      console.log('data?.plan?.length',data?.plan?.length);
+      console.log('data?.plan?.length', data?.plan?.length);
       if (data?.plan?.length > 0) {
         setPlanData(data);
         // setFilteredCAPItems(data.plan || []);
         // setCapItems(data.plan || []);
         const normalizedPlan = (data.plan || []).map((item, index) => ({
           ...item,
-          tempId:item.id,
+          tempId: item.id,
           id: `${item.reportId}-${index}-${item.createdAt}`
         }));
 
@@ -253,19 +257,19 @@ export default function ESGCAP() {
 
   useEffect(() => {
     if (selectedCompany !== "all") {
-  
+
       setFilteredCAPItems([]);
       setCapItems([]);
       setPlanData(null);
-  
+
       const company = portfolioCompanies.find(
         c =>
           c._id === selectedCompany ||   // first try id
           c.email === selectedCompany    // fallback email
       );
-      
+
       const entityId = company?.user?.entityId;
-      if(company?.dateOfInvestment){
+      if (company?.dateOfInvestment) {
         setInvestmentDate(company.dateOfInvestment);
       }
       if (entityId) {
@@ -491,7 +495,7 @@ export default function ESGCAP() {
     setCapItems(updatedItems);
     setFilteredCAPItems(updatedItems);
     saveToLocalStorage(updatedItems);
-    
+
     toast({
       title: "Item Deleted",
       description: "Item has been removed from the plan.",
@@ -525,9 +529,9 @@ export default function ESGCAP() {
     return false;
   };
 
-  useEffect(()=>{
+  useEffect(() => {
     getPlanList(entityId)
-  },[reloadData])
+  }, [reloadData])
 
   const handleEditFinalizedPlan = () => {
     // Save a deep copy of the current plan to revert on cancel
@@ -573,10 +577,31 @@ export default function ESGCAP() {
     }
   };
 
+  function MiniCard({ title, value, color }: any) {
+    return (
+      <div className={`p-3 rounded-lg text-white bg-gradient-to-br ${color}`}>
+        <p className="text-xs">{title}</p>
+        <p className="text-lg font-bold">{value}</p>
+      </div>
+    );
+  }
+
+  const getAuditLogs=async ()=>{
+    let logs= await http.get('audit');
+    console.log('Fetched logs:', logs);
+    if(logs?.data?.status){
+      setLogs(logs.data.data);
+    }
+  }
+
+  useEffect(() => {
+    getAuditLogs();
+  }, []);
+
 
   return (
     <div className="space-y-6">
-      <Loader show={loading} text={loadingMessage}/>
+      <Loader show={loading} text={loadingMessage} />
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">ESG Corrective Action Plan</h1>
@@ -584,6 +609,12 @@ export default function ESGCAP() {
             Review and finalize the ESG Corrective Action Plan items
           </p>
         </div>
+        <button
+          onClick={() => setAuditOpen(true)}
+          className="border px-3 py-2 rounded-lg text-sm flex items-center gap-2 hover:bg-gray-100"
+        >
+          🕘 Audit Logs
+        </button>
         <AddCAPDialog
           onAddItem={handleAddItem}
           onAddMultipleItems={handleAddMultipleItems}
@@ -694,7 +725,7 @@ export default function ESGCAP() {
                     onReview={handleReview}
                     onSendReminder={handleSendReminder}
                     onAddItem={handleAddItem}
-                    onDeleteItem={handleDeleteItem} 
+                    onDeleteItem={handleDeleteItem}
                     isComparisonView={true}
                     onRevert={handleRevertToOriginal}
                     onRevertField={handleRevertField}
@@ -712,7 +743,7 @@ export default function ESGCAP() {
                   onReview={handleReview}
                   onSendReminder={handleSendReminder}
                   onAddItem={handleAddItem}
-                  onDeleteItem={handleDeleteItem} 
+                  onDeleteItem={handleDeleteItem}
                   isComparisonView={false}
                   onRevert={handleRevertToOriginal}
                   onRevertField={handleRevertField}
@@ -755,15 +786,15 @@ export default function ESGCAP() {
                   </Button>
                 )} */}
                 {isPlanFinalized && isEditingFinalized && (
-                    <>
-                      <Button onClick={handleSaveFinalizedEdits} size="lg" variant="default">
-                        Save Finalized Edits
-                      </Button>
-                      <Button onClick={handleCancelFinalizedEdit} size="lg" variant="ghost">
-                        Cancel
-                      </Button>
-                    </>
-                  )}
+                  <>
+                    <Button onClick={handleSaveFinalizedEdits} size="lg" variant="default">
+                      Save Finalized Edits
+                    </Button>
+                    <Button onClick={handleCancelFinalizedEdit} size="lg" variant="ghost">
+                      Cancel
+                    </Button>
+                  </>
+                )}
               </CardFooter>
             )}
           </Card>
@@ -784,6 +815,7 @@ export default function ESGCAP() {
         originalItems={previousCapItemsRef.current}
         comparePlanData={comparePlanData}
       />
+      <AuditDrawer open={auditOpen} onClose={() => setAuditOpen(false)} logs={logs} />
     </div>
   );
 }
