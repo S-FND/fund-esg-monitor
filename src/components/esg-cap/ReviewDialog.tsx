@@ -141,7 +141,11 @@ export function ReviewDialog({
         title: "Please click on 'Request Cap Change'",
         description: "To save the changes and notify the company about the changes.",
         duration: Infinity,
-        variant: "destructive",
+        style: {
+          backgroundColor: '#3b82f6',
+          color: '#ffffff',
+          border: 'none',
+        },
       });
     }else{
       setDataEditStatus(true);
@@ -150,7 +154,7 @@ export function ReviewDialog({
         title: "Please click on 'Update Final Cap'",
         description: "To save the changes and notify the company about the changes.",
         duration: Infinity,
-        variant: "destructive",
+        variant: "default",
       });
     }
   };
