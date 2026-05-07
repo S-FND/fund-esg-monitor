@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Upload, Plus, Download, Trash2 } from "lucide-react";
+import { Upload, Plus, Download, Trash2, X } from "lucide-react";
 import { ESGCapItem, CAPStatus, CAPCategory, CAPPriority, CAPType } from "./CAPTable";
 import { toast } from "@/hooks/use-toast";
 import { EsgddAPIs } from "@/network/esgdd";
@@ -290,21 +290,21 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                 const entityId = propEntityId || (company as any).user?.entityId;
                 if (!entityId) throw new Error("Entity ID missing");
 
-                  // Check if there is an existing plan
+                // Check if there is an existing plan
                 if (!existingPlan || existingPlan.length === 0) {
                     // No existing plan – create a new one (same as replace mode)
                     const finalData = {
-                    plan: newItems,
-                    email: company.email,
-                    financialYear,
-                    finalAcceptance: { founderAcceptance: false, investorAcceptance: false },
+                        plan: newItems,
+                        email: company.email,
+                        financialYear,
+                        finalAcceptance: { founderAcceptance: false, investorAcceptance: false },
                     };
                     const [result, error] = await EsgddAPIs.saveEscap(finalData);
                     if (!result) throw new Error(error || "Creation failed");
                     onAddMultipleItems(newItems);
                     toast({
-                    title: "CAP Items Created",
-                    description: `${newItems.length} items added as a new plan.`,
+                        title: "CAP Items Created",
+                        description: `${newItems.length} items added as a new plan.`,
                     });
                 } else {
                     const mergedPlan = [...existingPlan, ...newItems];
@@ -313,7 +313,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                         comment: 'Add items via manual entry',
                         entityId,
                     };
-                    const response:any = await EsgddAPIs.esgddChangePlan(payload);
+                    const response: any = await EsgddAPIs.esgddChangePlan(payload);
 
                     if (response?.[0]?.status !== 201) {
                         throw new Error("Change request failed");
@@ -334,6 +334,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                 closureVerifiedBy: "", actualDate: "", status: "pending", targetDate: "", esgLever: "", capSource: "",
                 progressPercentage: 0, assignedTo: "", remarks: "",
             }]);
+            setSelectedFile(null);
             setSelectedCompany("");
             setOpen(false);
             setIsSubmitting(false);
@@ -528,40 +529,40 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                             const entityId = propEntityId || (company as any).user?.entityId;
                             if (!entityId) throw new Error("Entity ID missing");
 
-                              // Check if there is an existing plan
+                            // Check if there is an existing plan
                             if (!existingPlan || existingPlan.length === 0) {
                                 // No existing plan – create a new one (same as replace mode)
                                 const finalData = {
-                                plan: newItems,
-                                email: company.email,
-                                financialYear,
-                                finalAcceptance: { founderAcceptance: false, investorAcceptance: false },
+                                    plan: newItems,
+                                    email: company.email,
+                                    financialYear,
+                                    finalAcceptance: { founderAcceptance: false, investorAcceptance: false },
                                 };
                                 const [result, error] = await EsgddAPIs.saveEscap(finalData);
                                 if (!result) throw new Error(error || "Creation failed");
                                 onAddMultipleItems(newItems);
                                 toast({
-                                title: "CAP Items Created",
-                                description: `${newItems.length} items added as a new plan.`,
+                                    title: "CAP Items Created",
+                                    description: `${newItems.length} items added as a new plan.`,
                                 });
                             } else {
-                            const mergedPlan = [...existingPlan, ...newItems];
-                            const payload = {
-                                changeRequest: { plan: mergedPlan },
-                                comment: 'Add items via CSV',
-                                entityId,
-                            };
-                            const response: any = await EsgddAPIs.esgddChangePlan(payload);
+                                const mergedPlan = [...existingPlan, ...newItems];
+                                const payload = {
+                                    changeRequest: { plan: mergedPlan },
+                                    comment: 'Add items via CSV',
+                                    entityId,
+                                };
+                                const response: any = await EsgddAPIs.esgddChangePlan(payload);
 
-                            if (response?.[0]?.status !== 201) { throw new Error("Change request failed"); }
-                            onAddMultipleItems(newItems);
-                            toast({ title: "CAP Items Added", description: `${newItems.length} items added via change request.` });
+                                if (response?.[0]?.status !== 201) { throw new Error("Change request failed"); }
+                                onAddMultipleItems(newItems);
+                                toast({ title: "CAP Items Added", description: `${newItems.length} items added via change request.` });
                             }
                         }
 
                         // Refresh parent data if callback provided
                         if (onRefresh) await onRefresh();
-
+                        setSelectedFile(null);
                         // Reset and close (only once)
                         setSelectedCompany("");
                         setOpen(false);
@@ -614,6 +615,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
     const handleCancel = () => {
         setOpen(false);
         setSelectedCompany("");
+        setSelectedFile(null);
         setFormRows([{
             id: "1", item: "", category: "environmental", priority: "Medium", issue: "", relatedFinding: "",
             measures: "", resource: "", deliverable: "", timelineMonth: 0, dealCondition: "none",
@@ -977,12 +979,12 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                                         <div className="flex justify-end gap-2">
                                             <Button variant="outline" onClick={handleCancel}>Cancel</Button>
                                             {/* <Button onClick={handleSubmit} disabled={loadingCompanies}>Add CAP Items</Button> */}
-                                            <Button 
-  onClick={handleSubmit} 
-  disabled={loadingCompanies || isSubmitting || !selectedCompany || formRows.some(row => !row.item?.trim() || !row.measures?.trim())}
->
-  {isSubmitting ? "Adding..." : "Add CAP Items"}
-</Button>
+                                            <Button
+                                                onClick={handleSubmit}
+                                                disabled={loadingCompanies || isSubmitting || !selectedCompany || formRows.some(row => !row.item?.trim() || !row.measures?.trim())}
+                                            >
+                                                {isSubmitting ? "Adding..." : "Add CAP Items"}
+                                            </Button>
                                         </div>
                                     </div>
                                 </div>
@@ -1024,9 +1026,24 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                                 </div>
 
                                 {selectedFile && (
-                                <div className="text-sm text-green-600 mt-2">
-                                    Selected file: {selectedFile.name}
-                                </div>
+                                    <div className="flex items-center justify-between text-sm text-green-600 mt-2 bg-green-50 p-2 rounded-md">
+                                        <span className="truncate">Selected file: {selectedFile.name}</span>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                                            onClick={() => {
+                                                setSelectedFile(null);
+                                                // Reset the file input so the same file can be selected again
+                                                const fileInput = document.getElementById("file-upload") as HTMLInputElement;
+                                                if (fileInput) fileInput.value = "";
+                                            }}
+                                        >
+                                            <X className="h-4 w-4" />
+                                            <span className="sr-only">Remove file</span>
+                                        </Button>
+                                    </div>
                                 )}
 
                                 {uploading && <div className="text-center text-sm">Processing file...</div>}
