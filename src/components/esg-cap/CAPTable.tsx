@@ -894,7 +894,7 @@ export function CAPTable({
       {!isComparisonView && onAddItem && (
         <div className="mt-4 border-t pt-4">
           {!isAddingRow ? (
-            <Button onClick={() => setIsAddingRow(true)} variant="outline" className="w-full">
+            <Button onClick={() => setIsAddingRow(true)} variant="outline" className="w-full" style={{ display: "none" }}>
               <Plus className="h-4 w-4 mr-2" />
               Add New Row
             </Button>
