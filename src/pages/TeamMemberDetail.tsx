@@ -330,10 +330,7 @@ export default function TeamMemberDetail() {
           });
         }
       } catch (error) {
-
       }
-
-
     }
   };
   const getFundList = async () => {

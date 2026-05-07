@@ -64,11 +64,18 @@ export default function ESGCAP() {
   const [canEdit, setCanEdit] = useState(true);
   const [loading,setLoading]=useState(false);
   const [loadingMessage,setLoadingMessage]=useState("Loading ...")
+  const [entityId,setEntityId]=useState<string>(null);
+  const [reloadData, setReloadData] = useState(false);
+  const [selectedEntityId,setSelectedEntityId]=useState(null)
 
   const alerts = useESGCAPAlerts(filteredCAPItems, previousCapItemsRef.current, planData?.finalPlan);
 
   const [financialYear, setFinancialYear] = useState("");
 
+  const [isEditingFinalized, setIsEditingFinalized] = useState(false);
+  const originalPlanRef = useRef<ESGCapItem[]>([]);
+  const [isSavingFinalized, setIsSavingFinalized] = useState(false);
+  
   useEffect(() => {
     const currentDate = new Date();
     const currentYear = currentDate.getFullYear();
@@ -86,7 +93,7 @@ export default function ESGCAP() {
   const totalItems = filteredCAPItems.length;
   const completedItems = filteredCAPItems.filter(i => i.status === 'completed').length;
   const pendingItems = filteredCAPItems.filter(i => i.status === 'pending').length;
-  const inProgressItems = filteredCAPItems.filter(i => i.status === 'in_progress').length;
+  const inProgressItems = filteredCAPItems.filter(i => i.status === 'overdue').length;
 
   const handleReview = (item: ESGCapItem) => {
     let currentItem =
@@ -189,6 +196,7 @@ export default function ESGCAP() {
 
   const getPlanList = async (entityId: string) => {
     try {
+      if (!entityId) return;
       setLoading(true);
       setLoadingMessage("Loading plan details ...")
       const entityIdWithYear = `${entityId}?financialYear=${financialYear}`;
@@ -203,6 +211,7 @@ export default function ESGCAP() {
         // setCapItems(data.plan || []);
         const normalizedPlan = (data.plan || []).map((item, index) => ({
           ...item,
+          tempId:item.id,
           id: `${item.reportId}-${index}-${item.createdAt}`
         }));
 
@@ -258,12 +267,19 @@ export default function ESGCAP() {
       const entityId = company?.user?.entityId;
   
       if (entityId) {
+        setSelectedEntityId(entityId)
         getPlanList(entityId);
       }
     }
   }, [selectedCompany, portfolioCompanies]);
 
   const handleSaveChanges = (updatedItem: ESGCapItem) => {
+    // 🔁 If plan is finalized and not already editing, start edit mode
+    if (isPlanFinalized && !isEditingFinalized) {
+      originalPlanRef.current = JSON.parse(JSON.stringify(capItems));
+      setIsEditingFinalized(true);
+    }
+
     previousCapItemsRef.current = [...capItems];
 
     const updatedItems = capItems.map(item => {
@@ -446,6 +462,11 @@ export default function ESGCAP() {
   }, []);
 
   const handleAddItem = (newItem: ESGCapItem) => {
+    if (isPlanFinalized && !isEditingFinalized) {
+      originalPlanRef.current = JSON.parse(JSON.stringify(capItems));
+      setIsEditingFinalized(true);
+    }
+
     const itemWithId = newItem.id ? newItem : { ...newItem, id: `${Date.now()}-${Math.random()}` };
     const updatedItems = [...capItems, itemWithId];
     setCapItems(updatedItems);
@@ -501,6 +522,55 @@ export default function ESGCAP() {
 
     return false;
   };
+
+  useEffect(()=>{
+    getPlanList(entityId)
+  },[reloadData])
+
+  const handleEditFinalizedPlan = () => {
+    // Save a deep copy of the current plan to revert on cancel
+    originalPlanRef.current = JSON.parse(JSON.stringify(capItems));
+    setIsEditingFinalized(true);
+  };
+
+  const handleCancelFinalizedEdit = () => {
+    // Restore the original plan from ref
+    setCapItems(originalPlanRef.current);
+    setFilteredCAPItems(originalPlanRef.current);
+    setIsEditingFinalized(false);
+    originalPlanRef.current = [];
+  };
+
+  const handleSaveFinalizedEdits = async () => {
+    try {
+      const payload = {
+        entityId: planData?.entityId,
+        updatedPlan: capItems,   // ✅ use current capItems directly
+        reason: "Investor edited the finalized plan",
+      };
+      const response = await http.post('investor/esgdd/escap/edit-finalized-plan', payload);
+      if (response.data) {
+        toast({
+          title: "Finalized Plan Updated",
+          description: "The finalized CAP plan has been successfully edited.",
+        });
+        // Refresh data from backend to get the updated acceptedPlan
+        if (planData?.entityId) {
+          await getPlanList(planData.entityId);
+        }
+        setIsEditingFinalized(false);
+        originalPlanRef.current = [];
+      }
+    } catch (error) {
+      console.error("Error updating finalized plan:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update the finalized plan.",
+        variant: "destructive",
+      });
+    }
+  };
+
 
   return (
     <div className="space-y-6">
@@ -626,8 +696,11 @@ export default function ESGCAP() {
                     isComparisonView={true}
                     onRevert={handleRevertToOriginal}
                     onRevertField={handleRevertField}
-                    finalPlan={isPlanFinalized}
+                    // finalPlan={isPlanFinalized}
+                    finalPlan={isEditingFinalized ? false : isPlanFinalized}
                     progressPercentage={progressPercentage}
+                    companyEntityId={selectedEntityId}
+                    setReloadData={setReloadData}
                   />
                 </div>
               ) : (
@@ -641,8 +714,11 @@ export default function ESGCAP() {
                   isComparisonView={false}
                   onRevert={handleRevertToOriginal}
                   onRevertField={handleRevertField}
-                  finalPlan={isPlanFinalized}
+                  // finalPlan={isPlanFinalized}
+                  finalPlan={isEditingFinalized ? false : isPlanFinalized}
                   progressPercentage={progressPercentage}
+                  companyEntityId={selectedEntityId}
+                  setReloadData={setReloadData}
                 />
               )}
             </CardContent>
@@ -667,11 +743,25 @@ export default function ESGCAP() {
                     </Button>
                   </>
                 )}
-                {isPlanFinalized && (
-                  <div className="text-sm text-muted-foreground">
-                    Plan has been finalized and accepted
-                  </div>
-                )}
+                {/* {isPlanFinalized && !isEditingFinalized && (
+                  <Button
+                    onClick={handleEditFinalizedPlan}
+                    size="lg"
+                    variant="outline"
+                  >
+                    Update Final Plan
+                  </Button>
+                )} */}
+                {isPlanFinalized && isEditingFinalized && (
+                    <>
+                      <Button onClick={handleSaveFinalizedEdits} size="lg" variant="default">
+                        Save Finalized Edits
+                      </Button>
+                      <Button onClick={handleCancelFinalizedEdit} size="lg" variant="ghost">
+                        Cancel
+                      </Button>
+                    </>
+                  )}
               </CardFooter>
             )}
           </Card>
@@ -688,7 +778,7 @@ export default function ESGCAP() {
         onCancelEdit={() => setCanEdit(false)}
         onSaveChanges={handleSaveChanges}
         onOpenChange={setReviewDialogOpen}
-        finalPlan={isPlanFinalized}
+        finalPlan={isEditingFinalized ? false : isPlanFinalized}
         originalItems={previousCapItemsRef.current}
         comparePlanData={comparePlanData}
       />

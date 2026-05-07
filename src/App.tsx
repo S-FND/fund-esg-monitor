@@ -46,10 +46,11 @@ import PreScreening from "./pages/PreScreening";
 import Categorization from "./pages/Categorization";
 import { http } from "@/utils/httpInterceptor";
 import Login from "./pages/Login";
+import Auth from "./pages/Auth";
 
 function App() {
   const { toast } = useToast();
-  const { signOut,session } = useAuth();
+  const { signOut, session } = useAuth();
 
   const handleLogout = () => {
     // localStorage.removeItem('auth_token')
@@ -59,9 +60,9 @@ function App() {
       title: "Logged out",
       description: "You have been successfully logged out.",
     });
-    setTimeout(() => {
-      window.location.href = "https://preprod-enterprise.fandoro.com/"
-    }, 3000)
+    // setTimeout(() => {
+    //   window.location.href = "https://preprod-enterprise.fandoro.com/"
+    // }, 3000)
   };
 
   // Example of using the HTTP interceptor (This is just for demonstration)
@@ -71,7 +72,7 @@ function App() {
       // In a real app, you would make actual API calls where needed
       try {
         console.log("HTTP interceptor is ready to use for API calls");
-        
+
         // Example usage (commented out as it's not real)
         // const response = await http.get('/api/some-endpoint');
         // if (response.data) {
@@ -81,63 +82,130 @@ function App() {
         console.error("Error in API call:", error);
       }
     };
-    
+
     demoApiCall();
   }, []);
 
   return (
-    <Shell>
-      <Sidebar />
-      <ScrollArea className="flex-1 w-full p-4 md:p-8">
-        <div className="flex justify-end space-x-4">
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="outline">Log Out</Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This action will log you out of the application.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleLogout}>
-                  Log Out
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-          <ModeToggle />
-        </div>
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/investor-info" element={<InvestorInfo />} />
-          <Route path="investor-info/edit" element={<EditInvestorProfile />} />
-          <Route path="/funds" element={<Funds />} />
-          <Route path="/funds/new" element={<NewFund />} /> 
-          <Route path="/funds/:id" element={<EditFund />} />
-          <Route path="/portfolio" element={<PortfolioCompanies />} />
-          <Route path="portfolio/new" element={<NewCompany />} />
-          <Route path="portfolio/pre-screening" element={<PreScreening />} />
-          <Route path="portfolio/categorization" element={<Categorization />} />
-          <Route
-            path="/portfolio/:id"
-            element={<EditPortfolioCompany />}
-          />
-          <Route path="/team" element={<Team />} />
-          <Route path="/esg-dd/report" element={<ESGDDReport />} />
-          <Route path="/esg-dd/cap" element={<ESGCAP />} />
-          <Route path="/valuation" element={<Valuation />} />
-          <Route path="/esg-dd/risk-matrix" element={<ESGRiskMatrix />} />
-          {/* Team Routes */}
-          <Route path="/team/:id" element={<TeamMemberDetail />} />
-          <Route path="/team/edit/:id" element={<TeamMemberEdit />} />
-        </Routes>
-      </ScrollArea>
-    </Shell>
+    <Routes>
+
+      {/* ✅ PUBLIC (NO SHELL) */}
+      <Route path="/" element={<Auth />} />
+
+      {/* ✅ APP (WITH SHELL) */}
+      <Route
+        path="/*"
+        element={
+          <Shell>
+            <Sidebar />
+            <ScrollArea className="flex-1 w-full p-4 md:p-8">
+              <div className="flex justify-end space-x-4">
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline">Log Out</Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This action will log you out of the application.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleLogout}>
+                        Log Out
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+                <ModeToggle />
+              </div>
+
+              <Routes>
+                <Route path="dashboard" element={<Dashboard />} />
+                <Route path="investor-info" element={<InvestorInfo />} />
+                <Route path="investor-info/edit" element={<EditInvestorProfile />} />
+                <Route path="funds" element={<Funds />} />
+                <Route path="funds/new" element={<NewFund />} />
+                <Route path="funds/:id" element={<EditFund />} />
+                <Route path="portfolio" element={<PortfolioCompanies />} />
+                <Route path="portfolio/new" element={<NewCompany />} />
+                <Route path="portfolio/pre-screening" element={<PreScreening />} />
+                <Route path="portfolio/categorization" element={<Categorization />} />
+                <Route path="portfolio/:id" element={<EditPortfolioCompany />} />
+                <Route path="team" element={<Team />} />
+                <Route path="team/:id" element={<TeamMemberDetail />} />
+                <Route path="team/edit/:id" element={<TeamMemberEdit />} />
+                <Route path="esg-dd/report" element={<ESGDDReport />} />
+                <Route path="esg-dd/cap" element={<ESGCAP />} />
+                <Route path="valuation" element={<Valuation />} />
+                <Route path="esg-dd/risk-matrix" element={<ESGRiskMatrix />} />
+              </Routes>
+
+            </ScrollArea>
+          </Shell>
+        }
+      />
+
+    </Routes>
   );
+
+  // return (
+  //   <Shell>
+  //     <Route path="/" element={<Auth />} />
+  //     <Sidebar />
+  //     <ScrollArea className="flex-1 w-full p-4 md:p-8">
+  //       <div className="flex justify-end space-x-4">
+  //         <AlertDialog>
+  //           <AlertDialogTrigger asChild>
+  //             <Button variant="outline">Log Out</Button>
+  //           </AlertDialogTrigger>
+  //           <AlertDialogContent>
+  //             <AlertDialogHeader>
+  //               <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+  //               <AlertDialogDescription>
+  //                 This action will log you out of the application.
+  //               </AlertDialogDescription>
+  //             </AlertDialogHeader>
+  //             <AlertDialogFooter>
+  //               <AlertDialogCancel>Cancel</AlertDialogCancel>
+  //               <AlertDialogAction onClick={handleLogout}>
+  //                 Log Out
+  //               </AlertDialogAction>
+  //             </AlertDialogFooter>
+  //           </AlertDialogContent>
+  //         </AlertDialog>
+  //         <ModeToggle />
+  //       </div>
+  //       <Routes>
+  //         <Route path="/" element={<Auth />} />
+  //         <Route path="/dashboard" element={<Dashboard />} />
+  //         <Route path="/investor-info" element={<InvestorInfo />} />
+  //         <Route path="investor-info/edit" element={<EditInvestorProfile />} />
+  //         <Route path="/funds" element={<Funds />} />
+  //         <Route path="/funds/new" element={<NewFund />} /> 
+  //         <Route path="/funds/:id" element={<EditFund />} />
+  //         <Route path="/portfolio" element={<PortfolioCompanies />} />
+  //         <Route path="portfolio/new" element={<NewCompany />} />
+  //         <Route path="portfolio/pre-screening" element={<PreScreening />} />
+  //         <Route path="portfolio/categorization" element={<Categorization />} />
+  //         <Route
+  //           path="/portfolio/:id"
+  //           element={<EditPortfolioCompany />}
+  //         />
+  //         <Route path="/team" element={<Team />} />
+  //         <Route path="/esg-dd/report" element={<ESGDDReport />} />
+  //         <Route path="/esg-dd/cap" element={<ESGCAP />} />
+  //         <Route path="/valuation" element={<Valuation />} />
+  //         <Route path="/esg-dd/risk-matrix" element={<ESGRiskMatrix />} />
+  //         {/* Team Routes */}
+  //         <Route path="/team/:id" element={<TeamMemberDetail />} />
+  //         <Route path="/team/edit/:id" element={<TeamMemberEdit />} />
+  //       </Routes>
+  //     </ScrollArea>
+  //   </Shell>
+  // );
 }
 
 export default App;
