@@ -585,6 +585,7 @@ export default function ESGCAP() {
         <AddCAPDialog
           onAddItem={handleAddItem}
           onAddMultipleItems={handleAddMultipleItems}
+          existingPlan={capItems}
         />
       </div>
 

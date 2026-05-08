@@ -7,10 +7,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Upload, Plus, Download, Trash2 } from "lucide-react";
+import { Upload, Plus, Download, Trash2, X } from "lucide-react";
 import { ESGCapItem, CAPStatus, CAPCategory, CAPPriority, CAPType } from "./CAPTable";
 import { toast } from "@/hooks/use-toast";
-import { EsgddAPIs,esgddChangePlan } from "@/network/esgdd";
+import { EsgddAPIs } from "@/network/esgdd";
 import Papa from 'papaparse';
 interface Company {
     id: string;
@@ -21,6 +21,9 @@ interface Company {
 interface AddCAPDialogProps {
     onAddItem: (item: ESGCapItem) => void;
     onAddMultipleItems: (items: ESGCapItem[]) => void;
+    existingPlan?: ESGCapItem[];
+    entityId?: string;
+    onRefresh?: () => void;
 }
 
 interface CAPFormRow {
@@ -51,14 +54,16 @@ interface CAPFormRow {
     remarks: string;
 }
 
-export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProps) {
+export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [], entityId: propEntityId, onRefresh }: AddCAPDialogProps) {
     const [open, setOpen] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [companies, setCompanies] = useState<Company[]>([]);
     const [loadingCompanies, setLoadingCompanies] = useState(false);
     const [financialYear, setFinancialYear] = useState("");
     const [selectedCompany, setSelectedCompany] = useState<string>("");
-
+    const [replaceExisting, setReplaceExisting] = useState(false);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     useEffect(() => {
         const currentDate = new Date();
         const currentYear = currentDate.getFullYear();
@@ -82,7 +87,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const day = String(date.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
-      };
+    };
 
     const [formRows, setFormRows] = useState<CAPFormRow[]>([{
         id: "1",
@@ -198,9 +203,43 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
         setFormRows(formRows.map(row => row.id === id ? { ...row, [field]: value } : row));
     };
 
+    // Helper to build new items from form rows
+    const buildNewItems = (): ESGCapItem[] => {
+        return formRows.map((row, i) => ({
+            reportId: selectedCompany,
+            item: row.item,
+            category: row.category,
+            priority: row.priority,
+            issue: row.issue || undefined,
+            relatedFinding: row.relatedFinding || undefined,
+            measures: row.measures,
+            resource: row.resource || undefined,
+            deliverable: row.deliverable || undefined,
+            timelineMonth: row.timelineMonth || undefined,
+            CS: row.dealCondition,
+            statusUpdate: row.statusUpdate || undefined,
+            investorStatusUpdate: row.investorStatusUpdate || undefined,
+            reviewRemarks: row.reviewRemarks || undefined,
+            lastReviewDate: parseToDateInput(row.lastReviewDate) || undefined,
+            implementationSupportNeeded: row.implementationSupportNeeded || undefined,
+            closureVerifiedBy: row.closureVerifiedBy || undefined,
+            actualDate: parseToDateInput(row.actualDate) || undefined,
+            status: row.status,
+            targetDate: parseToDateInput(row.targetDate) || undefined,
+            esgLever: row.esgLever || undefined,
+            capSource: row.capSource || undefined,
+            progressPercentage: row.progressPercentage || undefined,
+            assignedTo: row.assignedTo || undefined,
+            remarks: row.remarks || undefined,
+            dealCondition: row.dealCondition,
+            createdAt: new Date().toISOString(),
+            id: `${Date.now()}-${i}`
+        } as ESGCapItem));
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-
+        setIsSubmitting(true);
         if (!selectedCompany) {
             toast({ title: "Company Required", description: "Please select a company.", variant: "destructive" });
             return;
@@ -230,268 +269,322 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
             return;
         }
 
-        const newItems: ESGCapItem[] = [];
-        for (let i = 0; i < formRows.length; i++) {
-            const row = formRows[i];
-            const newItem = {
-                reportId: selectedCompany,
-                item: row.item,
-                category: row.category,
-                priority: row.priority,
-                issue: row.issue || undefined,
-                relatedFinding: row.relatedFinding || undefined,
-                measures: row.measures,
-                resource: row.resource || undefined,
-                deliverable: row.deliverable || undefined,
-                timelineMonth: row.timelineMonth || undefined,
-                CS: row.dealCondition,
-                statusUpdate: row.statusUpdate || undefined,
-                investorStatusUpdate: row.investorStatusUpdate || undefined,
-                reviewRemarks: row.reviewRemarks || undefined,
-                lastReviewDate: parseToDateInput(row.lastReviewDate) || undefined,
-                implementationSupportNeeded: row.implementationSupportNeeded || undefined,
-                closureVerifiedBy: row.closureVerifiedBy || undefined,
-                actualDate: parseToDateInput(row.actualDate) || undefined,
-                status: row.status,
-                targetDate: parseToDateInput(row.targetDate) || undefined,
-                esgLever: row.esgLever || undefined,
-                capSource: row.capSource || undefined,
-                progressPercentage: row.progressPercentage || undefined,
-                assignedTo: row.assignedTo || undefined,
-                remarks: row.remarks || undefined,
-                dealCondition: row.dealCondition,
-                createdAt: new Date().toISOString(),
-                id: `${Date.now()}-${i}`
-            } as ESGCapItem;
-            newItems.push(newItem);
-        }
+        const newItems = buildNewItems();
 
         try {
-            const finalData = {
-                plan: newItems,
-                email: company.email,
-                financialYear: financialYear,
-                finalAcceptance: { founderAcceptance: false, investorAcceptance: false }
-            };
-
-            const [result, error] = await EsgddAPIs.saveEscap(finalData);
-
-            if (result) {
-                onAddMultipleItems(newItems);
-                toast({ title: "CAP Items Added", description: `Successfully added ${newItems.length} CAP items.` });
-                setFormRows([{
-                    id: "1", item: "", category: "environmental", priority: "Medium", issue: "", relatedFinding: "",
-                    measures: "", resource: "", deliverable: "", timelineMonth: 0, dealCondition: "none",
-                    statusUpdate: "",investorStatusUpdate:"", reviewRemarks: "", lastReviewDate: "", implementationSupportNeeded: "",
-                    closureVerifiedBy: "", actualDate: "", status: "pending", targetDate: "", esgLever: "", capSource: "",
-                    progressPercentage: 0, assignedTo: "", remarks: "",
-                }]);
-                setSelectedCompany("");
-                setOpen(false);
-            } else {
-                throw new Error(error || "Failed to save CAP items");
-            }
-        } catch (error) {
-            console.error("Error adding CAP items:", error);
-            toast({ title: "Error", description: "Failed to add CAP items. Please try again.", variant: "destructive" });
-        }
-    };
-
-    const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        if (!selectedCompany) {
-          toast({ title: "Company Required", description: "Please select a company.", variant: "destructive" });
-          return;
-        }
-        const file = event.target.files?.[0];
-        if (!file || !file.name.endsWith('.csv')) {
-          toast({ title: "Invalid File", description: "Please upload a CSV file.", variant: "destructive" });
-          return;
-        }
-        const company = companies.find(c => c.id === selectedCompany);
-        if (!company) return;
-      
-        setUploading(true);
-      
-        try {
-          let text = await file.text();
-      
-          // Remove BOM
-          if (text.charCodeAt(0) === 0xFEFF) {
-            text = text.slice(1);
-          }
-      
-          const lines = text.split(/\r?\n/);
-      
-          // Find header line (contains both 'Item*' and 'Measures*')
-          let headerIndex = -1;
-          for (let i = 0; i < lines.length; i++) {
-            const trimmed = lines[i].trim();
-            if (trimmed.includes('Item*') && trimmed.includes('Measures*')) {
-              headerIndex = i;
-              break;
-            }
-          }
-      
-          if (headerIndex === -1) {
-            throw new Error("Could not find header row with 'Item*' and 'Measures*'");
-          }
-      
-          // Take from header line onward
-          const relevantLines = lines.slice(headerIndex);
-          const cleanCSV = relevantLines.join('\n');
-      
-          Papa.parse(cleanCSV, {
-            header: true,
-            skipEmptyLines: true,
-            transformHeader: (h) => h.trim().toLowerCase(),
-            complete: async (results) => {
-              try {
-                const fields = results.meta.fields;
-                console.log("Parsed headers:", fields);
-      
-                const rows = results.data as any[];
-                const newItems: ESGCapItem[] = [];
-      
-                const getField = (row: any, possibleNames: string[]): string => {
-                  for (const name of possibleNames) {
-                    const val = row[name];
-                    if (val !== undefined && val !== null && val !== "") {
-                      return String(val).trim();
-                    }
-                  }
-                  return "";
-                };
-      
-                for (const row of rows) {
-                  const item = getField(row, ["item*", "item"]);
-                  const measures = getField(row, ["measures*", "measures"]);
-      
-                  if (!item || !measures) continue;
-      
-                  // Status mapping
-                  let statusRaw = getField(row, ["status"]).toLowerCase().replace(/\s+/g, "_");
-                  const statusMap: Record<string, CAPStatus> = {
-                    not_started: "pending",
-                    in_progress: "in_review",
-                    completed: "completed",
-                    overdue: "overdue",
-                    accepted: "accepted",
-                  };
-                  const status = statusMap[statusRaw] || "pending";
-      
-                  // Parse DD-MM-YYYY dates
-                  const parseDateDMY = (d: string) => {
-                    if (!d) return "";
-                    const parts = d.split("-");
-                    if (parts.length === 3) {
-                      return `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`;
-                    }
-                    return d;
-                  };
-      
-                  const targetDateRaw = getField(row, ["target date", "targetdate"]);
-                  const actualDateRaw = getField(row, ["actual date", "actualdate"]);
-                  const lastReviewRaw = getField(row, ["last review date", "lastreviewdate"]);
-      
-                  const category = getField(row, ["category"]).toLowerCase();
-                  const validCategory: CAPCategory = ["environmental", "social", "governance"].includes(category)
-                    ? (category as CAPCategory)
-                    : "environmental";
-      
-                  const priorityRaw = getField(row, ["priority"]);
-                  const validPriority: CAPPriority = ["high", "medium", "low"].includes(priorityRaw.toLowerCase())
-                    ? (priorityRaw as CAPPriority)
-                    : "Medium";
-      
-                  const dealConditionRaw = getField(row, ["cp/cs", "cpcs", "dealcondition"]).toUpperCase();
-                  const validDealCondition: CAPType = ["CP", "CS", "NONE"].includes(dealConditionRaw)
-                    ? (dealConditionRaw as CAPType)
-                    : "none";
-      
-                  const progressRaw = getField(row, ["progress percentage", "progresspercentage", "progress%"]);
-                  const progressPercentage = progressRaw ? Math.min(100, Math.max(0, Number(progressRaw))) : undefined;
-      
-                  newItems.push({
-                    reportId: selectedCompany,
-                    id: `${Date.now()}-${Math.random()}`,
-                    item,
-                    measures,
-                    category: validCategory,
-                    priority: validPriority,
-                    issue: getField(row, ["issue"]) || undefined,
-                    relatedFinding: getField(row, ["related finding", "relatedfinding"]) || undefined,
-                    resource: getField(row, ["resource & responsibility", "resource", "resource_responsibility"]) || undefined,
-                    deliverable: getField(row, ["completion indicator", "indicator", "completionindicator"]) || undefined,
-                    timelineMonth: (() => {
-                      const val = getField(row, ["timeline month", "timelinemonth"]);
-                      return val ? Math.max(0, Number(val)) : undefined;
-                    })(),
-                    targetDate: parseDateDMY(targetDateRaw),
-                    actualDate: parseDateDMY(actualDateRaw),
-                    status,
-                    dealCondition: validDealCondition,
-                    progressPercentage,
-                    assignedTo: getField(row, ["assigned to", "assignedto"]) || undefined,
-                    esgLever: getField(row, ["esg lever", "esglever"]) || undefined,
-                    capSource: getField(row, ["cap source", "capsource"]) || undefined,
-                    statusUpdate: getField(row, ["company current status update", "comapny current status update", "companycurrentstatusupdate"]) || undefined,
-                    investorStatusUpdate: getField(row, ["investor current status update", "investorcurrentstatusupdate"]) || undefined,
-                    reviewRemarks: getField(row, ["review remarks", "reviewremarks"]) || undefined,
-                    lastReviewDate: parseDateDMY(lastReviewRaw),
-                    implementationSupportNeeded: getField(row, ["implementation support needed", "implementationsupportneeded"]) || undefined,
-                    closureVerifiedBy: getField(row, ["closure verified by", "closureverifiedby"]) || undefined,
-                    remarks: getField(row, ["remarks"]) || undefined,
-                    createdAt: new Date().toISOString(),
-                  } as ESGCapItem);
-                }
-      
-                if (newItems.length === 0) {
-                  throw new Error("No valid items found. Make sure 'Item*' and 'Measures*' columns contain data.");
-                }
-      
-                if (newItems.length === 0) throw new Error("No valid items found in file");
-
+            if (replaceExisting) {
+                // Replace mode: use saveEscap
                 const finalData = {
                     plan: newItems,
                     email: company.email,
-                    financialYear: financialYear,
+                    financialYear,
                     finalAcceptance: { founderAcceptance: false, investorAcceptance: false }
                 };
-    
                 const [result, error] = await EsgddAPIs.saveEscap(finalData);
-    
-                if (result) {
-                    onAddMultipleItems(newItems);
-                    toast({ title: "CAP Items Imported", description: `Successfully imported ${newItems.length} items.` });
-                    setSelectedCompany("");
-                    setOpen(false);
-                } else {
-                    throw new Error(error || "Upload failed");
-                }
-      
+                if (!result) throw new Error(error || "Replace failed");
                 onAddMultipleItems(newItems);
-                toast({ title: "Success", description: `Imported ${newItems.length} items.` });
-                setOpen(false);
-              } catch (err: any) {
-                console.error("Import error:", err);
-                toast({ title: "Import Failed", description: err.message, variant: "destructive" });
-              } finally {
-                setUploading(false);
-                event.target.value = "";
-              }
-            },
-            error: (err) => {
-              console.error("CSV parse error:", err);
-              toast({ title: "CSV Parse Error", description: err.message, variant: "destructive" });
-              setUploading(false);
-            },
-          });
-        } catch (err: any) {
-          console.error("File read error:", err);
-          toast({ title: "Error", description: err.message, variant: "destructive" });
-          setUploading(false);
+                toast({ title: "CAP Items Replaced", description: `Replaced existing plan with ${newItems.length} items.` });
+                if (onRefresh) await onRefresh();
+            } else {
+                // Append mode: use change‑request API
+                const entityId = propEntityId || (company as any).user?.entityId;
+                if (!entityId) throw new Error("Entity ID missing");
+
+                // Check if there is an existing plan
+                if (!existingPlan || existingPlan.length === 0) {
+                    // No existing plan – create a new one (same as replace mode)
+                    const finalData = {
+                        plan: newItems,
+                        email: company.email,
+                        financialYear,
+                        finalAcceptance: { founderAcceptance: false, investorAcceptance: false },
+                    };
+                    const [result, error] = await EsgddAPIs.saveEscap(finalData);
+                    if (!result) throw new Error(error || "Creation failed");
+                    onAddMultipleItems(newItems);
+                    toast({
+                        title: "CAP Items Created",
+                        description: `${newItems.length} items added as a new plan.`,
+                    });
+                } else {
+                    const mergedPlan = [...existingPlan, ...newItems];
+                    const payload = {
+                        changeRequest: { plan: mergedPlan },
+                        comment: 'Add items via manual entry',
+                        entityId,
+                    };
+                    const response: any = await EsgddAPIs.esgddChangePlan(payload);
+
+                    if (response?.[0]?.status !== 201) {
+                        throw new Error("Change request failed");
+                    }
+                    onAddMultipleItems(newItems);
+                    toast({ title: "CAP Items Added", description: `${newItems.length} items added. Request submitted.` });
+                }
+            }
+
+            // Refresh parent data if callback provided
+            if (onRefresh) await onRefresh();
+
+            // Reset form and close
+            setFormRows([{
+                id: "1", item: "", category: "environmental", priority: "Medium", issue: "", relatedFinding: "",
+                measures: "", resource: "", deliverable: "", timelineMonth: 0, dealCondition: "none",
+                statusUpdate: "", investorStatusUpdate: "", reviewRemarks: "", lastReviewDate: "", implementationSupportNeeded: "",
+                closureVerifiedBy: "", actualDate: "", status: "pending", targetDate: "", esgLever: "", capSource: "",
+                progressPercentage: 0, assignedTo: "", remarks: "",
+            }]);
+            setSelectedFile(null);
+            setSelectedCompany("");
+            setOpen(false);
+            setIsSubmitting(false);
+        } catch (error) {
+            console.error("Error adding CAP items:", error);
+            toast({ title: "Error", description: "Operation failed. Please try again.", variant: "destructive" });
         }
-      };
+    };
+    // File selection handler
+    const onFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file && file.name.endsWith('.csv')) {
+            setSelectedFile(file);
+            e.target.value = ''; // allow re-upload of same file
+        } else if (file) {
+            toast({ title: "Invalid File", description: "Please upload a CSV file.", variant: "destructive" });
+            setSelectedFile(null);
+        }
+    };
+    const handleFileUpload = async () => {
+        if (!selectedCompany) {
+            toast({ title: "Company Required", description: "Please select a company.", variant: "destructive" });
+            return;
+        }
+        if (!selectedFile) {
+            toast({ title: "No File", description: "Please select a CSV file first.", variant: "destructive" });
+            return;
+        }
+        const file = selectedFile;
+        if (!file || !file.name.endsWith('.csv')) {
+            toast({ title: "Invalid File", description: "Please upload a CSV file.", variant: "destructive" });
+            return;
+        }
+        const company = companies.find(c => c.id === selectedCompany);
+        if (!company) return;
+
+        setUploading(true);
+
+        try {
+            let text = await file.text();
+
+            // Remove BOM
+            if (text.charCodeAt(0) === 0xFEFF) {
+                text = text.slice(1);
+            }
+
+            const lines = text.split(/\r?\n/);
+
+            // Find header line (contains both 'Item*' and 'Measures*')
+            let headerIndex = -1;
+            for (let i = 0; i < lines.length; i++) {
+                const trimmed = lines[i].trim();
+                if (trimmed.includes('Item*') && trimmed.includes('Measures*')) {
+                    headerIndex = i;
+                    break;
+                }
+            }
+
+            if (headerIndex === -1) {
+                throw new Error("Could not find header row with 'Item*' and 'Measures*'");
+            }
+
+            // Take from header line onward
+            const relevantLines = lines.slice(headerIndex);
+            const cleanCSV = relevantLines.join('\n');
+
+            Papa.parse(cleanCSV, {
+                header: true,
+                skipEmptyLines: true,
+                transformHeader: (h) => h.trim().toLowerCase(),
+                complete: async (results) => {
+                    try {
+                        const fields = results.meta.fields;
+
+                        const rows = results.data as any[];
+                        const newItems: ESGCapItem[] = [];
+
+                        const getField = (row: any, possibleNames: string[]): string => {
+                            for (const name of possibleNames) {
+                                const val = row[name];
+                                if (val !== undefined && val !== null && val !== "") {
+                                    return String(val).trim();
+                                }
+                            }
+                            return "";
+                        };
+
+                        for (const row of rows) {
+                            const item = getField(row, ["item*", "item"]);
+                            const measures = getField(row, ["measures*", "measures"]);
+
+                            if (!item || !measures) continue;
+
+                            // Status mapping
+                            let statusRaw = getField(row, ["status"]).toLowerCase().replace(/\s+/g, "_");
+                            const statusMap: Record<string, CAPStatus> = {
+                                not_started: "pending",
+                                in_progress: "in_review",
+                                completed: "completed",
+                                overdue: "overdue",
+                                accepted: "accepted",
+                            };
+                            const status = statusMap[statusRaw] || "pending";
+
+                            // Parse DD-MM-YYYY dates
+                            const parseDateDMY = (d: string) => {
+                                if (!d) return "";
+                                const parts = d.split("-");
+                                if (parts.length === 3) {
+                                    return `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`;
+                                }
+                                return d;
+                            };
+
+                            const targetDateRaw = getField(row, ["target date", "targetdate"]);
+                            const actualDateRaw = getField(row, ["actual date", "actualdate"]);
+                            const lastReviewRaw = getField(row, ["last review date", "lastreviewdate"]);
+
+                            const category = getField(row, ["category"]).toLowerCase();
+                            const validCategory: CAPCategory = ["environmental", "social", "governance"].includes(category)
+                                ? (category as CAPCategory)
+                                : "environmental";
+
+                            const priorityRaw = getField(row, ["priority"]);
+                            const validPriority: CAPPriority = ["high", "medium", "low"].includes(priorityRaw.toLowerCase())
+                                ? (priorityRaw as CAPPriority)
+                                : "Medium";
+
+                            const dealConditionRaw = getField(row, ["cp/cs", "cpcs", "dealcondition"]).toUpperCase();
+                            const validDealCondition: CAPType = ["CP", "CS", "NONE"].includes(dealConditionRaw)
+                                ? (dealConditionRaw as CAPType)
+                                : "none";
+
+                            const progressRaw = getField(row, ["progress percentage", "progresspercentage", "progress%"]);
+                            const progressPercentage = progressRaw ? Math.min(100, Math.max(0, Number(progressRaw))) : undefined;
+
+                            newItems.push({
+                                reportId: selectedCompany,
+                                id: `${Date.now()}-${Math.random()}`,
+                                item,
+                                measures,
+                                category: validCategory,
+                                priority: validPriority,
+                                issue: getField(row, ["issue"]) || undefined,
+                                relatedFinding: getField(row, ["related finding", "relatedfinding"]) || undefined,
+                                resource: getField(row, ["resource & responsibility", "resource", "resource_responsibility"]) || undefined,
+                                deliverable: getField(row, ["completion indicator", "indicator", "completionindicator"]) || undefined,
+                                timelineMonth: (() => {
+                                    const val = getField(row, ["timeline month", "timelinemonth"]);
+                                    return val ? Math.max(0, Number(val)) : undefined;
+                                })(),
+                                targetDate: parseDateDMY(targetDateRaw),
+                                actualDate: parseDateDMY(actualDateRaw),
+                                status,
+                                dealCondition: validDealCondition,
+                                progressPercentage,
+                                assignedTo: getField(row, ["assigned to", "assignedto"]) || undefined,
+                                esgLever: getField(row, ["esg lever", "esglever"]) || undefined,
+                                capSource: getField(row, ["cap source", "capsource"]) || undefined,
+                                statusUpdate: getField(row, ["company current status update", "comapny current status update", "companycurrentstatusupdate"]) || undefined,
+                                investorStatusUpdate: getField(row, ["investor current status update", "investorcurrentstatusupdate"]) || undefined,
+                                reviewRemarks: getField(row, ["review remarks", "reviewremarks"]) || undefined,
+                                lastReviewDate: parseDateDMY(lastReviewRaw),
+                                implementationSupportNeeded: getField(row, ["implementation support needed", "implementationsupportneeded"]) || undefined,
+                                closureVerifiedBy: getField(row, ["closure verified by", "closureverifiedby"]) || undefined,
+                                remarks: getField(row, ["remarks"]) || undefined,
+                                createdAt: new Date().toISOString(),
+                            } as ESGCapItem);
+                        }
+
+                        if (newItems.length === 0) {
+                            throw new Error("No valid items found. Make sure 'Item*' and 'Measures*' columns contain data.");
+                        }
+
+                        if (newItems.length === 0) throw new Error("No valid items found in file");
+
+                        if (replaceExisting) {
+                            // Replace mode – overwrite plan
+                            const finalData = {
+                                plan: newItems,
+                                email: company.email,
+                                financialYear: financialYear,
+                                finalAcceptance: { founderAcceptance: false, investorAcceptance: false }
+                            };
+                            const [result, error] = await EsgddAPIs.saveEscap(finalData);
+                            if (!result) throw new Error(error || "Replace failed");
+                            onAddMultipleItems(newItems);
+                            toast({ title: "CAP Items Replaced", description: `Replaced with ${newItems.length} items.` });
+                            if (onRefresh) await onRefresh();
+                        } else {
+                            // Append mode – use change‑request API
+                            const entityId = propEntityId || (company as any).user?.entityId;
+                            if (!entityId) throw new Error("Entity ID missing");
+
+                            // Check if there is an existing plan
+                            if (!existingPlan || existingPlan.length === 0) {
+                                // No existing plan – create a new one (same as replace mode)
+                                const finalData = {
+                                    plan: newItems,
+                                    email: company.email,
+                                    financialYear,
+                                    finalAcceptance: { founderAcceptance: false, investorAcceptance: false },
+                                };
+                                const [result, error] = await EsgddAPIs.saveEscap(finalData);
+                                if (!result) throw new Error(error || "Creation failed");
+                                onAddMultipleItems(newItems);
+                                toast({
+                                    title: "CAP Items Created",
+                                    description: `${newItems.length} items added as a new plan.`,
+                                });
+                            } else {
+                                const mergedPlan = [...existingPlan, ...newItems];
+                                const payload = {
+                                    changeRequest: { plan: mergedPlan },
+                                    comment: 'Add items via CSV',
+                                    entityId,
+                                };
+                                const response: any = await EsgddAPIs.esgddChangePlan(payload);
+
+                                if (response?.[0]?.status !== 201) { throw new Error("Change request failed"); }
+                                onAddMultipleItems(newItems);
+                                toast({ title: "CAP Items Added", description: `${newItems.length} items added via change request.` });
+                            }
+                        }
+
+                        // Refresh parent data if callback provided
+                        if (onRefresh) await onRefresh();
+                        setSelectedFile(null);
+                        // Reset and close (only once)
+                        setSelectedCompany("");
+                        setOpen(false);
+                    } catch (err: any) {
+                        console.error("Import error:", err);
+                        toast({ title: "Import Failed", description: err.message, variant: "destructive" });
+                    } finally {
+                        setUploading(false);
+                    }
+                },
+                error: (err) => {
+                    console.error("CSV parse error:", err);
+                    toast({ title: "CSV Parse Error", description: err.message, variant: "destructive" });
+                    setUploading(false);
+                },
+            });
+        } catch (err: any) {
+            console.error("File read error:", err);
+            toast({ title: "Error", description: err.message, variant: "destructive" });
+            setUploading(false);
+        }
+    };
 
     const downloadTemplate = () => {
         const template = [
@@ -522,10 +615,11 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
     const handleCancel = () => {
         setOpen(false);
         setSelectedCompany("");
+        setSelectedFile(null);
         setFormRows([{
             id: "1", item: "", category: "environmental", priority: "Medium", issue: "", relatedFinding: "",
             measures: "", resource: "", deliverable: "", timelineMonth: 0, dealCondition: "none",
-            statusUpdate: "",investorStatusUpdate: "", reviewRemarks: "", lastReviewDate: "", implementationSupportNeeded: "",
+            statusUpdate: "", investorStatusUpdate: "", reviewRemarks: "", lastReviewDate: "", implementationSupportNeeded: "",
             closureVerifiedBy: "", actualDate: "", status: "pending", targetDate: "", esgLever: "", capSource: "",
             progressPercentage: 0, assignedTo: "", remarks: "",
         }]);
@@ -540,9 +634,20 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                 <DialogHeader><DialogTitle>Add New CAP Items</DialogTitle></DialogHeader>
 
                 <Tabs defaultValue="manual" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="manual">Manual Entry</TabsTrigger>
-                        <TabsTrigger value="upload">Upload Template</TabsTrigger>
+                    <TabsList className="w-full flex gap-4 bg-transparent p-0 mb-6">
+                        <TabsTrigger
+                            value="manual"
+                            className="flex-1 rounded-md border data-[state=active]:bg-primary data-[state=active]:text-white"
+                        >
+                            Manual Entry
+                        </TabsTrigger>
+
+                        <TabsTrigger
+                            value="upload"
+                            className="flex-1 rounded-md border data-[state=active]:bg-primary data-[state=active]:text-white"
+                        >
+                            Upload Template
+                        </TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="manual" className="space-y-4">
@@ -775,27 +880,27 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                                             {/* 15. Current Status Update */}
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-                                            <div>
-                                                <Label>Current Status Update (Company)</Label>
-                                                <Textarea
-                                                    value={row.statusUpdate}
-                                                    onChange={(e) => updateRow(row.id, "statusUpdate", e.target.value)}
-                                                    disabled
-                                                    placeholder="Latest update on this action item"
-                                                    className="min-h-[60px]"
-                                                />
-                                            </div>
+                                                <div>
+                                                    <Label>Current Status Update (Company)</Label>
+                                                    <Textarea
+                                                        value={row.statusUpdate}
+                                                        onChange={(e) => updateRow(row.id, "statusUpdate", e.target.value)}
+                                                        disabled
+                                                        placeholder="Latest update on this action item"
+                                                        className="min-h-[60px]"
+                                                    />
+                                                </div>
 
-                                             {/* 15.1 Current Status Update Investor*/}
-                                             <div>
-                                                <Label>Current Status Update (Investor)</Label>
-                                                <Textarea
-                                                    value={row.investorStatusUpdate}
-                                                    onChange={(e) => updateRow(row.id, "investorStatusUpdate", e.target.value)}
-                                                    placeholder="Latest update on this action item"
-                                                    className="min-h-[60px]"
-                                                />
-                                            </div>
+                                                {/* 15.1 Current Status Update Investor*/}
+                                                <div>
+                                                    <Label>Current Status Update (Investor)</Label>
+                                                    <Textarea
+                                                        value={row.investorStatusUpdate}
+                                                        onChange={(e) => updateRow(row.id, "investorStatusUpdate", e.target.value)}
+                                                        placeholder="Latest update on this action item"
+                                                        className="min-h-[60px]"
+                                                    />
+                                                </div>
                                             </div>
 
                                             {/* 16. Review Remarks & 17. Last Review Date */}
@@ -853,10 +958,34 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                                             </div>
                                         </div>
                                     ))}
-
-                                    <div className="flex justify-end gap-2">
-                                        <Button variant="outline" onClick={handleCancel}>Cancel</Button>
-                                        <Button onClick={handleSubmit} disabled={loadingCompanies}>Add CAP Items</Button>
+                                    <div className="space-y-4 pt-4 border-t mt-4">
+                                        <div className="flex justify-end">
+                                            <div className="flex items-center space-x-2">
+                                                <Label
+                                                    htmlFor="replaceExisting"
+                                                    className="text-sm font-normal cursor-pointer"
+                                                >
+                                                    Replace existing items (otherwise new items will be appended)
+                                                </Label>
+                                                <input
+                                                    type="checkbox"
+                                                    id="replaceExisting"
+                                                    checked={replaceExisting}
+                                                    onChange={(e) => setReplaceExisting(e.target.checked)}
+                                                    className="h-4 w-4 rounded border-gray-300"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-end gap-2">
+                                            <Button variant="outline" onClick={handleCancel}>Cancel</Button>
+                                            {/* <Button onClick={handleSubmit} disabled={loadingCompanies}>Add CAP Items</Button> */}
+                                            <Button
+                                                onClick={handleSubmit}
+                                                disabled={loadingCompanies || isSubmitting || !selectedCompany || formRows.some(row => !row.item?.trim() || !row.measures?.trim())}
+                                            >
+                                                {isSubmitting ? "Adding..." : "Add CAP Items"}
+                                            </Button>
+                                        </div>
                                     </div>
                                 </div>
                             </CardContent>
@@ -890,14 +1019,57 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
                                         <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
                                         <label htmlFor="file-upload" className="cursor-pointer mt-4 block">
                                             <span className="text-sm">Drop CSV here or <span className="text-primary underline">browse</span></span>
-                                            <input id="file-upload" type="file" accept=".csv" className="sr-only" onChange={handleFileUpload} disabled={uploading || !selectedCompany} />
+                                            <input id="file-upload" type="file" accept=".csv" className="sr-only" onChange={onFileSelect} disabled={uploading || !selectedCompany} />
                                         </label>
                                         <p className="text-xs text-muted-foreground mt-1">CSV files only (max 5MB)</p>
                                     </div>
                                 </div>
 
+                                {selectedFile && (
+                                    <div className="flex items-center justify-between text-sm text-green-600 mt-2 bg-green-50 p-2 rounded-md">
+                                        <span className="truncate">Selected file: {selectedFile.name}</span>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                                            onClick={() => {
+                                                setSelectedFile(null);
+                                                // Reset the file input so the same file can be selected again
+                                                const fileInput = document.getElementById("file-upload") as HTMLInputElement;
+                                                if (fileInput) fileInput.value = "";
+                                            }}
+                                        >
+                                            <X className="h-4 w-4" />
+                                            <span className="sr-only">Remove file</span>
+                                        </Button>
+                                    </div>
+                                )}
+
                                 {uploading && <div className="text-center text-sm">Processing file...</div>}
 
+                                <div className="space-y-4 pt-4 border-t mt-4">
+                                    <div className="flex justify-end">
+                                        <div className="flex items-center space-x-2">
+                                            <Label htmlFor="replaceExistingUpload" className="text-sm font-normal cursor-pointer">
+                                                Replace existing items (otherwise new items will be appended)
+                                            </Label>
+                                            <input
+                                                type="checkbox"
+                                                id="replaceExistingUpload"
+                                                checked={replaceExisting}
+                                                onChange={(e) => setReplaceExisting(e.target.checked)}
+                                                className="h-4 w-4 rounded border-gray-300"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-end gap-2">
+                                        <Button variant="outline" onClick={handleCancel}>Cancel</Button>
+                                        <Button onClick={handleFileUpload} disabled={uploading || !selectedCompany || !selectedFile}>
+                                            {uploading ? "Uploading..." : "Upload"}
+                                        </Button>
+                                    </div>
+                                </div>
                                 {/* <div className="text-xs space-y-1">
                                     <p><strong>Required columns:</strong> item, measures</p>
                                     <p><strong>All columns in order:</strong> item, category, priority, issue, relatedfinding, measures, resource, deliverable, timelinemonth, dealcondition, statusupdate, investorStatusUpdate, reviewremarks, lastreviewdate, implementationsupportneeded, closureverifiedby, actualdate, status, targetdate, esglever, capSource, progresspercentage, assignedto, remarks</p>
