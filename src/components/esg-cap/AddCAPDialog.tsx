@@ -12,6 +12,7 @@ import { ESGCapItem, CAPStatus, CAPCategory, CAPPriority, CAPType } from "./CAPT
 import { toast } from "@/hooks/use-toast";
 import { EsgddAPIs } from "@/network/esgdd";
 import Papa from 'papaparse';
+
 interface Company {
     id: string;
     name: string;
@@ -38,14 +39,16 @@ interface CAPFormRow {
     deliverable: string;
     timelineMonth: number;
     dealCondition: CAPType;
-    statusUpdate: string;
-    investorStatusUpdate: string;
+    // statusUpdate: string;
+    addUpdate: string;
+    // investorStatusUpdate: string;
     reviewRemarks: string;
     lastReviewDate: string;
     implementationSupportNeeded: string;
     closureVerifiedBy: string;
     actualDate: string;
     status: CAPStatus;
+    investorStatus: string;
     targetDate: string;
     esgLever: string;
     capSource: string;
@@ -62,8 +65,10 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
     const [financialYear, setFinancialYear] = useState("");
     const [selectedCompany, setSelectedCompany] = useState<string>("");
     const [replaceExisting, setReplaceExisting] = useState(false);
+    const [informFounder, setInformFounder] = useState(true);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
     useEffect(() => {
         const currentDate = new Date();
         const currentYear = currentDate.getFullYear();
@@ -78,9 +83,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
 
     const parseToDateInput = (value: any): string => {
         if (!value) return '';
-        // If already YYYY-MM-DD
         if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
-        // Try to parse as Date
         const date = new Date(value);
         if (isNaN(date.getTime())) return '';
         const year = date.getFullYear();
@@ -101,14 +104,16 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
         deliverable: "",
         timelineMonth: 0,
         dealCondition: "none",
-        statusUpdate: "",
-        investorStatusUpdate: "",
+        // statusUpdate: "",
+        addUpdate: "",
+        // investorStatusUpdate: "",
         reviewRemarks: "",
         lastReviewDate: "",
         implementationSupportNeeded: "",
         closureVerifiedBy: "",
         actualDate: "",
         status: "pending",
+        investorStatus: "",
         targetDate: "",
         esgLever: "",
         capSource: "",
@@ -177,14 +182,16 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
             deliverable: "",
             timelineMonth: 0,
             dealCondition: "none",
-            statusUpdate: "",
-            investorStatusUpdate: "",
+            // statusUpdate: "",
+            addUpdate: "",
+            // investorStatusUpdate: "",
             reviewRemarks: "",
             lastReviewDate: "",
             implementationSupportNeeded: "",
             closureVerifiedBy: "",
             actualDate: "",
             status: "pending",
+            investorStatus: "",
             targetDate: "",
             esgLever: "",
             capSource: "",
@@ -203,7 +210,6 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
         setFormRows(formRows.map(row => row.id === id ? { ...row, [field]: value } : row));
     };
 
-    // Helper to build new items from form rows
     const buildNewItems = (): ESGCapItem[] => {
         return formRows.map((row, i) => ({
             reportId: selectedCompany,
@@ -216,15 +222,16 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
             resource: row.resource || undefined,
             deliverable: row.deliverable || undefined,
             timelineMonth: row.timelineMonth || undefined,
-            CS: row.dealCondition,
-            statusUpdate: row.statusUpdate || undefined,
-            investorStatusUpdate: row.investorStatusUpdate || undefined,
+            // statusUpdate: row.statusUpdate || undefined,
+            addUpdate: row.addUpdate || undefined,
+            // investorStatusUpdate: row.investorStatusUpdate || undefined,
             reviewRemarks: row.reviewRemarks || undefined,
             lastReviewDate: parseToDateInput(row.lastReviewDate) || undefined,
             implementationSupportNeeded: row.implementationSupportNeeded || undefined,
             closureVerifiedBy: row.closureVerifiedBy || undefined,
             actualDate: parseToDateInput(row.actualDate) || undefined,
             status: row.status,
+            investorStatus: row.investorStatus,
             targetDate: parseToDateInput(row.targetDate) || undefined,
             esgLever: row.esgLever || undefined,
             capSource: row.capSource || undefined,
@@ -242,12 +249,14 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
         setIsSubmitting(true);
         if (!selectedCompany) {
             toast({ title: "Company Required", description: "Please select a company.", variant: "destructive" });
+            setIsSubmitting(false);
             return;
         }
 
         const invalidRows = formRows.filter(row => !row.item || !row.measures);
         if (invalidRows.length > 0) {
             toast({ title: "Missing Required Fields", description: "Please fill in all required fields (Item, Measures) for all rows.", variant: "destructive" });
+            setIsSubmitting(false);
             return;
         }
 
@@ -255,10 +264,12 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
             const row = formRows[i];
             if (row.targetDate && isNaN(new Date(row.targetDate).getTime())) {
                 toast({ title: "Invalid Date", description: `Invalid target date in row ${i + 1}`, variant: "destructive" });
+                setIsSubmitting(false);
                 return;
             }
             if (row.actualDate && isNaN(new Date(row.actualDate).getTime())) {
                 toast({ title: "Invalid Date", description: `Invalid actual date in row ${i + 1}`, variant: "destructive" });
+                setIsSubmitting(false);
                 return;
             }
         }
@@ -266,6 +277,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
         const company = companies.find(c => c.id === selectedCompany);
         if (!company) {
             toast({ title: "Invalid Company", description: "Selected company is not valid.", variant: "destructive" });
+            setIsSubmitting(false);
             return;
         }
 
@@ -273,12 +285,12 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
 
         try {
             if (replaceExisting) {
-                // Replace mode: use saveEscap
                 const finalData = {
                     plan: newItems,
                     email: company.email,
                     financialYear,
-                    finalAcceptance: { founderAcceptance: false, investorAcceptance: false }
+                    finalAcceptance: { founderAcceptance: false, investorAcceptance: false },
+                    informFounder, // ✅ Pass to backend
                 };
                 const [result, error] = await EsgddAPIs.saveEscap(finalData);
                 if (!result) throw new Error(error || "Replace failed");
@@ -286,18 +298,16 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                 toast({ title: "CAP Items Replaced", description: `Replaced existing plan with ${newItems.length} items.` });
                 if (onRefresh) await onRefresh();
             } else {
-                // Append mode: use change‑request API
                 const entityId = propEntityId || (company as any).user?.entityId;
                 if (!entityId) throw new Error("Entity ID missing");
 
-                // Check if there is an existing plan
                 if (!existingPlan || existingPlan.length === 0) {
-                    // No existing plan – create a new one (same as replace mode)
                     const finalData = {
                         plan: newItems,
                         email: company.email,
                         financialYear,
                         finalAcceptance: { founderAcceptance: false, investorAcceptance: false },
+                        informFounder, // ✅ Pass to backend
                     };
                     const [result, error] = await EsgddAPIs.saveEscap(finalData);
                     if (!result) throw new Error(error || "Creation failed");
@@ -312,6 +322,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                         changeRequest: { plan: mergedPlan },
                         comment: 'Add items via manual entry',
                         entityId,
+                        informFounder, // ✅ Pass to backend
                     };
                     const response: any = await EsgddAPIs.esgddChangePlan(payload);
 
@@ -323,37 +334,38 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                 }
             }
 
-            // Refresh parent data if callback provided
             if (onRefresh) await onRefresh();
 
-            // Reset form and close
             setFormRows([{
                 id: "1", item: "", category: "environmental", priority: "Medium", issue: "", relatedFinding: "",
                 measures: "", resource: "", deliverable: "", timelineMonth: 0, dealCondition: "none",
-                statusUpdate: "", investorStatusUpdate: "", reviewRemarks: "", lastReviewDate: "", implementationSupportNeeded: "",
-                closureVerifiedBy: "", actualDate: "", status: "pending", targetDate: "", esgLever: "", capSource: "",
+                addUpdate: "", reviewRemarks: "", lastReviewDate: "", implementationSupportNeeded: "",
+                closureVerifiedBy: "", actualDate: "", status: "pending", investorStatus: "", targetDate: "", esgLever: "", capSource: "",
                 progressPercentage: 0, assignedTo: "", remarks: "",
             }]);
             setSelectedFile(null);
             setSelectedCompany("");
+            setInformFounder(true); // ✅ Reset to default
             setOpen(false);
             setIsSubmitting(false);
         } catch (error) {
             console.error("Error adding CAP items:", error);
             toast({ title: "Error", description: "Operation failed. Please try again.", variant: "destructive" });
+            setIsSubmitting(false);
         }
     };
-    // File selection handler
+
     const onFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file && file.name.endsWith('.csv')) {
             setSelectedFile(file);
-            e.target.value = ''; // allow re-upload of same file
+            e.target.value = '';
         } else if (file) {
             toast({ title: "Invalid File", description: "Please upload a CSV file.", variant: "destructive" });
             setSelectedFile(null);
         }
     };
+
     const handleFileUpload = async () => {
         if (!selectedCompany) {
             toast({ title: "Company Required", description: "Please select a company.", variant: "destructive" });
@@ -363,161 +375,191 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
             toast({ title: "No File", description: "Please select a CSV file first.", variant: "destructive" });
             return;
         }
-        const file = selectedFile;
-        if (!file || !file.name.endsWith('.csv')) {
-            toast({ title: "Invalid File", description: "Please upload a CSV file.", variant: "destructive" });
-            return;
-        }
         const company = companies.find(c => c.id === selectedCompany);
         if (!company) return;
-
+    
         setUploading(true);
-
+    
         try {
-            let text = await file.text();
-
-            // Remove BOM
-            if (text.charCodeAt(0) === 0xFEFF) {
-                text = text.slice(1);
-            }
-
+            let text = await selectedFile.text();
+            if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+    
             const lines = text.split(/\r?\n/);
-
-            // Find header line (contains both 'Item*' and 'Measures*')
+    
+            // Find header row
             let headerIndex = -1;
             for (let i = 0; i < lines.length; i++) {
-                const trimmed = lines[i].trim();
-                if (trimmed.includes('Item*') && trimmed.includes('Measures*')) {
+                const trimmed = lines[i].trim().toLowerCase();
+                if (trimmed.includes('cap item') && trimmed.includes('measures') && trimmed.includes('corrective')) {
                     headerIndex = i;
                     break;
                 }
             }
-
+    
             if (headerIndex === -1) {
-                throw new Error("Could not find header row with 'Item*' and 'Measures*'");
+                throw new Error("Could not find header row with 'CAP Item' and 'Measures & Corrective Actions'");
             }
-
-            // Take from header line onward
-            const relevantLines = lines.slice(headerIndex);
-            const cleanCSV = relevantLines.join('\n');
-
+    
+            const cleanCSV = lines.slice(headerIndex).join('\n');
+    
             Papa.parse(cleanCSV, {
                 header: true,
                 skipEmptyLines: true,
-                transformHeader: (h) => h.trim().toLowerCase(),
+                transformHeader: (h) => h.trim().toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, ''),
                 complete: async (results) => {
                     try {
-                        const fields = results.meta.fields;
-
                         const rows = results.data as any[];
                         const newItems: ESGCapItem[] = [];
-
+    
                         const getField = (row: any, possibleNames: string[]): string => {
-                            for (const name of possibleNames) {
-                                const val = row[name];
+                            for (const rawName of possibleNames) {
+                                const key = rawName.trim().toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, '');
+                                const val = row[key];
                                 if (val !== undefined && val !== null && val !== "") {
                                     return String(val).trim();
                                 }
                             }
                             return "";
                         };
-
+    
                         for (const row of rows) {
-                            const item = getField(row, ["item*", "item"]);
-                            const measures = getField(row, ["measures*", "measures"]);
-
-                            if (!item || !measures) continue;
-
-                            // Status mapping
-                            let statusRaw = getField(row, ["status"]).toLowerCase().replace(/\s+/g, "_");
-                            const statusMap: Record<string, CAPStatus> = {
-                                not_started: "pending",
-                                in_progress: "in_review",
-                                completed: "completed",
-                                overdue: "overdue",
-                                accepted: "accepted",
-                            };
-                            const status = statusMap[statusRaw] || "pending";
-
-                            // Parse DD-MM-YYYY dates
-                            const parseDateDMY = (d: string) => {
+                            const item = getField(row, ["CAP Item", "capitem", "item"]);
+                            const measures = getField(row, ["Measures & Corrective Actions", "measures&correctiveactions", "measures"]);
+    
+                            if (!item || !measures) {
+                                console.log(`[CSV] Skipping row - missing item or measures`);
+                                continue;
+                            }
+    
+                            // Parse DD-MMM-YY dates
+                            const parseDateDMY = (d: string): string => {
                                 if (!d) return "";
-                                const parts = d.split("-");
-                                if (parts.length === 3) {
-                                    return `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`;
+                                const months: Record<string, string> = {
+                                    'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04', 'may': '05', 'jun': '06',
+                                    'jul': '07', 'aug': '08', 'sep': '09', 'oct': '10', 'nov': '11', 'dec': '12'
+                                };
+                                const match = d.match(/^(\d{1,2})-([a-zA-Z]{3})-(\d{2})$/);
+                                if (match) {
+                                    const day = match[1].padStart(2, '0');
+                                    const month = months[match[2].toLowerCase()] || '01';
+                                    const year = parseInt(match[3]) > 50 ? `19${match[3]}` : `20${match[3]}`;
+                                    return `${year}-${month}-${day}`;
                                 }
+                                const date = new Date(d);
+                                if (!isNaN(date.getTime())) return date.toISOString().split('T')[0];
                                 return d;
                             };
+    
+                            // ✅ Company Status → maps to `status` field
+                            let companyStatusRaw = getField(row, ["Company Status", "companystatus"]).toLowerCase();
+                            const statusMap: Record<string, string> = {
+                                'upcoming': "upcoming",
+                                'due in <1 month': "due in <1 month",
+                                'overdue': "overdue",
+                                'submitted': "submitted",
+                                'request to re-submit': "request to re-submit",
+                                'request to resubmit': "request to re-submit",
+                            };
 
-                            const targetDateRaw = getField(row, ["target date", "targetdate"]);
-                            const actualDateRaw = getField(row, ["actual date", "actualdate"]);
-                            const lastReviewRaw = getField(row, ["last review date", "lastreviewdate"]);
-
-                            const category = getField(row, ["category"]).toLowerCase();
-                            const validCategory: CAPCategory = ["environmental", "social", "governance"].includes(category)
-                                ? (category as CAPCategory)
-                                : "environmental";
-
-                            const priorityRaw = getField(row, ["priority"]);
-                            const validPriority: CAPPriority = ["high", "medium", "low"].includes(priorityRaw.toLowerCase())
-                                ? (priorityRaw as CAPPriority)
-                                : "Medium";
-
-                            const dealConditionRaw = getField(row, ["cp/cs", "cpcs", "dealcondition"]).toUpperCase();
-                            const validDealCondition: CAPType = ["CP", "CS", "NONE"].includes(dealConditionRaw)
-                                ? (dealConditionRaw as CAPType)
-                                : "none";
-
-                            const progressRaw = getField(row, ["progress percentage", "progresspercentage", "progress%"]);
-                            const progressPercentage = progressRaw ? Math.min(100, Math.max(0, Number(progressRaw))) : undefined;
-
+                            const status = statusMap[companyStatusRaw] || "upcoming";
+    
+                            // ✅ Investor Status → maps to `investorStatus` field (raw text)
+                            const investorStatusRaw = getField(row, ["Investor Status", "investorstatus"]).toLowerCase().trim();
+                            const investorStatusMap: Record<string, string> = {
+                                '': "",
+                                'blank': "",
+                                '—': "",
+                                'under review': "Under Review",
+                                'under_review': "Under Review",
+                                'reviewed with comments': "Reviewed with Comments",
+                                'reviewed_with_comments': "Reviewed with Comments",
+                                'closed': "Closed",
+                                'deferred': "Deferred",
+                            };
+                            const investorStatus = investorStatusMap[investorStatusRaw] || "";
+    
+                            const targetDateRaw = getField(row, ["Target Date", "targetdate"]);
+                            const actualDateRaw = getField(row, ["Completed On", "completedon", "actualdate"]);
+                            const lastReviewRaw = getField(row, ["Last Review Date", "lastreviewdate"]);
+    
+                            // Deal condition from CP/CS/ESG Roadmap
+                            const roadmapRaw = getField(row, ["CP/CS/ESG Roadmap", "cpcsesgroadmap", "cpcs", "dealcondition"]).toUpperCase().replace(/\s+/g, '_');
+                            // const validDealCondition: CAPType = ["CP", "CS" , "ESG_Roadmap"].includes(roadmapRaw) ? roadmapRaw as CAPType : "none";
+                            const validDealCondition: CAPType = 
+                            roadmapRaw.toUpperCase() === "CP" ? "CP" :
+                            roadmapRaw.toUpperCase() === "CS" ? "CS" :
+                            roadmapRaw.toUpperCase() === "ESG ROADMAP" || roadmapRaw.toUpperCase() === "ESG_ROADMAP" ? "ESG_Roadmap" :
+                            "none";
+    
+                            // Category mapping
+                            const categoryRaw = getField(row, ["Category", "category"]).toLowerCase();
+                            const categoryMap: Record<string, CAPCategory> = {
+                                'environment': 'environmental',
+                                'environmental': 'environmental',
+                                'social': 'social',
+                                'governance': 'governance',
+                                'environmentalmonitoring': 'environmental',
+                                'packagingplasticscircularity': 'environmental',
+                                'esgmanagementsystems': 'governance',
+                                'governanceethics': 'governance',
+                                'occupationalhealthsafetyohs': 'social',
+                                'hrcomplianceworkplacepractices': 'social',
+                            };
+                            const category = categoryMap[categoryRaw] || "environmental";
+    
+                            // Priority
+                            const priorityRaw = getField(row, ["Priority", "priority"]).toLowerCase();
+                            const validPriority: CAPPriority = ["high", "medium", "low"].includes(priorityRaw)
+                                ? (priorityRaw.charAt(0).toUpperCase() + priorityRaw.slice(1) as CAPPriority)
+                                : "High";
+    
+                            // Timeline
+                            const timelineRaw = getField(row, ["Timeline Month", "timelinemonth"]);
+                            const timelineMonth = timelineRaw ? Math.max(0, Number(timelineRaw)) : undefined;
+    
                             newItems.push({
                                 reportId: selectedCompany,
                                 id: `${Date.now()}-${Math.random()}`,
                                 item,
                                 measures,
-                                category: validCategory,
+                                category,
                                 priority: validPriority,
-                                issue: getField(row, ["issue"]) || undefined,
-                                relatedFinding: getField(row, ["related finding", "relatedfinding"]) || undefined,
-                                resource: getField(row, ["resource & responsibility", "resource", "resource_responsibility"]) || undefined,
-                                deliverable: getField(row, ["completion indicator", "indicator", "completionindicator"]) || undefined,
-                                timelineMonth: (() => {
-                                    const val = getField(row, ["timeline month", "timelinemonth"]);
-                                    return val ? Math.max(0, Number(val)) : undefined;
-                                })(),
+                                issue: getField(row, ["Issue and Related Finding", "issueandrelatedfinding", "issue"]) || undefined,
+                                relatedFinding: undefined,
+                                // resource: getField(row, ["Assigned To", "assignedto"]) || undefined,
+                                deliverable: getField(row, ["Completion Indicator", "completionindicator"]) || undefined,
+                                timelineMonth,
                                 targetDate: parseDateDMY(targetDateRaw),
                                 actualDate: parseDateDMY(actualDateRaw),
                                 status,
+                                investorStatus: investorStatusRaw,
                                 dealCondition: validDealCondition,
-                                progressPercentage,
-                                assignedTo: getField(row, ["assigned to", "assignedto"]) || undefined,
-                                esgLever: getField(row, ["esg lever", "esglever"]) || undefined,
-                                capSource: getField(row, ["cap source", "capsource"]) || undefined,
-                                statusUpdate: getField(row, ["company current status update", "comapny current status update", "companycurrentstatusupdate"]) || undefined,
-                                investorStatusUpdate: getField(row, ["investor current status update", "investorcurrentstatusupdate"]) || undefined,
-                                reviewRemarks: getField(row, ["review remarks", "reviewremarks"]) || undefined,
+                                progressPercentage: undefined,
+                                assignedTo: getField(row, ["Assigned To", "assignedto"]) || undefined,
+                                esgLever: getField(row, ["ESG Lever", "esglever"]) || undefined,
+                                capSource: getField(row, ["CAP Source", "capsource"]) || undefined,
+                                addUpdate: getField(row, ["Add Update", "addupdate", "statusupdate"]) || undefined,
+                                reviewRemarks: getField(row, ["Review Comments", "reviewcomments", "reviewremarks"]) || undefined,
                                 lastReviewDate: parseDateDMY(lastReviewRaw),
-                                implementationSupportNeeded: getField(row, ["implementation support needed", "implementationsupportneeded"]) || undefined,
-                                closureVerifiedBy: getField(row, ["closure verified by", "closureverifiedby"]) || undefined,
-                                remarks: getField(row, ["remarks"]) || undefined,
+                                implementationSupportNeeded: getField(row, ["Implementation Support Needed", "implementationsupportneeded"]) || undefined,
+                                closureVerifiedBy: getField(row, ["Closure Verified By", "closureverifiedby"]) || undefined,
+                                remarks: undefined,
                                 createdAt: new Date().toISOString(),
                             } as ESGCapItem);
                         }
-
+    
                         if (newItems.length === 0) {
-                            throw new Error("No valid items found. Make sure 'Item*' and 'Measures*' columns contain data.");
+                            throw new Error("No valid items found. Check console for debug info.");
                         }
-
-                        if (newItems.length === 0) throw new Error("No valid items found in file");
-
+    
+                        // Submit logic
                         if (replaceExisting) {
-                            // Replace mode – overwrite plan
                             const finalData = {
                                 plan: newItems,
                                 email: company.email,
-                                financialYear: financialYear,
-                                finalAcceptance: { founderAcceptance: false, investorAcceptance: false }
+                                financialYear,
+                                finalAcceptance: { founderAcceptance: false, investorAcceptance: false },
+                                informFounder,
                             };
                             const [result, error] = await EsgddAPIs.saveEscap(finalData);
                             if (!result) throw new Error(error || "Replace failed");
@@ -525,46 +567,40 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                             toast({ title: "CAP Items Replaced", description: `Replaced with ${newItems.length} items.` });
                             if (onRefresh) await onRefresh();
                         } else {
-                            // Append mode – use change‑request API
                             const entityId = propEntityId || (company as any).user?.entityId;
                             if (!entityId) throw new Error("Entity ID missing");
-
-                            // Check if there is an existing plan
+    
                             if (!existingPlan || existingPlan.length === 0) {
-                                // No existing plan – create a new one (same as replace mode)
                                 const finalData = {
                                     plan: newItems,
                                     email: company.email,
                                     financialYear,
                                     finalAcceptance: { founderAcceptance: false, investorAcceptance: false },
+                                    informFounder,
                                 };
                                 const [result, error] = await EsgddAPIs.saveEscap(finalData);
                                 if (!result) throw new Error(error || "Creation failed");
                                 onAddMultipleItems(newItems);
-                                toast({
-                                    title: "CAP Items Created",
-                                    description: `${newItems.length} items added as a new plan.`,
-                                });
+                                toast({ title: "CAP Items Created", description: `${newItems.length} items added as a new plan.` });
                             } else {
                                 const mergedPlan = [...existingPlan, ...newItems];
                                 const payload = {
                                     changeRequest: { plan: mergedPlan },
                                     comment: 'Add items via CSV',
                                     entityId,
+                                    informFounder,
                                 };
                                 const response: any = await EsgddAPIs.esgddChangePlan(payload);
-
-                                if (response?.[0]?.status !== 201) { throw new Error("Change request failed"); }
+                                if (response?.[0]?.status !== 201) throw new Error("Change request failed");
                                 onAddMultipleItems(newItems);
                                 toast({ title: "CAP Items Added", description: `${newItems.length} items added via change request.` });
                             }
                         }
-
-                        // Refresh parent data if callback provided
+    
                         if (onRefresh) await onRefresh();
                         setSelectedFile(null);
-                        // Reset and close (only once)
                         setSelectedCompany("");
+                        setInformFounder(true);
                         setOpen(false);
                     } catch (err: any) {
                         console.error("Import error:", err);
@@ -588,17 +624,16 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
 
     const downloadTemplate = () => {
         const template = [
-            // Optional comment row (starting with #) – many CSV readers skip it
             '# INSTRUCTIONS:',
-            '# - "Status" must be one of: Pending/ In Review/ Accepted/ Completed/ Overdue',
-            '# - "Category" must be one of: environmental/ social/ Governance',
-            '# - "Priority" must be one of: High/ Medium/ Low',
-            '# - Required columns: Item and Measures',
+            '# - "Priority" must be: High/Medium/Low',
+            '# - "Category" must be: environmental/social/governance',
+            '# - "Company Status" and "Investor Status" can be: Pending/In Review/Accepted/Completed/Overdue',
+            '# - Required columns: CAP Item, Measures & Corrective Actions',
             '#',
-            'Item*,Category,Priority,Issue,Related Finding,ESG Lever,CAP Source,Measures*,Resource & Responsibility,Completion Indicator,Timeline Month,Target Date,Progress Percentage,Actual Date,CP/CS,Status,Company Current Status Update,Investor Current Status Update,Review Remarks,Last Review Date,Implementation Support Needed,Closure Verified By,Assigned To,Remarks',
-            '"Example: Improve emissions",environmental,High,"Carbon reporting gaps","Audit finding 2024-01","Policy development","Training material","Implement tracking system","ESG Manager","Monthly report",6,2024-12-31,75,2024-12-31,CP,"In Progress","System implementation 50% complete","System complete","Approved",2024-03-01,"IT support needed","John Doe","jane@example.com","Priority item"'
+            'CAP Item,Priority,Target Date,Company Status,Investor Status,Completed On,CP/CS/ESG Roadmap,Category,"Issue and Related Finding","Measures & Corrective Actions",Completion Indicator,"Timeline Month","Add Update","Review Comments","Last Review Date","Closure Verified By","Assigned To","Implementation Support Needed","ESG Lever","CAP Source"',
+            '"Example: Improve emissions",High,16-May-24,"In Progress","In Progress",16-May-24,CP,environmental,"Carbon reporting gaps","Implement tracking system","ESG Manager",6,"Approved","Review comments",01-Nov-23,"John Doe","jane@example.com","IT support needed","Policy development","Training material"'
         ].join('\n');
-
+    
         const blob = new Blob(["\uFEFF" + template], { type: 'text/csv;charset=utf-8' });
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -608,7 +643,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
         link.click();
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
-
+    
         toast({ title: "Template Downloaded", description: "CSV template with instructions downloaded successfully." });
     };
 
@@ -616,14 +651,34 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
         setOpen(false);
         setSelectedCompany("");
         setSelectedFile(null);
+        setInformFounder(true); // ✅ Reset to default
         setFormRows([{
             id: "1", item: "", category: "environmental", priority: "Medium", issue: "", relatedFinding: "",
             measures: "", resource: "", deliverable: "", timelineMonth: 0, dealCondition: "none",
-            statusUpdate: "", investorStatusUpdate: "", reviewRemarks: "", lastReviewDate: "", implementationSupportNeeded: "",
-            closureVerifiedBy: "", actualDate: "", status: "pending", targetDate: "", esgLever: "", capSource: "",
+            addUpdate: "", reviewRemarks: "", lastReviewDate: "", implementationSupportNeeded: "",
+            closureVerifiedBy: "", actualDate: "", status: "pending", investorStatus: "", targetDate: "", esgLever: "", capSource: "",
             progressPercentage: 0, assignedTo: "", remarks: "",
         }]);
     };
+
+    // ✅ Reusable checkbox component
+    const InformFounderCheckbox = () => (
+        <div className="flex items-center space-x-2">
+            <input
+                type="checkbox"
+                id="informFounder"
+                checked={informFounder}
+                onChange={(e) => setInformFounder(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+            />
+            <Label
+                htmlFor="informFounder"
+                className="text-sm font-normal cursor-pointer"
+            >
+                Inform Founder (send email notification)
+            </Label>
+        </div>
+    );
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
@@ -695,7 +750,6 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                                                 )}
                                             </div>
 
-                                            {/* 1. Item */}
                                             <div>
                                                 <Label>Item *</Label>
                                                 <Textarea
@@ -706,7 +760,6 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                                                 />
                                             </div>
 
-                                            {/* 2. Category & 3. Priority */}
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div>
                                                     <Label>Category</Label>
@@ -738,7 +791,6 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                                                 </div>
                                             </div>
 
-                                            {/* 4. Issue & 5. Related Finding */}
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div>
                                                     <Label>Issue</Label>
@@ -760,7 +812,6 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                                                 </div>
                                             </div>
 
-                                            {/* 6. ESG Lever */}
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div>
                                                     <Label>ESG Lever</Label>
@@ -780,7 +831,6 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                                                 </div>
                                             </div>
 
-                                            {/* 7. Measures */}
                                             <div>
                                                 <Label>Measures & Corrective Actions *</Label>
                                                 <Textarea
@@ -791,7 +841,6 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                                                 />
                                             </div>
 
-                                            {/* 8. Resource & 9. Deliverable */}
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div>
                                                     <Label>Resource & Responsibility</Label>
@@ -812,7 +861,6 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                                                 </div>
                                             </div>
 
-                                            {/* 10. Timeline Month & 11. Target Date & 12. Actual Date */}
                                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                                 <div>
                                                     <Label>Timeline Month</Label>
@@ -842,10 +890,9 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                                                 </div>
                                             </div>
 
-                                            {/* 13. CP/CS & 14. Status */}
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div>
-                                                    <Label>CP/CS/ESG FORWARD AREAS</Label>
+                                                    <Label>CP/CS/ESG Roadmap</Label>
                                                     <Select
                                                         value={row.dealCondition}
                                                         onValueChange={(value: CAPType) => updateRow(row.id, "dealCondition", value)}
@@ -854,7 +901,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                                                         <SelectContent>
                                                             <SelectItem value="CP">CP</SelectItem>
                                                             <SelectItem value="CS">CS</SelectItem>
-                                                            <SelectItem value="ESG_FORWARD_AREAS">ESG Forward areas</SelectItem>
+                                                            <SelectItem value="ESG_Roadmap">ESG Roadmap</SelectItem>
                                                             <SelectItem value="none">None</SelectItem>
                                                         </SelectContent>
                                                     </Select>
@@ -877,22 +924,18 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                                                 </div>
                                             </div>
 
-                                            {/* 15. Current Status Update */}
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
                                                 <div>
                                                     <Label>Current Status Update (Company)</Label>
                                                     <Textarea
-                                                        value={row.statusUpdate}
-                                                        onChange={(e) => updateRow(row.id, "statusUpdate", e.target.value)}
+                                                        value={row.addUpdate}
+                                                        onChange={(e) => updateRow(row.id, "addUpdate", e.target.value)}
                                                         disabled
                                                         placeholder="Latest update on this action item"
                                                         className="min-h-[60px]"
                                                     />
                                                 </div>
-
-                                                {/* 15.1 Current Status Update Investor*/}
-                                                <div>
+                                                {/* <div>
                                                     <Label>Current Status Update (Investor)</Label>
                                                     <Textarea
                                                         value={row.investorStatusUpdate}
@@ -900,10 +943,9 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                                                         placeholder="Latest update on this action item"
                                                         className="min-h-[60px]"
                                                     />
-                                                </div>
+                                                </div> */}
                                             </div>
 
-                                            {/* 16. Review Remarks & 17. Last Review Date */}
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div>
                                                     <Label>Review Remarks</Label>
@@ -924,7 +966,6 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                                                 </div>
                                             </div>
 
-                                            {/* 18. Implementation Support & 19. Closure Verified */}
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div>
                                                     <Label>Implementation Support Needed</Label>
@@ -945,7 +986,6 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                                                 </div>
                                             </div>
 
-                                            {/* 20. Assigned To & 21. Remarks */}
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div>
                                                     <Label>Assigned To</Label>
@@ -959,14 +999,11 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                                         </div>
                                     ))}
                                     <div className="space-y-4 pt-4 border-t mt-4">
-                                        <div className="flex justify-end">
+                                        <div className="flex flex-col gap-3 sm:flex-row sm:justify-end sm:items-center">
+                                            {/* ✅ Inform Founder checkbox - Manual Entry */}
+                                            <InformFounderCheckbox />
+                                            
                                             <div className="flex items-center space-x-2">
-                                                <Label
-                                                    htmlFor="replaceExisting"
-                                                    className="text-sm font-normal cursor-pointer"
-                                                >
-                                                    Replace existing items (otherwise new items will be appended)
-                                                </Label>
                                                 <input
                                                     type="checkbox"
                                                     id="replaceExisting"
@@ -974,11 +1011,16 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                                                     onChange={(e) => setReplaceExisting(e.target.checked)}
                                                     className="h-4 w-4 rounded border-gray-300"
                                                 />
+                                                <Label
+                                                    htmlFor="replaceExisting"
+                                                    className="text-sm font-normal cursor-pointer"
+                                                >
+                                                    Replace existing items
+                                                </Label>
                                             </div>
                                         </div>
                                         <div className="flex justify-end gap-2">
                                             <Button variant="outline" onClick={handleCancel}>Cancel</Button>
-                                            {/* <Button onClick={handleSubmit} disabled={loadingCompanies}>Add CAP Items</Button> */}
                                             <Button
                                                 onClick={handleSubmit}
                                                 disabled={loadingCompanies || isSubmitting || !selectedCompany || formRows.some(row => !row.item?.trim() || !row.measures?.trim())}
@@ -1035,7 +1077,6 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                                             className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
                                             onClick={() => {
                                                 setSelectedFile(null);
-                                                // Reset the file input so the same file can be selected again
                                                 const fileInput = document.getElementById("file-upload") as HTMLInputElement;
                                                 if (fileInput) fileInput.value = "";
                                             }}
@@ -1049,11 +1090,11 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                                 {uploading && <div className="text-center text-sm">Processing file...</div>}
 
                                 <div className="space-y-4 pt-4 border-t mt-4">
-                                    <div className="flex justify-end">
+                                    <div className="flex flex-col gap-3 sm:flex-row sm:justify-end sm:items-center">
+                                        {/* ✅ Inform Founder checkbox - Upload */}
+                                        <InformFounderCheckbox />
+                                        
                                         <div className="flex items-center space-x-2">
-                                            <Label htmlFor="replaceExistingUpload" className="text-sm font-normal cursor-pointer">
-                                                Replace existing items (otherwise new items will be appended)
-                                            </Label>
                                             <input
                                                 type="checkbox"
                                                 id="replaceExistingUpload"
@@ -1061,6 +1102,9 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                                                 onChange={(e) => setReplaceExisting(e.target.checked)}
                                                 className="h-4 w-4 rounded border-gray-300"
                                             />
+                                            <Label htmlFor="replaceExistingUpload" className="text-sm font-normal cursor-pointer">
+                                                Replace existing items
+                                            </Label>
                                         </div>
                                     </div>
                                     <div className="flex justify-end gap-2">
@@ -1070,10 +1114,6 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                                         </Button>
                                     </div>
                                 </div>
-                                {/* <div className="text-xs space-y-1">
-                                    <p><strong>Required columns:</strong> item, measures</p>
-                                    <p><strong>All columns in order:</strong> item, category, priority, issue, relatedfinding, measures, resource, deliverable, timelinemonth, dealcondition, statusupdate, investorStatusUpdate, reviewremarks, lastreviewdate, implementationsupportneeded, closureverifiedby, actualdate, status, targetdate, esglever, capSource, progresspercentage, assignedto, remarks</p>
-                                </div> */}
                             </CardContent>
                         </Card>
                     </TabsContent>

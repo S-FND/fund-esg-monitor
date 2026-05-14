@@ -19,6 +19,7 @@ import {
   EditFund,
   TeamMemberDetail,
   TeamMemberEdit,
+  ESGCapDetailsPage
 } from "./pages";
 // import { Sidebar } from "@/components/sidebar";
 import { Button } from "@/components/ui/button";
@@ -139,6 +140,7 @@ function App() {
                 <Route path="team/edit/:id" element={<TeamMemberEdit />} />
                 <Route path="esg-dd/report" element={<ESGDDReport />} />
                 <Route path="esg-dd/cap" element={<ESGCAP />} />
+                <Route path="esg-cap/review/:id" element={<ESGCapDetailsPage />} />
                 <Route path="valuation" element={<Valuation />} />
                 <Route path="esg-dd/risk-matrix" element={<ESGRiskMatrix />} />
               </Routes>
