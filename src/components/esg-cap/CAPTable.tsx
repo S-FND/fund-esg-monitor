@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Eye, ArrowLeft, ArrowRight, Undo, Plus, Trash2, Columns } from "lucide-react";
+import { Clock, Eye, ArrowLeft, ArrowRight, Undo, Plus, Trash2, Columns, Pencil } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../ui/dialog";
@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import DocumentSummaryDialog from "./document-summary-review";
 import { http } from "@/utils/httpInterceptor";
 import { toast } from "@/hooks/use-toast";
-
+import { Link } from "react-router-dom";
 export type CAPStatus =
   | "pending"
   | "in_review"
@@ -21,7 +21,7 @@ export type CAPStatus =
   | "overdue";
 
 export type CAPCategory = "environmental" | "social" | "governance";
-export type CAPType = "CP" | "CS"| "ESG_FORWARD_AREAS" | "none";
+export type CAPType = "CP" | "CS" | "ESG_Roadmap" | "none";
 export type CAPPriority = "High" | "Medium" | "Low";
 
 export type EvidenceType =
@@ -64,7 +64,7 @@ export interface Template {
 
   structure: TemplateStructure;
 }
-export type ESGCapDealCondition = 'CP' | 'CS' | 'ESG_FORWARD_AREAS' | 'none';
+export type ESGCapDealCondition = 'CP' | 'CS' | 'ESG_Roadmap' | 'none';
 
 export interface TemplateStructure {
   components?: string[];
@@ -148,6 +148,7 @@ export interface ESGCapItem {
   recommendation?: string;
   priority: CAPPriority;
   status: CAPStatus;
+  investorStatus: string;
   deadline?: string;
   targetDate?: string;
   timelineMonth?: number;
@@ -159,14 +160,14 @@ export interface ESGCapItem {
   acceptedAt?: string;
   resource?: string;
   deliverable?: string;
-  statusUpdate?: string;
+  // statusUpdate?: string;
+  addUpdate?: string;
   investorStatusUpdate?: string; 
   reviewRemarks?: string;
   lastReviewDate?: string;
   progressPercentage?: number;
   implementationSupportNeeded?: string;
   closureVerifiedBy?: string;
-  CS?: string;
   remarks?: string;
   theme?: "Policy" | "SOP" | "Metrics" | "Logs";
   data_type?: string;
@@ -364,7 +365,7 @@ export function CAPTable({
     relatedFinding: "",
     esgLever: "",
     capSource: "",
-
+    addUpdate: "",
     // Action Details
     measures: "",
     resource: "",
@@ -378,8 +379,9 @@ export function CAPTable({
 
     // Status & Tracking
     status: "pending" as CAPStatus,
-    statusUpdate: "",
-    investorStatusUpdate:"",
+    // statusUpdate: "",
+    investorStatus: "",
+    investorStatusUpdate: "",
     progressPercentage: "",
 
     // Review & Verification
@@ -416,10 +418,11 @@ export function CAPTable({
       timelineMonth: newRowData.timelineMonth ? Number(newRowData.timelineMonth) : undefined,
       targetDate: newRowData.targetDate || undefined,
       actualDate: newRowData.actualDate || undefined,
-      CS: newRowData.dealCondition,
       dealCondition: newRowData.dealCondition,
       status: newRowData.status,
-      statusUpdate: newRowData.statusUpdate || undefined,
+      addUpdate: newRowData.addUpdate,
+      investorStatus: newRowData.investorStatus,
+      // statusUpdate: newRowData.statusUpdate || undefined,
       investorStatusUpdate: newRowData.investorStatusUpdate || undefined,
       progressPercentage: newRowData.progressPercentage ? Number(newRowData.progressPercentage) : undefined,
       reviewRemarks: newRowData.reviewRemarks || undefined,
@@ -450,7 +453,9 @@ export function CAPTable({
       actualDate: "",
       dealCondition: "CP",
       status: "pending",
-      statusUpdate: "",
+      investorStatus: "",
+      // statusUpdate: "",
+      addUpdate: "",
       investorStatusUpdate: "",
       progressPercentage: "",
       reviewRemarks: "",
@@ -464,8 +469,8 @@ export function CAPTable({
   };
 
   const handleAcceptDocument = async (payload) => {
-    const {data,error}= await http.post('investor/esgdd/escap/document/accept', {
-      entityId:companyEntityId,
+    const { data, error } = await http.post('investor/esgdd/escap/document/accept', {
+      entityId: companyEntityId,
       itemId: item['_id'],
       fileName: payload.fileName,
       status: payload.status,
@@ -479,14 +484,14 @@ export function CAPTable({
       });
       return; // ✅ stop execution
     }
-    
+
     if (data?.status) {
       toast({
         title: `${payload.fileName} ${payload.status === "Accepted" ? "approved" : "rejected"}`,
         description: payload.reason ? `Reason: ${payload.reason}` : undefined,
         variant: "default", // ✅ success style
       });
-    
+
       setIsViewAiOpen(false);
       setReloadData(true);
     }
@@ -577,11 +582,11 @@ export function CAPTable({
   };
 
   const [sortConfig, setSortConfig] = useState<{
-    key: keyof ESGCapItem | "CS";
+    key: keyof ESGCapItem;
     direction: "asc" | "desc";
   } | null>(null);
 
-  const handleSort = (key: keyof ESGCapItem | "CS") => {
+  const handleSort = (key: keyof ESGCapItem) => {
     setSortConfig((prev) => {
       if (prev?.key === key) {
         return { key, direction: prev.direction === "asc" ? "desc" : "asc" };
@@ -592,23 +597,23 @@ export function CAPTable({
 
   const sortedItems = [...items].sort((a, b) => {
     if (!sortConfig) return 0;
-  
-    let aVal: any = sortConfig.key === "CS" ? (a.CS || a.dealCondition) : a[sortConfig.key];
-    let bVal: any = sortConfig.key === "CS" ? (b.CS || b.dealCondition) : b[sortConfig.key];
-  
+
+    let aVal: any = a[sortConfig.key];
+    let bVal: any = b[sortConfig.key];
+
     // priority custom order
     if (sortConfig.key === "priority") {
       const order = { High: 3, Medium: 2, Low: 1 };
       aVal = order[aVal] || 0;
       bVal = order[bVal] || 0;
     }
-  
+
     // date handling
     if (sortConfig.key === "targetDate") {
       aVal = aVal ? new Date(aVal).getTime() : 0;
       bVal = bVal ? new Date(bVal).getTime() : 0;
     }
-  
+
     if (aVal < bVal) return sortConfig.direction === "asc" ? -1 : 1;
     if (aVal > bVal) return sortConfig.direction === "asc" ? 1 : -1;
     return 0;
@@ -644,7 +649,7 @@ export function CAPTable({
                   <th className="p-3 text-left">Item</th>
                   <th className="p-3 text-left">Issue</th>
                   <th className="p-3 text-left">Completion indicator</th>
-                  <th className="p-3 text-left">Progress Percentage</th>
+                  {/* <th className="p-3 text-left">Progress Percentage</th> */}
                   <th className="p-3 text-center">Actions</th>
                 </>
               ) : (
@@ -656,7 +661,7 @@ export function CAPTable({
                   {/* <th className="p-3 text-left">Priority</th> */}
                   <th className="p-3 text-left cursor-pointer" onClick={() => handleSort("priority")}>Priority {getSortIcon("priority")}</th>
                   <th className="p-3 text-left">Issue</th>
-                  <th className="p-3 text-left">Related Finding</th>
+                  {/* <th className="p-3 text-left">Related Finding</th> */}
                   <th className="p-3 text-left">ESG Lever</th>
                   <th className="p-3 text-left">CAP Source</th>
                   <th className="p-3 text-left">Measures & Corrective Actions</th>
@@ -666,9 +671,9 @@ export function CAPTable({
                   <th className="p-3 text-left cursor-pointer" onClick={() => handleSort("targetDate")}>Target Date {getSortIcon("targetDate")}</th>
                   <th className="p-3 text-left">Progress Percentage</th>   {/* NEW */}
                   <th className="p-3 text-left">Actual Date</th>
-                    <th className="p-3 text-left cursor-pointer" onClick={() => handleSort("CS")}>CP/CS/ESG Forward areas {getSortIcon("CS")}</th>
-                  <th className="p-3 text-left">Status</th>
-                  <th className="p-3 text-left">Company Current Status Update</th>
+                  <th className="p-3 text-left cursor-pointer" onClick={() => handleSort("dealCondition")}>CP/CS/ESG Roadmap {getSortIcon("dealCondition")}</th>
+                  <th className="p-3 text-left">Company Status</th>
+                  <th className="p-3 text-left">Add Update</th>
                   <th className="p-3 text-left">Investor Current Status Update</th>
                   <th className="p-3 text-left">Review Remarks</th>
                   <th className="p-3 text-left">Last Review Date</th>
@@ -698,14 +703,14 @@ export function CAPTable({
                       <td className="p-3">
                         {renderField(item.deliverable, originalItem?.deliverable, "deliverable", item.id)}
                       </td>
-                      <td className="p-3">
+                      {/* <td className="p-3">
                         {renderField(
                           item.progressPercentage ? `${item.progressPercentage}%` : "-",
                           originalItem?.progressPercentage ? `${originalItem.progressPercentage}%` : "-",
                           "progressPercentage",
                           item.id
                         )}
-                      </td>
+                      </td> */}
                       <td className="p-3 text-right">
                         {/* Actions (same as original) */}
                         <div className="flex gap-2 justify-end items-center">
@@ -713,6 +718,20 @@ export function CAPTable({
                             <TooltipTrigger asChild>
                               <Button size="sm" variant="outline" onClick={() => onReview(item)}>
                                 <Eye className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipTrigger asChild>
+                              <Button
+                                asChild
+                                size="sm"
+                                variant="outline"
+                                className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white"
+                              >
+                                <Link
+                                  to={`/esg-cap/review/${item?.reportId}?itemName=${encodeURIComponent(item?.item || "")}`}
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Link>
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent><p>Review CAP item</p></TooltipContent>
@@ -762,9 +781,9 @@ export function CAPTable({
                       <td className="p-3">
                         {renderField(item.issue, originalItem?.issue, "issue", item.id)}
                       </td>
-                      <td className="p-3">
+                      {/* <td className="p-3">
                         {renderField(item.relatedFinding, originalItem?.relatedFinding, "relatedFinding", item.id)}
-                      </td>
+                      </td> */}
                       <td className="p-3">
                         {renderField(item.esgLever, originalItem?.esgLever, "esgLever", item.id)}
                       </td>
@@ -794,19 +813,19 @@ export function CAPTable({
                           "progressPercentage",
                           item.id
                         )}
-                  </td>
-                  {/* 6. ESG Lever */}
+                      </td>
+                      {/* 6. ESG Lever */}
                       <td className="p-3">
                         {renderField(item.actualDate, originalItem?.actualDate, "actualDate", item.id)}
                       </td>
                       <td className="p-3">
-                        {renderField(item.CS || item.dealCondition, originalItem?.CS || originalItem?.dealCondition, "CS", item.id)}
+                        {renderField(item.dealCondition, originalItem?.dealCondition || originalItem?.dealCondition, "dealCondition", item.id)}
                       </td>
                       <td className="p-3">
                         {renderField(item.status, originalItem?.status, "status", item.id, true, 'status')}
                       </td>
                       <td className="p-3">
-                        {renderField(item.statusUpdate, originalItem?.statusUpdate, "statusUpdate", item.id)}
+                        {renderField(item.addUpdate, originalItem?.addUpdate, "addUpdate", item.id)}
                       </td>
                       <td className="p-3">
                         {renderField(item.investorStatusUpdate, originalItem?.investorStatusUpdate, "investorStatusUpdate", item.id)}
@@ -835,7 +854,23 @@ export function CAPTable({
                                 <Eye className="h-4 w-4" />
                               </Button>
                             </TooltipTrigger>
+
                             <TooltipContent><p>Review CAP item</p></TooltipContent>
+
+                            <TooltipTrigger asChild>
+                              <Button
+                                asChild
+                                size="sm"
+                                variant="outline"
+                                className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white"
+                              >
+                                <Link
+                                  to={`/esg-cap/review/${item?.reportId}?itemName=${encodeURIComponent(item?.item || "")}`}
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Link>
+                              </Button>
+                            </TooltipTrigger>
                           </Tooltip>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -1063,7 +1098,7 @@ export function CAPTable({
                       <SelectContent>
                         <SelectItem value="CP">CP (Condition Precedent)</SelectItem>
                         <SelectItem value="CS">CS (Condition Subsequent)</SelectItem>
-                        <SelectItem value="ESG_FORWARD_AREAS">ESG Forward areas</SelectItem>
+                        <SelectItem value="ESG_Roadmap">ESG Roadmap</SelectItem>
                         <SelectItem value="none">None</SelectItem>
                       </SelectContent>
                     </Select>
@@ -1087,7 +1122,7 @@ export function CAPTable({
                 </div>
 
                 {/* 15. Current Status Update */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block mb-1 font-medium text-sm">Current Status Update (Company)</label>
                     <Textarea
@@ -1107,7 +1142,7 @@ export function CAPTable({
                       className="min-h-[60px]"
                     />
                   </div>
-                </div>
+                </div> */}
 
                 {/* 16. Review Remarks & 17. Last Review Date */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

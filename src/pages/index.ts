@@ -12,3 +12,4 @@ export { default as NewFund } from './NewFund';
 export { default as EditFund } from './EditFund';
 export { default as TeamMemberDetail } from './TeamMemberDetail';
 export { default as TeamMemberEdit } from './TeamMemberEdit';
+export { default as ESGCapDetailsPage } from './ESGCapDetailsPage';

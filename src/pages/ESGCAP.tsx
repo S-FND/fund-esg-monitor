@@ -62,11 +62,11 @@ export default function ESGCAP() {
   const [comparePlanData, setComparePlanData] = useState<ComparePlan | null>(null);
   const previousCapItemsRef = useRef<ESGCapItem[]>([]);
   const [canEdit, setCanEdit] = useState(true);
-  const [loading,setLoading]=useState(false);
-  const [loadingMessage,setLoadingMessage]=useState("Loading ...")
-  const [entityId,setEntityId]=useState<string>(null);
+  const [loading, setLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState("Loading ...")
+  const [entityId, setEntityId] = useState<string>(null);
   const [reloadData, setReloadData] = useState(false);
-  const [selectedEntityId,setSelectedEntityId]=useState(null)
+  const [selectedEntityId, setSelectedEntityId] = useState(null)
 
   const alerts = useESGCAPAlerts(filteredCAPItems, previousCapItemsRef.current, planData?.finalPlan);
 
@@ -75,7 +75,7 @@ export default function ESGCAP() {
   const [isEditingFinalized, setIsEditingFinalized] = useState(false);
   const originalPlanRef = useRef<ESGCapItem[]>([]);
   const [isSavingFinalized, setIsSavingFinalized] = useState(false);
-  
+
   useEffect(() => {
     const currentDate = new Date();
     const currentYear = currentDate.getFullYear();
@@ -199,19 +199,19 @@ export default function ESGCAP() {
       if (!entityId) return;
       setLoading(true);
       setLoadingMessage("Loading plan details ...")
-      const entityIdWithYear = `${entityId}?financialYear=${financialYear}`;
+      // const entityIdWithYear = `${entityId}?financialYear=${financialYear}`;
       const [data, error] = await EsgddAPIs.getEsgCapPlan({
-        entityId: entityIdWithYear,
+        entityId,
       });
       setLoading(false);
-      console.log('data?.plan?.length',data?.plan?.length);
+      console.log('data?.plan?.length', data?.plan?.length);
       if (data?.plan?.length > 0) {
         setPlanData(data);
         // setFilteredCAPItems(data.plan || []);
         // setCapItems(data.plan || []);
         const normalizedPlan = (data.plan || []).map((item, index) => ({
           ...item,
-          tempId:item.id,
+          tempId: item.id,
           id: `${item.reportId}-${index}-${item.createdAt}`
         }));
 
@@ -253,19 +253,19 @@ export default function ESGCAP() {
 
   useEffect(() => {
     if (selectedCompany !== "all") {
-  
+
       setFilteredCAPItems([]);
       setCapItems([]);
       setPlanData(null);
-  
+
       const company = portfolioCompanies.find(
         c =>
           c._id === selectedCompany ||   // first try id
           c.email === selectedCompany    // fallback email
       );
-  
+
       const entityId = company?.user?.entityId;
-  
+
       if (entityId) {
         setSelectedEntityId(entityId)
         getPlanList(entityId);
@@ -489,7 +489,7 @@ export default function ESGCAP() {
     setCapItems(updatedItems);
     setFilteredCAPItems(updatedItems);
     saveToLocalStorage(updatedItems);
-    
+
     toast({
       title: "Item Deleted",
       description: "Item has been removed from the plan.",
@@ -523,9 +523,9 @@ export default function ESGCAP() {
     return false;
   };
 
-  useEffect(()=>{
+  useEffect(() => {
     getPlanList(entityId)
-  },[reloadData])
+  }, [reloadData])
 
   const handleEditFinalizedPlan = () => {
     // Save a deep copy of the current plan to revert on cancel
@@ -571,10 +571,77 @@ export default function ESGCAP() {
     }
   };
 
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
+    new Set([
+      "CP – Conditions Precedent",
+      "CS – Conditions Subsequent",
+      "ESG Roadmap",
+      "Other Items",
+    ])
+  );
+
+  const toggleGroup = (groupName: string) => {
+    setCollapsedGroups((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(groupName)) newSet.delete(groupName);
+      else newSet.add(groupName);
+      return newSet;
+    });
+  };
+
+  // Define a helper to get the items to display (normal or comparison)
+  const currentDisplayItems = useMemo(() => {
+    if (showComparisonView && comparePlanData) {
+      return comparePlanData.founderPlan; // items to show in comparison mode
+    }
+    return capItems; // normal mode
+  }, [showComparisonView, comparePlanData, capItems]);
+
+  const currentOriginalItems = useMemo(() => {
+    if (showComparisonView && comparePlanData) {
+      return comparePlanData.investorPlan; // original for comparison
+    }
+    return previousCapItemsRef.current; // original for normal (history)
+  }, [showComparisonView, comparePlanData, previousCapItemsRef.current]);
+
+  // Group items by CS value (same mapping as company side)
+  const groupedItems = useMemo(() => {
+    const groups: Record<string, ESGCapItem[]> = {
+      "CP – Conditions Precedent": [],
+      "CS – Conditions Subsequent": [],
+      "ESG Roadmap": [],
+      "Other Items": [],
+    };
+
+    for (const item of currentDisplayItems) {
+      let groupKey = "Other Items";
+      if (item.dealCondition === "CP") groupKey = "CP – Conditions Precedent";
+      else if (item.dealCondition === "CS") groupKey = "CS – Conditions Subsequent";
+      else if (item.dealCondition === "ESG_Roadmap") groupKey = "ESG Roadmap";
+
+      groups[groupKey].push(item);
+    }
+
+    return groups;
+  }, [currentDisplayItems]);
+
+  const getLoggedInUser = () => {
+    const userStr = localStorage.getItem('fandoro-user');
+    if (!userStr) return null;
+    try {
+      return JSON.parse(userStr);
+    } catch {
+      return null;
+    }
+  };
+
+  const loggedInUser = getLoggedInUser();
+  const isFiresideEmail = loggedInUser?.email?.endsWith('@fireside.com') ?? false;
+
 
   return (
     <div className="space-y-6">
-      <Loader show={loading} text={loadingMessage}/>
+      <Loader show={loading} text={loadingMessage} />
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">ESG Corrective Action Plan</h1>
@@ -640,14 +707,14 @@ export default function ESGCAP() {
         </Card>
       </div>
 
-      <div className="flex items-center justify-between">
+      {/* <div className="flex items-center justify-between">
         <FilterControls
           companies={portfolioCompanies}
           selectedCompany={selectedCompany}
           onCompanyChange={setSelectedCompany}
-        />
+        /> */}
 
-        {/* {!isPlanFinalized && filteredCAPItems.length > 0 && (
+      {/* {!isPlanFinalized && filteredCAPItems.length > 0 && (
           <div className="flex items-center gap-6">
             <Button
               variant="outline"
@@ -661,113 +728,116 @@ export default function ESGCAP() {
             </Button>
           </div>
         )} */}
-      </div>
+      {/* </div> */}
 
-      {filteredCAPItems.length > 0 && (
-        <>
-          <AlertsPanel
-            overdueItems={alerts.overdueItems}
-            approachingDeadlines={alerts.approachingDeadlines}
-            onItemClick={handleReview}
-            finalPlan={isPlanFinalized}
-          />
+      <CardContent>
+        {/* Company filter (unchanged) */}
+        {!isFiresideEmail && (
+          <div className="flex items-center justify-between mb-6">
+            <FilterControls
+              companies={portfolioCompanies}
+              selectedCompany={selectedCompany}
+              onCompanyChange={setSelectedCompany}
+            />
+          </div>
+        )}
 
-          <Card>
-            <CardHeader>
-              <CardTitle>
-                Corrective Action Plan Items
-                {!isPlanFinalized && <span className="ml-2 text-yellow-600">(In Approval Phase)</span>}
-                {isPlanFinalized && <span className="ml-2 text-green-600">(Final)</span>}
-              </CardTitle>
-              <CardDescription>
-                Review and approve items in the ESG Corrective Action Plan
-                {showComparisonView && <span className="ml-2 text-purple-500 font-medium">(Comparing Changes)</span>}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {showComparisonView && comparePlanData ? (
-                <div className="relative">
-                  <CAPTable
-                    items={comparePlanData.founderPlan}
-                    originalItems={comparePlanData.investorPlan}
-                    onReview={handleReview}
-                    onSendReminder={handleSendReminder}
-                    onAddItem={handleAddItem}
-                    onDeleteItem={handleDeleteItem} 
-                    isComparisonView={true}
-                    onRevert={handleRevertToOriginal}
-                    onRevertField={handleRevertField}
-                    // finalPlan={isPlanFinalized}
-                    finalPlan={isEditingFinalized ? false : isPlanFinalized}
-                    progressPercentage={progressPercentage}
-                    companyEntityId={selectedEntityId}
-                    setReloadData={setReloadData}
-                  />
-                </div>
-              ) : (
-                <CAPTable
-                  items={capItems}
-                  originalItems={previousCapItemsRef.current}
-                  onReview={handleReview}
-                  onSendReminder={handleSendReminder}
-                  onAddItem={handleAddItem}
-                  onDeleteItem={handleDeleteItem} 
-                  isComparisonView={false}
-                  onRevert={handleRevertToOriginal}
-                  onRevertField={handleRevertField}
-                  // finalPlan={isPlanFinalized}
-                  finalPlan={isEditingFinalized ? false : isPlanFinalized}
-                  progressPercentage={progressPercentage}
-                  companyEntityId={selectedEntityId}
-                  setReloadData={setReloadData}
-                />
-              )}
-            </CardContent>
-            {filteredCAPItems.length > 0 && (
-              <CardFooter className="flex justify-end gap-4">
-                {!isPlanFinalized && (
-                  <>
-                    <Button
-                      onClick={handleSubmitAllCap}
-                      size="lg"
-                      disabled={isPlanFinalized}
-                    >
-                      Request CAP Change
-                    </Button>
-                    <Button
-                      onClick={handleAcceptCap}
-                      size="lg"
-                    >
-                      {planData?.investorPlanFinalStatus || planData?.founderPlanFinalStatus
-                        ? "Accept CAP"
-                        : "Accept CAP"}
-                    </Button>
-                  </>
-                )}
-                {/* {isPlanFinalized && !isEditingFinalized && (
-                  <Button
-                    onClick={handleEditFinalizedPlan}
-                    size="lg"
-                    variant="outline"
+        {/* Alerts panel (unchanged) */}
+        {filteredCAPItems.length > 0 && (
+          <div className="mb-6 py-4">
+            <AlertsPanel
+              overdueItems={alerts.overdueItems}
+              approachingDeadlines={alerts.approachingDeadlines}
+              onItemClick={handleReview}
+              finalPlan={isPlanFinalized}
+            />
+          </div>
+        )}
+
+        {/* Grouped sections */}
+        <div className="space-y-6">
+          {Object.entries(groupedItems)
+            .filter(([_, items]) => items.length > 0)
+            .map(([groupName, items]) => {
+              const isCollapsed = collapsedGroups.has(groupName);
+              // For comparison view, we need the original items filtered to the same group
+              const originalForGroup = showComparisonView
+                ? currentOriginalItems.filter((orig) => {
+                  if (groupName === "CP – Conditions Precedent") return orig.dealCondition === "CP";
+                  if (groupName === "CS – Conditions Subsequent") return orig.dealCondition === "CS";
+                  if (groupName === "ESG Roadmap") return orig.dealCondition === "ESG_Roadmap";
+                  return orig.dealCondition !== "CP" && orig.dealCondition !== "CS" && orig.dealCondition !== "ESG_Roadmap";
+                })
+                : currentOriginalItems;
+
+              return (
+                <div key={groupName} className="border rounded-lg overflow-hidden bg-white">
+                  <div
+                    className="px-4 py-3 border-b bg-slate-50 cursor-pointer flex justify-between items-center hover:bg-slate-100"
+                    onClick={() => toggleGroup(groupName)}
                   >
-                    Update Final Plan
-                  </Button>
-                )} */}
-                {isPlanFinalized && isEditingFinalized && (
-                    <>
-                      <Button onClick={handleSaveFinalizedEdits} size="lg" variant="default">
-                        Save Finalized Edits
-                      </Button>
-                      <Button onClick={handleCancelFinalizedEdit} size="lg" variant="ghost">
-                        Cancel
-                      </Button>
-                    </>
+                    <h2 className="text-lg font-semibold text-slate-800">{groupName}</h2>
+                    <span className="text-slate-500">{isCollapsed ? "▼" : "▶"}</span>
+                  </div>
+                  {!isCollapsed && (
+                    <div className="overflow-x-auto">
+                      <CAPTable
+                        items={items}
+                        originalItems={originalForGroup}
+                        onReview={handleReview}
+                        onSendReminder={handleSendReminder}
+                        onAddItem={handleAddItem}
+                        onDeleteItem={handleDeleteItem}
+                        isComparisonView={showComparisonView}
+                        onRevert={handleRevertToOriginal}
+                        onRevertField={handleRevertField}
+                        finalPlan={isEditingFinalized ? false : isPlanFinalized}
+                        progressPercentage={progressPercentage}
+                        companyEntityId={selectedEntityId}
+                        setReloadData={setReloadData}
+                      />
+                    </div>
                   )}
-              </CardFooter>
+                </div>
+              );
+            })}
+        </div>
+
+        {/* If no items at all, show empty state */}
+        {currentDisplayItems.length === 0 && (
+          <div className="text-center py-12 text-muted-foreground">
+            No CAP items found for the selected company.
+          </div>
+        )}
+
+        {/* Footer buttons (unchanged) */}
+        {filteredCAPItems.length > 0 && (
+          <CardFooter className="flex justify-end gap-4 mt-6 pt-4 border-t">
+            {!isPlanFinalized && (
+              <>
+                <Button onClick={handleSubmitAllCap} size="lg" disabled={isPlanFinalized}>
+                  Request CAP Change
+                </Button>
+                <Button onClick={handleAcceptCap} size="lg">
+                  {planData?.investorPlanFinalStatus || planData?.founderPlanFinalStatus
+                    ? "Accept CAP"
+                    : "Accept CAP"}
+                </Button>
+              </>
             )}
-          </Card>
-        </>
-      )}
+            {isPlanFinalized && isEditingFinalized && (
+              <>
+                <Button onClick={handleSaveFinalizedEdits} size="lg" variant="default">
+                  Save Finalized Edits
+                </Button>
+                <Button onClick={handleCancelFinalizedEdit} size="lg" variant="ghost">
+                  Cancel
+                </Button>
+              </>
+            )}
+          </CardFooter>
+        )}
+      </CardContent>
 
       <ReviewDialog
         item={selectedItem}
