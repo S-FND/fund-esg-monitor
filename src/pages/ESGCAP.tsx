@@ -90,10 +90,32 @@ export default function ESGCAP() {
   }, []);
 
   // Calculate stats
+  // Calculate stats
   const totalItems = filteredCAPItems.length;
-  const completedItems = filteredCAPItems.filter(i => i.status === 'completed').length;
-  const pendingItems = filteredCAPItems.filter(i => i.status === 'pending').length;
-  const inProgressItems = filteredCAPItems.filter(i => i.status === 'overdue').length;
+
+  const completedItems = filteredCAPItems.filter(
+    (item) => item.investorStatus === "Closed"
+  ).length;
+
+  const overdueItems = filteredCAPItems.filter(
+    (item) => item.status === "overdue"
+  ).length;
+
+  const dueSoonItems = filteredCAPItems.filter(
+    (item) => item.status === "due in <1 month"
+  ).length;
+
+  const upcomingItems = filteredCAPItems.filter(
+    (item) => item.status === "upcoming"
+  ).length;
+
+  const submittedItems = filteredCAPItems.filter(
+    (item) => item.status === "submitted"
+  ).length;
+
+  const resubmitItems = filteredCAPItems.filter(
+    (item) => item.status === "request to re-submit"
+  ).length;
 
   const handleReview = (item: ESGCapItem) => {
     let currentItem =
@@ -447,7 +469,7 @@ export default function ESGCAP() {
     }, 0);
 
     const completedWeightage = filteredCAPItems
-      .filter(item => item.status === "completed")
+      .filter(item => item.investorStatus === 'Closed')
       .reduce((sum, item) => {
         return sum + (100 / totalItems) * getPriorityWeight(item.priority || "Medium");
       }, 0);
@@ -657,12 +679,14 @@ export default function ESGCAP() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+
         <Card className="border-none shadow-sm bg-gradient-to-br from-blue-500 to-blue-600 text-white">
           <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-medium text-blue-100">Total Items</p>
+                <p className="text-xs font-medium text-blue-100">Total</p>
                 <p className="text-lg font-bold">{totalItems}</p>
               </div>
               <FileText className="h-4 w-4 text-white/80" />
@@ -674,7 +698,7 @@ export default function ESGCAP() {
           <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-medium text-green-100">Completed</p>
+                <p className="text-xs font-medium text-green-100">Closed</p>
                 <p className="text-lg font-bold">{completedItems}</p>
               </div>
               <CheckCircle2 className="h-4 w-4 text-white/80" />
@@ -682,29 +706,56 @@ export default function ESGCAP() {
           </CardContent>
         </Card>
 
-        <Card className="border-none shadow-sm bg-gradient-to-br from-yellow-500 to-yellow-600 text-white">
+        <Card className="border-none shadow-sm bg-gradient-to-br from-orange-500 to-orange-600 text-white">
           <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-medium text-yellow-100">Pending</p>
-                <p className="text-lg font-bold">{pendingItems}</p>
+                <p className="text-xs font-medium text-orange-100">
+                  Due &lt;1 Month
+                </p>
+                <p className="text-lg font-bold">{dueSoonItems}</p>
               </div>
               <Clock className="h-4 w-4 text-white/80" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-none shadow-sm bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+        <Card className="border-none shadow-sm bg-gradient-to-br from-red-500 to-red-600 text-white">
           <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-medium text-purple-100">In Progress</p>
-                <p className="text-lg font-bold">{inProgressItems}</p>
+                <p className="text-xs font-medium text-red-100">Overdue</p>
+                <p className="text-lg font-bold">{overdueItems}</p>
+              </div>
+              <ArrowDown className="h-4 w-4 text-white/80" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-none shadow-sm bg-gradient-to-br from-blue-400 to-blue-500 text-white">
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-blue-100">Submitted</p>
+                <p className="text-lg font-bold">{submittedItems}</p>
+              </div>
+              <ArrowUp className="h-4 w-4 text-white/80" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-none shadow-sm bg-gradient-to-br from-slate-500 to-slate-600 text-white">
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-slate-100">Upcoming</p>
+                <p className="text-lg font-bold">{upcomingItems}</p>
               </div>
               <Target className="h-4 w-4 text-white/80" />
             </div>
           </CardContent>
         </Card>
+
       </div>
 
       {/* <div className="flex items-center justify-between">

@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Eye, ArrowLeft, ArrowRight, Undo, Plus, Trash2, Columns, Pencil } from "lucide-react";
+import { Clock, Eye, ArrowLeft, ArrowRight, Undo, Plus, Trash2, Columns, Pencil,AlertTriangle, Upload, Check, Loader, RotateCcw,X } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../ui/dialog";
@@ -13,17 +13,11 @@ import DocumentSummaryDialog from "./document-summary-review";
 import { http } from "@/utils/httpInterceptor";
 import { toast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
-export type CAPStatus =
-  | "pending"
-  | "in_review"
-  | "accepted"
-  | "completed"
-  | "overdue";
+export type CAPStatus = 'upcoming' | 'due in <1 month' | 'overdue' | 'submitted' | 'request to re-submit';
 
 export type CAPCategory = "environmental" | "social" | "governance";
 export type CAPType = "CP" | "CS" | "ESG_Roadmap" | "none";
 export type CAPPriority = "High" | "Medium" | "Low";
-
 export type EvidenceType =
   | "data"
   | "report"
@@ -218,23 +212,41 @@ const isDateField = (fieldName: string): boolean => {
 
 const getStatusBadge = (status: CAPStatus) => {
   switch (status) {
-    case "pending":
-      return <Badge variant="secondary">Pending</Badge>;
-    // case "in_progress":
-    //   return <Badge variant="outline">In Progress</Badge>;
-    case "completed":
-      return <Badge variant="default" className="bg-green-500 hover:bg-green-600">Completed</Badge>;
-    case "overdue":
-      return <Badge variant="outline">Overdue</Badge>;
-    // case "rejected":
-    //   return <Badge variant="destructive">{status.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}</Badge>;
-    case "in_review":
-    case "accepted":
-      return <Badge variant="outline">{status.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}</Badge>;
+    case 'upcoming':
+      return (
+        <Badge className="bg-slate-100 text-slate-700 hover:bg-slate-200">
+          <Clock className="h-3 w-3 mr-1" /> Upcoming
+        </Badge>
+      );
+    case 'due in <1 month':
+      return (
+        <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-200">
+          <AlertTriangle className="h-3 w-3 mr-1" /> Due in &lt;1 Month
+        </Badge>
+      );
+    case 'overdue':
+      return (
+        <Badge className="bg-red-100 text-red-800 hover:bg-red-200">
+          <X className="h-3 w-3 mr-1" /> Overdue
+        </Badge>
+      );
+    case 'submitted':
+      return (
+        <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200">
+          <Upload className="h-3 w-3 mr-1" /> Submitted
+        </Badge>
+      );
+    case 'request to re-submit':
+      return (
+        <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-200">
+          <RotateCcw className="h-3 w-3 mr-1" /> Request to Re-submit
+        </Badge>
+      );
     default:
       return <Badge variant="outline">{status}</Badge>;
-  }
-};
+    }
+  };
+  
 
 const getPriorityBadge = (priority: CAPPriority) => {
   switch (priority) {
@@ -326,7 +338,7 @@ export function CAPTable({
   companyEntityId,
   setReloadData
 }: CAPTableProps) {
-  const completedItems = items.filter(item => item.status === "completed").length;
+  const completedItems = items.filter(item => item.investorStatus === 'Closed').length;
   const progressPercentage = items.length > 0 ? Math.round((completedItems / items.length) * 100) : 0;
   const [isViewAiOpen, setIsViewAiOpen] = useState(false);
   const [item, setItem] = useState<ESGCapItem>({} as ESGCapItem);
@@ -452,7 +464,7 @@ export function CAPTable({
       targetDate: "",
       actualDate: "",
       dealCondition: "CP",
-      status: "pending",
+      status: "overdue",
       investorStatus: "",
       // statusUpdate: "",
       addUpdate: "",
@@ -646,40 +658,41 @@ export function CAPTable({
                 // COMPACT VIEW HEADERS
                 <>
                   <th className="p-3 text-left">S. No</th>
-                  <th className="p-3 text-left">Item</th>
-                  <th className="p-3 text-left">Issue</th>
-                  <th className="p-3 text-left">Completion indicator</th>
-                  {/* <th className="p-3 text-left">Progress Percentage</th> */}
+                  <th className="p-3 text-left">CAP Item</th>
+                  <th className="p-3 text-left cursor-pointer" onClick={() => handleSort("priority")}>Priority {getSortIcon("priority")}</th>
+                  <th className="p-3 text-left cursor-pointer" onClick={() => handleSort("targetDate")}>Target Date {getSortIcon("targetDate")}</th>
+                  <th className="p-3 text-left">Company Status</th>
+                  <th className="p-3 text-left">Investor Status</th>
+                  <th className="p-3 text-left">Completed On</th>
                   <th className="p-3 text-center">Actions</th>
+                  {/* <th className="p-3 text-left">Issue</th>
+                  <th className="p-3 text-left">Completion indicator</th> */}
+                  {/* <th className="p-3 text-left">Progress Percentage</th> */}
                 </>
               ) : (
                 // FULL VIEW HEADERS (all columns + Progress Percentage after Target Date)
                 <>
                   <th className="p-3 text-left">S. No</th>
-                  <th className="p-3 text-left">Item</th>
-                  <th className="p-3 text-left">Category</th>
-                  {/* <th className="p-3 text-left">Priority</th> */}
+                  <th className="p-3 text-left">CAP Item</th>
                   <th className="p-3 text-left cursor-pointer" onClick={() => handleSort("priority")}>Priority {getSortIcon("priority")}</th>
-                  <th className="p-3 text-left">Issue</th>
-                  {/* <th className="p-3 text-left">Related Finding</th> */}
-                  <th className="p-3 text-left">ESG Lever</th>
-                  <th className="p-3 text-left">CAP Source</th>
+                  <th className="p-3 text-left cursor-pointer" onClick={() => handleSort("targetDate")}>Target Date {getSortIcon("targetDate")}</th>
+                  <th className="p-3 text-left">Company Status</th>
+                  <th className="p-3 text-left">Investor Status</th>
+                  <th className="p-3 text-left">Completed On</th>
+                  <th className="p-3 text-left cursor-pointer" onClick={() => handleSort("dealCondition")}>CP/CS/ESG Roadmap {getSortIcon("dealCondition")}</th>
+                  <th className="p-3 text-left">Category</th>
+                  <th className="p-3 text-left">Issue and Related Finding</th>
                   <th className="p-3 text-left">Measures & Corrective Actions</th>
-                  <th className="p-3 text-left">Resource & Responsibility</th>
                   <th className="p-3 text-left">Completion Indicator</th>
                   <th className="p-3 text-left">Timeline Month</th>
-                  <th className="p-3 text-left cursor-pointer" onClick={() => handleSort("targetDate")}>Target Date {getSortIcon("targetDate")}</th>
-                  <th className="p-3 text-left">Progress Percentage</th>   {/* NEW */}
-                  <th className="p-3 text-left">Actual Date</th>
-                  <th className="p-3 text-left cursor-pointer" onClick={() => handleSort("dealCondition")}>CP/CS/ESG Roadmap {getSortIcon("dealCondition")}</th>
-                  <th className="p-3 text-left">Company Status</th>
                   <th className="p-3 text-left">Add Update</th>
-                  <th className="p-3 text-left">Investor Current Status Update</th>
-                  <th className="p-3 text-left">Review Remarks</th>
+                  <th className="p-3 text-left">Review Comments</th>
                   <th className="p-3 text-left">Last Review Date</th>
-                  <th className="p-3 text-left">Implementation Support Needed</th>
                   <th className="p-3 text-left">Closure Verified By</th>
                   <th className="p-3 text-left">Assigned To</th>
+                  <th className="p-3 text-left">Implementation Support Needed</th>
+                  <th className="p-3 text-left">ESG Lever</th>
+                  <th className="p-3 text-left">CAP Source</th>
                   <th className="p-3 text-center">Actions</th>
                 </>
               )}
@@ -698,19 +711,20 @@ export function CAPTable({
                         {renderField(item.item, originalItem?.item, "item", item.id)}
                       </td>
                       <td className="p-3">
-                        {renderField(item.issue, originalItem?.issue, "issue", item.id)}
+                        {renderField(item.priority, originalItem?.priority, "priority", item.id, true, 'priority')}
                       </td>
                       <td className="p-3">
-                        {renderField(item.deliverable, originalItem?.deliverable, "deliverable", item.id)}
+                        {renderField(item.targetDate, originalItem?.targetDate, "targetDate", item.id)}
                       </td>
-                      {/* <td className="p-3">
-                        {renderField(
-                          item.progressPercentage ? `${item.progressPercentage}%` : "-",
-                          originalItem?.progressPercentage ? `${originalItem.progressPercentage}%` : "-",
-                          "progressPercentage",
-                          item.id
-                        )}
-                      </td> */}
+                      <td className="p-3">
+                        {renderField(item.status, originalItem?.status, "status", item.id, true, 'status')}
+                      </td>
+                      <td className="p-3">
+                        {renderField(item.investorStatus, originalItem?.investorStatus, "investorStatus", item.id, true)}
+                      </td>
+                      <td className="p-3">
+                        {renderField(item.actualDate, originalItem?.actualDate, "actualDate", item.id)}
+                      </td>
                       <td className="p-3 text-right">
                         {/* Actions (same as original) */}
                         <div className="flex gap-2 justify-end items-center">
@@ -773,28 +787,31 @@ export function CAPTable({
                         {renderField(item.item, originalItem?.item, "item", item.id)}
                       </td>
                       <td className="p-3">
-                        {renderField(item.category, originalItem?.category, "category", item.id, true, 'category')}
+                        {renderField(item.priority, originalItem?.priority, "priority", item.id, true, 'priority')}
                       </td>
                       <td className="p-3">
-                        {renderField(item.priority, originalItem?.priority, "priority", item.id, true, 'priority')}
+                        {renderField(item.targetDate, originalItem?.targetDate, "targetDate", item.id)}
+                      </td>
+                      <td className="p-3">
+                        {renderField(item.status, originalItem?.status, "status", item.id, true, 'status')}
+                      </td>
+                      <td className="p-3">
+                        {renderField(item.investorStatus, originalItem?.investorStatus, "investorStatus", item.id, true)}
+                      </td>
+                      <td className="p-3">
+                        {renderField(item.actualDate, originalItem?.actualDate, "actualDate", item.id)}
+                      </td>
+                      <td className="p-3">
+                        {renderField(item.dealCondition, originalItem?.dealCondition || originalItem?.dealCondition, "dealCondition", item.id)}
+                      </td>
+                      <td className="p-3">
+                        {renderField(item.category, originalItem?.category, "category", item.id, true, 'category')}
                       </td>
                       <td className="p-3">
                         {renderField(item.issue, originalItem?.issue, "issue", item.id)}
                       </td>
-                      {/* <td className="p-3">
-                        {renderField(item.relatedFinding, originalItem?.relatedFinding, "relatedFinding", item.id)}
-                      </td> */}
-                      <td className="p-3">
-                        {renderField(item.esgLever, originalItem?.esgLever, "esgLever", item.id)}
-                      </td>
-                      <td className="p-3">
-                        {renderField(item.capSource, originalItem?.capSource, "capSource", item.id)}
-                      </td>
                       <td className="p-3">
                         {renderField(item.measures, originalItem?.measures, "measures", item.id)}
-                      </td>
-                      <td className="p-3">
-                        {renderField(item.resource, originalItem?.resource, "resource", item.id)}
                       </td>
                       <td className="p-3">
                         {renderField(item.deliverable, originalItem?.deliverable, "deliverable", item.id)}
@@ -803,32 +820,7 @@ export function CAPTable({
                         {renderField(item.timelineMonth, originalItem?.timelineMonth, "timelineMonth", item.id)}
                       </td>
                       <td className="p-3">
-                        {renderField(item.targetDate, originalItem?.targetDate, "targetDate", item.id)}
-                      </td>
-                      {/* Progress Percentage column (after Target Date) */}
-                      <td className="p-3">
-                        {renderField(
-                          item.progressPercentage ? `${item.progressPercentage}%` : "-",
-                          originalItem?.progressPercentage ? `${originalItem.progressPercentage}%` : "-",
-                          "progressPercentage",
-                          item.id
-                        )}
-                      </td>
-                      {/* 6. ESG Lever */}
-                      <td className="p-3">
-                        {renderField(item.actualDate, originalItem?.actualDate, "actualDate", item.id)}
-                      </td>
-                      <td className="p-3">
-                        {renderField(item.dealCondition, originalItem?.dealCondition || originalItem?.dealCondition, "dealCondition", item.id)}
-                      </td>
-                      <td className="p-3">
-                        {renderField(item.status, originalItem?.status, "status", item.id, true, 'status')}
-                      </td>
-                      <td className="p-3">
                         {renderField(item.addUpdate, originalItem?.addUpdate, "addUpdate", item.id)}
-                      </td>
-                      <td className="p-3">
-                        {renderField(item.investorStatusUpdate, originalItem?.investorStatusUpdate, "investorStatusUpdate", item.id)}
                       </td>
                       <td className="p-3">
                         {renderField(item.reviewRemarks, originalItem?.reviewRemarks, "reviewRemarks", item.id)}
@@ -837,13 +829,19 @@ export function CAPTable({
                         {renderField(item.lastReviewDate, originalItem?.lastReviewDate, "lastReviewDate", item.id)}
                       </td>
                       <td className="p-3">
-                        {renderField(item.implementationSupportNeeded, originalItem?.implementationSupportNeeded, "implementationSupportNeeded", item.id)}
-                      </td>
-                      <td className="p-3">
                         {renderField(item.closureVerifiedBy, originalItem?.closureVerifiedBy, "closureVerifiedBy", item.id)}
                       </td>
                       <td className="p-3">
                         {renderField(item.assignedTo, originalItem?.assignedTo, "assignedTo", item.id)}
+                      </td>
+                      <td className="p-3">
+                        {renderField(item.implementationSupportNeeded, originalItem?.implementationSupportNeeded, "implementationSupportNeeded", item.id)}
+                      </td>
+                      <td className="p-3">
+                        {renderField(item.esgLever, originalItem?.esgLever, "esgLever", item.id)}
+                      </td>
+                      <td className="p-3">
+                        {renderField(item.capSource, originalItem?.capSource, "capSource", item.id)}
                       </td>
                       <td className="p-3 text-right">
                         {/* Actions (same as original, re-use the same actions JSX) */}
@@ -981,7 +979,7 @@ export function CAPTable({
                   </div>
                 </div>
 
-                {/* 4. Issue & 5. Related Finding */}
+                {/* 4. Issue &  */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block mb-1 font-medium text-sm">Issue</label>
@@ -989,15 +987,6 @@ export function CAPTable({
                       value={newRowData.issue}
                       onChange={(e) => setNewRowData({ ...newRowData, issue: e.target.value })}
                       placeholder="Describe the issue"
-                      className="min-h-[60px]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block mb-1 font-medium text-sm">Related Finding</label>
-                    <Textarea
-                      value={newRowData.relatedFinding}
-                      onChange={(e) => setNewRowData({ ...newRowData, relatedFinding: e.target.value })}
-                      placeholder="Related audit findings"
                       className="min-h-[60px]"
                     />
                   </div>
@@ -1037,14 +1026,6 @@ export function CAPTable({
 
                 {/* 8. Resource & 9. Deliverable */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block mb-1 font-medium text-sm">Resource & Responsibility</label>
-                    <Input
-                      value={newRowData.resource}
-                      onChange={(e) => setNewRowData({ ...newRowData, resource: e.target.value })}
-                      placeholder="Who is responsible?"
-                    />
-                  </div>
                   <div>
                     <label className="block mb-1 font-medium text-sm">Completion Indicator</label>
                     <Textarea

@@ -112,7 +112,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
         implementationSupportNeeded: "",
         closureVerifiedBy: "",
         actualDate: "",
-        status: "pending",
+        status: "overdue",
         investorStatus: "",
         targetDate: "",
         esgLever: "",
@@ -190,7 +190,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
             implementationSupportNeeded: "",
             closureVerifiedBy: "",
             actualDate: "",
-            status: "pending",
+            status: "overdue",
             investorStatus: "",
             targetDate: "",
             esgLever: "",
@@ -340,7 +340,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                 id: "1", item: "", category: "environmental", priority: "Medium", issue: "", relatedFinding: "",
                 measures: "", resource: "", deliverable: "", timelineMonth: 0, dealCondition: "none",
                 addUpdate: "", reviewRemarks: "", lastReviewDate: "", implementationSupportNeeded: "",
-                closureVerifiedBy: "", actualDate: "", status: "pending", investorStatus: "", targetDate: "", esgLever: "", capSource: "",
+                closureVerifiedBy: "", actualDate: "", status: "overdue", investorStatus: "", targetDate: "", esgLever: "", capSource: "",
                 progressPercentage: 0, assignedTo: "", remarks: "",
             }]);
             setSelectedFile(null);
@@ -656,7 +656,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
             id: "1", item: "", category: "environmental", priority: "Medium", issue: "", relatedFinding: "",
             measures: "", resource: "", deliverable: "", timelineMonth: 0, dealCondition: "none",
             addUpdate: "", reviewRemarks: "", lastReviewDate: "", implementationSupportNeeded: "",
-            closureVerifiedBy: "", actualDate: "", status: "pending", investorStatus: "", targetDate: "", esgLever: "", capSource: "",
+            closureVerifiedBy: "", actualDate: "", status: "overdue", investorStatus: "", targetDate: "", esgLever: "", capSource: "",
             progressPercentage: 0, assignedTo: "", remarks: "",
         }]);
     };
@@ -842,14 +842,6 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                                             </div>
 
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                <div>
-                                                    <Label>Resource & Responsibility</Label>
-                                                    <Input
-                                                        value={row.resource}
-                                                        onChange={(e) => updateRow(row.id, "resource", e.target.value)}
-                                                        placeholder="Who is responsible?"
-                                                    />
-                                                </div>
                                                 <div>
                                                     <Label>Completion Indicator</Label>
                                                     <Textarea
