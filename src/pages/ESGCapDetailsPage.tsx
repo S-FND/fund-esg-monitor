@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import {
     ArrowLeft,
@@ -101,7 +101,7 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
     const { id } = useParams();
     const [searchParams] = useSearchParams();
     const itemName = searchParams.get('itemName');
-
+    const companyEntityId = searchParams.get('companyEntityId');
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [capItem, setCapItem] = useState<any>(null);
@@ -116,7 +116,7 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
     const [attachmentsOpen, setAttachmentsOpen] = useState(false);
     const [deleting, setDeleting] = useState<string | null>(null);
     const [confirmDelete, setConfirmDelete] = useState<{ file: any; idx: number } | null>(null);
-    const selectedIndicatorRef = useRef<string | null>(null);
+    const [selectedIndicator, setSelectedIndicator] = useState<string | null>(null);
     const [financialYear, setFinancialYear] = useState("");
 
     // Financial year calculation
@@ -130,19 +130,22 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
         setFinancialYear(fy);
     }, []);
 
-    const getUserEntityId = () => {
+    const [entityId, setEntityId] = useState<string | null>(
+        companyEntityId || null
+    );
+
+    useEffect(() => {
         try {
-            const user = localStorage.getItem('fandoro-user');
-            if (user) {
-                const parsedUser = JSON.parse(user);
-                return parsedUser?.entityId || null;
+            const userData = localStorage.getItem('fandoro-user');
+
+            if (userData && userData !== 'undefined') {
+                const parsedUser = JSON.parse(userData);
+                setEntityId(parsedUser?.entityId || null);
             }
-            return null;
-        } catch {
-            return null;
+        } catch (error) {
+            console.error('Failed to parse user data', error);
         }
-    };
-    const entityId = getUserEntityId();
+    }, []);
 
     // Helper: Normalize string for comparison
     const normalizeString = (str: string) => {
@@ -150,7 +153,7 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
     };
 
     const loadData = async () => {
-        if (!entityId || !id) {
+        if (!entityId ) {
             setLoading(false);
             return;
         }
@@ -158,10 +161,9 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
         setLoading(true);
         try {
             const [data, error] = await EsgddAPIs.getEsgCapPlan({
-                entityId: entityId,
-                financialYear: financialYear,
+                entityId: entityId
             });
-
+            setLoading(false);
             if (data?.status && Array.isArray(data.plan)) {
                 setFullPlan(data.plan);
                 let matchedItem = null;
@@ -195,10 +197,11 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
     };
 
     useEffect(() => {
-        loadData();
-    }, [id, itemName, financialYear, entityId]);
+        if (entityId) {
+            loadData();
+        }
+    }, [id, itemName]);
 
-    // Reset editedItem when capItem changes
     useEffect(() => {
         if (capItem) {
             setEditedItem({ ...capItem });
@@ -348,8 +351,8 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Company Actions - fully editable */}
-                <SectionCard title="Company Actions" subtitle="Operational updates – investor can edit and submit changes" icon={<ClipboardCheck className="h-4 w-4" />} variant="primary" rightSlot={<span className="rounded-full bg-white/15 px-3 py-1 text-[11px] font-medium tracking-wide text-white/90">Editable</span>}>
+                {/* Investor Actions - fully editable */}
+                <SectionCard title="Investor Actions" subtitle="Operational updates – investor can edit and submit changes" icon={<ClipboardCheck className="h-4 w-4" />} variant="primary" rightSlot={<span className="rounded-full bg-white/15 px-3 py-1 text-[11px] font-medium tracking-wide text-white/90">Editable</span>}>
                     <div className="space-y-6">
                         <div className="grid gap-3 sm:grid-cols-2">
                             {/* <Button size="lg" onClick={openAttachments} className="h-11 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700"><Upload className="h-4 w-4" /> Upload Document</Button> */}
@@ -426,7 +429,7 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                                 <div>
                                     <div className="text-sm font-semibold">Target Date</div>
                                     {editMode ? (
-                                        <Input type="date" value={editedItem.targetDate?.split('T')[0] || ''} onChange={(e) => setEditedItem({ ...editedItem, targetDate: e.target.value })} />
+                                        <Input type="date" value={editedItem.targetDate ? editedItem.targetDate.split('T')[0] : ''} onChange={(e) => setEditedItem({ ...editedItem, targetDate: e.target.value })} />
                                     ) : (
                                         <div className="mt-1 text-sm">{capItem.targetDate ? new Date(capItem.targetDate).toLocaleDateString() : 'Not set'}</div>
                                     )}
@@ -505,35 +508,35 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
 
                         {/* Deliverable / Completion Indicators */}
                         <div>
-    <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Completion Indicators</div>
-    <ul className="mt-4 space-y-3">
-        {(() => {
-            const source = editMode ? editedItem.deliverable : capItem?.deliverable;
-            if (!source) return <li className="text-sm text-muted-foreground">No indicators added yet.</li>;
-            const items = source.includes('##') ? source.split('##') : [source];
-            return items.filter(i => i.trim()).map((label, idx) => (
-                <li key={idx} className="flex items-center justify-between rounded-lg border bg-card p-3">
-                    <div className="flex items-center gap-2">
-                        <span className="text-sm">{label.trim()}</span>
-                        {hasDocumentForIndicator(label.trim()) && (
-                            <Badge variant="outline" className="border-emerald-500 bg-emerald-50 text-emerald-700">
-                                <CheckCircle2 className="h-3 w-3 mr-1" /> Uploaded
-                            </Badge>
-                        )}
-                    </div>
-                    {hasDocumentForIndicator(label.trim()) && (
-                        <Button size="sm" variant="ghost" onClick={() => {
-                            const file = capItem.fileUploadedData?.find(f => f.documentType === label.trim());
-                            if (file) handleViewDocument(file);
-                        }}>
-                            <Eye className="h-3 w-3" />
-                        </Button>
-                    )}
-                </li>
-            ));
-        })()}
-    </ul>
-</div>
+                            <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Completion Indicators</div>
+                            <ul className="mt-4 space-y-3">
+                                {(() => {
+                                    const source = editMode ? editedItem.deliverable : capItem?.deliverable;
+                                    if (!source) return <li className="text-sm text-muted-foreground">No indicators added yet.</li>;
+                                    const items = source.includes('##') ? source.split('##') : [source];
+                                    return items.filter(i => i.trim()).map((label, idx) => (
+                                        <li key={idx} className="flex items-center justify-between rounded-lg border bg-card p-3">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-sm">{label.trim()}</span>
+                                                {hasDocumentForIndicator(label.trim()) && (
+                                                    <Badge variant="outline" className="border-emerald-500 bg-emerald-50 text-emerald-700">
+                                                        <CheckCircle2 className="h-3 w-3 mr-1" /> Uploaded
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                            {hasDocumentForIndicator(label.trim()) && (
+                                                <Button size="sm" variant="ghost" onClick={() => {
+                                                    const file = capItem.fileUploadedData?.find(f => f.documentType === label.trim());
+                                                    if (file) handleViewDocument(file);
+                                                }}>
+                                                    <Eye className="h-3 w-3" />
+                                                </Button>
+                                            )}
+                                        </li>
+                                    ));
+                                })()}
+                            </ul>
+                        </div>
                     </div>
                 </SectionCard>
 
@@ -647,7 +650,7 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                                 {(capItem?.deliverable ? (capItem.deliverable.includes("##") ? capItem.deliverable.split("##") : [capItem.deliverable]) : []).filter(Boolean).map((label: string) => (
                                     <div key={label} className="flex items-center justify-between rounded-lg border p-3">
                                         <span className="text-sm">{label}</span>
-                                        <Button size="sm" variant="outline" onClick={() => { selectedIndicatorRef.current = label; setUploadModalOpen(true); }}><Upload className="h-3 w-3 mr-1" /> Upload</Button>
+                                        <Button size="sm" variant="outline" onClick={() => { setSelectedIndicator(label); setUploadModalOpen(true); }}><Upload className="h-3 w-3 mr-1" /> Upload</Button>
                                     </div>
                                 ))}
                             </div>
