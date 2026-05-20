@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Eye, ArrowLeft, ArrowRight, Undo, Plus, Trash2, Columns, Pencil,AlertTriangle, Upload, Check, Loader, RotateCcw,X } from "lucide-react";
+import { Clock, Eye, ArrowLeft, ArrowRight, Undo, Plus, Trash2, Columns, Pencil, AlertTriangle, Upload, Check, Loader, RotateCcw, X } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../ui/dialog";
@@ -156,7 +156,7 @@ export interface ESGCapItem {
   deliverable?: string;
   // statusUpdate?: string;
   addUpdate?: string;
-  investorStatusUpdate?: string; 
+  investorStatusUpdate?: string;
   reviewRemarks?: string;
   lastReviewDate?: string;
   progressPercentage?: number;
@@ -244,20 +244,39 @@ const getStatusBadge = (status: CAPStatus) => {
       );
     default:
       return <Badge variant="outline">{status}</Badge>;
-    }
-  };
-  
+  }
+};
+
 
 const getPriorityBadge = (priority: CAPPriority) => {
-  switch (priority) {
-    case "High":
-      return <Badge variant="destructive">High</Badge>;
-    case "Medium":
-      return <Badge variant="default">Medium</Badge>;
-    case "Low":
-      return <Badge variant="secondary">Low</Badge>;
+  switch (priority?.toLowerCase()) {
+    case "high":
+      return (
+        <Badge className="bg-red-200 text-red-500 hover:bg-red-200">
+          High
+        </Badge>
+      );
+
+    case "medium":
+      return (
+        <Badge className="bg-yellow-200 text-yellow-700 hover:bg-yellow-200">
+          Medium
+        </Badge>
+      );
+
+    case "low":
+      return (
+        <Badge className="bg-blue-200 text-blue-700 hover:bg-blue-200">
+          Low
+        </Badge>
+      );
+
     default:
-      return <Badge variant="outline">{priority}</Badge>;
+      return (
+        <Badge className="bg-gray-300 text-black hover:bg-gray-300">
+          {priority}
+        </Badge>
+      );
   }
 };
 
@@ -524,7 +543,7 @@ export function CAPTable({
     itemId: string | number,
     // Special formatting for badges
     isBadge?: boolean,
-    badgeType?: 'category' | 'priority' | 'status'
+    badgeType?: 'category' | 'priority' | 'status' | 'investorStatus'
   ) => {
     const formatValue = (val: any) => {
       if (isDateField(fieldName)) return formatDisplayDate(val);
@@ -545,12 +564,14 @@ export function CAPTable({
                 {badgeType === 'category' && getCategoryBadge(formatBadge(originalValue))}
                 {badgeType === 'priority' && getPriorityBadge(formatBadge(originalValue))}
                 {badgeType === 'status' && getStatusBadge(formatBadge(originalValue))}
+                {badgeType === 'investorStatus' && getInvestorStatusBadge(formatBadge(originalValue))}
               </div>
               <ArrowRight className="h-3 w-3" />
               <div>
                 {badgeType === 'category' && getCategoryBadge(formatBadge(currentValue))}
                 {badgeType === 'priority' && getPriorityBadge(formatBadge(currentValue))}
                 {badgeType === 'status' && getStatusBadge(formatBadge(currentValue))}
+                {badgeType === 'investorStatus' && getInvestorStatusBadge(formatBadge(originalValue))}
               </div>
             </div>
             {onRevertField && (
@@ -583,6 +604,7 @@ export function CAPTable({
       if (badgeType === 'category') return getCategoryBadge(displayValue);
       if (badgeType === 'priority') return getPriorityBadge(displayValue);
       if (badgeType === 'status') return getStatusBadge(displayValue);
+      if (badgeType === 'investorStatus') return getInvestorStatusBadge(displayValue);
     }
     // Default: use formatted value (dates become readable)
     return <span>{formatValue(currentValue) || "-"}</span>;
@@ -630,6 +652,17 @@ export function CAPTable({
     if (aVal > bVal) return sortConfig.direction === "asc" ? 1 : -1;
     return 0;
   });
+
+  const getInvestorStatusBadge = (status: string) => {
+    const statusMap: Record<string, { label: string; className: string }> = {
+      "under review": { label: "Under Review", className: "bg-yellow-100 text-yellow-800 border-yellow-300" },
+      "reviewed with comments": { label: "Reviewed with Comments", className: "bg-blue-100 text-blue-800 border-blue-300" },
+      "closed": { label: "Closed", className: "bg-green-600 text-white border-green-700" },
+      "deferred": { label: "Deferred", className: "bg-gray-200 text-gray-700 border-gray-300" }
+    };
+    const config = statusMap[status?.toLowerCase()] || { label: status || '-', className: "bg-gray-100 text-gray-600" };
+    return <Badge variant="outline" className={config.className}>{config.label}</Badge>;
+  };
 
   return (
     <TooltipProvider>
@@ -720,7 +753,7 @@ export function CAPTable({
                         {renderField(item.status, originalItem?.status, "status", item.id, true, 'status')}
                       </td>
                       <td className="p-3">
-                        {renderField(item.investorStatus, originalItem?.investorStatus, "investorStatus", item.id, true)}
+                        {renderField(item.investorStatus, originalItem?.investorStatus, "investorStatus", item.id, true, 'investorStatus')}
                       </td>
                       <td className="p-3">
                         {renderField(item.actualDate, originalItem?.actualDate, "actualDate", item.id)}
@@ -742,7 +775,9 @@ export function CAPTable({
                                 className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white"
                               >
                                 <Link
-                                  to={`/esg-cap/review/${item?.reportId}?itemName=${encodeURIComponent(item?.item || "")}`}
+                                  to={`/esg-cap/review/${item?.reportId
+                                    }?itemName=${encodeURIComponent(item?.item || "")}&companyEntityId=${companyEntityId || ""
+                                    }`}
                                 >
                                   <Pencil className="h-3.5 w-3.5" />
                                 </Link>
@@ -796,7 +831,7 @@ export function CAPTable({
                         {renderField(item.status, originalItem?.status, "status", item.id, true, 'status')}
                       </td>
                       <td className="p-3">
-                        {renderField(item.investorStatus, originalItem?.investorStatus, "investorStatus", item.id, true)}
+                        {renderField(item.investorStatus, originalItem?.investorStatus, "investorStatus", item.id, true, 'investorStatus')}
                       </td>
                       <td className="p-3">
                         {renderField(item.actualDate, originalItem?.actualDate, "actualDate", item.id)}
@@ -863,7 +898,9 @@ export function CAPTable({
                                 className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white"
                               >
                                 <Link
-                                  to={`/esg-cap/review/${item?.reportId}?itemName=${encodeURIComponent(item?.item || "")}`}
+                                  to={`/esg-cap/review/${item?.reportId
+                                    }?itemName=${encodeURIComponent(item?.item || "")}&companyEntityId=${companyEntityId || ""
+                                    }`}
                                 >
                                   <Pencil className="h-3.5 w-3.5" />
                                 </Link>

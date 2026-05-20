@@ -226,7 +226,6 @@ export default function ESGCAP() {
         entityId,
       });
       setLoading(false);
-      console.log('data?.plan?.length', data?.plan?.length);
       if (data?.plan?.length > 0) {
         setPlanData(data);
         // setFilteredCAPItems(data.plan || []);
@@ -236,8 +235,6 @@ export default function ESGCAP() {
           tempId: item.id,
           id: `${item.reportId}-${index}-${item.createdAt}`
         }));
-
-        console.log("✅ FIXED IDS:", normalizedPlan.map(i => i.id));
 
         setFilteredCAPItems(normalizedPlan);
         setCapItems(normalizedPlan);
@@ -679,7 +676,6 @@ export default function ESGCAP() {
       </div>
 
       {/* Stats Cards */}
-      {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
 
         <Card className="border-none shadow-sm bg-gradient-to-br from-blue-500 to-blue-600 text-white">
@@ -862,7 +858,7 @@ export default function ESGCAP() {
         )}
 
         {/* Footer buttons (unchanged) */}
-        {filteredCAPItems.length > 0 && (
+        {/* {filteredCAPItems.length > 0 && (
           <CardFooter className="flex justify-end gap-4 mt-6 pt-4 border-t">
             {!isPlanFinalized && (
               <>
@@ -887,7 +883,7 @@ export default function ESGCAP() {
               </>
             )}
           </CardFooter>
-        )}
+        )} */}
       </CardContent>
 
       <ReviewDialog
