@@ -762,11 +762,11 @@ export function CAPTable({
                         {/* Actions (same as original) */}
                         <div className="flex gap-2 justify-end items-center">
                           <Tooltip>
-                            <TooltipTrigger asChild>
+                            {/* <TooltipTrigger asChild>
                               <Button size="sm" variant="outline" onClick={() => onReview(item)}>
                                 <Eye className="h-4 w-4" />
                               </Button>
-                            </TooltipTrigger>
+                            </TooltipTrigger> */}
                             <TooltipTrigger asChild>
                               <Button
                                 asChild
@@ -882,11 +882,11 @@ export function CAPTable({
                         {/* Actions (same as original, re-use the same actions JSX) */}
                         <div className="flex gap-2 justify-end items-center">
                           <Tooltip>
-                            <TooltipTrigger asChild>
+                            {/* <TooltipTrigger asChild>
                               <Button size="sm" variant="outline" onClick={() => onReview(item)}>
                                 <Eye className="h-4 w-4" />
                               </Button>
-                            </TooltipTrigger>
+                            </TooltipTrigger> */}
 
                             <TooltipContent><p>Review CAP item</p></TooltipContent>
 

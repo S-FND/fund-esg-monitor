@@ -44,7 +44,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-
+import DocumentSummaryDialog from '@/components/esg-cap/document-summary-review';
 // -------------------- Reusable UI components (unchanged) --------------------
 const SectionCard: React.FC<{
     title: string;
@@ -119,6 +119,18 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
     const [selectedIndicator, setSelectedIndicator] = useState<string | null>(null);
     const [financialYear, setFinancialYear] = useState("");
 
+    const [isSummaryOpen, setIsSummaryOpen] = useState(false);
+    const [selectedFilesForSummary, setSelectedFilesForSummary] = useState<any[]>([]);
+
+    const openDocumentSummary = (indicatorLabel: string) => {
+        const filesForIndicator = capItem?.fileUploadedData?.filter(
+            (file: any) => file.indicatorLabel === indicatorLabel
+        ) || [];
+        if (filesForIndicator.length === 0) return;
+        setSelectedFilesForSummary(filesForIndicator);
+        setIsSummaryOpen(true);
+    };
+
     // Financial year calculation
     useEffect(() => {
         const currentDate = new Date();
@@ -153,7 +165,7 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
     };
 
     const loadData = async () => {
-        if (!entityId ) {
+        if (!entityId) {
             setLoading(false);
             return;
         }
@@ -212,15 +224,24 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
         if (!capItem || !editedItem) return;
         setSaving(true);
         try {
-            // Replace with your actual update API call
-            // Example: await EsgddAPIs.updateCapItem({ entityId, itemId: capItem.id, updates: editedItem });
-            // For now, simulate success
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            setCapItem({ ...editedItem });
-            setEditMode(false);
-            toast.success("CAP item updated successfully");
-        } catch (error) {
-            toast.error("Failed to save changes");
+            const updatedPlan = fullPlan.map((item: any) =>
+                item.reportId === capItem.reportId ? { ...editedItem } : item
+            );
+            const response: any = await http.post("investor/esgdd/escap/edit-exiting-plan", {
+                entityId: entityId,
+                updatedPlan: updatedPlan,
+            });
+            console.log('response', response?.data?.response);
+            if (response?.data?.response === true) {
+                setFullPlan(updatedPlan);
+                setCapItem({ ...editedItem });
+                setEditMode(false);
+                toast.success("CAP item updated successfully");
+            } else {
+                toast.error(response?.data?.message || "Failed to save changes");
+            }
+        } catch (error: any) {
+            toast.error(error?.message || "Error saving data");
             console.error(error);
         } finally {
             setSaving(false);
@@ -267,7 +288,7 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
     };
 
     const hasDocumentForIndicator = (indicatorLabel: string) =>
-        capItem?.fileUploadedData?.some((file: any) => file.documentType === indicatorLabel);
+        capItem?.fileUploadedData?.some((file: any) => file.indicatorLabel === indicatorLabel);
 
     const openAttachments = () => setAttachmentsOpen(true);
 
@@ -354,10 +375,6 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                 {/* Investor Actions - fully editable */}
                 <SectionCard title="Investor Actions" subtitle="Operational updates – investor can edit and submit changes" icon={<ClipboardCheck className="h-4 w-4" />} variant="primary" rightSlot={<span className="rounded-full bg-white/15 px-3 py-1 text-[11px] font-medium tracking-wide text-white/90">Editable</span>}>
                     <div className="space-y-6">
-                        <div className="grid gap-3 sm:grid-cols-2">
-                            {/* <Button size="lg" onClick={openAttachments} className="h-11 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700"><Upload className="h-4 w-4" /> Upload Document</Button> */}
-                            <Button size="lg" variant="outline" onClick={() => setShowUpdateNotes(v => !v)} className="h-11 rounded-xl"><Plus className="h-4 w-4" /> {showUpdateNotes ? 'Hide Update Notes' : 'Add Update'}</Button>
-                        </div>
                         <div className={cn('grid overflow-hidden transition-all', showUpdateNotes ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0')}>
                             <div className="min-h-0">
                                 <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Update Notes</label>
@@ -505,38 +522,6 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                                 <div className="text-sm whitespace-pre-wrap">{capItem.issue}</div>
                             )}
                         </div>
-
-                        {/* Deliverable / Completion Indicators */}
-                        <div>
-                            <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Completion Indicators</div>
-                            <ul className="mt-4 space-y-3">
-                                {(() => {
-                                    const source = editMode ? editedItem.deliverable : capItem?.deliverable;
-                                    if (!source) return <li className="text-sm text-muted-foreground">No indicators added yet.</li>;
-                                    const items = source.includes('##') ? source.split('##') : [source];
-                                    return items.filter(i => i.trim()).map((label, idx) => (
-                                        <li key={idx} className="flex items-center justify-between rounded-lg border bg-card p-3">
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-sm">{label.trim()}</span>
-                                                {hasDocumentForIndicator(label.trim()) && (
-                                                    <Badge variant="outline" className="border-emerald-500 bg-emerald-50 text-emerald-700">
-                                                        <CheckCircle2 className="h-3 w-3 mr-1" /> Uploaded
-                                                    </Badge>
-                                                )}
-                                            </div>
-                                            {hasDocumentForIndicator(label.trim()) && (
-                                                <Button size="sm" variant="ghost" onClick={() => {
-                                                    const file = capItem.fileUploadedData?.find(f => f.documentType === label.trim());
-                                                    if (file) handleViewDocument(file);
-                                                }}>
-                                                    <Eye className="h-3 w-3" />
-                                                </Button>
-                                            )}
-                                        </li>
-                                    ));
-                                })()}
-                            </ul>
-                        </div>
                     </div>
                 </SectionCard>
 
@@ -599,17 +584,47 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                 <SectionCard title="Completion Tracking" subtitle="Milestones and required artefacts" icon={<CheckCircle2 className="h-4 w-4" />}>
                     <div className="grid gap-8 lg:grid-cols-2">
                         <div>
-                            <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Completion Indicators</div>
+                            <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Completion Indicators23</div>
+                            {editMode && (
+                                <div className="mt-2 mb-4">
+                                    <Textarea
+                                        value={editedItem.deliverable || ''}
+                                        onChange={(e) => setEditedItem({ ...editedItem, deliverable: e.target.value })}
+                                        rows={4}
+                                        placeholder="Enter completion indicators, use ## to separate multiple items"
+                                        className="w-full"
+                                    />
+                                    <p className="text-xs text-muted-foreground mt-1">Use ## to separate multiple indicators</p>
+                                </div>
+                            )}
+
+                            {/* Live preview - shows either the original or edited value depending on mode */}
                             <ul className="mt-4 space-y-3">
-                                {(capItem?.deliverable ? (capItem.deliverable.includes("##") ? capItem.deliverable.split("##") : [capItem.deliverable]) : []).filter(Boolean).map((label: string) => {
-                                    const hasDoc = hasDocumentForIndicator(label);
-                                    return (
-                                        <li key={label} className="flex items-center justify-between rounded-lg border bg-card p-3">
-                                            <div className="flex items-center gap-2"><span className="text-sm">{label}</span>{hasDoc && <Badge variant="outline" className="border-emerald-500 bg-emerald-50 text-emerald-700"><CheckCircle2 className="h-3 w-3 mr-1" /> Uploaded</Badge>}</div>
-                                            {hasDoc && <Button size="sm" variant="ghost" onClick={() => { const file = capItem.fileUploadedData?.find((f: any) => f.documentType === label); if (file) handleViewDocument(file); }}><Eye className="h-3 w-3" /></Button>}
-                                        </li>
-                                    );
-                                })}
+                                {(() => {
+                                    const source = editMode ? editedItem.deliverable : capItem?.deliverable;
+                                    if (!source) return <li className="text-sm text-muted-foreground">No indicators added yet.</li>;
+                                    const items = source.includes('##') ? source.split('##') : [source];
+                                    return items.filter(i => i.trim()).map((label, idx) => {
+                                        const hasDoc = hasDocumentForIndicator(label.trim());
+                                        return (
+                                            <li key={idx} className="flex items-center justify-between rounded-lg border bg-card p-3">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-sm">{label.trim()}</span>
+                                                    {hasDoc && (
+                                                        <Badge variant="outline" className="border-emerald-500 bg-emerald-50 text-emerald-700">
+                                                            <CheckCircle2 className="h-3 w-3 mr-1" /> Uploaded
+                                                        </Badge>
+                                                    )}
+                                                </div>
+                                                {hasDoc && (
+                                                    <Button size="sm" variant="ghost" onClick={() => openDocumentSummary(label.trim())}>
+                                                        <Eye className="h-3 w-3" />
+                                                    </Button>
+                                                )}
+                                            </li>
+                                        );
+                                    });
+                                })()}
                             </ul>
                         </div>
                         <div>
@@ -684,21 +699,31 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                 </Dialog>
 
                 {/* Delete confirmation (unchanged) */}
-                {confirmDelete && (
-                    <Dialog open={!!confirmDelete} onOpenChange={(open) => !open && setConfirmDelete(null)}>
-                        <DialogContent className="max-w-md">
-                            <DialogHeader><DialogTitle>Confirm Delete</DialogTitle></DialogHeader>
-                            <p className="text-sm text-gray-600">Delete <strong>{confirmDelete.file.filename}</strong>?</p>
-                            <div className="flex justify-end gap-3 mt-4">
-                                <Button variant="outline" onClick={() => setConfirmDelete(null)}>Cancel</Button>
-                                <Button variant="destructive" onClick={handleDeleteConfirmed}>Delete</Button>
-                            </div>
-                        </DialogContent>
-                    </Dialog>
-                )}
-            </div>
-        </div>
+                {
+                    confirmDelete && (
+                        <Dialog open={!!confirmDelete} onOpenChange={(open) => !open && setConfirmDelete(null)}>
+                            <DialogContent className="max-w-md">
+                                <DialogHeader><DialogTitle>Confirm Delete</DialogTitle></DialogHeader>
+                                <p className="text-sm text-gray-600">Delete <strong>{confirmDelete.file.filename}</strong>?</p>
+                                <div className="flex justify-end gap-3 mt-4">
+                                    <Button variant="outline" onClick={() => setConfirmDelete(null)}>Cancel</Button>
+                                    <Button variant="destructive" onClick={handleDeleteConfirmed}>Delete</Button>
+                                </div>
+                            </DialogContent>
+                        </Dialog>
+                    )
+                }
+            </div >
+            <DocumentSummaryDialog
+                open={isSummaryOpen}
+                files={selectedFilesForSummary}
+                onClose={() => {
+                    setIsSummaryOpen(false);
+                    setSelectedFilesForSummary([]);
+                }}
+            />
+        </div >
+
     );
 };
-
 export default ESGCapDetailsPageInvestor;
