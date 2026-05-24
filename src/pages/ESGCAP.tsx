@@ -62,12 +62,19 @@ export default function ESGCAP() {
   const [comparePlanData, setComparePlanData] = useState<ComparePlan | null>(null);
   const previousCapItemsRef = useRef<ESGCapItem[]>([]);
   const [canEdit, setCanEdit] = useState(true);
-  const [loading,setLoading]=useState(false);
-  const [loadingMessage,setLoadingMessage]=useState("Loading ...")
+  const [loading, setLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState("Loading ...")
+  const [entityId, setEntityId] = useState<string>(null);
+  const [reloadData, setReloadData] = useState(false);
+  const [selectedEntityId, setSelectedEntityId] = useState(null)
 
   const alerts = useESGCAPAlerts(filteredCAPItems, previousCapItemsRef.current, planData?.finalPlan);
 
   const [financialYear, setFinancialYear] = useState("");
+
+  const [isEditingFinalized, setIsEditingFinalized] = useState(false);
+  const originalPlanRef = useRef<ESGCapItem[]>([]);
+  const [isSavingFinalized, setIsSavingFinalized] = useState(false);
 
   useEffect(() => {
     const currentDate = new Date();
@@ -83,10 +90,32 @@ export default function ESGCAP() {
   }, []);
 
   // Calculate stats
+  // Calculate stats
   const totalItems = filteredCAPItems.length;
-  const completedItems = filteredCAPItems.filter(i => i.status === 'completed').length;
-  const pendingItems = filteredCAPItems.filter(i => i.status === 'pending').length;
-  const inProgressItems = filteredCAPItems.filter(i => i.status === 'in_progress').length;
+
+  const completedItems = filteredCAPItems.filter(
+    (item) => item.investorStatus === "Closed"
+  ).length;
+
+  const overdueItems = filteredCAPItems.filter(
+    (item) => item.status === "overdue"
+  ).length;
+
+  const dueSoonItems = filteredCAPItems.filter(
+    (item) => item.status === "due in <1 month"
+  ).length;
+
+  const upcomingItems = filteredCAPItems.filter(
+    (item) => item.status === "upcoming"
+  ).length;
+
+  const submittedItems = filteredCAPItems.filter(
+    (item) => item.status === "submitted"
+  ).length;
+
+  const resubmitItems = filteredCAPItems.filter(
+    (item) => item.status === "request to re-submit"
+  ).length;
 
   const handleReview = (item: ESGCapItem) => {
     let currentItem =
@@ -189,24 +218,23 @@ export default function ESGCAP() {
 
   const getPlanList = async (entityId: string) => {
     try {
+      if (!entityId) return;
       setLoading(true);
       setLoadingMessage("Loading plan details ...")
-      const entityIdWithYear = `${entityId}?financialYear=${financialYear}`;
+      // const entityIdWithYear = `${entityId}?financialYear=${financialYear}`;
       const [data, error] = await EsgddAPIs.getEsgCapPlan({
-        entityId: entityIdWithYear,
+        entityId,
       });
       setLoading(false);
-      console.log('data?.plan?.length',data?.plan?.length);
       if (data?.plan?.length > 0) {
         setPlanData(data);
         // setFilteredCAPItems(data.plan || []);
         // setCapItems(data.plan || []);
         const normalizedPlan = (data.plan || []).map((item, index) => ({
           ...item,
+          tempId: item.id,
           id: `${item.reportId}-${index}-${item.createdAt}`
         }));
-
-        console.log("✅ FIXED IDS:", normalizedPlan.map(i => i.id));
 
         setFilteredCAPItems(normalizedPlan);
         setCapItems(normalizedPlan);
@@ -244,26 +272,33 @@ export default function ESGCAP() {
 
   useEffect(() => {
     if (selectedCompany !== "all") {
-  
+
       setFilteredCAPItems([]);
       setCapItems([]);
       setPlanData(null);
-  
+
       const company = portfolioCompanies.find(
         c =>
           c._id === selectedCompany ||   // first try id
           c.email === selectedCompany    // fallback email
       );
-  
+
       const entityId = company?.user?.entityId;
-  
+
       if (entityId) {
+        setSelectedEntityId(entityId)
         getPlanList(entityId);
       }
     }
   }, [selectedCompany, portfolioCompanies]);
 
   const handleSaveChanges = (updatedItem: ESGCapItem) => {
+    // 🔁 If plan is finalized and not already editing, start edit mode
+    if (isPlanFinalized && !isEditingFinalized) {
+      originalPlanRef.current = JSON.parse(JSON.stringify(capItems));
+      setIsEditingFinalized(true);
+    }
+
     previousCapItemsRef.current = [...capItems];
 
     const updatedItems = capItems.map(item => {
@@ -431,7 +466,7 @@ export default function ESGCAP() {
     }, 0);
 
     const completedWeightage = filteredCAPItems
-      .filter(item => item.status === "completed")
+      .filter(item => item.investorStatus === 'Closed')
       .reduce((sum, item) => {
         return sum + (100 / totalItems) * getPriorityWeight(item.priority || "Medium");
       }, 0);
@@ -446,6 +481,11 @@ export default function ESGCAP() {
   }, []);
 
   const handleAddItem = (newItem: ESGCapItem) => {
+    if (isPlanFinalized && !isEditingFinalized) {
+      originalPlanRef.current = JSON.parse(JSON.stringify(capItems));
+      setIsEditingFinalized(true);
+    }
+
     const itemWithId = newItem.id ? newItem : { ...newItem, id: `${Date.now()}-${Math.random()}` };
     const updatedItems = [...capItems, itemWithId];
     setCapItems(updatedItems);
@@ -468,7 +508,7 @@ export default function ESGCAP() {
     setCapItems(updatedItems);
     setFilteredCAPItems(updatedItems);
     saveToLocalStorage(updatedItems);
-    
+
     toast({
       title: "Item Deleted",
       description: "Item has been removed from the plan.",
@@ -502,9 +542,125 @@ export default function ESGCAP() {
     return false;
   };
 
+  useEffect(() => {
+    getPlanList(entityId)
+  }, [reloadData])
+
+  const handleEditFinalizedPlan = () => {
+    // Save a deep copy of the current plan to revert on cancel
+    originalPlanRef.current = JSON.parse(JSON.stringify(capItems));
+    setIsEditingFinalized(true);
+  };
+
+  const handleCancelFinalizedEdit = () => {
+    // Restore the original plan from ref
+    setCapItems(originalPlanRef.current);
+    setFilteredCAPItems(originalPlanRef.current);
+    setIsEditingFinalized(false);
+    originalPlanRef.current = [];
+  };
+
+  const handleSaveFinalizedEdits = async () => {
+    try {
+      const payload = {
+        entityId: planData?.entityId,
+        updatedPlan: capItems,   // ✅ use current capItems directly
+        reason: "Investor edited the finalized plan",
+      };
+      const response = await http.post('investor/esgdd/escap/edit-finalized-plan', payload);
+      if (response.data) {
+        toast({
+          title: "Finalized Plan Updated",
+          description: "The finalized CAP plan has been successfully edited.",
+        });
+        // Refresh data from backend to get the updated acceptedPlan
+        if (planData?.entityId) {
+          await getPlanList(planData.entityId);
+        }
+        setIsEditingFinalized(false);
+        originalPlanRef.current = [];
+      }
+    } catch (error) {
+      console.error("Error updating finalized plan:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update the finalized plan.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
+    new Set([
+      "CP – Conditions Precedent",
+      "CS – Conditions Subsequent",
+      "ESG Roadmap",
+      "Other Items",
+    ])
+  );
+
+  const toggleGroup = (groupName: string) => {
+    setCollapsedGroups((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(groupName)) newSet.delete(groupName);
+      else newSet.add(groupName);
+      return newSet;
+    });
+  };
+
+  // Define a helper to get the items to display (normal or comparison)
+  const currentDisplayItems = useMemo(() => {
+    if (showComparisonView && comparePlanData) {
+      return comparePlanData.founderPlan; // items to show in comparison mode
+    }
+    return capItems; // normal mode
+  }, [showComparisonView, comparePlanData, capItems]);
+
+  const currentOriginalItems = useMemo(() => {
+    if (showComparisonView && comparePlanData) {
+      return comparePlanData.investorPlan; // original for comparison
+    }
+    return previousCapItemsRef.current; // original for normal (history)
+  }, [showComparisonView, comparePlanData, previousCapItemsRef.current]);
+
+  // Group items by CS value (same mapping as company side)
+  const groupedItems = useMemo(() => {
+    const groups: Record<string, ESGCapItem[]> = {
+      "CP – Conditions Precedent": [],
+      "CS – Conditions Subsequent": [],
+      "ESG Roadmap": [],
+      "Other Items": [],
+    };
+
+    for (const item of currentDisplayItems) {
+      let groupKey = "Other Items";
+      if (item.dealCondition === "CP") groupKey = "CP – Conditions Precedent";
+      else if (item.dealCondition === "CS") groupKey = "CS – Conditions Subsequent";
+      else if (item.dealCondition === "ESG_Roadmap") groupKey = "ESG Roadmap";
+
+      groups[groupKey].push(item);
+    }
+
+    return groups;
+  }, [currentDisplayItems]);
+
+  const getLoggedInUser = () => {
+    const userStr = localStorage.getItem('fandoro-user');
+    if (!userStr) return null;
+    try {
+      return JSON.parse(userStr);
+    } catch {
+      return null;
+    }
+  };
+
+  const loggedInUser = getLoggedInUser();
+  const isFiresideEmail = loggedInUser?.email?.endsWith('@fireside.com') ?? false;
+
+
   return (
     <div className="space-y-6">
-      <Loader show={loading} text={loadingMessage}/>
+      <Loader show={loading} text={loadingMessage} />
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">ESG Corrective Action Plan</h1>
@@ -515,16 +671,18 @@ export default function ESGCAP() {
         <AddCAPDialog
           onAddItem={handleAddItem}
           onAddMultipleItems={handleAddMultipleItems}
+          existingPlan={capItems}
         />
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+
         <Card className="border-none shadow-sm bg-gradient-to-br from-blue-500 to-blue-600 text-white">
           <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-medium text-blue-100">Total Items</p>
+                <p className="text-xs font-medium text-blue-100">Total</p>
                 <p className="text-lg font-bold">{totalItems}</p>
               </div>
               <FileText className="h-4 w-4 text-white/80" />
@@ -536,7 +694,7 @@ export default function ESGCAP() {
           <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-medium text-green-100">Completed</p>
+                <p className="text-xs font-medium text-green-100">Closed</p>
                 <p className="text-lg font-bold">{completedItems}</p>
               </div>
               <CheckCircle2 className="h-4 w-4 text-white/80" />
@@ -544,39 +702,66 @@ export default function ESGCAP() {
           </CardContent>
         </Card>
 
-        <Card className="border-none shadow-sm bg-gradient-to-br from-yellow-500 to-yellow-600 text-white">
+        <Card className="border-none shadow-sm bg-gradient-to-br from-orange-500 to-orange-600 text-white">
           <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-medium text-yellow-100">Pending</p>
-                <p className="text-lg font-bold">{pendingItems}</p>
+                <p className="text-xs font-medium text-orange-100">
+                  Due &lt;1 Month
+                </p>
+                <p className="text-lg font-bold">{dueSoonItems}</p>
               </div>
               <Clock className="h-4 w-4 text-white/80" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-none shadow-sm bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+        <Card className="border-none shadow-sm bg-gradient-to-br from-red-500 to-red-600 text-white">
           <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-medium text-purple-100">In Progress</p>
-                <p className="text-lg font-bold">{inProgressItems}</p>
+                <p className="text-xs font-medium text-red-100">Overdue</p>
+                <p className="text-lg font-bold">{overdueItems}</p>
+              </div>
+              <ArrowDown className="h-4 w-4 text-white/80" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-none shadow-sm bg-gradient-to-br from-blue-400 to-blue-500 text-white">
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-blue-100">Submitted</p>
+                <p className="text-lg font-bold">{submittedItems}</p>
+              </div>
+              <ArrowUp className="h-4 w-4 text-white/80" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-none shadow-sm bg-gradient-to-br from-slate-500 to-slate-600 text-white">
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-slate-100">Upcoming</p>
+                <p className="text-lg font-bold">{upcomingItems}</p>
               </div>
               <Target className="h-4 w-4 text-white/80" />
             </div>
           </CardContent>
         </Card>
+
       </div>
 
-      <div className="flex items-center justify-between">
+      {/* <div className="flex items-center justify-between">
         <FilterControls
           companies={portfolioCompanies}
           selectedCompany={selectedCompany}
           onCompanyChange={setSelectedCompany}
-        />
+        /> */}
 
-        {/* {!isPlanFinalized && filteredCAPItems.length > 0 && (
+      {/* {!isPlanFinalized && filteredCAPItems.length > 0 && (
           <div className="flex items-center gap-6">
             <Button
               variant="outline"
@@ -590,93 +775,116 @@ export default function ESGCAP() {
             </Button>
           </div>
         )} */}
-      </div>
+      {/* </div> */}
 
-      {filteredCAPItems.length > 0 && (
-        <>
-          <AlertsPanel
-            overdueItems={alerts.overdueItems}
-            approachingDeadlines={alerts.approachingDeadlines}
-            onItemClick={handleReview}
-            finalPlan={isPlanFinalized}
-          />
+      <CardContent>
+        {/* Company filter (unchanged) */}
+        {!isFiresideEmail && (
+          <div className="flex items-center justify-between mb-6">
+            <FilterControls
+              companies={portfolioCompanies}
+              selectedCompany={selectedCompany}
+              onCompanyChange={setSelectedCompany}
+            />
+          </div>
+        )}
 
-          <Card>
-            <CardHeader>
-              <CardTitle>
-                Corrective Action Plan Items
-                {!isPlanFinalized && <span className="ml-2 text-yellow-600">(In Approval Phase)</span>}
-                {isPlanFinalized && <span className="ml-2 text-green-600">(Final)</span>}
-              </CardTitle>
-              <CardDescription>
-                Review and approve items in the ESG Corrective Action Plan
-                {showComparisonView && <span className="ml-2 text-purple-500 font-medium">(Comparing Changes)</span>}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {showComparisonView && comparePlanData ? (
-                <div className="relative">
-                  <CAPTable
-                    items={comparePlanData.founderPlan}
-                    originalItems={comparePlanData.investorPlan}
-                    onReview={handleReview}
-                    onSendReminder={handleSendReminder}
-                    onAddItem={handleAddItem}
-                    onDeleteItem={handleDeleteItem} 
-                    isComparisonView={true}
-                    onRevert={handleRevertToOriginal}
-                    onRevertField={handleRevertField}
-                    finalPlan={isPlanFinalized}
-                    progressPercentage={progressPercentage}
-                  />
-                </div>
-              ) : (
-                <CAPTable
-                  items={capItems}
-                  originalItems={previousCapItemsRef.current}
-                  onReview={handleReview}
-                  onSendReminder={handleSendReminder}
-                  onAddItem={handleAddItem}
-                  onDeleteItem={handleDeleteItem} 
-                  isComparisonView={false}
-                  onRevert={handleRevertToOriginal}
-                  onRevertField={handleRevertField}
-                  finalPlan={isPlanFinalized}
-                  progressPercentage={progressPercentage}
-                />
-              )}
-            </CardContent>
-            {filteredCAPItems.length > 0 && (
-              <CardFooter className="flex justify-end gap-4">
-                {!isPlanFinalized && (
-                  <>
-                    <Button
-                      onClick={handleSubmitAllCap}
-                      size="lg"
-                      disabled={isPlanFinalized}
-                    >
-                      Request CAP Change
-                    </Button>
-                    <Button
-                      onClick={handleAcceptCap}
-                      size="lg"
-                    >
-                      {planData?.investorPlanFinalStatus || planData?.founderPlanFinalStatus
-                        ? "Accept CAP"
-                        : "Accept CAP"}
-                    </Button>
-                  </>
-                )}
-                {isPlanFinalized && (
-                  <div className="text-sm text-muted-foreground">
-                    Plan has been finalized and accepted
+        {/* Alerts panel (unchanged) */}
+        {filteredCAPItems.length > 0 && (
+          <div className="mb-6 py-4">
+            <AlertsPanel
+              overdueItems={alerts.overdueItems}
+              approachingDeadlines={alerts.approachingDeadlines}
+              onItemClick={handleReview}
+              finalPlan={isPlanFinalized}
+            />
+          </div>
+        )}
+
+        {/* Grouped sections */}
+        <div className="space-y-6">
+          {Object.entries(groupedItems)
+            .filter(([_, items]) => items.length > 0)
+            .map(([groupName, items]) => {
+              const isCollapsed = collapsedGroups.has(groupName);
+              // For comparison view, we need the original items filtered to the same group
+              const originalForGroup = showComparisonView
+                ? currentOriginalItems.filter((orig) => {
+                  if (groupName === "CP – Conditions Precedent") return orig.dealCondition === "CP";
+                  if (groupName === "CS – Conditions Subsequent") return orig.dealCondition === "CS";
+                  if (groupName === "ESG Roadmap") return orig.dealCondition === "ESG_Roadmap";
+                  return orig.dealCondition !== "CP" && orig.dealCondition !== "CS" && orig.dealCondition !== "ESG_Roadmap";
+                })
+                : currentOriginalItems;
+
+              return (
+                <div key={groupName} className="border rounded-lg overflow-hidden bg-white">
+                  <div
+                    className="px-4 py-3 border-b bg-slate-50 cursor-pointer flex justify-between items-center hover:bg-slate-100"
+                    onClick={() => toggleGroup(groupName)}
+                  >
+                    <h2 className="text-lg font-semibold text-slate-800">{groupName}</h2>
+                    <span className="text-slate-500">{isCollapsed ? "▼" : "▶"}</span>
                   </div>
-                )}
-              </CardFooter>
+                  {!isCollapsed && (
+                    <div className="overflow-x-auto">
+                      <CAPTable
+                        items={items}
+                        originalItems={originalForGroup}
+                        onReview={handleReview}
+                        onSendReminder={handleSendReminder}
+                        onAddItem={handleAddItem}
+                        onDeleteItem={handleDeleteItem}
+                        isComparisonView={showComparisonView}
+                        onRevert={handleRevertToOriginal}
+                        onRevertField={handleRevertField}
+                        finalPlan={isEditingFinalized ? false : isPlanFinalized}
+                        progressPercentage={progressPercentage}
+                        companyEntityId={selectedEntityId}
+                        setReloadData={setReloadData}
+                      />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+        </div>
+
+        {/* If no items at all, show empty state */}
+        {currentDisplayItems.length === 0 && (
+          <div className="text-center py-12 text-muted-foreground">
+            No CAP items found for the selected company.
+          </div>
+        )}
+
+        {/* Footer buttons (unchanged) */}
+        {/* {filteredCAPItems.length > 0 && (
+          <CardFooter className="flex justify-end gap-4 mt-6 pt-4 border-t">
+            {!isPlanFinalized && (
+              <>
+                <Button onClick={handleSubmitAllCap} size="lg" disabled={isPlanFinalized}>
+                  Request CAP Change
+                </Button>
+                <Button onClick={handleAcceptCap} size="lg">
+                  {planData?.investorPlanFinalStatus || planData?.founderPlanFinalStatus
+                    ? "Accept CAP"
+                    : "Accept CAP"}
+                </Button>
+              </>
             )}
-          </Card>
-        </>
-      )}
+            {isPlanFinalized && isEditingFinalized && (
+              <>
+                <Button onClick={handleSaveFinalizedEdits} size="lg" variant="default">
+                  Save Finalized Edits
+                </Button>
+                <Button onClick={handleCancelFinalizedEdit} size="lg" variant="ghost">
+                  Cancel
+                </Button>
+              </>
+            )}
+          </CardFooter>
+        )} */}
+      </CardContent>
 
       <ReviewDialog
         item={selectedItem}
@@ -688,7 +896,7 @@ export default function ESGCAP() {
         onCancelEdit={() => setCanEdit(false)}
         onSaveChanges={handleSaveChanges}
         onOpenChange={setReviewDialogOpen}
-        finalPlan={isPlanFinalized}
+        finalPlan={isEditingFinalized ? false : isPlanFinalized}
         originalItems={previousCapItemsRef.current}
         comparePlanData={comparePlanData}
       />

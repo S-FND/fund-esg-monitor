@@ -14,7 +14,7 @@ import { NavItem, NavItemWithSubItems } from "./types";
 export const mainNavItems: NavItem[] = [
   {
     title: "Dashboard",
-    href: "/",
+    href: "/dashboard",
     icon: BarChart3,
   },
   {
