@@ -319,7 +319,7 @@ export default function DocumentSummaryDialog({
             )}
 
             {/* STATUS SELECTION */}
-            <div className="mt-6 border-t pt-4">
+            {/* <div className="mt-6 border-t pt-4">
               <p className="font-semibold mb-3">Update Status</p>
 
               <div className="flex gap-6">
@@ -377,7 +377,7 @@ export default function DocumentSummaryDialog({
                   {isSubmitting ? "Submitting..." : "Submit"}
                 </button>
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>
