@@ -147,6 +147,7 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
     );
 
     useEffect(() => {
+        if (companyEntityId) return;
         try {
             const userData = localStorage.getItem('fandoro-user');
 
@@ -212,7 +213,7 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
         if (entityId) {
             loadData();
         }
-    }, [id, itemName]);
+    }, [id, itemName, entityId]);
 
     useEffect(() => {
         if (capItem) {
@@ -225,8 +226,15 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
         setSaving(true);
         try {
             const updatedPlan = fullPlan.map((item: any) =>
-                item.reportId === capItem.reportId ? { ...editedItem } : item
+                item.reportId === capItem?.reportId &&
+                    item.item === capItem?.item
+                    ? {
+                        ...item,
+                        ...editedItem,
+                    }
+                    : item
             );
+
             const response: any = await http.post("investor/esgdd/escap/edit-exiting-plan", {
                 entityId: entityId,
                 updatedPlan: updatedPlan,
@@ -582,76 +590,220 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
 
                 {/* Completion Tracking - Guidance & Resources now editable */}
                 <SectionCard title="Completion Tracking" subtitle="Milestones and required artefacts" icon={<CheckCircle2 className="h-4 w-4" />}>
-                    <div className="grid gap-8 lg:grid-cols-2">
-                        <div>
-                            <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Completion Indicators23</div>
-                            {editMode && (
-                                <div className="mt-2 mb-4">
+                    <div className="space-y-6">
+                        {/* Bulk editor – only in edit mode */}
+                        {editMode && (
+                            <div className="mb-4">
+                                <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                    Bulk edit (use ## to separate)
+                                </label>
+                                <div className="flex gap-2 mt-1">
                                     <Textarea
-                                        value={editedItem.deliverable || ''}
-                                        onChange={(e) => setEditedItem({ ...editedItem, deliverable: e.target.value })}
-                                        rows={4}
-                                        placeholder="Enter completion indicators, use ## to separate multiple items"
-                                        className="w-full"
+                                        id="bulkDeliverableInput"
+                                        defaultValue={editedItem.deliverable || ''}
+                                        rows={3}
+                                        placeholder=""
+                                        className="flex-1 text-sm"
                                     />
-                                    <p className="text-xs text-muted-foreground mt-1">Use ## to separate multiple indicators</p>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => {
+                                            const input = document.getElementById('bulkDeliverableInput') as HTMLTextAreaElement;
+                                            const rawValue = input?.value || '';
+                                            const parts = rawValue.split(/\s*##\s*|\n+/).map(s => s.trim()).filter(Boolean);
+                                            const uniqueLabels = [...new Set(parts)];
+                                            const newIndicators = uniqueLabels.map(label => {
+                                                const existing = (editedItem.completionIndicators || []).find((ci: any) => ci.indicatorLabel === label);
+                                                return {
+                                                    indicatorLabel: label,
+                                                    guidanceResources: existing?.guidanceResources || '',
+                                                    fileUploadUrl: existing?.fileUploadUrl || ''
+                                                };
+                                            });
+                                            const newDeliverable = newIndicators.map(ci => ci.indicatorLabel).join(' ## ');
+                                            setEditedItem(prev => ({
+                                                ...prev,
+                                                completionIndicators: newIndicators,
+                                                deliverable: newDeliverable
+                                            }));
+                                            toast.success('Bulk update applied');
+                                        }}
+                                    >
+                                        Apply
+                                    </Button>
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    Separate multiple indicators with ## or new line. Existing guidance will be preserved for matching labels.
+                                </p>
+                            </div>
+                        )}
+
+                        {/* Per‑indicator side‑by‑side rows */}
+                        <div className="space-y-6">
+                            {(editedItem.completionIndicators || []).map((indicator: any, idx: number) => (
+                                <div key={idx}>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        {/* LEFT: Indicator label */}
+                                        <div>
+                                            <div className="flex items-center justify-between">
+                                                <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                                    COMPLETION INDICATOR
+                                                </label>
+                                                {editMode && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="text-red-600"
+                                                        onClick={() => {
+                                                            const newIndicators = editedItem.completionIndicators.filter((_: any, i: number) => i !== idx);
+                                                            const newDeliverable = newIndicators.map((ci: any) => ci.indicatorLabel).join(' ## ');
+                                                            setEditedItem(prev => ({
+                                                                ...prev,
+                                                                completionIndicators: newIndicators,
+                                                                deliverable: newDeliverable
+                                                            }));
+                                                        }}
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                )}
+                                            </div>
+                                            <div className="mt-1 flex items-center gap-2">
+                                                <span className="text-base font-medium text-foreground">
+                                                    {indicator.indicatorLabel}
+                                                </span>
+                                                {/* Eye button for uploaded files */}
+                                                {(() => {
+                                                    const hasFiles = capItem?.fileUploadedData?.some(
+                                                        (f: any) => f.indicatorLabel === indicator.indicatorLabel
+                                                    );
+                                                    if (!hasFiles) return null;
+                                                    return (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-7 w-7 p-0"
+                                                            onClick={() => openDocumentSummary(indicator.indicatorLabel)}
+                                                        >
+                                                            <Eye className="h-4 w-4" />
+                                                        </Button>
+                                                    );
+                                                })()}
+                                            </div>
+                                        </div>
+
+                                        {/* RIGHT: Guidance & Resources */}
+                                        <div>
+                                            <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                                GUIDANCE & RESOURCES
+                                            </label>
+                                            {editMode ? (
+                                                <Textarea
+                                                    value={indicator.guidanceResources || ''}
+                                                    onChange={(e) => {
+                                                        const newIndicators = [...editedItem.completionIndicators];
+                                                        newIndicators[idx].guidanceResources = e.target.value;
+                                                        setEditedItem(prev => ({ ...prev, completionIndicators: newIndicators }));
+                                                    }}
+                                                    rows={3}
+                                                    placeholder="Add guidance, resources, or notes for this deliverable..."
+                                                    className="mt-1 text-sm"
+                                                />
+                                            ) : (
+                                                <div className="mt-1 text-sm text-muted-foreground">
+                                                    {indicator.guidanceResources || '—'}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Separator line (except after last item) */}
+                                    {idx < (editedItem.completionIndicators.length - 1) && (
+                                        <Separator className="my-6" />
+                                    )}
+                                </div>
+                            ))}
+
+                            {(!editedItem.completionIndicators || editedItem.completionIndicators.length === 0) && (
+                                <div className="text-sm text-muted-foreground italic p-4 border rounded-lg bg-muted/20 text-center">
+                                    No completion indicators added yet.
                                 </div>
                             )}
 
-                            {/* Live preview - shows either the original or edited value depending on mode */}
-                            <ul className="mt-4 space-y-3">
-                                {(() => {
-                                    const source = editMode ? editedItem.deliverable : capItem?.deliverable;
-                                    if (!source) return <li className="text-sm text-muted-foreground">No indicators added yet.</li>;
-                                    const items = source.includes('##') ? source.split('##') : [source];
-                                    return items.filter(i => i.trim()).map((label, idx) => {
-                                        const hasDoc = hasDocumentForIndicator(label.trim());
-                                        return (
-                                            <li key={idx} className="flex items-center justify-between rounded-lg border bg-card p-3">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-sm">{label.trim()}</span>
-                                                    {hasDoc && (
-                                                        <Badge variant="outline" className="border-emerald-500 bg-emerald-50 text-emerald-700">
-                                                            <CheckCircle2 className="h-3 w-3 mr-1" /> Uploaded
-                                                        </Badge>
-                                                    )}
-                                                </div>
-                                                {hasDoc && (
-                                                    <Button size="sm" variant="ghost" onClick={() => openDocumentSummary(label.trim())}>
-                                                        <Eye className="h-3 w-3" />
-                                                    </Button>
-                                                )}
-                                            </li>
-                                        );
-                                    });
-                                })()}
-                            </ul>
-                        </div>
-                        <div>
-                            <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Guidance & Resources</div>
-                            <div className="mt-2">
-                                {editMode ? (
-                                    <Textarea
-                                        value={editedItem.resource || ''}
-                                        onChange={(e) => setEditedItem({ ...editedItem, resource: e.target.value })}
-                                        rows={4}
-                                        placeholder="Add guidance or resource links..."
-                                    />
-                                ) : (
-                                    <div className="rounded-lg border bg-card p-3 text-sm">
-                                        {capItem?.resource || '—'}
+                            {/* Add new indicator (edit mode only) */}
+                            {editMode && (
+                                <div className="flex items-end gap-3 pt-2">
+                                    <div className="flex-1">
+                                        <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                            Add new indicator
+                                        </label>
+                                        <Input
+                                            id="newIndicatorLabel"
+                                            placeholder=""
+                                            className="mt-1"
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    const input = e.currentTarget;
+                                                    const newLabel = input.value.trim();
+                                                    if (!newLabel) return;
+                                                    if (editedItem.completionIndicators?.some((ci: any) => ci.indicatorLabel === newLabel)) {
+                                                        toast.warning('Indicator already exists');
+                                                        return;
+                                                    }
+                                                    const newIndicators = [
+                                                        ...(editedItem.completionIndicators || []),
+                                                        { indicatorLabel: newLabel, guidanceResources: '', fileUploadUrl: '' }
+                                                    ];
+                                                    const newDeliverable = newIndicators.map((ci: any) => ci.indicatorLabel).join(' ## ');
+                                                    setEditedItem(prev => ({
+                                                        ...prev,
+                                                        completionIndicators: newIndicators,
+                                                        deliverable: newDeliverable
+                                                    }));
+                                                    input.value = '';
+                                                }
+                                            }}
+                                        />
                                     </div>
-                                )}
-                            </div>
+                                    <Button
+                                        type="button"
+                                        onClick={() => {
+                                            const input = document.getElementById('newIndicatorLabel') as HTMLInputElement;
+                                            const newLabel = input?.value.trim();
+                                            if (!newLabel) return;
+                                            if (editedItem.completionIndicators?.some((ci: any) => ci.indicatorLabel === newLabel)) {
+                                                toast.warning('Indicator already exists');
+                                                return;
+                                            }
+                                            const newIndicators = [
+                                                ...(editedItem.completionIndicators || []),
+                                                { indicatorLabel: newLabel, guidanceResources: '', fileUploadUrl: '' }
+                                            ];
+                                            const newDeliverable = newIndicators.map((ci: any) => ci.indicatorLabel).join(' ## ');
+                                            setEditedItem(prev => ({
+                                                ...prev,
+                                                completionIndicators: newIndicators,
+                                                deliverable: newDeliverable
+                                            }));
+                                            if (input) input.value = '';
+                                        }}
+                                    >
+                                        <Plus className="h-4 w-4 mr-1" /> Add
+                                    </Button>
+                                </div>
+                            )}
                         </div>
-                    </div>
-                    <Separator className="my-6" />
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-                        <Field label="Submission Date" value={capItem?.createdAt ? new Date(capItem.createdAt).toLocaleDateString() : '—'} />
-                        <Field label="Target Date" value={capItem?.targetDate ? new Date(capItem.targetDate).toLocaleDateString() : 'Pending'} />
-                        <Field label="Actual Completion" value={capItem?.actualDate ? new Date(capItem.actualDate).toLocaleDateString() : 'Pending'} />
-                        <Field label="Last Review Date" value={capItem?.lastReviewDate ? new Date(capItem.lastReviewDate).toLocaleDateString() : 'Pending'} />
-                        <Field label="Closure Verified By" value={capItem?.closureVerifiedBy || 'Upcoming'} />
+
+                        {/* Footer fields (unchanged) */}
+                        <Separator className="my-4" />
+                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                            <Field label="SUBMISSION DATE" value={capItem?.createdAt ? new Date(capItem.createdAt).toLocaleDateString() : '—'} />
+                            <Field label="TARGET DATE" value={capItem?.targetDate ? new Date(capItem.targetDate).toLocaleDateString() : 'Pending'} />
+                            <Field label="ACTUAL COMPLETION" value={capItem?.actualDate ? new Date(capItem.actualDate).toLocaleDateString() : 'Pending'} />
+                            <Field label="LAST REVIEW DATE" value={capItem?.lastReviewDate ? new Date(capItem.lastReviewDate).toLocaleDateString() : 'Pending'} />
+                            <Field label="CLOSURE VERIFIED BY" value={capItem?.closureVerifiedBy || 'Upcoming'} />
+                        </div>
                     </div>
                 </SectionCard>
 
