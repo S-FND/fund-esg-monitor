@@ -664,6 +664,27 @@ export function CAPTable({
     return <Badge variant="outline" className={config.className}>{config.label}</Badge>;
   };
 
+  // Inside CAPTable component, before return
+  const normalizeStatus = (status?: string) =>
+    (status ?? "").trim().toLowerCase();
+
+  const isOverdue = (item: ESGCapItem) => {
+    if (!item.targetDate) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const targetDate = new Date(item.targetDate);
+    targetDate.setHours(0, 0, 0, 0);
+    const isClosed = normalizeStatus(item.investorStatus) === "closed";
+    return targetDate < today && !isClosed && !item.actualDate;
+  };
+
+  const getRowClassName = (item: ESGCapItem) => {
+    const closed = normalizeStatus(item.investorStatus) === "closed";
+    const overdue = isOverdue(item);
+    return `transition-colors ${closed ? "bg-gray-300 text-gray-500" : overdue ? "text-red-700" : ""
+      }`;
+  };
+
   return (
     <TooltipProvider>
       {/* View toggle button */}
@@ -735,7 +756,7 @@ export function CAPTable({
             {sortedItems.map((item, index) => {
               const originalItem = getOriginalItem(item.id);
               return (
-                <tr key={item.id} className={isComparisonView ? "bg-muted/30 hover:bg-muted/50" : "hover:bg-gray-50"}>
+                <tr key={item.id} className={`${getRowClassName(item)} ${isComparisonView ? "bg-muted/30 hover:bg-muted/50" : "hover:bg-gray-50"}`}>
                   {!showFullColumns ? (
                     // COMPACT VIEW ROWS
                     <>

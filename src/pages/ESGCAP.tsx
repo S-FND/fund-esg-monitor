@@ -94,7 +94,7 @@ export default function ESGCAP() {
   const totalItems = filteredCAPItems.length;
 
   const completedItems = filteredCAPItems.filter(
-    (item) => item.investorStatus === "Closed"
+    (item) => item.investorStatus === "closed"
   ).length;
 
   const overdueItems = filteredCAPItems.filter(
@@ -466,7 +466,7 @@ export default function ESGCAP() {
     }, 0);
 
     const completedWeightage = filteredCAPItems
-      .filter(item => item.investorStatus === 'Closed')
+      .filter(item => item.investorStatus === 'closed')
       .reduce((sum, item) => {
         return sum + (100 / totalItems) * getPriorityWeight(item.priority || "Medium");
       }, 0);
