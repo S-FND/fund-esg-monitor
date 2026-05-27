@@ -357,7 +357,7 @@ export function CAPTable({
   companyEntityId,
   setReloadData
 }: CAPTableProps) {
-  const completedItems = items.filter(item => item.investorStatus === 'Closed').length;
+  const completedItems = items.filter(item => item.investorStatus === 'closed').length;
   const progressPercentage = items.length > 0 ? Math.round((completedItems / items.length) * 100) : 0;
   const [isViewAiOpen, setIsViewAiOpen] = useState(false);
   const [item, setItem] = useState<ESGCapItem>({} as ESGCapItem);
@@ -657,7 +657,7 @@ export function CAPTable({
     const statusMap: Record<string, { label: string; className: string }> = {
       "under review": { label: "Under Review", className: "bg-yellow-100 text-yellow-800 border-yellow-300" },
       "reviewed with comments": { label: "Reviewed with Comments", className: "bg-blue-100 text-blue-800 border-blue-300" },
-      "closed": { label: "Closed", className: "bg-green-600 text-white border-green-700" },
+      "closed": { label: "closed", className: "bg-green-600 text-white border-green-700" },
       "deferred": { label: "Deferred", className: "bg-gray-200 text-gray-700 border-gray-300" }
     };
     const config = statusMap[status?.toLowerCase()] || { label: status || '-', className: "bg-gray-100 text-gray-600" };

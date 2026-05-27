@@ -789,8 +789,8 @@ export default function ESGCAP() {
           </div>
         )}
 
-        {/* Alerts panel (unchanged) */}
-        {filteredCAPItems.length > 0 && (
+        {/* Alerts panel (unchanged) comment for fire side*/}
+        {/* {filteredCAPItems.length > 0 && (
           <div className="mb-6 py-4">
             <AlertsPanel
               overdueItems={alerts.overdueItems}
@@ -799,7 +799,7 @@ export default function ESGCAP() {
               finalPlan={isPlanFinalized}
             />
           </div>
-        )}
+        )} */}
 
         {/* Grouped sections */}
         <div className="space-y-6">

@@ -235,7 +235,7 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                     : item
             );
 
-            const response: any = await http.post("investor/esgdd/escap/edit-exiting-plan", {
+            const response: any = await http.post("investor/esgdd/escap/edit-finalized-plan", {
                 entityId: entityId,
                 updatedPlan: updatedPlan,
             });
@@ -295,10 +295,17 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
         }
     };
 
-    const hasDocumentForIndicator = (indicatorLabel: string) =>
-        capItem?.fileUploadedData?.some((file: any) => file.indicatorLabel === indicatorLabel);
-
-    const openAttachments = () => setAttachmentsOpen(true);
+    const latestUploadedAt = capItem?.completionIndicators
+        ?.filter(
+            (item: any) =>
+                item?.fileUploadUrl &&
+                item?.uploadedAt
+        )
+        ?.sort(
+            (a: any, b: any) =>
+                new Date(b.uploadedAt).getTime() -
+                new Date(a.uploadedAt).getTime()
+        )?.[0]?.uploadedAt;
 
     if (loading) {
         return (
@@ -669,27 +676,73 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                                                     </Button>
                                                 )}
                                             </div>
-                                            <div className="mt-1 flex items-center gap-2">
-                                                <span className="text-base font-medium text-foreground">
-                                                    {indicator.indicatorLabel}
-                                                </span>
-                                                {/* Eye button for uploaded files */}
-                                                {(() => {
-                                                    const hasFiles = capItem?.fileUploadedData?.some(
-                                                        (f: any) => f.indicatorLabel === indicator.indicatorLabel
-                                                    );
-                                                    if (!hasFiles) return null;
-                                                    return (
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            className="h-7 w-7 p-0"
-                                                            onClick={() => openDocumentSummary(indicator.indicatorLabel)}
-                                                        >
-                                                            <Eye className="h-4 w-4" />
-                                                        </Button>
-                                                    );
-                                                })()}
+                                            <div className="mt-1 flex items-start gap-2 min-w-0">
+                                                {/* Indicator text */}
+                                                <div className="flex-1 min-w-0">
+                                                    {(() => {
+                                                        const matchedEntries = capItem?.fileUploadedData?.filter(
+                                                            (f: any) =>
+                                                                f?.indicatorLabel?.trim()?.toLowerCase() ===
+                                                                indicator?.indicatorLabel?.trim()?.toLowerCase()
+                                                        );
+                                                        const hasFiles = matchedEntries?.some(
+                                                            (f: any) => f?.indicatorResponse !== 'no' && f?.s3Link
+                                                        );
+                                                        const noResponseEntry = matchedEntries?.find(
+                                                            (f: any) =>
+                                                                f?.indicatorResponse === 'no'
+                                                        );
+                                                        return (
+                                                            <>
+                                                                {/* Indicator row */}
+                                                                <div className="flex items-center gap-2 min-w-0">
+                                                                    <span
+                                                                        className="text-base font-medium text-foreground truncate block"
+                                                                        title={indicator.indicatorLabel}
+                                                                    >
+                                                                        {indicator.indicatorLabel}
+                                                                    </span>
+                                                                    {/* Uploaded */}
+                                                                    {hasFiles && (
+                                                                        <div className="flex items-center gap-2 shrink-0">
+
+                                                                            <Badge
+                                                                                variant="secondary"
+                                                                                className="h-6 rounded-full px-2 text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                                                            >
+                                                                                Response Uploaded
+                                                                            </Badge>
+
+                                                                            <Button
+                                                                                variant="ghost"
+                                                                                size="sm"
+                                                                                className="h-7 w-7 p-0"
+                                                                                onClick={() => openDocumentSummary(indicator.indicatorLabel)}
+                                                                            >
+                                                                                <Eye className="h-4 w-4" />
+                                                                            </Button>
+                                                                        </div>
+                                                                    )}
+                                                                    {/* NO response */}
+                                                                    {!hasFiles && noResponseEntry && (
+                                                                        <Badge
+                                                                            variant="secondary"
+                                                                            className="h-6 rounded-full px-2 text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200 shrink-0"
+                                                                        >
+                                                                            Response Marked as No
+                                                                        </Badge>
+                                                                    )}
+                                                                </div>
+                                                                {/* Note */}
+                                                                {!hasFiles && noResponseEntry?.indicatorNote && (
+                                                                    <div className="mt-1 text-xs text-muted-foreground italic break-words">
+                                                                        Note: {noResponseEntry.indicatorNote}
+                                                                    </div>
+                                                                )}
+                                                            </>
+                                                        );
+                                                    })()}
+                                                </div>
                                             </div>
                                         </div>
 
@@ -796,13 +849,76 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                         </div>
 
                         {/* Footer fields (unchanged) */}
-                        <Separator className="my-4" />
+                        <Separator className="my-6" />
                         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-                            <Field label="SUBMISSION DATE" value={capItem?.createdAt ? new Date(capItem.createdAt).toLocaleDateString() : '—'} />
-                            <Field label="TARGET DATE" value={capItem?.targetDate ? new Date(capItem.targetDate).toLocaleDateString() : 'Pending'} />
-                            <Field label="ACTUAL COMPLETION" value={capItem?.actualDate ? new Date(capItem.actualDate).toLocaleDateString() : 'Pending'} />
-                            <Field label="LAST REVIEW DATE" value={capItem?.lastReviewDate ? new Date(capItem.lastReviewDate).toLocaleDateString() : 'Pending'} />
-                            <Field label="CLOSURE VERIFIED BY" value={capItem?.closureVerifiedBy || 'Upcoming'} />
+                            <Field label="Submission Date" value={latestUploadedAt
+                                ? new Date(latestUploadedAt).toLocaleDateString('en-GB', {
+                                    day: '2-digit',
+                                    month: 'short',
+                                    year: 'numeric',
+                                })
+                                : '—'} />
+                            <Field label="Target Date" value={capItem?.targetDate ? new Date(capItem?.targetDate).toLocaleDateString('en-GB', {
+                                day: '2-digit',
+                                month: 'short',
+                                year: 'numeric',
+                            }) : 'Pending'} />
+                            <Field label="Actual Completion" value={capItem?.actualDate ? new Date(capItem?.lastReviewDate).toLocaleDateString('en-GB', {
+                                day: '2-digit',
+                                month: 'short',
+                                year: 'numeric',
+                            }) : 'Pending'} />
+                            <div>
+                                <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                    Last Review Date
+                                </div>
+                                <div className="mt-1 text-sm text-foreground">
+                                    {editMode ? (
+                                        <Input
+                                            type="date"
+                                            value={
+                                                editedItem.lastReviewDate
+                                                    ? new Date(editedItem.lastReviewDate).toISOString().split('T')[0]
+                                                    : ''
+                                            }
+                                            onChange={(e) =>
+                                                setEditedItem({
+                                                    ...editedItem,
+                                                    lastReviewDate: e.target.value ? new Date(e.target.value) : null,
+                                                })
+                                            }
+                                        />
+                                    ) : (
+                                        capItem?.lastReviewDate
+                                            ? new Date(capItem.lastReviewDate).toLocaleDateString('en-GB', {
+                                                day: '2-digit',
+                                                month: 'short',
+                                                year: 'numeric',
+                                            })
+                                            : 'Pending'
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Closure Verified By – now editable when editMode = true */}
+                            <div>
+                                <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                    Closure Verified By
+                                </div>
+                                <div className="mt-1 text-sm text-foreground">
+                                    {editMode ? (
+                                        <Input
+                                            value={editedItem.closureVerifiedBy || ''}
+                                            onChange={(e) =>
+                                                setEditedItem({ ...editedItem, closureVerifiedBy: e.target.value })
+                                            }
+                                            placeholder="Enter name or role"
+                                        />
+                                    ) : (
+                                        capItem?.closureVerifiedBy || 'Upcoming'
+                                    )}
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </SectionCard>
