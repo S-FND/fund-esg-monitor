@@ -94,7 +94,7 @@ export default function ESGCAP() {
   const totalItems = filteredCAPItems.length;
 
   const completedItems = filteredCAPItems.filter(
-    (item) => item.investorStatus === "Closed"
+    (item) => item.investorStatus === "closed"
   ).length;
 
   const overdueItems = filteredCAPItems.filter(
@@ -466,7 +466,7 @@ export default function ESGCAP() {
     }, 0);
 
     const completedWeightage = filteredCAPItems
-      .filter(item => item.investorStatus === 'Closed')
+      .filter(item => item.investorStatus === 'closed')
       .reduce((sum, item) => {
         return sum + (100 / totalItems) * getPriorityWeight(item.priority || "Medium");
       }, 0);
@@ -789,8 +789,8 @@ export default function ESGCAP() {
           </div>
         )}
 
-        {/* Alerts panel (unchanged) */}
-        {filteredCAPItems.length > 0 && (
+        {/* Alerts panel (unchanged) comment for fire side*/}
+        {/* {filteredCAPItems.length > 0 && (
           <div className="mb-6 py-4">
             <AlertsPanel
               overdueItems={alerts.overdueItems}
@@ -799,7 +799,7 @@ export default function ESGCAP() {
               finalPlan={isPlanFinalized}
             />
           </div>
-        )}
+        )} */}
 
         {/* Grouped sections */}
         <div className="space-y-6">
