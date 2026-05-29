@@ -434,20 +434,71 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                             // Parse DD-MMM-YY dates
                             const parseDateDMY = (d: string): string => {
                                 if (!d) return "";
-                                const months: Record<string, string> = {
-                                    'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04', 'may': '05', 'jun': '06',
-                                    'jul': '07', 'aug': '08', 'sep': '09', 'oct': '10', 'nov': '11', 'dec': '12'
-                                };
-                                const match = d.match(/^(\d{1,2})-([a-zA-Z]{3})-(\d{2})$/);
-                                if (match) {
-                                    const day = match[1].padStart(2, '0');
-                                    const month = months[match[2].toLowerCase()] || '01';
-                                    const year = parseInt(match[3]) > 50 ? `19${match[3]}` : `20${match[3]}`;
-                                    return `${year}-${month}-${day}`;
+                            
+                                let value = String(d).trim();
+                            
+                                value = value.replace(/^"|"$/g, "");
+                            
+                                // YYYY-MM-DD
+                                if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+                                    return value;
                                 }
-                                const date = new Date(d);
-                                if (!isNaN(date.getTime())) return date.toISOString().split('T')[0];
-                                return d;
+                            
+                                // DD/MM/YYYY or DD/MM/YY
+                                let match = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/);
+                            
+                                if (match) {
+                                    let [, day, month, year] = match;
+                            
+                                    if (year.length === 2) {
+                                        year = Number(year) > 50 ? `19${year}` : `20${year}`;
+                                    }
+                            
+                                    return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+                                }
+                            
+                                // MM-DD-YY or MM-DD-YYYY
+                                match = value.match(/^(\d{1,2})-(\d{1,2})-(\d{2}|\d{4})$/);
+                            
+                                if (match) {
+                                    let [, month, day, year] = match;
+                            
+                                    if (year.length === 2) {
+                                        year = Number(year) > 50 ? `19${year}` : `20${year}`;
+                                    }
+                            
+                                    return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+                                }
+                            
+                                // DD-MMM-YY
+                                match = value.match(/^(\d{1,2})-([a-zA-Z]{3})-(\d{2})$/);
+                            
+                                if (match) {
+                                    const months: Record<string, string> = {
+                                        jan: "01",
+                                        feb: "02",
+                                        mar: "03",
+                                        apr: "04",
+                                        may: "05",
+                                        jun: "06",
+                                        jul: "07",
+                                        aug: "08",
+                                        sep: "09",
+                                        oct: "10",
+                                        nov: "11",
+                                        dec: "12",
+                                    };
+                            
+                                    let [, day, mon, year] = match;
+                            
+                                    year = Number(year) > 50 ? `19${year}` : `20${year}`;
+                            
+                                    return `${year}-${months[mon.toLowerCase()]}-${day.padStart(2, "0")}`;
+                                }
+                            
+                                console.log("Invalid date:", value);
+                            
+                                return "";
                             };
     
                             // ✅ Company Status → maps to `status` field
