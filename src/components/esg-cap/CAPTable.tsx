@@ -196,13 +196,18 @@ interface CAPTableProps {
 }
 
 // ==================== DATE FORMATTER HELPERS ====================
-const formatDisplayDate = (dateString?: string): string => {
-  if (!dateString) return '';
-  try {
-    return new Date(dateString).toLocaleDateString();
-  } catch {
-    return dateString;
-  }
+const formatDisplayDate = (dateStr?: string): string => {
+  if (!dateStr || dateStr === '—' || dateStr === '-') return '-';
+
+  const date = new Date(dateStr);
+
+  if (isNaN(date.getTime())) return '-';
+
+  return date.toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
 };
 
 const isDateField = (fieldName: string): boolean => {
@@ -675,7 +680,7 @@ export function CAPTable({
     const targetDate = new Date(item.targetDate);
     targetDate.setHours(0, 0, 0, 0);
     const isClosed = normalizeStatus(item.investorStatus) === "closed";
-    return targetDate < today && !isClosed && !item.actualDate;
+    return normalizeStatus(item.status) === "overdue" && targetDate < today && !isClosed && !item.actualDate;
   };
 
   const getRowClassName = (item: ESGCapItem) => {
