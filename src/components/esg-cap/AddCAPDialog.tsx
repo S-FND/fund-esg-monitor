@@ -675,12 +675,6 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
 
     const downloadTemplate = () => {
         const template = [
-            '# INSTRUCTIONS:',
-            '# - "Priority" must be: High/Medium/Low',
-            '# - "Category" must be: environmental/social/governance',
-            '# - "Company Status" and "Investor Status" can be: Pending/In Review/Accepted/Completed/Overdue',
-            '# - Required columns: CAP Item, Measures & Corrective Actions',
-            '#',
             'CAP Item,Priority,Target Date,Company Status,Investor Status,Completed On,CP/CS/ESG Roadmap,Category,"Issue and Related Finding","Measures & Corrective Actions",Completion Indicator,"Timeline Month","Add Update","Review Comments","Last Review Date","Closure Verified By","Assigned To","Implementation Support Needed","ESG Lever","CAP Source"',
             '"Example: Improve emissions",High,16-May-24,"In Progress","In Progress",16-May-24,CP,environmental,"Carbon reporting gaps","Implement tracking system","ESG Manager",6,"Approved","Review comments",01-Nov-23,"John Doe","jane@example.com","IT support needed","Policy development","Training material"'
         ].join('\n');
