@@ -155,7 +155,7 @@ export interface ESGCapItem {
   resource?: string;
   deliverable?: string;
   // statusUpdate?: string;
-  addUpdate?: string;
+  updateNote?: string;
   investorStatusUpdate?: string;
   reviewRemarks?: string;
   lastReviewDate?: string;
@@ -401,7 +401,7 @@ export function CAPTable({
     relatedFinding: "",
     esgLever: "",
     capSource: "",
-    addUpdate: "",
+    updateNote: "",
     // Action Details
     measures: "",
     resource: "",
@@ -456,7 +456,7 @@ export function CAPTable({
       actualDate: newRowData.actualDate || undefined,
       dealCondition: newRowData.dealCondition,
       status: newRowData.status,
-      addUpdate: newRowData.addUpdate,
+      updateNote: newRowData.updateNote,
       investorStatus: newRowData.investorStatus,
       // statusUpdate: newRowData.statusUpdate || undefined,
       investorStatusUpdate: newRowData.investorStatusUpdate || undefined,
@@ -491,7 +491,7 @@ export function CAPTable({
       status: "overdue",
       investorStatus: "",
       // statusUpdate: "",
-      addUpdate: "",
+      updateNote: "",
       investorStatusUpdate: "",
       progressPercentage: "",
       reviewRemarks: "",
@@ -881,7 +881,7 @@ export function CAPTable({
                         {renderField(item.timelineMonth, originalItem?.timelineMonth, "timelineMonth", item.id)}
                       </td>
                       <td className="p-3">
-                        {renderField(item.addUpdate, originalItem?.addUpdate, "addUpdate", item.id)}
+                        {renderField(item.updateNote, originalItem?.updateNote, "updateNote", item.id)}
                       </td>
                       <td className="p-3">
                         {renderField(item.reviewRemarks, originalItem?.reviewRemarks, "reviewRemarks", item.id)}

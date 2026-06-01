@@ -336,6 +336,26 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
         );
     }
 
+    const handleAcceptDocument = async (payload) => {
+        const { data, error } = await http.post('investor/esgdd/escap/document/accept', {
+          entityId: companyEntityId,
+          itemId: capItem?._id,
+          fileName: payload.fileName,
+          status: payload.status,
+          reason: payload.reason
+        })
+        if (error) {
+          toast.error(`${payload.fileName} failed to process. Please try again or check the document.`);
+          return; // ✅ stop execution
+        }
+    
+        if (data?.status) {
+          toast.success(`${payload.fileName} ${payload.status === "Accepted" ? "approved" : "rejected"}`); 
+          setIsSummaryOpen(false);
+          await loadData();
+        }
+      }
+
     return (
         <div className="min-h-screen bg-[hsl(220_25%_97%)] dark:bg-background">
             <div className="mx-auto max-w-[1440px] px-6 py-8 space-y-6">
@@ -449,6 +469,7 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                                                 </SelectItem>
                                                 <SelectItem value="overdue">Overdue</SelectItem>
                                                 <SelectItem value="submitted">Submitted</SelectItem>
+                                                <SelectItem value="closed">Closed</SelectItem>
                                                 <SelectItem value="request to re-submit">
                                                     Request to Re-submit
                                                 </SelectItem>
@@ -915,7 +936,7 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                                             placeholder="Enter name or role"
                                         />
                                     ) : (
-                                        capItem?.closureVerifiedBy || 'Upcoming'
+                                        capItem?.closureVerifiedBy || ''
                                     )}
                                 </div>
                             </div>
@@ -982,14 +1003,32 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                     )
                 }
             </div >
-            <DocumentSummaryDialog
+            {/* <DocumentSummaryDialog
                 open={isSummaryOpen}
                 files={selectedFilesForSummary}
                 onClose={() => {
                     setIsSummaryOpen(false);
                     setSelectedFilesForSummary([]);
                 }}
-            />
+                onSubmit={({ index, status, reason, fileName }) => {
+                    handleAcceptDocument({
+                      fileIndex: index,
+                      status,
+                      reason,
+                      fileName
+                    });
+                  }}
+            /> */}
+
+<DocumentSummaryDialog open={isSummaryOpen} files={capItem.fileUploadedData} onClose={() => setIsSummaryOpen(false)}
+        onSubmit={({ index, status, reason, fileName }) => {
+          handleAcceptDocument({
+            fileIndex: index,
+            status,
+            reason,
+            fileName
+          });
+        }} />
         </div >
 
     );
