@@ -45,6 +45,12 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import DocumentSummaryDialog from '@/components/esg-cap/document-summary-review';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 // -------------------- Reusable UI components (unchanged) --------------------
 const SectionCard: React.FC<{
     title: string;
@@ -110,6 +116,9 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
     const [editedItem, setEditedItem] = useState<any>({});
     const [showUpdateNotes, setShowUpdateNotes] = useState(false);
     const [updateText, setUpdateText] = useState('');
+    const [requestChange, setRequestChange] = useState(false);
+    const [changeNote, setChangeNote] = useState('');
+    const [assigneeText, setAssigneeText] = useState<string>('');
 
     // Attachment states
     const [uploadModalOpen, setUploadModalOpen] = useState(false);
@@ -295,6 +304,14 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
         }
     };
 
+    useEffect(() => {
+        if (capItem) {
+            setEditedItem({ ...capItem });
+            setRequestChange(capItem?.comment === 'Change-Request');
+            setChangeNote(capItem?.requestChange || '');
+        }
+    }, [capItem]);
+
     const latestUploadedAt = capItem?.completionIndicators
         ?.filter(
             (item: any) =>
@@ -334,6 +351,26 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                 </Button>
             </div>
         );
+    }
+
+    const handleAcceptDocument = async (payload) => {
+        const { data, error } = await http.post('investor/esgdd/escap/document/accept', {
+            entityId: companyEntityId,
+            itemId: capItem?._id,
+            fileName: payload.fileName,
+            status: payload.status,
+            reason: payload.reason
+        })
+        if (error) {
+            toast.error(`${payload.fileName} failed to process. Please try again or check the document.`);
+            return; // ✅ stop execution
+        }
+
+        if (data?.status) {
+            toast.success(`${payload.fileName} ${payload.status === "Accepted" ? "approved" : "rejected"}`);
+            setIsSummaryOpen(false);
+            await loadData();
+        }
     }
 
     return (
@@ -397,6 +434,113 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                             </div>
                         </div>
                         {/* Editable Fields */}
+                        {/* Update Notes - editable only in edit mode */}
+<div>
+    <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+        Update Notes
+    </label>
+    {editMode ? (
+        <Textarea
+            className="mt-2 min-h-[140px] rounded-lg bg-muted/40"
+            placeholder="Status updates, blocker notes..."
+            value={editedItem.updateNote || ''}
+            onChange={(e) => setEditedItem({ ...editedItem, updateNote: e.target.value })}
+        />
+    ) : (
+        <div className="mt-2 text-sm text-foreground whitespace-pre-wrap">
+            {editedItem.updateNote || '—'}
+        </div>
+    )}
+</div>
+
+{/* Assigned To - editable only in edit mode */}
+<div className="rounded-xl border bg-muted/30 p-5">
+    <div className="grid gap-5 lg:grid-cols-[260px_1fr] lg:items-start">
+        <div>
+            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <UserPlus className="h-4 w-4 text-[#1E3A8A]" /> Assigned To
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+                Operational owner responsible for CAP execution
+            </p>
+        </div>
+        <div>
+            {editMode ? (
+                <div className="flex min-h-[48px] flex-wrap items-center gap-2 rounded-lg border bg-card p-2">
+                    <Input
+                        placeholder="Assigned To"
+                        value={editedItem.assignedTo || ''}
+                        onChange={(e) => setEditedItem({ ...editedItem, assignedTo: e.target.value })}
+                        className="h-9"
+                    />
+                </div>
+            ) : (
+                <div className="flex min-h-[48px] items-center rounded-lg border bg-card p-3 text-sm">
+                    {editedItem.assignedTo || '—'}
+                </div>
+            )}
+        </div>
+    </div>
+</div>
+
+{/* Request Change - editable only in edit mode */}
+<div className="rounded-xl border bg-muted/30 p-5">
+    <div>
+        <div className="relative flex items-center gap-1 w-fit">
+            <div className="text-sm font-semibold text-foreground">
+                Request Change
+            </div>
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Info className="w-4 h-4 text-muted-foreground cursor-pointer" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p className="max-w-xs">
+                            Request changes to timeline, deliverables, or CP/CS status
+                        </p>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+        </div>
+
+        {/* Show existing change request badge and details if present */}
+        {capItem?.comment === "Change-Request" && (
+            <div className="mt-2 space-y-2">
+                <Badge
+                    variant="outline"
+                    className="border-amber-300 bg-amber-50 text-amber-700"
+                >
+                    Change Requested
+                </Badge>
+                <p className="text-xs text-muted-foreground">
+                    {capItem?.requestChange || "No details provided"}
+                </p>
+            </div>
+        )}
+    </div>
+
+    <div className="mt-4">
+        {editMode ? (
+            <Textarea
+                placeholder="Describe the requested changes (e.g., extend deadline, modify indicator)..."
+                value={editedItem.requestChange || ""}
+                onChange={(e) =>
+                    setEditedItem({
+                        ...editedItem,
+                        requestChange: e.target.value,
+                    })
+                }
+                className="min-h-[120px] rounded-lg bg-card"
+            />
+        ) : (
+            <div className="text-sm text-muted-foreground">
+                {editedItem.requestChange || 'No change request submitted.'}
+            </div>
+        )}
+    </div>
+</div>
+
                         <div className="rounded-xl border bg-muted/30 p-5">
                             <div className="grid gap-5 md:grid-cols-2">
                                 <div>
@@ -449,6 +593,7 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                                                 </SelectItem>
                                                 <SelectItem value="overdue">Overdue</SelectItem>
                                                 <SelectItem value="submitted">Submitted</SelectItem>
+                                                <SelectItem value="closed">Closed</SelectItem>
                                                 <SelectItem value="request to re-submit">
                                                     Request to Re-submit
                                                 </SelectItem>
@@ -915,7 +1060,7 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                                             placeholder="Enter name or role"
                                         />
                                     ) : (
-                                        capItem?.closureVerifiedBy || 'Upcoming'
+                                        capItem?.closureVerifiedBy || ''
                                     )}
                                 </div>
                             </div>
@@ -982,14 +1127,32 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                     )
                 }
             </div >
-            <DocumentSummaryDialog
+            {/* <DocumentSummaryDialog
                 open={isSummaryOpen}
                 files={selectedFilesForSummary}
                 onClose={() => {
                     setIsSummaryOpen(false);
                     setSelectedFilesForSummary([]);
                 }}
-            />
+                onSubmit={({ index, status, reason, fileName }) => {
+                    handleAcceptDocument({
+                      fileIndex: index,
+                      status,
+                      reason,
+                      fileName
+                    });
+                  }}
+            /> */}
+
+            <DocumentSummaryDialog open={isSummaryOpen} files={capItem.fileUploadedData} onClose={() => setIsSummaryOpen(false)}
+                onSubmit={({ index, status, reason, fileName }) => {
+                    handleAcceptDocument({
+                        fileIndex: index,
+                        status,
+                        reason,
+                        fileName
+                    });
+                }} />
         </div >
 
     );

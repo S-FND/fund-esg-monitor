@@ -40,7 +40,7 @@ interface CAPFormRow {
     timelineMonth: number;
     dealCondition: CAPType;
     // statusUpdate: string;
-    addUpdate: string;
+    updateNote: string;
     // investorStatusUpdate: string;
     reviewRemarks: string;
     lastReviewDate: string;
@@ -105,7 +105,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
         timelineMonth: 0,
         dealCondition: "none",
         // statusUpdate: "",
-        addUpdate: "",
+        updateNote: "",
         // investorStatusUpdate: "",
         reviewRemarks: "",
         lastReviewDate: "",
@@ -183,7 +183,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
             timelineMonth: 0,
             dealCondition: "none",
             // statusUpdate: "",
-            addUpdate: "",
+            updateNote: "",
             // investorStatusUpdate: "",
             reviewRemarks: "",
             lastReviewDate: "",
@@ -223,7 +223,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
             deliverable: row.deliverable || undefined,
             timelineMonth: row.timelineMonth || undefined,
             // statusUpdate: row.statusUpdate || undefined,
-            addUpdate: row.addUpdate || undefined,
+            updateNote: row.updateNote || undefined,
             // investorStatusUpdate: row.investorStatusUpdate || undefined,
             reviewRemarks: row.reviewRemarks || undefined,
             lastReviewDate: parseToDateInput(row.lastReviewDate) || undefined,
@@ -339,7 +339,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
             setFormRows([{
                 id: "1", item: "", category: "environmental", priority: "Medium", issue: "", relatedFinding: "",
                 measures: "", resource: "", deliverable: "", timelineMonth: 0, dealCondition: "none",
-                addUpdate: "", reviewRemarks: "", lastReviewDate: "", implementationSupportNeeded: "",
+                updateNote: "", reviewRemarks: "", lastReviewDate: "", implementationSupportNeeded: "",
                 closureVerifiedBy: "", actualDate: "", status: "overdue", investorStatus: "", targetDate: "", esgLever: "", capSource: "",
                 progressPercentage: 0, assignedTo: "", remarks: "",
             }]);
@@ -589,7 +589,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                                 assignedTo: getField(row, ["Assigned To", "assignedto"]) || undefined,
                                 esgLever: getField(row, ["ESG Lever", "esglever"]) || undefined,
                                 capSource: getField(row, ["CAP Source", "capsource"]) || undefined,
-                                addUpdate: getField(row, ["Add Update", "addupdate", "statusupdate"]) || undefined,
+                                updateNote: getField(row, ["Add Update", "addupdate", "statusupdate"]) || undefined,
                                 reviewRemarks: getField(row, ["Review Comments", "reviewcomments", "reviewremarks"]) || undefined,
                                 lastReviewDate: parseDateDMY(lastReviewRaw),
                                 implementationSupportNeeded: getField(row, ["Implementation Support Needed", "implementationsupportneeded"]) || undefined,
@@ -675,12 +675,6 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
 
     const downloadTemplate = () => {
         const template = [
-            '# INSTRUCTIONS:',
-            '# - "Priority" must be: High/Medium/Low',
-            '# - "Category" must be: environmental/social/governance',
-            '# - "Company Status" and "Investor Status" can be: Pending/In Review/Accepted/Completed/Overdue',
-            '# - Required columns: CAP Item, Measures & Corrective Actions',
-            '#',
             'CAP Item,Priority,Target Date,Company Status,Investor Status,Completed On,CP/CS/ESG Roadmap,Category,"Issue and Related Finding","Measures & Corrective Actions",Completion Indicator,"Timeline Month","Add Update","Review Comments","Last Review Date","Closure Verified By","Assigned To","Implementation Support Needed","ESG Lever","CAP Source"',
             '"Example: Improve emissions",High,16-May-24,"In Progress","In Progress",16-May-24,CP,environmental,"Carbon reporting gaps","Implement tracking system","ESG Manager",6,"Approved","Review comments",01-Nov-23,"John Doe","jane@example.com","IT support needed","Policy development","Training material"'
         ].join('\n');
@@ -706,7 +700,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
         setFormRows([{
             id: "1", item: "", category: "environmental", priority: "Medium", issue: "", relatedFinding: "",
             measures: "", resource: "", deliverable: "", timelineMonth: 0, dealCondition: "none",
-            addUpdate: "", reviewRemarks: "", lastReviewDate: "", implementationSupportNeeded: "",
+            updateNote: "", reviewRemarks: "", lastReviewDate: "", implementationSupportNeeded: "",
             closureVerifiedBy: "", actualDate: "", status: "overdue", investorStatus: "", targetDate: "", esgLever: "", capSource: "",
             progressPercentage: 0, assignedTo: "", remarks: "",
         }]);
@@ -971,8 +965,8 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                                                 <div>
                                                     <Label>Current Status Update (Company)</Label>
                                                     <Textarea
-                                                        value={row.addUpdate}
-                                                        onChange={(e) => updateRow(row.id, "addUpdate", e.target.value)}
+                                                        value={row.status}
+                                                        onChange={(e) => updateRow(row.id, "status", e.target.value)}
                                                         disabled
                                                         placeholder="Latest update on this action item"
                                                         className="min-h-[60px]"
