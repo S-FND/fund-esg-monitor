@@ -155,7 +155,7 @@ export interface ESGCapItem {
   resource?: string;
   deliverable?: string;
   // statusUpdate?: string;
-  addUpdate?: string;
+  updateNote?: string;
   investorStatusUpdate?: string;
   reviewRemarks?: string;
   lastReviewDate?: string;
@@ -196,13 +196,18 @@ interface CAPTableProps {
 }
 
 // ==================== DATE FORMATTER HELPERS ====================
-const formatDisplayDate = (dateString?: string): string => {
-  if (!dateString) return '';
-  try {
-    return new Date(dateString).toLocaleDateString();
-  } catch {
-    return dateString;
-  }
+const formatDisplayDate = (dateStr?: string): string => {
+  if (!dateStr || dateStr === '—' || dateStr === '-') return '-';
+
+  const date = new Date(dateStr);
+
+  if (isNaN(date.getTime())) return '-';
+
+  return date.toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
 };
 
 const isDateField = (fieldName: string): boolean => {
@@ -396,7 +401,7 @@ export function CAPTable({
     relatedFinding: "",
     esgLever: "",
     capSource: "",
-    addUpdate: "",
+    updateNote: "",
     // Action Details
     measures: "",
     resource: "",
@@ -451,7 +456,7 @@ export function CAPTable({
       actualDate: newRowData.actualDate || undefined,
       dealCondition: newRowData.dealCondition,
       status: newRowData.status,
-      addUpdate: newRowData.addUpdate,
+      updateNote: newRowData.updateNote,
       investorStatus: newRowData.investorStatus,
       // statusUpdate: newRowData.statusUpdate || undefined,
       investorStatusUpdate: newRowData.investorStatusUpdate || undefined,
@@ -486,7 +491,7 @@ export function CAPTable({
       status: "overdue",
       investorStatus: "",
       // statusUpdate: "",
-      addUpdate: "",
+      updateNote: "",
       investorStatusUpdate: "",
       progressPercentage: "",
       reviewRemarks: "",
@@ -675,7 +680,7 @@ export function CAPTable({
     const targetDate = new Date(item.targetDate);
     targetDate.setHours(0, 0, 0, 0);
     const isClosed = normalizeStatus(item.investorStatus) === "closed";
-    return targetDate < today && !isClosed && !item.actualDate;
+    return normalizeStatus(item.status) === "overdue" && targetDate < today && !isClosed && !item.actualDate;
   };
 
   const getRowClassName = (item: ESGCapItem) => {
@@ -876,7 +881,7 @@ export function CAPTable({
                         {renderField(item.timelineMonth, originalItem?.timelineMonth, "timelineMonth", item.id)}
                       </td>
                       <td className="p-3">
-                        {renderField(item.addUpdate, originalItem?.addUpdate, "addUpdate", item.id)}
+                        {renderField(item.updateNote, originalItem?.updateNote, "updateNote", item.id)}
                       </td>
                       <td className="p-3">
                         {renderField(item.reviewRemarks, originalItem?.reviewRemarks, "reviewRemarks", item.id)}

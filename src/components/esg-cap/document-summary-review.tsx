@@ -98,6 +98,7 @@ export default function DocumentSummaryDialog({
   const isValid = !!status && (!isReject || reason.trim());
 
   const handleSubmit = async () => {
+    console.log("onSubmit =", onSubmit);
     if (!status || isSubmitting) return;
     if (isReject && !reason.trim()) return;
 
