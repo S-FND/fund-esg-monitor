@@ -512,7 +512,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                                 'request to resubmit': "request to re-submit",
                             };
 
-                            const status = statusMap[companyStatusRaw] || "upcoming";
+                            const status = statusMap[companyStatusRaw] || " ";
     
                             // ✅ Investor Status → maps to `investorStatus` field (raw text)
                             const investorStatusRaw = getField(row, ["Investor Status", "investorstatus"]).toLowerCase().trim();
@@ -556,13 +556,14 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                                 'occupationalhealthsafetyohs': 'social',
                                 'hrcomplianceworkplacepractices': 'social',
                             };
-                            const category = categoryMap[categoryRaw] || "environmental";
+                            const category = categoryMap[categoryRaw] || " ";
     
                             // Priority
                             const priorityRaw = getField(row, ["Priority", "priority"]).toLowerCase();
-                            const validPriority: CAPPriority = ["high", "medium", "low"].includes(priorityRaw)
-                                ? (priorityRaw.charAt(0).toUpperCase() + priorityRaw.slice(1) as CAPPriority)
-                                : "High";
+                            const validPriority: CAPPriority | "" =
+                            ["high", "medium", "low"].includes(priorityRaw)
+                                ? (priorityRaw.charAt(0).toUpperCase() + priorityRaw.slice(1)) as CAPPriority
+                                : "";
     
                             // Timeline
                             const timelineRaw = getField(row, ["Timeline Month", "timelinemonth"]);
@@ -574,7 +575,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                                 item,
                                 measures,
                                 category,
-                                priority: validPriority,
+                                priority: validPriority || '',
                                 issue: getField(row, ["Issue and Related Finding", "issueandrelatedfinding", "issue"]) || undefined,
                                 relatedFinding: undefined,
                                 // resource: getField(row, ["Assigned To", "assignedto"]) || undefined,
