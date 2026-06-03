@@ -21,12 +21,12 @@ export function Sidebar() {
       <SidebarHeader className="p-4 space-y-0" style={{ backgroundColor: "white",color:"black" }}>
         <div className="flex items-center space-x-2" style={{ backgroundColor: "white" }}>
           <img
-            src="/logo/logo_no_text_500x500.png"
+            src="/logo/Only_logo.webp"
             alt="Fandoro"
-            className="h-8 w-8"
+            className="h-8 w-6"
           />
           <div>
-          <img src="/logo/logo_text_only_700x150.png" alt="Fandoro" className="h-7" />
+          <img src="/logo/Fireside_Logo-01_3.webp" alt="Fandoro" className="h-4" />
             {/* <h2 className="text-xl font-bold text-sidebar-foreground">
               {import.meta.env.VITE_APP_ENV !== 'production' ? ` (${import.meta.env.VITE_APP_ENV})` : ''}
             </h2> */}
@@ -48,7 +48,6 @@ export function Sidebar() {
           />
           <div>
             <p>Copyright ©{new Date().getFullYear()} Fandoro Technologies</p>
-              {/* <p></p> */}
             <p>All rights reserved</p>
           </div>
         </div>

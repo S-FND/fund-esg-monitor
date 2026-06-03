@@ -799,11 +799,11 @@ export default function Auth() {
                 <div className="mx-auto w-full max-w-[1200px] flex items-center justify-between px-6 py-4 lg:px-8">
                     <div className="flex items-center gap-3">
                         <img
-                            src="/logo/logo_no_text_500x500.png"
+                            src="/logo/Only_logo.webp"
                             alt="Fandoro"
-                            className="h-8 w-8"
+                            className="h-8 w-6"
                         />
-                        <img src="/logo/logo_text_only_700x150.png" alt="Fandoro Technologies" className="h-9 w-13" />
+                        <img src="/logo/Fireside_Logo-01_3.webp" alt="Fandoro Technologies" className="h-5 w-13" />
                     </div>
                     <nav className="hidden sm:flex items-center gap-6">
                         <a href="https://fandoro.com" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-primary transition-colors">

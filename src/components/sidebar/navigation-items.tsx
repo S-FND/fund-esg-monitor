@@ -58,7 +58,7 @@ export const esgDDNavItem: NavItemWithSubItems = {
 };
 
 export const valuationNavItem: NavItemWithSubItems = {
-  title: "Valuation",
+  title: "Valuationee",
   href: "/valuation",
   icon: Calculator,
   subItems: [
