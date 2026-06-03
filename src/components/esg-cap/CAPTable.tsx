@@ -197,11 +197,11 @@ interface CAPTableProps {
 
 // ==================== DATE FORMATTER HELPERS ====================
 const formatDisplayDate = (dateStr?: string): string => {
-  if (!dateStr || dateStr === '—' || dateStr === '-') return '-';
+  if (!dateStr || dateStr === ' ' || dateStr === ' ') return ' ';
 
   const date = new Date(dateStr);
 
-  if (isNaN(date.getTime())) return '-';
+  if (isNaN(date.getTime())) return ' ';
 
   return date.toLocaleDateString('en-GB', {
     day: '2-digit',
@@ -216,6 +216,7 @@ const isDateField = (fieldName: string): boolean => {
 // ================================================================
 
 const getStatusBadge = (status: CAPStatus) => {
+  if (!status?.trim()) return null;
   switch (status) {
     case 'upcoming':
       return (
@@ -254,6 +255,7 @@ const getStatusBadge = (status: CAPStatus) => {
 
 
 const getPriorityBadge = (priority: CAPPriority) => {
+  if (!priority?.trim()) return null;
   switch (priority?.toLowerCase()) {
     case "high":
       return (
@@ -286,6 +288,7 @@ const getPriorityBadge = (priority: CAPPriority) => {
 };
 
 const getCategoryBadge = (category: string) => {
+  if (!category?.trim()) return null;
   switch (category?.toLowerCase()) {
     case "environmental":
       return <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">Environmental</Badge>;
@@ -320,7 +323,7 @@ const RenderChangedField = ({
   };
 
   if (!hasChanged || !isComparisonView) {
-    const displayValue = formatValue(currentValue) || "-";
+    const displayValue = formatValue(currentValue) || " ";
     return <span>{displayValue}</span>;
   }
 
@@ -612,7 +615,7 @@ export function CAPTable({
       if (badgeType === 'investorStatus') return getInvestorStatusBadge(displayValue);
     }
     // Default: use formatted value (dates become readable)
-    return <span>{formatValue(currentValue) || "-"}</span>;
+    return <span>{formatValue(currentValue) || " "}</span>;
   };
 
   const getSortIcon = (key: string) => {
@@ -659,13 +662,14 @@ export function CAPTable({
   });
 
   const getInvestorStatusBadge = (status: string) => {
+    if (!status?.trim()) return null;
     const statusMap: Record<string, { label: string; className: string }> = {
       "under review": { label: "Under Review", className: "bg-yellow-100 text-yellow-800 border-yellow-300" },
       "reviewed with comments": { label: "Reviewed with Comments", className: "bg-blue-100 text-blue-800 border-blue-300" },
       "closed": { label: "closed", className: "bg-green-600 text-white border-green-700" },
       "deferred": { label: "Deferred", className: "bg-gray-200 text-gray-700 border-gray-300" }
     };
-    const config = statusMap[status?.toLowerCase()] || { label: status || '-', className: "bg-gray-100 text-gray-600" };
+    const config = statusMap[status?.toLowerCase()] || { label: status || ' ', className: "bg-gray-100 text-gray-600" };
     return <Badge variant="outline" className={config.className}>{config.label}</Badge>;
   };
 
