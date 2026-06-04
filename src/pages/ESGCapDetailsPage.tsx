@@ -393,15 +393,12 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                                 <h5 className="text-3xl font-bold tracking-tight">{capItem.item}</h5>
                             )}
                             <div className="mt-4 flex flex-wrap items-center gap-2">
-                                <MetaPill label={editMode ? (editedItem.dealCondition || "Not specified") : (capItem.dealCondition || "Not specified")} tone="slate" />
-                                <MetaPill label={`${editMode ? (editedItem.priority || 'Medium') : (capItem.priority || 'Medium')} Priority`} />
-                                <MetaPill label={`Due ${editMode && editedItem.targetDate ? new Date(editedItem.targetDate).toLocaleDateString() : (capItem.targetDate ? new Date(capItem.targetDate).toLocaleDateString() : 'Not set')}`} tone="blue" />
-                                <MetaPill label={editMode ? (editedItem.category || 'General') : (capItem.category || 'General')} />
-                                <MetaPill
-                                    label={editMode ? (editedItem.status?.replaceAll('_', ' ') || 'Pending') : (capItem.status?.replaceAll('_', ' ') || 'Pending')}
-                                    tone={capItem.status === 'completed' ? 'green' : capItem.status === 'pending' ? 'amber' : 'blue'}
-                                />
-                            </div>
+                            <MetaPill label={editMode ? (editedItem.dealCondition || "") : (capItem.dealCondition || "")} tone="slate" />
+                            <MetaPill label={`${editMode ? (editedItem.priority || "") : (capItem.priority || "")}`} />
+                            <MetaPill label={ editMode ? (editedItem.targetDate ? `Due ${new Date(editedItem.targetDate).toLocaleDateString()}` : "") : (capItem.targetDate ? `Due ${new Date(capItem.targetDate).toLocaleDateString()}` : "")} tone="blue" />
+                            <MetaPill label={editMode ? (editedItem.category || "") : (capItem.category || "")} />
+                            <MetaPill label={ editMode ? (editedItem.status?.replaceAll("_", " ") || "") : (capItem.status?.replaceAll("_", " ") || "")} tone={capItem.status === "completed" ? "green" : capItem.status === "pending" ? "amber" : "blue" } />
+                        </div>
                         </div>
                         <div className="flex gap-2 items-center">
                             <div className="flex items-center gap-2 bg-white rounded-lg px-3 py-1 border">
@@ -434,111 +431,72 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                             </div>
                         </div>
                         {/* Editable Fields */}
-                        {/* Update Notes - editable only in edit mode */}
+{/* Update Notes */}
 <div>
-    <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-        Update Notes
-    </label>
-    {editMode ? (
-        <Textarea
-            className="mt-2 min-h-[140px] rounded-lg bg-muted/40"
-            placeholder="Status updates, blocker notes..."
-            value={editedItem.updateNote || ''}
-            onChange={(e) => setEditedItem({ ...editedItem, updateNote: e.target.value })}
-        />
-    ) : (
-        <div className="mt-2 text-sm text-foreground whitespace-pre-wrap">
-            {editedItem.updateNote || '—'}
-        </div>
-    )}
+  <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+    Update Notes
+  </label>
+  <div className="mt-2 text-sm text-foreground whitespace-pre-wrap rounded-lg border bg-card p-3">
+    {capItem?.updateNote || '—'}
+  </div>
 </div>
 
-{/* Assigned To - editable only in edit mode */}
+{/* Assigned To */}
 <div className="rounded-xl border bg-muted/30 p-5">
-    <div className="grid gap-5 lg:grid-cols-[260px_1fr] lg:items-start">
-        <div>
-            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                <UserPlus className="h-4 w-4 text-[#1E3A8A]" /> Assigned To
-            </div>
-            <p className="mt-1 text-xs text-muted-foreground">
-                Operational owner responsible for CAP execution
-            </p>
-        </div>
-        <div>
-            {editMode ? (
-                <div className="flex min-h-[48px] flex-wrap items-center gap-2 rounded-lg border bg-card p-2">
-                    <Input
-                        placeholder="Assigned To"
-                        value={editedItem.assignedTo || ''}
-                        onChange={(e) => setEditedItem({ ...editedItem, assignedTo: e.target.value })}
-                        className="h-9"
-                    />
-                </div>
-            ) : (
-                <div className="flex min-h-[48px] items-center rounded-lg border bg-card p-3 text-sm">
-                    {editedItem.assignedTo || '—'}
-                </div>
-            )}
-        </div>
-    </div>
-</div>
-
-{/* Request Change - editable only in edit mode */}
-<div className="rounded-xl border bg-muted/30 p-5">
+  <div className="grid gap-5 lg:grid-cols-[260px_1fr] lg:items-start">
     <div>
-        <div className="relative flex items-center gap-1 w-fit">
-            <div className="text-sm font-semibold text-foreground">
-                Request Change
-            </div>
-            <TooltipProvider>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Info className="w-4 h-4 text-muted-foreground cursor-pointer" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <p className="max-w-xs">
-                            Request changes to timeline, deliverables, or CP/CS status
-                        </p>
-                    </TooltipContent>
-                </Tooltip>
-            </TooltipProvider>
-        </div>
-
-        {/* Show existing change request badge and details if present */}
-        {capItem?.comment === "Change-Request" && (
-            <div className="mt-2 space-y-2">
-                <Badge
-                    variant="outline"
-                    className="border-amber-300 bg-amber-50 text-amber-700"
-                >
-                    Change Requested
-                </Badge>
-                <p className="text-xs text-muted-foreground">
-                    {capItem?.requestChange || "No details provided"}
-                </p>
-            </div>
-        )}
+      <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+        <UserPlus className="h-4 w-4 text-[#1E3A8A]" />
+        Assigned To
+      </div>
+      <p className="mt-1 text-xs text-muted-foreground">
+        Operational owner responsible for CAP execution
+      </p>
     </div>
 
-    <div className="mt-4">
-        {editMode ? (
-            <Textarea
-                placeholder="Describe the requested changes (e.g., extend deadline, modify indicator)..."
-                value={editedItem.requestChange || ""}
-                onChange={(e) =>
-                    setEditedItem({
-                        ...editedItem,
-                        requestChange: e.target.value,
-                    })
-                }
-                className="min-h-[120px] rounded-lg bg-card"
-            />
-        ) : (
-            <div className="text-sm text-muted-foreground">
-                {editedItem.requestChange || 'No change request submitted.'}
-            </div>
-        )}
+    <div className="flex min-h-[48px] items-center rounded-lg border bg-card p-3 text-sm">
+      {capItem?.assignedTo || '—'}
     </div>
+  </div>
+</div>
+
+{/* Request Change */}
+<div className="rounded-xl border bg-muted/30 p-5">
+  <div>
+    <div className="relative flex items-center gap-1 w-fit">
+      <div className="text-sm font-semibold text-foreground">
+        Request Change
+      </div>
+
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Info className="w-4 h-4 text-muted-foreground cursor-pointer" />
+          </TooltipTrigger>
+          <TooltipContent>
+            <p className="max-w-xs">
+              Request changes to timeline, deliverables, or CP/CS status
+            </p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    </div>
+
+    {capItem?.comment === "Change-Request" && (
+      <div className="mt-2 space-y-2">
+        <Badge
+          variant="outline"
+          className="border-amber-300 bg-amber-50 text-amber-700"
+        >
+          Change Requested
+        </Badge>
+      </div>
+    )}
+  </div>
+
+  <div className="mt-4 rounded-lg border bg-card p-3 text-sm text-muted-foreground whitespace-pre-wrap">
+    {capItem?.requestChange || 'No change request submitted.'}
+  </div>
 </div>
 
                         <div className="rounded-xl border bg-muted/30 p-5">
@@ -624,7 +582,7 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                                     {editMode ? (
                                         <Input value={editedItem.assignedTo || ''} onChange={(e) => setEditedItem({ ...editedItem, assignedTo: e.target.value })} />
                                     ) : (
-                                        <div className="mt-1 text-sm">{capItem.assignedTo || '—'}</div>
+                                        <div className="mt-1 text-sm">{capItem.assignedTo || ' '}</div>
                                     )}
                                 </div>
                                 <div>
@@ -711,10 +669,10 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                                     </Select>
                                 ) : (
                                     <div className="mt-1 flex items-center gap-3 rounded-lg border bg-card p-4">
-                                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-emerald-500 bg-emerald-500 text-white"><CheckCircle2 className="h-4 w-4" /></span>
+                                        {/* <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-emerald-500 bg-emerald-500 text-white"><CheckCircle2 className="h-4 w-4" /></span> */}
                                         <div>
-                                            <div className="text-sm font-semibold">{capItem.investorStatus || 'Under Review'}</div>
-                                            <div className="text-xs text-muted-foreground">{capItem.lastReviewDate ? new Date(capItem.lastReviewDate).toLocaleDateString() : 'Pending'}</div>
+                                            <div className="text-sm font-semibold">{capItem.investorStatus || ' '}</div>
+                                            <div className="text-xs text-muted-foreground">{capItem.lastReviewDate ? new Date(capItem.lastReviewDate).toLocaleDateString() : ''}</div>
                                         </div>
                                     </div>
                                 )}
@@ -732,7 +690,7 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                                     />
                                 ) : (
                                     <div className="rounded-lg border bg-card p-3 text-sm">
-                                        {capItem.reviewRemarks || 'No comments yet.'}
+                                        {capItem.reviewRemarks || ''}
                                     </div>
                                 )}
                             </div>
@@ -910,7 +868,7 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                                                 />
                                             ) : (
                                                 <div className="mt-1 text-sm text-muted-foreground">
-                                                    {indicator.guidanceResources || '—'}
+                                                    {indicator.guidanceResources || ' '}
                                                 </div>
                                             )}
                                         </div>
@@ -1002,17 +960,17 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                                     month: 'short',
                                     year: 'numeric',
                                 })
-                                : '—'} />
+                                : ' '} />
                             <Field label="Target Date" value={capItem?.targetDate ? new Date(capItem?.targetDate).toLocaleDateString('en-GB', {
                                 day: '2-digit',
                                 month: 'short',
                                 year: 'numeric',
-                            }) : 'Pending'} />
+                            }) : ' '} />
                             <Field label="Actual Completion" value={capItem?.actualDate ? new Date(capItem?.lastReviewDate).toLocaleDateString('en-GB', {
                                 day: '2-digit',
                                 month: 'short',
                                 year: 'numeric',
-                            }) : 'Pending'} />
+                            }) : ' '} />
                             <div>
                                 <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                                     Last Review Date
@@ -1040,7 +998,7 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                                                 month: 'short',
                                                 year: 'numeric',
                                             })
-                                            : 'Pending'
+                                            : ' '
                                     )}
                                 </div>
                             </div>
@@ -1092,7 +1050,7 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                                 <tbody>
                                     {capItem.fileUploadedData?.map((file: any, idx: number) => (
                                         <tr key={idx}>
-                                            <td className="px-4 py-3"><div className="flex items-center gap-2"><FileText className="h-4 w-4 text-blue-600" /><span className="truncate max-w-[180px]">{file.filename || 'Unnamed'}</span></div></td>
+                                            <td className="px-4 py-3"><div className="flex items-center gap-2"><FileText className="h-4 w-4 text-blue-600" /><span className="truncate max-w-[180px]">{file.filename || ' '}</span></div></td>
                                             <td className="px-4 py-3 text-muted-foreground">{file.aiSummary?.createdAt ? new Date(file.aiSummary.createdAt).toLocaleDateString() : '—'}</td>
                                             <td className="px-4 py-3 text-muted-foreground">{file.size ? (file.size / 1024).toFixed(1) + ' KB' : '—'}</td>
                                             <td className="px-4 py-3">{file.status === 'Verified' ? <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-700"><CheckCircle2 className="mr-1 h-3 w-3" /> Verified</Badge> : <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-700"><AlertCircle className="mr-1 h-3 w-3" /> Pending</Badge>}</td>
