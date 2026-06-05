@@ -393,12 +393,12 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                                 <h5 className="text-3xl font-bold tracking-tight">{capItem.item}</h5>
                             )}
                             <div className="mt-4 flex flex-wrap items-center gap-2">
-                            <MetaPill label={editMode ? (editedItem.dealCondition || "") : (capItem.dealCondition || "")} tone="slate" />
-                            <MetaPill label={`${editMode ? (editedItem.priority || "") : (capItem.priority || "")}`} />
-                            <MetaPill label={ editMode ? (editedItem.targetDate ? `Due ${new Date(editedItem.targetDate).toLocaleDateString()}` : "") : (capItem.targetDate ? `Due ${new Date(capItem.targetDate).toLocaleDateString()}` : "")} tone="blue" />
-                            <MetaPill label={editMode ? (editedItem.category || "") : (capItem.category || "")} />
-                            <MetaPill label={ editMode ? (editedItem.status?.replaceAll("_", " ") || "") : (capItem.status?.replaceAll("_", " ") || "")} tone={capItem.status === "completed" ? "green" : capItem.status === "pending" ? "amber" : "blue" } />
-                        </div>
+                                <MetaPill label={editMode ? (editedItem.dealCondition || "") : (capItem.dealCondition || "")} tone="slate" />
+                                <MetaPill label={`${editMode ? (editedItem.priority || "") : (capItem.priority || "")}`} />
+                                <MetaPill label={editMode ? (editedItem.targetDate ? `Due ${new Date(editedItem.targetDate).toLocaleDateString()}` : "") : (capItem.targetDate ? `Due ${new Date(capItem.targetDate).toLocaleDateString()}` : "")} tone="blue" />
+                                <MetaPill label={editMode ? (editedItem.category || "") : (capItem.category || "")} />
+                                <MetaPill label={editMode ? (editedItem.status?.replaceAll("_", " ") || "") : (capItem.status?.replaceAll("_", " ") || "")} tone={capItem.status === "completed" ? "green" : capItem.status === "pending" ? "amber" : "blue"} />
+                            </div>
                         </div>
                         <div className="flex gap-2 items-center">
                             <div className="flex items-center gap-2 bg-white rounded-lg px-3 py-1 border">
@@ -430,75 +430,6 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                                 <Textarea className="mt-2 min-h-[140px] rounded-lg bg-muted/40" placeholder="Status updates, blocker notes..." value={updateText} onChange={(e) => setUpdateText(e.target.value)} />
                             </div>
                         </div>
-                        {/* Editable Fields */}
-{/* Update Notes */}
-<div>
-  <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-    Update Notes
-  </label>
-  <div className="mt-2 text-sm text-foreground whitespace-pre-wrap rounded-lg border bg-card p-3">
-    {capItem?.updateNote || '—'}
-  </div>
-</div>
-
-{/* Assigned To */}
-<div className="rounded-xl border bg-muted/30 p-5">
-  <div className="grid gap-5 lg:grid-cols-[260px_1fr] lg:items-start">
-    <div>
-      <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-        <UserPlus className="h-4 w-4 text-[#1E3A8A]" />
-        Assigned To
-      </div>
-      <p className="mt-1 text-xs text-muted-foreground">
-        Operational owner responsible for CAP execution
-      </p>
-    </div>
-
-    <div className="flex min-h-[48px] items-center rounded-lg border bg-card p-3 text-sm">
-      {capItem?.assignedTo || '—'}
-    </div>
-  </div>
-</div>
-
-{/* Request Change */}
-<div className="rounded-xl border bg-muted/30 p-5">
-  <div>
-    <div className="relative flex items-center gap-1 w-fit">
-      <div className="text-sm font-semibold text-foreground">
-        Request Change
-      </div>
-
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Info className="w-4 h-4 text-muted-foreground cursor-pointer" />
-          </TooltipTrigger>
-          <TooltipContent>
-            <p className="max-w-xs">
-              Request changes to timeline, deliverables, or CP/CS status
-            </p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    </div>
-
-    {capItem?.comment === "Change-Request" && (
-      <div className="mt-2 space-y-2">
-        <Badge
-          variant="outline"
-          className="border-amber-300 bg-amber-50 text-amber-700"
-        >
-          Change Requested
-        </Badge>
-      </div>
-    )}
-  </div>
-
-  <div className="mt-4 rounded-lg border bg-card p-3 text-sm text-muted-foreground whitespace-pre-wrap">
-    {capItem?.requestChange || 'No change request submitted.'}
-  </div>
-</div>
-
                         <div className="rounded-xl border bg-muted/30 p-5">
                             <div className="grid gap-5 md:grid-cols-2">
                                 <div>
@@ -578,11 +509,11 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                                     )}
                                 </div>
                                 <div>
-                                    <div className="text-sm font-semibold">Assigned To</div>
+                                    <div className="text-sm font-semibold">ESG Lever</div>
                                     {editMode ? (
-                                        <Input value={editedItem.assignedTo || ''} onChange={(e) => setEditedItem({ ...editedItem, assignedTo: e.target.value })} />
+                                        <Input value={editedItem.esgLever || ''} onChange={(e) => setEditedItem({ ...editedItem, esgLever: e.target.value })} />
                                     ) : (
-                                        <div className="mt-1 text-sm">{capItem.assignedTo || ' '}</div>
+                                        <div className="mt-1 text-sm">{capItem.esgLever || ' '}</div>
                                     )}
                                 </div>
                                 <div>
@@ -618,6 +549,30 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                                         </div>
                                     )}
                                 </div>
+                                <div>
+                                    <div className="text-sm font-semibold">CAP Source</div>
+                                    {editMode ? (
+                                        <Input value={editedItem.capSource || ''} onChange={(e) => setEditedItem({ ...editedItem, capSource: e.target.value })} />
+                                    ) : (
+                                        <div className="mt-1 text-sm">{capItem.capSource || ' '}</div>
+                                    )}
+                                </div>
+                                <div>
+                                    <div className="text-sm font-semibold">Implementation Support Needed</div>
+                                    {editMode ? (
+                                        <Input value={editedItem.implementationSupportNeeded || ''} onChange={(e) => setEditedItem({ ...editedItem, implementationSupportNeeded: e.target.value })} />
+                                    ) : (
+                                        <div className="mt-1 text-sm">{capItem.implementationSupportNeeded || ' '}</div>
+                                    )}
+                                </div>
+                                <div>
+                                    <div className="text-sm font-semibold">Timeline Month</div>
+                                    {editMode ? (
+                                        <Input type="number" value={editedItem.timelineMonth || ''} onChange={(e) => setEditedItem({ ...editedItem, timelineMonth: e.target.value })} />
+                                    ) : (
+                                        <div className="mt-1 text-sm">{capItem.timelineMonth || ' '}</div>
+                                    )}
+                                </div>
                             </div>
                         </div>
 
@@ -640,62 +595,62 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                                 <div className="text-sm whitespace-pre-wrap">{capItem.issue}</div>
                             )}
                         </div>
-                    </div>
-                </SectionCard>
 
-                {/* Investor Actions - now fully editable */}
-                <SectionCard title="Investor Actions" subtitle="Internal review and reviewer thread" icon={<MessageSquare className="h-4 w-4" />} variant="muted">
-                    <div className="grid gap-8 lg:grid-cols-2">
-                        <div>
-                            <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Investor Status</div>
-                            <div className="mt-2">
-                                {editMode ? (
-                                    <Select value={editedItem.investorStatus || 'Under Review'} onValueChange={(val) => setEditedItem({ ...editedItem, investorStatus: val })}>
-                                        <SelectTrigger className="w-full"><SelectValue placeholder="Select status" /></SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="under review">
-                                                Under Review
-                                            </SelectItem>
-                                            <SelectItem value="reviewed with comments">
-                                                Reviewed with Comments
-                                            </SelectItem>
-                                            <SelectItem value="closed">
-                                                Closed
-                                            </SelectItem>
-                                            <SelectItem value="deferred">
-                                                Deferred
-                                            </SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                ) : (
-                                    <div className="mt-1 flex items-center gap-3 rounded-lg border bg-card p-4">
-                                        {/* <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-emerald-500 bg-emerald-500 text-white"><CheckCircle2 className="h-4 w-4" /></span> */}
-                                        <div>
-                                            <div className="text-sm font-semibold">{capItem.investorStatus || ' '}</div>
-                                            <div className="text-xs text-muted-foreground">{capItem.lastReviewDate ? new Date(capItem.lastReviewDate).toLocaleDateString() : ''}</div>
+                        <div className="rounded-xl border bg-muted/30 p-5">
+                        <div className="grid gap-8 lg:grid-cols-2">
+                            <div>
+                                <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Investor Status</div>
+                                <div className="mt-2">
+                                    {editMode ? (
+                                        <Select value={editedItem.investorStatus || 'Under Review'} onValueChange={(val) => setEditedItem({ ...editedItem, investorStatus: val })}>
+                                            <SelectTrigger className="w-full"><SelectValue placeholder="Select status" /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="under review">
+                                                    Under Review
+                                                </SelectItem>
+                                                <SelectItem value="reviewed with comments">
+                                                    Reviewed with Comments
+                                                </SelectItem>
+                                                <SelectItem value="closed">
+                                                    Closed
+                                                </SelectItem>
+                                                <SelectItem value="deferred">
+                                                    Deferred
+                                                </SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    ) : (
+                                        <div className="mt-1 flex items-center gap-3 rounded-lg border bg-card p-4">
+                                            {/* <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-emerald-500 bg-emerald-500 text-white"><CheckCircle2 className="h-4 w-4" /></span> */}
+                                            <div>
+                                                <div className="text-sm font-semibold">{capItem.investorStatus || ' '}</div>
+                                                <div className="text-xs text-muted-foreground">{capItem.lastReviewDate ? new Date(capItem.lastReviewDate).toLocaleDateString() : ''}</div>
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
+                                    )}
+                                </div>
                             </div>
-                        </div>
-                        <div>
-                            <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Review Comment</div>
-                            <div className="mt-2">
-                                {editMode ? (
-                                    <Textarea
-                                        value={editedItem.reviewRemarks || ''}
-                                        onChange={(e) => setEditedItem({ ...editedItem, reviewRemarks: e.target.value })}
-                                        rows={4}
-                                        placeholder="Add review comments..."
-                                    />
-                                ) : (
-                                    <div className="rounded-lg border bg-card p-3 text-sm">
-                                        {capItem.reviewRemarks || ''}
-                                    </div>
-                                )}
+                            <div>
+                                <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Review Comment</div>
+                                <div className="mt-2">
+                                    {editMode ? (
+                                        <Textarea
+                                            value={editedItem.reviewRemarks || ''}
+                                            onChange={(e) => setEditedItem({ ...editedItem, reviewRemarks: e.target.value })}
+                                            rows={4}
+                                            placeholder="Add review comments..."
+                                        />
+                                    ) : (
+                                        <div className="rounded-lg border bg-card p-3 text-sm">
+                                            {capItem.reviewRemarks || ''}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>
+                    </div>
+                    
                 </SectionCard>
 
                 {/* Completion Tracking - Guidance & Resources now editable */}
@@ -1068,6 +1023,85 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                         </div>
                     </DialogContent>
                 </Dialog>
+
+                {/* Company Actions - review only */}
+                <SectionCard title="Company Actions" subtitle="Internal review and reviewer thread" icon={<MessageSquare className="h-4 w-4" />} variant="muted">
+                <div className="space-y-6">
+                        <div className={cn('grid overflow-hidden transition-all', showUpdateNotes ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0')}>
+                            <div className="min-h-0">
+                                <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Update Notes</label>
+                                <Textarea className="mt-2 min-h-[140px] rounded-lg bg-muted/40" placeholder="Status updates, blocker notes..." value={updateText} onChange={(e) => setUpdateText(e.target.value)} />
+                            </div>
+                        </div>
+                        {/* Update Notes */}
+                        <div>
+                            <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                                Update Notes
+                            </label>
+                            <div className="mt-2 text-sm text-foreground whitespace-pre-wrap rounded-lg border bg-card p-3">
+                                {capItem?.updateNote || '—'}
+                            </div>
+                        </div>
+
+                        {/* Assigned To */}
+                        <div className="rounded-xl border bg-muted/30 p-5">
+                            <div className="grid gap-5 lg:grid-cols-[260px_1fr] lg:items-start">
+                                <div>
+                                    <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                                        <UserPlus className="h-4 w-4 text-[#1E3A8A]" />
+                                        Assigned To
+                                    </div>
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                        Operational owner responsible for CAP execution
+                                    </p>
+                                </div>
+
+                                <div className="flex min-h-[48px] items-center rounded-lg border bg-card p-3 text-sm">
+                                    {capItem?.assignedTo || '—'}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Request Change */}
+                        <div className="rounded-xl border bg-muted/30 p-5">
+                            <div>
+                                <div className="relative flex items-center gap-1 w-fit">
+                                    <div className="text-sm font-semibold text-foreground">
+                                        Request Change
+                                    </div>
+
+                                    <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Info className="w-4 h-4 text-muted-foreground cursor-pointer" />
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p className="max-w-xs">
+                                                    Request changes to timeline, deliverables, or CP/CS status
+                                                </p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                </div>
+
+                                {capItem?.comment === "Change-Request" && (
+                                    <div className="mt-2 space-y-2">
+                                        <Badge
+                                            variant="outline"
+                                            className="border-amber-300 bg-amber-50 text-amber-700"
+                                        >
+                                            Change Requested
+                                        </Badge>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="mt-4 rounded-lg border bg-card p-3 text-sm text-muted-foreground whitespace-pre-wrap">
+                                {capItem?.requestChange || 'No change request submitted.'}
+                            </div>
+                        </div>
+                    </div>    
+                </SectionCard>
 
                 {/* Delete confirmation (unchanged) */}
                 {
