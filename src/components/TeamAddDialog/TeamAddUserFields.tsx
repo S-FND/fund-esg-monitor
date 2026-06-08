@@ -57,7 +57,7 @@ export function TeamAddUserFields({
           value={designation}
           onChange={e => setDesignation(e.target.value)}
           disabled={submitting}
-          required
+          // required
         />
       </div>
       <div>
@@ -68,7 +68,7 @@ export function TeamAddUserFields({
           value={mobileNumber}
           onChange={e => setMobileNumber(e.target.value)}
           disabled={submitting}
-          required
+          // required
         />
       </div>
     </div>
