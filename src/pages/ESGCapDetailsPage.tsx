@@ -471,16 +471,16 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                                     )}
                                 </div>
                                 <div>
-                                    <div className="text-sm font-semibold">Status</div>
+                                    <div className="text-sm font-semibold">Company Status</div>
                                     {editMode ? (
                                         <Select value={editedItem.status} onValueChange={(val) => setEditedItem({ ...editedItem, status: val })}>
                                             <SelectTrigger><SelectValue /></SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="upcoming">Upcoming</SelectItem>
-                                                <SelectItem value="due in <1 month">
-                                                    Due in &lt;1 Month
+                                                <SelectItem value="upcoming" disabled>Upcoming</SelectItem>
+                                                <SelectItem value="due in this month" disabled>
+                                                    due in this month
                                                 </SelectItem>
-                                                <SelectItem value="overdue">Overdue</SelectItem>
+                                                <SelectItem value="overdue" disabled>Overdue</SelectItem>
                                                 <SelectItem value="submitted">Submitted</SelectItem>
                                                 <SelectItem value="closed">Closed</SelectItem>
                                                 <SelectItem value="request to re-submit">
