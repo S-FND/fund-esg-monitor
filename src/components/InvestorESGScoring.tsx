@@ -67,15 +67,16 @@ export const ESGCapScoring: React.FC<ESGCapScoringProps> = ({ items, onFilterCha
     const target = new Date(item.targetDate);
     target.setHours(0, 0, 0, 0);
   
-    if (target < today) {
-      return "overdue";
-    }
   
     if (
       target.getMonth() === today.getMonth() &&
       target.getFullYear() === today.getFullYear()
     ) {
       return "due in this month";
+    }
+
+    if (target < today) {
+        return "overdue";
     }
   
     return "upcoming";
