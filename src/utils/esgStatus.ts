@@ -23,11 +23,12 @@ export const getEffectiveStatus = (item: ESGCapItem): CAPStatus => {
   const target = new Date(item.targetDate);
   target.setHours(0, 0, 0, 0);
 
-  if (target < today) return 'overdue';
 
   const isCurrentMonth = target.getFullYear() === today.getFullYear() &&
                          target.getMonth() === today.getMonth();
   if (isCurrentMonth) return 'due in this month';
+
+  if (target < today) return 'overdue';
 
   return 'upcoming';
 };
