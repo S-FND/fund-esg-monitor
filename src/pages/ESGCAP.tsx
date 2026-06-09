@@ -586,10 +586,46 @@ export default function ESGCAP() {
     let items = showComparisonView && comparePlanData
       ? comparePlanData.founderPlan
       : capItems;
-  
-    // ✅ Apply status filter (same as company side)
+    
     if (activeFilter) {
-      items = items.filter(item => getEffectiveStatus(item) === activeFilter);
+      items = items.filter(item => {
+        const investorStatus = (item.investorStatus || '').toLowerCase();
+        const itemStatus = (item.status || '').toLowerCase();
+        
+        // CLOSED card: Show items where investorStatus = 'closed'
+        if (activeFilter === 'closed') {
+          return investorStatus === 'closed';
+        }
+        
+        // SUBMITTED card: Show items where status = 'submitted'
+        // (regardless of investorStatus)
+        if (activeFilter === 'submitted') {
+          return itemStatus === 'submitted';
+        }
+        
+        // For date-based filters (overdue, due in this month, upcoming)
+        // Exclude items that are already in submitted or closed cards
+        if (investorStatus === 'closed' || itemStatus === 'submitted') {
+          return false;
+        }
+        
+        // Check date-based status
+        if (!item.targetDate) return false;
+        
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const target = new Date(item.targetDate);
+        target.setHours(0, 0, 0, 0);
+        
+        const isCurrentMonth = target.getMonth() === today.getMonth() &&
+                               target.getFullYear() === today.getFullYear();
+        
+        if (activeFilter === 'due in this month') return isCurrentMonth;
+        if (activeFilter === 'overdue') return target < today;
+        if (activeFilter === 'upcoming') return target > today && !isCurrentMonth;
+        
+        return false;
+      });
     }
     return items;
   }, [showComparisonView, comparePlanData, capItems, activeFilter]);
