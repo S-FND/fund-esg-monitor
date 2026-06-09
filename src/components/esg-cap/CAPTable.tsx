@@ -13,11 +13,13 @@ import DocumentSummaryDialog from "./document-summary-review";
 import { http } from "@/utils/httpInterceptor";
 import { toast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
-export type CAPStatus = 'upcoming' | 'due in <1 month' | 'overdue' | 'submitted' | 'request to re-submit';
-
+import { getEffectiveStatus } from '@/utils/esgStatus';
+export type CAPStatus = 'upcoming' | 'due in this month' | 'overdue' | 'submitted' | 'closed' | 'request to re-submit';
 export type CAPCategory = "environmental" | "social" | "governance";
 export type CAPType = "CP" | "CS" | "ESG_Roadmap" | "none";
 export type CAPPriority = "High" | "Medium" | "Low";
+import { StatusBadge } from './StatusBadge';
+
 export type EvidenceType =
   | "data"
   | "report"
@@ -224,7 +226,7 @@ const getStatusBadge = (status: CAPStatus) => {
           <Clock className="h-3 w-3 mr-1" /> Upcoming
         </Badge>
       );
-    case 'due in <1 month':
+    case 'due in this month':
       return (
         <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-200">
           <AlertTriangle className="h-3 w-3 mr-1" /> Due in &lt;1 Month
@@ -673,25 +675,11 @@ export function CAPTable({
     return <Badge variant="outline" className={config.className}>{config.label}</Badge>;
   };
 
-  // Inside CAPTable component, before return
-  const normalizeStatus = (status?: string) =>
-    (status ?? "").trim().toLowerCase();
-
-  const isOverdue = (item: ESGCapItem) => {
-    if (!item.targetDate) return false;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const targetDate = new Date(item.targetDate);
-    targetDate.setHours(0, 0, 0, 0);
-    const isClosed = normalizeStatus(item.investorStatus) === "closed";
-    return normalizeStatus(item.status) === "overdue" && targetDate < today && !isClosed && !item.actualDate;
-  };
-
   const getRowClassName = (item: ESGCapItem) => {
-    const closed = normalizeStatus(item.investorStatus) === "closed";
-    const overdue = isOverdue(item);
-    return `transition-colors ${closed ? "bg-gray-300 text-gray-500" : overdue ? "text-red-700" : ""
-      }`;
+    const derived = getEffectiveStatus(item);
+    if (derived === 'closed') return 'bg-gray-300 text-gray-500';
+    if (derived === 'overdue') return 'text-red-700';
+    return '';
   };
 
   return (
@@ -729,8 +717,8 @@ export function CAPTable({
                   <th className="p-3 text-left">Completed On</th>
                   <th className="p-3 text-center">Actions</th>
                   {/* <th className="p-3 text-left">Issue</th>
-                  <th className="p-3 text-left">Completion indicator</th> */}
-                  {/* <th className="p-3 text-left">Progress Percentage</th> */}
+                  <th className="p-3 text-left">Completion indicator</th>
+                  <th className="p-3 text-left">Progress Percentage</th> */}
                 </>
               ) : (
                 // FULL VIEW HEADERS (all columns + Progress Percentage after Target Date)
@@ -780,7 +768,11 @@ export function CAPTable({
                         {renderField(item.targetDate, originalItem?.targetDate, "targetDate", item.id)}
                       </td>
                       <td className="p-3">
-                        {renderField(item.status, originalItem?.status, "status", item.id, true, 'status')}
+                        {item.targetDate ? (
+                          <StatusBadge status={getEffectiveStatus(item)} />
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
                       </td>
                       <td className="p-3">
                         {renderField(item.investorStatus, originalItem?.investorStatus, "investorStatus", item.id, true, 'investorStatus')}
@@ -858,7 +850,11 @@ export function CAPTable({
                         {renderField(item.targetDate, originalItem?.targetDate, "targetDate", item.id)}
                       </td>
                       <td className="p-3">
-                        {renderField(item.status, originalItem?.status, "status", item.id, true, 'status')}
+                        {item.targetDate ? (
+                          <StatusBadge status={getEffectiveStatus(item)} />
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
                       </td>
                       <td className="p-3">
                         {renderField(item.investorStatus, originalItem?.investorStatus, "investorStatus", item.id, true, 'investorStatus')}
@@ -975,7 +971,7 @@ export function CAPTable({
       </div>
 
       {/* Progress footer (unchanged) */}
-      <div className="flex justify-between items-center p-4 bg-muted rounded-lg mt-4">
+      {/* <div className="flex justify-between items-center p-4 bg-muted rounded-lg mt-4">
         <div className="text-sm text-muted-foreground">
           Total Action Items: <span className="font-semibold">{items.length}</span>
         </div>
@@ -988,7 +984,7 @@ export function CAPTable({
             <span className="font-semibold text-sm">{progressPercentage}%</span>
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* Add New Row section – identical to original (unchanged) */}
       {!isComparisonView && onAddItem && (

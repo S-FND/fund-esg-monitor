@@ -22,7 +22,8 @@ import { useESGCAPAlerts } from "@/hooks/useESGCAPAlerts";
 import { AddCAPDialog } from "@/components/esg-cap/AddCAPDialog";
 import { EsgddAPIs } from "@/network/esgdd";
 import Loader from "@/components/ui/loader";
-
+import { ESGCapScoring } from "@/components/InvestorESGScoring";
+import { getEffectiveStatus } from '@/utils/esgStatus';
 interface PlanHistory {
   updateByUserId: string;
   status: string;
@@ -67,6 +68,7 @@ export default function ESGCAP() {
   const [entityId, setEntityId] = useState<string>(null);
   const [reloadData, setReloadData] = useState(false);
   const [selectedEntityId, setSelectedEntityId] = useState(null)
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
 
   const alerts = useESGCAPAlerts(filteredCAPItems, previousCapItemsRef.current, planData?.finalPlan);
 
@@ -88,34 +90,6 @@ export default function ESGCAP() {
 
     setFinancialYear(financialYear);
   }, []);
-
-  // Calculate stats
-  // Calculate stats
-  const totalItems = filteredCAPItems.length;
-
-  const completedItems = filteredCAPItems.filter(
-    (item) => item.investorStatus === "closed"
-  ).length;
-
-  const overdueItems = filteredCAPItems.filter(
-    (item) => item.status === "overdue"
-  ).length;
-
-  const dueSoonItems = filteredCAPItems.filter(
-    (item) => item.status === "due in <1 month"
-  ).length;
-
-  const upcomingItems = filteredCAPItems.filter(
-    (item) => item.status === "upcoming"
-  ).length;
-
-  const submittedItems = filteredCAPItems.filter(
-    (item) => item.status === "submitted"
-  ).length;
-
-  const resubmitItems = filteredCAPItems.filter(
-    (item) => item.status === "request to re-submit"
-  ).length;
 
   const handleReview = (item: ESGCapItem) => {
     let currentItem =
@@ -608,13 +582,17 @@ export default function ESGCAP() {
     });
   };
 
-  // Define a helper to get the items to display (normal or comparison)
   const currentDisplayItems = useMemo(() => {
-    if (showComparisonView && comparePlanData) {
-      return comparePlanData.founderPlan; // items to show in comparison mode
+    let items = showComparisonView && comparePlanData
+      ? comparePlanData.founderPlan
+      : capItems;
+  
+    // ✅ Apply status filter (same as company side)
+    if (activeFilter) {
+      items = items.filter(item => getEffectiveStatus(item) === activeFilter);
     }
-    return capItems; // normal mode
-  }, [showComparisonView, comparePlanData, capItems]);
+    return items;
+  }, [showComparisonView, comparePlanData, capItems, activeFilter]);
 
   const currentOriginalItems = useMemo(() => {
     if (showComparisonView && comparePlanData) {
@@ -676,83 +654,11 @@ export default function ESGCAP() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-
-        <Card className="border-none shadow-sm bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-          <CardContent className="p-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-blue-100">Total</p>
-                <p className="text-lg font-bold">{totalItems}</p>
-              </div>
-              <FileText className="h-4 w-4 text-white/80" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-none shadow-sm bg-gradient-to-br from-green-500 to-emerald-600 text-white">
-          <CardContent className="p-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-green-100">Closed</p>
-                <p className="text-lg font-bold">{completedItems}</p>
-              </div>
-              <CheckCircle2 className="h-4 w-4 text-white/80" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-none shadow-sm bg-gradient-to-br from-orange-500 to-orange-600 text-white">
-          <CardContent className="p-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-orange-100">
-                  Due &lt;1 Month
-                </p>
-                <p className="text-lg font-bold">{dueSoonItems}</p>
-              </div>
-              <Clock className="h-4 w-4 text-white/80" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-none shadow-sm bg-gradient-to-br from-red-500 to-red-600 text-white">
-          <CardContent className="p-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-red-100">Overdue</p>
-                <p className="text-lg font-bold">{overdueItems}</p>
-              </div>
-              <ArrowDown className="h-4 w-4 text-white/80" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-none shadow-sm bg-gradient-to-br from-blue-400 to-blue-500 text-white">
-          <CardContent className="p-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-blue-100">Submitted</p>
-                <p className="text-lg font-bold">{submittedItems}</p>
-              </div>
-              <ArrowUp className="h-4 w-4 text-white/80" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-none shadow-sm bg-gradient-to-br from-slate-500 to-slate-600 text-white">
-          <CardContent className="p-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-slate-100">Upcoming</p>
-                <p className="text-lg font-bold">{upcomingItems}</p>
-              </div>
-              <Target className="h-4 w-4 text-white/80" />
-            </div>
-          </CardContent>
-        </Card>
-
-      </div>
+      <ESGCapScoring
+        items={capItems}
+        onFilterChange={setActiveFilter}
+        activeFilter={activeFilter}
+      />
 
       {/* <div className="flex items-center justify-between">
         <FilterControls
@@ -777,7 +683,7 @@ export default function ESGCAP() {
         )} */}
       {/* </div> */}
 
-      <CardContent>
+      <CardContent className="p-0">
         {/* Company filter (unchanged) */}
         {!isFiresideEmail && (
           <div className="flex items-center justify-between mb-6">
