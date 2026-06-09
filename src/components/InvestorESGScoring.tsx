@@ -53,9 +53,9 @@ export const ESGCapScoring: React.FC<ESGCapScoringProps> = ({ items, onFilterCha
       return "closed";
     }
   
-    // if (item.status === "submitted") {
-    //   return "submitted";
-    // }
+    if (item.status === "submitted") {
+      return "submitted";
+    }
   
     if (!item.targetDate) {
       return " ";

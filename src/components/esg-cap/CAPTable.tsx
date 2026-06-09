@@ -639,25 +639,53 @@ export function CAPTable({
     });
   };
 
-  const sortedItems = [...items].sort((a, b) => {
-    if (!sortConfig) return 0;
+  const isOverdue = (item: ESGCapItem) => {
+    if (!item.targetDate) return false;
+    const investorStatus = (item.investorStatus || '').toLowerCase();
+    if (investorStatus === 'closed') return false;
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const target = new Date(item.targetDate);
+    target.setHours(0, 0, 0, 0);
+    
+    return target < today;
+  };
 
+  const sortedItems = [...items].sort((a, b) => {
+    // 1. Check if items are closed (push to bottom)
+    const aIsClosed = (a.investorStatus || '').toLowerCase() === 'closed';
+    const bIsClosed = (b.investorStatus || '').toLowerCase() === 'closed';
+    
+    if (aIsClosed && !bIsClosed) return 1;
+    if (!aIsClosed && bIsClosed) return -1;
+    
+    // 2. Check overdue items (push to top) - optional
+    const aIsOverdue = isOverdue(a);
+    const bIsOverdue = isOverdue(b);
+    
+    if (aIsOverdue && !bIsOverdue) return -1;
+    if (!aIsOverdue && bIsOverdue) return 1;
+    
+    // 3. If both have same status, apply normal sorting
+    if (!sortConfig) return 0;
+  
     let aVal: any = a[sortConfig.key];
     let bVal: any = b[sortConfig.key];
-
+  
     // priority custom order
     if (sortConfig.key === "priority") {
       const order = { High: 3, Medium: 2, Low: 1 };
       aVal = order[aVal] || 0;
       bVal = order[bVal] || 0;
     }
-
+  
     // date handling
     if (sortConfig.key === "targetDate") {
       aVal = aVal ? new Date(aVal).getTime() : 0;
       bVal = bVal ? new Date(bVal).getTime() : 0;
     }
-
+  
     if (aVal < bVal) return sortConfig.direction === "asc" ? -1 : 1;
     if (aVal > bVal) return sortConfig.direction === "asc" ? 1 : -1;
     return 0;
@@ -676,8 +704,9 @@ export function CAPTable({
   };
 
   const getRowClassName = (item: ESGCapItem) => {
+    const investorStatus = (item.investorStatus || '').toLowerCase();
     const derived = getEffectiveStatus(item);
-    if (derived === 'closed') return 'bg-gray-300 text-gray-500';
+    if (investorStatus === 'closed') return 'bg-gray-300 text-gray-500';
     if (derived === 'overdue') return 'text-red-700';
     return '';
   };
