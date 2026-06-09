@@ -6,15 +6,12 @@ export const getEffectiveStatus = (item: ESGCapItem): CAPStatus => {
   const originalStatus = normalize(item.status);
   const investorStatus = normalize(item.investorStatus);
 
-  // 1. Preserve these exact statuses
-  if (investorStatus === 'closed') return 'closed';
-
   if (originalStatus === 'submitted') return 'submitted';
   if (originalStatus === 'closed') return 'closed';
   if (originalStatus === 'request to re-submit') return 'request to re-submit';
 
   // 2. Investor closed overrides everything else
-
+  if (investorStatus === 'closed') return 'submitted';
   // 3. All other cases → derive from targetDate
   if (!item.targetDate) return '' as CAPStatus;
 
