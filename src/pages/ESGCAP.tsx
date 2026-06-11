@@ -23,7 +23,7 @@ import { AddCAPDialog } from "@/components/esg-cap/AddCAPDialog";
 import { EsgddAPIs } from "@/network/esgdd";
 import Loader from "@/components/ui/loader";
 import { ESGCapScoring } from "@/components/InvestorESGScoring";
-import { getEffectiveStatus } from '@/utils/esgStatus';
+import { useSearchParams } from "react-router-dom";
 interface PlanHistory {
   updateByUserId: string;
   status: string;
@@ -54,7 +54,11 @@ export default function ESGCAP() {
   const [portfolioCompanies, setPortfolioCompanies] = useState([]);
   const [selectedItem, setSelectedItem] = useState<ESGCapItem | null>(null);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
-  const [selectedCompany, setSelectedCompany] = useState<string>("all");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [selectedCompany, setSelectedCompany] = useState<string>(() => {
+    const companyParam = searchParams.get("company");
+    return companyParam && companyParam !== "all" ? companyParam : "all";
+  });
   const { user, userRole } = useAuth();
   const [showComparisonView, setShowComparisonView] = useState(false);
   const [planData, setPlanData] = useState<APIResponse | null>(null);
@@ -73,6 +77,16 @@ export default function ESGCAP() {
   const alerts = useESGCAPAlerts(filteredCAPItems, previousCapItemsRef.current, planData?.finalPlan);
 
   const [financialYear, setFinancialYear] = useState("");
+  useEffect(() => {
+    if (selectedCompany && selectedCompany !== "all") {
+      setSearchParams({ company: selectedCompany }, { replace: true });
+    } else {
+      // Remove the parameter when "all" is selected
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("company");
+      setSearchParams(newParams, { replace: true });
+    }
+  }, [selectedCompany, setSearchParams]);
 
   const [isEditingFinalized, setIsEditingFinalized] = useState(false);
   const originalPlanRef = useRef<ESGCapItem[]>([]);
@@ -782,6 +796,7 @@ export default function ESGCAP() {
                         onRevertField={handleRevertField}
                         finalPlan={isEditingFinalized ? false : isPlanFinalized}
                         progressPercentage={progressPercentage}
+                        companyEmail={selectedCompany !== "all" ? selectedCompany : undefined}
                         companyEntityId={selectedEntityId}
                         setReloadData={setReloadData}
                       />
