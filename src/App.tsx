@@ -48,6 +48,7 @@ import Categorization from "./pages/Categorization";
 import { http } from "@/utils/httpInterceptor";
 import Login from "./pages/Login";
 import Auth from "./pages/Auth";
+import CompanySelectionPage from "./pages/CompanySelectionPage";
 
 function App() {
   const { toast } = useToast();
@@ -139,7 +140,8 @@ function App() {
                 <Route path="team/:id" element={<TeamMemberDetail />} />
                 <Route path="team/edit/:id" element={<TeamMemberEdit />} />
                 <Route path="esg-dd/report" element={<ESGDDReport />} />
-                <Route path="esg-dd/cap" element={<ESGCAP />} />
+                <Route path="esg-dd/cap" element={<CompanySelectionPage />} />
+                <Route path="esg-dd/cap/:companyEmail" element={<ESGCAP />} />
                 <Route path="esg-cap/review/:id" element={<ESGCapDetailsPage />} />
                 <Route path="valuation" element={<Valuation />} />
                 <Route path="esg-dd/risk-matrix" element={<ESGRiskMatrix />} />

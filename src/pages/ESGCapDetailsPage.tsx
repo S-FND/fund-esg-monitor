@@ -379,7 +379,7 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
             <div className="mx-auto max-w-[1440px] px-6 py-8 space-y-6">
                 {/* Header with Edit Mode Toggle */}
                 <div>
-                    <Link to={`/esg-dd/cap${companyEmail ? `?company=${encodeURIComponent(companyEmail)}` : ""}`} className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"> 
+                    <Link to={`/esg-dd/cap/${encodeURIComponent(companyEmail)}`} className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"> 
                         <ArrowLeft className="mr-1 h-4 w-4" />Back
                     </Link>
                     <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
