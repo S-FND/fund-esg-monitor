@@ -1,29 +1,17 @@
-import { useEffect, useState, useRef, useCallback, useMemo } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { useEffect, useState, useRef, useMemo } from "react";
+import { Card, CardContent, } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
-import { ESGCapItem, CAPStatus, CAPType, CAPPriority, CAPTable } from "@/components/esg-cap/CAPTable";
+import { ESGCapItem, CAPStatus, CAPPriority, CAPTable } from "@/components/esg-cap/CAPTable";
 import { ComparePlan, ReviewDialog } from "@/components/esg-cap/ReviewDialog";
-import { FilterControls } from "@/components/esg-cap/FilterControls";
-import { AlertsPanel } from "@/components/esg-cap/AlertsPanel";
-import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import {
-  ArrowLeft,
-  ArrowRight,
-  ArrowUp,
-  ArrowDown,
-  FileText,
-  CheckCircle2,
-  Clock,
-  Target
-} from "lucide-react";
 import { http } from "@/utils/httpInterceptor";
 import { useESGCAPAlerts } from "@/hooks/useESGCAPAlerts";
 import { AddCAPDialog } from "@/components/esg-cap/AddCAPDialog";
 import { EsgddAPIs } from "@/network/esgdd";
 import Loader from "@/components/ui/loader";
 import { ESGCapScoring } from "@/components/InvestorESGScoring";
-import { getEffectiveStatus } from '@/utils/esgStatus';
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 interface PlanHistory {
   updateByUserId: string;
   status: string;
@@ -51,10 +39,17 @@ interface APIResponse {
 }
 
 export default function ESGCAP() {
+  const { companyEmail } = useParams<{ companyEmail: string }>();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const [selectedCompany, setSelectedCompany] = useState<string>(() => {
+    return companyEmail ? decodeURIComponent(companyEmail) : "all";
+  });
+
   const [portfolioCompanies, setPortfolioCompanies] = useState([]);
   const [selectedItem, setSelectedItem] = useState<ESGCapItem | null>(null);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
-  const [selectedCompany, setSelectedCompany] = useState<string>("all");
   const { user, userRole } = useAuth();
   const [showComparisonView, setShowComparisonView] = useState(false);
   const [planData, setPlanData] = useState<APIResponse | null>(null);
@@ -70,13 +65,17 @@ export default function ESGCAP() {
   const [selectedEntityId, setSelectedEntityId] = useState(null)
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
 
-  const alerts = useESGCAPAlerts(filteredCAPItems, previousCapItemsRef.current, planData?.finalPlan);
+  useEffect(() => {
+    if (companyEmail) {
+      setSelectedCompany(decodeURIComponent(companyEmail));
+    } else {
+      setSelectedCompany("all");
+    }
+  }, [companyEmail]);
 
   const [financialYear, setFinancialYear] = useState("");
-
   const [isEditingFinalized, setIsEditingFinalized] = useState(false);
   const originalPlanRef = useRef<ESGCapItem[]>([]);
-  const [isSavingFinalized, setIsSavingFinalized] = useState(false);
 
   useEffect(() => {
     const currentDate = new Date();
@@ -609,7 +608,7 @@ export default function ESGCAP() {
           return false;
         }
         
-        // Check date-based status
+        // Check month-based status
         if (!item.targetDate) return false;
         
         const today = new Date();
@@ -620,9 +619,9 @@ export default function ESGCAP() {
         const isCurrentMonth = target.getMonth() === today.getMonth() &&
                                target.getFullYear() === today.getFullYear();
         
-        if (activeFilter === 'due in this month') return isCurrentMonth;
-        if (activeFilter === 'overdue') return target < today;
-        if (activeFilter === 'upcoming') return target > today && !isCurrentMonth;
+        if (activeFilter === 'due in this month') { return isCurrentMonth; }
+        if (activeFilter === 'overdue') { return target < today && !isCurrentMonth; }
+        if (activeFilter === 'upcoming') { return target > today; }
         
         return false;
       });
@@ -671,10 +670,18 @@ export default function ESGCAP() {
   const loggedInUser = getLoggedInUser();
   const isFiresideEmail = loggedInUser?.email?.endsWith('@fireside.com') ?? false;
 
+  // Find the selected company object
+  const selectedCompanyObject = portfolioCompanies.find(
+    c => c.email === selectedCompany || c._id === selectedCompany
+  );
+  const companyObjectId = selectedCompanyObject?._id;
 
   return (
     <div className="space-y-6">
       <Loader show={loading} text={loadingMessage} />
+      <Button variant="ghost" onClick={() => navigate("/esg-dd/cap")} className="mb-2">
+        ← Back to companies
+      </Button>
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">ESG Corrective Action Plan</h1>
@@ -686,6 +693,12 @@ export default function ESGCAP() {
           onAddItem={handleAddItem}
           onAddMultipleItems={handleAddMultipleItems}
           existingPlan={capItems}
+          onRefresh={() => {
+              if (selectedEntityId) getPlanList(selectedEntityId);
+          }}
+          companyId={companyObjectId}
+          companyEmail={selectedCompany !== "all" ? selectedCompany : undefined}
+          entityId={selectedEntityId}
         />
       </div>
 
@@ -720,16 +733,16 @@ export default function ESGCAP() {
       {/* </div> */}
 
       <CardContent className="p-0">
-        {/* Company filter (unchanged) */}
-        {!isFiresideEmail && (
-          <div className="flex items-center justify-between mb-6">
+        {/* Company filter */}
+          {/* <div className="flex items-center justify-between mb-6">
             <FilterControls
               companies={portfolioCompanies}
               selectedCompany={selectedCompany}
               onCompanyChange={setSelectedCompany}
             />
-          </div>
-        )}
+          </div>  */}
+
+          
 
         {/* Alerts panel (unchanged) comment for fire side*/}
         {/* {filteredCAPItems.length > 0 && (
@@ -782,6 +795,7 @@ export default function ESGCAP() {
                         onRevertField={handleRevertField}
                         finalPlan={isEditingFinalized ? false : isPlanFinalized}
                         progressPercentage={progressPercentage}
+                        companyEmail={selectedCompany !== "all" ? selectedCompany : undefined}
                         companyEntityId={selectedEntityId}
                         setReloadData={setReloadData}
                       />
