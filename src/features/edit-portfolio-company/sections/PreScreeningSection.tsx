@@ -136,21 +136,24 @@ export function PreScreeningSection({ companyId }: PreScreeningSectionProps) {
 
   const getQuestions = async () => {
     try {
-      const response = await http.get(`investor/pre-screening/questions/${companyId}/Prescreening`)
-      if (response.data) {
-        console.log('response.data', response.data)
-        setQuestions(response.data.data)
-      }
-      else {
-        //handle error
+      const response = await http.get(
+        `investor/pre-screening/questions/${companyId}/Prescreening`
+      );
+  
+      console.log('response.data', response.data);
+  
+      const questionData = response?.data?.data;
+  
+      if (Array.isArray(questionData) && questionData.length > 0) {
+        setQuestions(questionData);
+      } else {
+        setQuestions(defaultQuestions);
       }
     } catch (error) {
-
+      console.error('Error fetching questions:', error);
+      setQuestions(defaultQuestions);
     }
-    finally {
-
-    }
-  }
+  };
 
   useEffect(() => {
     getQuestions();
