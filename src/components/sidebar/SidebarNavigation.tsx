@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { mainNavItems } from "./navigation-items";
+import { mainNavItems, misNavItem } from "./navigation-items";
 import { SidebarSubmenuItem } from "./SidebarSubmenuItem";
 import { esgDDNavItem, valuationNavItem } from "./navigation-items";
 import { useAuth } from "@/contexts/AuthContext";
@@ -15,7 +15,7 @@ import { useState, useEffect } from "react";
 
 
 // Helper: include all subitems if parent module is accessible
-const getAccessibleSubmenu = (item: typeof esgDDNavItem | typeof valuationNavItem, accessibleMenus: string[]) => {
+const getAccessibleSubmenu = (item: typeof esgDDNavItem | typeof valuationNavItem | typeof misNavItem, accessibleMenus: string[]) => {
   console.log('Checking access for item:', item.title, 'Accessible Menus:', accessibleMenus);
   if (!item) return null;
   // If parent module is accessible, return item with all subItems
@@ -52,7 +52,7 @@ export function SidebarNavigation() {
       // };
       let accessList;
       if(user?.isParent && (!user?.assignedPages || user.assignedPages.length == 0)){
-        accessList=["Dashboard","Investor General Info", "Funds", "Team", "Portfolio Companies", "ESG DD", "ESG CAP", "Valuation","Audit Logs"];
+        accessList=["Dashboard","Investor General Info", "Funds", "Team", "Portfolio Companies", "ESG DD", "ESG CAP", "Valuation"];
       } else if (user?.assignedPages && user.assignedPages.length > 0) {
         accessList = user?.assignedPages?.flatMap(p => {
           const modules = [p.moduleName];
@@ -87,6 +87,8 @@ export function SidebarNavigation() {
   // Check if user has access to Valuation submenu
   // const hasValuationAccess = accessibleMenus.includes(valuationNavItem.title);
   const filteredValuationNavItem = getAccessibleSubmenu(valuationNavItem, accessibleMenus);
+  const filteredMisNavItem = user && user.entityType == 1 && user.email.includes("fireside") ? true :false;
+  // getAccessibleSubmenu(misNavItem, accessibleMenus);
   return (
     <SidebarMenu>
       {filteredMainNavItems.map((item) => (
@@ -130,6 +132,12 @@ export function SidebarNavigation() {
           isInitiallyOpen={isValuationSubmenuOpen} 
         />
       )}
+
+       {filteredMisNavItem && 
+        <SidebarSubmenuItem 
+          item={misNavItem} 
+          isInitiallyOpen={false} 
+        />}
     </SidebarMenu>
   );
 }

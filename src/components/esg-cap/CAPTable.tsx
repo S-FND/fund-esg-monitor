@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import DocumentSummaryDialog from "./document-summary-review";
 import { http } from "@/utils/httpInterceptor";
 import { toast } from "@/hooks/use-toast";
+import { calculateESGScore } from "@/utils/esgScoring";
 
 export type CAPStatus =
   | "pending"
@@ -181,7 +182,8 @@ export interface ESGCapItem {
     s3Link: string;
     status: 'Accepted' | 'Rejected' | 'Pending';
     aiSummary: IDocumentValidation;
-  }[]
+  }[];
+  investmentDate?: string | Date;
 }
 
 interface CAPTableProps {
@@ -338,6 +340,9 @@ export function CAPTable({
     item: null,
   });
   const [confirmText, setConfirmText] = useState("");
+  const { completionScore, timelinessScore, finalScore, actualScore, maxScore } =
+    calculateESGScore(items);
+    console.log("Calculated Scores:", { completionScore, timelinessScore, finalScore, actualScore, maxScore });
 
   const handleDeleteClick = (item: ESGCapItem) => {
     setDeleteDialog({ open: true, item });
@@ -883,9 +888,9 @@ export function CAPTable({
           <div className="text-sm text-muted-foreground">Progress:</div>
           <div className="flex items-center gap-2">
             <div className="w-40 h-2 bg-gray-200 rounded-full overflow-hidden">
-              <div className="h-full bg-green-500 transition-all duration-300" style={{ width: `${progressPercentage}%` }} />
+              <div className="h-full bg-green-500 transition-all duration-300" style={{ width: `${finalScore}%` }} />
             </div>
-            <span className="font-semibold text-sm">{progressPercentage}%</span>
+            <span className="font-semibold text-sm">{finalScore.toFixed(2)}%</span>
           </div>
         </div>
       </div>

@@ -34,6 +34,10 @@ export interface AuditLog {
     userAgent?: string;
     requestId?: string;
   };
+  userActionFor:{
+    message:string;
+    companyName?: string;
+  }
 }
 
 export default function AuditDrawer({ open, onClose, logs }: {
@@ -104,7 +108,7 @@ export default function AuditDrawer({ open, onClose, logs }: {
         </div>
 
         {/* Filters */}
-        <div className="p-4 bg-white border-b flex gap-2">
+        {/* <div className="p-4 bg-white border-b flex gap-2">
           <input
             placeholder="Search..."
             className="border p-2 rounded w-full text-sm"
@@ -115,13 +119,13 @@ export default function AuditDrawer({ open, onClose, logs }: {
             <option>REQUEST</option>
             <option>ERROR</option>
           </select>
-        </div>
+        </div> */}
 
         {/* KPI Cards */}
         <div className="grid grid-cols-3 gap-2 p-4">
-          <MiniCard title="Changes" value="18" color="from-green-500 to-emerald-600" />
-          <MiniCard title="Requests" value="5" color="from-blue-500 to-blue-600" />
-          <MiniCard title="Errors" value="2" color="from-red-500 to-red-600" />
+          <MiniCard title="Changes" value={logs.filter((log) => log.action.includes("CHANGE")).length} color="from-green-500 to-emerald-600" />
+          <MiniCard title="Create" value={logs.filter((log) => log.action.includes("CREATE")).length} color="from-blue-500 to-blue-600" />
+          <MiniCard title="Reminders" value={logs.filter((log) => log.action.includes("REMINDER")).length} color="from-red-500 to-red-600" />
         </div>
 
         {/* Main Content */}
@@ -153,13 +157,14 @@ export default function AuditDrawer({ open, onClose, logs }: {
                   <span className="text-xs text-gray-400">{new Date(log.timestamp).toLocaleTimeString()}</span>
                 </div>
 
-                <p className="font-medium mt-1">{log.action}</p>
-
+                <p className="font-medium mt-1">{log.action.split("::")[0]}</p>
+                
                 <p className="text-xs text-gray-500">
                   {log.actor.name} •{" "}
-                  {log.changes
+                  changes for {log.userActionFor?.companyName }
+                  {/* {log.changes
                     ? `Changed ${Object.keys(log.changes).length} fields`
-                    : "Created record"}
+                    : "Created record"} */}
                 </p>
               </div>
             ))}
@@ -184,17 +189,29 @@ export default function AuditDrawer({ open, onClose, logs }: {
                   </p>
                 </div>
 
-                {JSON.stringify(getDiff(selectedLog.oldData, selectedLog.newData, "")) === "[]" ? (
+                {/* {JSON.stringify(getDiff(selectedLog.oldData, selectedLog.newData, "")) === "[]" ? (
                   <p className="text-xs text-gray-500">
                     No newwww changes (record created)
                   </p>
-                ) : null}
+                ) : null} */}
 
                 {/* Changes */}
                 <div>
                   <h4 className="text-sm font-semibold mb-2">Changes</h4>
-
-                  {selectedLog.changes ? (
+                {
+                  selectedLog.userActionFor?.message ? (
+                    <p className="text-xs text-gray-500">
+                      {selectedLog.userActionFor.message}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-gray-500">
+                      {selectedLog.changes
+                        ? `Changed ${Object.keys(selectedLog.changes).length} fields`
+                        : "No changes (record created)"}
+                    </p>
+                  )
+                }
+                  {/* {selectedLog.changes ? (
                     <div className="space-y-2">
                       {Object.entries(selectedLog.changes).map(
                         ([key, val]: any) => (
@@ -218,7 +235,7 @@ export default function AuditDrawer({ open, onClose, logs }: {
                     <p className="text-xs text-gray-500">
                       No changes (record created)
                     </p>
-                  )}
+                  )} */}
                 </div>
 
                 {/* Raw Data */}

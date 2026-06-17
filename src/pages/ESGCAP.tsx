@@ -321,6 +321,7 @@ export default function ESGCAP() {
         });
 
         getPlanList(planData?.entityId);
+        getAuditLogs();
       }
     } catch (error) {
       console.error("Error submitting CAP:", error);
@@ -564,6 +565,7 @@ export default function ESGCAP() {
         // Refresh data from backend to get the updated acceptedPlan
         if (planData?.entityId) {
           await getPlanList(planData.entityId);
+          getAuditLogs();
         }
         setIsEditingFinalized(false);
         originalPlanRef.current = [];
@@ -589,7 +591,6 @@ export default function ESGCAP() {
 
   const getAuditLogs=async ()=>{
     let logs= await http.get('audit');
-    console.log('Fetched logs:', logs);
     if(logs?.data?.status){
       setLogs(logs.data.data);
     }

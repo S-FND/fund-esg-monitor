@@ -317,7 +317,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems }: AddCAPDialogProp
             // Fetch existing plan
             const [existingData] = await EsgddAPIs.getEsgCapPlan({ entityId: `${entityId}?financialYear=${financialYear}` });
             const existingPlan = existingData?.plan || [];
-        
+            debugger;
             // Merge existing + new items
             const mergedPlan = [...existingPlan, ...newItems];
         

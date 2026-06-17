@@ -1,6 +1,6 @@
 
 import { useLocation } from "react-router-dom";
-import { mainNavItems, esgDDNavItem, valuationNavItem } from "./navigation-items";
+import { mainNavItems, esgDDNavItem, valuationNavItem,misNavItem } from "./navigation-items";
 import { SidebarNavItem } from "./SidebarNavItem";
 import { SidebarSubmenu } from "./SidebarSubmenu";
 import { useAuth } from "@/contexts/AuthContext";
@@ -59,6 +59,7 @@ export function SidebarContent() {
         {hasValuationAccess && (
           <SidebarSubmenu item={valuationNavItem} isInitiallyOpen={isValuationSubmenuOpen} />
         )}
+        <SidebarSubmenu item={misNavItem} isInitiallyOpen={false} />
       </ul>
     </nav>
   );

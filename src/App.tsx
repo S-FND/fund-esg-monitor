@@ -48,6 +48,17 @@ import { http } from "@/utils/httpInterceptor";
 import Login from "./pages/Login";
 import Auth from "./pages/Auth";
 import { AuditLogsPage } from "./components/audit-log/AuditLogsPage";
+import AdminDashboard from "./components/mis/AdminDashboard";
+import Portfolio from "./components/mis/Portfolio";
+import KPIMaster from "./components/mis/KPIMaster";
+import FeatureManagement from "./components/mis/FeatureManagement";
+import CompanyDetail from "./components/mis/CompanyDetail";
+import Alerts from "./components/mis/Alerts";
+import Notifications from "./components/mis/Notifications";
+import AdminSettings from "./components/mis/AdminSettings";
+import AdminSupport from "./components/mis/AdminSupport";
+import AnalyticsDetail from "./components/mis/AnalyticsDetail";
+import CompanyRankings from "./components/mis/CompanyRankings";
 
 function App() {
   const { toast } = useToast();
@@ -142,7 +153,42 @@ function App() {
                 <Route path="esg-dd/cap" element={<ESGCAP />} />
                 <Route path="valuation" element={<Valuation />} />
                 <Route path="esg-dd/risk-matrix" element={<ESGRiskMatrix />} />
-                <Route path="/audit-logs" element={<AuditLogsPage />} />
+                {/* <Route path="/audit-logs" element={<AuditLogsPage />} /> */}
+
+
+                 <Route path="/mis/dashboard" element={
+                    <AdminDashboard />
+                } />
+                <Route path="/mis/portfolio" element={
+                    <Portfolio />  
+                } />
+               {/* <Route path="/mis/kpi-master" element={
+                    <KPIMaster />
+                } />
+                <Route path="/mis/features" element={
+                    <FeatureManagement />
+                } />
+                <Route path="/mis/portfolio/:companyId" element={
+                    <CompanyDetail />
+                } />
+                <Route path="/mis/alerts" element={
+                    <Alerts />
+                } />
+                <Route path="/mis/notifications" element={
+                    <Notifications />
+                } />
+                <Route path="/mis/settings" element={
+                    <AdminSettings />
+                } />
+                <Route path="/mis/support" element={
+                    <AdminSupport />
+                } />
+                <Route path="/mis/analytics-detail" element={
+                    <AnalyticsDetail />
+                } />
+                <Route path="/mis/company-rankings" element={
+                    <CompanyRankings />
+                } /> */}
               </Routes>
 
             </ScrollArea>
