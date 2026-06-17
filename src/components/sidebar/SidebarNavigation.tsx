@@ -1,5 +1,5 @@
 
-import { useLocation } from "react-router-dom";
+import { useLocation,useNavigate } from "react-router-dom";
 import { 
   SidebarMenu,
   SidebarMenuItem,
@@ -12,8 +12,7 @@ import { SidebarSubmenuItem } from "./SidebarSubmenuItem";
 import { esgDDNavItem, valuationNavItem } from "./navigation-items";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
-
-
+import { LogOut } from "lucide-react";
 // Helper: include all subitems if parent module is accessible
 const getAccessibleSubmenu = (item: typeof esgDDNavItem | typeof valuationNavItem | typeof misNavItem, accessibleMenus: string[]) => {
   console.log('Checking access for item:', item.title, 'Accessible Menus:', accessibleMenus);
@@ -28,14 +27,20 @@ const getAccessibleSubmenu = (item: typeof esgDDNavItem | typeof valuationNavIte
 
 export function SidebarNavigation() {
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const [accessibleMenus, setAccessibleMenus] = useState<string[]>([]);
+  const navigate = useNavigate();
 
   // Check if any path starts with /esg-dd but is not /esg-dd/risk-matrix
   const isEsgSubmenuOpen = location.pathname.startsWith("/esg-dd") && !location.pathname.includes("risk-matrix");
   
   // Check if the path includes risk-matrix
   const isValuationSubmenuOpen = location.pathname.includes("risk-matrix");
+
+  const handleLogout = () => {
+    signOut(); // clears auth state (token, user, etc.)
+    navigate("/"); // redirect to login page (or "/login" if you have that route)
+  };
 
   useEffect(() => {
     console.log("Inside SidebarNavigation :: user => ",user)
@@ -126,7 +131,7 @@ export function SidebarNavigation() {
         />
       )}
 
-      {filteredValuationNavItem && (
+      {/* {filteredValuationNavItem && (
         <SidebarSubmenuItem 
           item={filteredValuationNavItem} 
           isInitiallyOpen={isValuationSubmenuOpen} 
@@ -138,6 +143,18 @@ export function SidebarNavigation() {
           item={misNavItem} 
           isInitiallyOpen={false} 
         />}
+      )} */}
+
+      <SidebarMenuItem>
+        <SidebarMenuButton 
+          onClick={handleLogout}
+          tooltip="Logout"
+        >
+          <LogOut className="h-4 w-4" />
+          <span>Logout</span>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+
     </SidebarMenu>
   );
 }

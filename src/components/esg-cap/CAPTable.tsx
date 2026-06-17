@@ -193,6 +193,7 @@ interface CAPTableProps {
   onRevert?: (itemId: string | number) => void;
   finalPlan?: boolean;
   progressPercentage?: number;
+  companyEmail?: string;
   companyEntityId: string
   setReloadData?: (reload: boolean) => void;
 }
@@ -364,6 +365,7 @@ export function CAPTable({
   isComparisonView = false,
   onRevertField,
   onRevert,
+  companyEmail,
   companyEntityId,
   setReloadData
 }: CAPTableProps) {
@@ -826,9 +828,7 @@ export function CAPTable({
                                 className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white"
                               >
                                 <Link
-                                  to={`/esg-cap/review/${item?.reportId
-                                    }?itemName=${encodeURIComponent(item?.item || "")}&companyEntityId=${companyEntityId || ""
-                                    }`}
+                                  to={`/esg-cap/review/${item?.reportId}?itemName=${encodeURIComponent(item?.item || "")}&companyEntityId=${companyEntityId || ""}&companyEmail=${encodeURIComponent(companyEmail || "")}`}
                                 >
                                   <Pencil className="h-3.5 w-3.5" />
                                 </Link>

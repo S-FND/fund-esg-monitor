@@ -127,7 +127,7 @@ export default function DocumentSummaryDialog({
     try {
       // Use s3Link if available and not expired, otherwise fetch signed URL
       const response = await http.get(
-        `esgdd/escap/upload/evidence-files/signed-urls?key=${encodeURIComponent(doc.filename)}`
+        `esgdd/escap/uploaded/evidence-files/signed-urls?key=${encodeURIComponent(doc.filename)}`
       );
       if (response?.data?.signedUrl) {
         window.open(response.data.signedUrl, "_blank");

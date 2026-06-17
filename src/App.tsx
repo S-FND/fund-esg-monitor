@@ -60,6 +60,7 @@ import AdminSettings from "./components/mis/AdminSettings";
 import AdminSupport from "./components/mis/AdminSupport";
 import AnalyticsDetail from "./components/mis/AnalyticsDetail";
 import CompanyRankings from "./components/mis/CompanyRankings";
+import CompanySelectionPage from "./pages/CompanySelectionPage";
 
 function App() {
   const { toast } = useToast();
@@ -111,8 +112,8 @@ function App() {
         element={
           <Shell>
             <Sidebar />
-            <ScrollArea className="flex-1 w-full p-4 md:p-8">
-              <div className="flex justify-end space-x-4">
+            <ScrollArea className="flex-1 w-full md:p-8">
+              {/* <div className="flex justify-end space-x-4">
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button variant="outline">Log Out</Button>
@@ -133,7 +134,7 @@ function App() {
                   </AlertDialogContent>
                 </AlertDialog>
                 <ModeToggle />
-              </div>
+              </div> */}
 
               <Routes>
                 <Route path="dashboard" element={<Dashboard />} />
@@ -151,7 +152,8 @@ function App() {
                 <Route path="team/:id" element={<TeamMemberDetail />} />
                 <Route path="team/edit/:id" element={<TeamMemberEdit />} />
                 <Route path="esg-dd/report" element={<ESGDDReport />} />
-                <Route path="esg-dd/cap" element={<ESGCAP />} />
+                <Route path="esg-dd/cap" element={<CompanySelectionPage />} />
+                <Route path="esg-dd/cap/:companyEmail" element={<ESGCAP />} />
                 <Route path="esg-cap/review/:id" element={<ESGCapDetailsPage />} />
                 <Route path="valuation" element={<Valuation />} />
                 <Route path="esg-dd/risk-matrix" element={<ESGRiskMatrix />} />
