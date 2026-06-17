@@ -10,22 +10,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Upload, Plus, Download, Trash2, X } from "lucide-react";
 import { ESGCapItem, CAPStatus, CAPCategory, CAPPriority, CAPType } from "./CAPTable";
 import { toast } from "@/hooks/use-toast";
-<<<<<<< HEAD
-import { useNavigate } from "react-router";
-import { EsgddAPIs,esgddChangePlan } from "@/network/esgdd";
-=======
 import { EsgddAPIs } from "@/network/esgdd";
 import Papa from 'papaparse';
->>>>>>> 866dedea318ec39266812f8d1be51bb61bdc47ed
 
 interface Company {
     id: string;
     name: string;
     email: string;
-    dateOfInvestment: string;
-    user: {
-        entityId: string;
-    } ;
 }
 
 interface AddCAPDialogProps {
@@ -57,12 +48,8 @@ interface CAPFormRow {
     closureVerifiedBy: string;
     actualDate: string;
     status: CAPStatus;
-<<<<<<< HEAD
-    targetDate: Date | string;
-=======
     investorStatus: string;
     targetDate: string;
->>>>>>> 866dedea318ec39266812f8d1be51bb61bdc47ed
     esgLever: string;
     capSource: string;
     progressPercentage: number;
@@ -77,15 +64,10 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
     const [loadingCompanies, setLoadingCompanies] = useState(false);
     const [financialYear, setFinancialYear] = useState("");
     const [selectedCompany, setSelectedCompany] = useState<string>("");
-<<<<<<< HEAD
-    const [showInvestmentDateAlert, setShowInvestmentDateAlert] = useState(false);
-    const navigate = useNavigate();
-=======
     const [replaceExisting, setReplaceExisting] = useState(false);
     const [informFounder, setInformFounder] = useState(true);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
->>>>>>> 866dedea318ec39266812f8d1be51bb61bdc47ed
 
     useEffect(() => {
         const currentDate = new Date();
@@ -146,14 +128,6 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
         }
     }, [open]);
 
-    const formatDate = (date: Date) => {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const day = String(date.getDate()).padStart(2, "0");
-
-        return `${year}-${month}-${day}`;
-    };
-
     const fetchCompanies = async () => {
         setLoadingCompanies(true);
         try {
@@ -169,7 +143,6 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                     id: company._id || company.id,
                     name: company.companyName || company.name,
                     email: company.email || company.companyEmail || "",
-                    dateOfInvestment: company.dateofInvestment || undefined,
                     user: company.user || ''
                 })).filter(company => company.id && company.name);
             } else if (jsondata && Array.isArray(jsondata.data)) {
@@ -177,7 +150,6 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                     id: company._id || company.id,
                     name: company.companyName || company.name,
                     email: company.email || company.companyEmail || "",
-                    dateOfInvestment: company.dateofInvestment || undefined,
                     user: company.user || ''
                 })).filter(company => company.id && company.name);
             }
@@ -234,34 +206,8 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
         setFormRows(formRows.filter(row => row.id !== id));
     };
 
-    // const updateRow = (id: string, field: keyof CAPFormRow, value: any) => {
-    //     setFormRows(formRows.map(row => row.id === id ? { ...row, [field]: value } : row));
-    // };
-
     const updateRow = (id: string, field: keyof CAPFormRow, value: any) => {
-        setFormRows(prevRows =>
-            prevRows.map(row => {
-                if (row.id !== id) return row;
-
-                let updatedRow = { ...row, [field]: value };
-
-                // 🎯 Extra logic ONLY for timelineMonth
-                if (field === "timelineMonth" && value) {
-                    const monthsToAdd = Number(value);
-
-                    const baseDate = new Date(); // or row.investmentDate if needed
-                    const targetDate = new Date(
-                        baseDate.getFullYear(),
-                        baseDate.getMonth() + monthsToAdd,
-                        baseDate.getDate()
-                    );
-
-                    updatedRow.targetDate = formatDate(targetDate);
-                }
-
-                return updatedRow;
-            })
-        );
+        setFormRows(formRows.map(row => row.id === id ? { ...row, [field]: value } : row));
     };
 
     const buildNewItems = (): ESGCapItem[] => {
@@ -338,35 +284,9 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
         const newItems = buildNewItems();
 
         try {
-<<<<<<< HEAD
-            // Get entityId from the selected company (same as in upload)
-            const entityId = company?.user?.entityId;
-            if (!entityId) throw new Error("Entity ID missing");
-        
-            // Fetch existing plan
-            const [existingData] = await EsgddAPIs.getEsgCapPlan({ entityId: `${entityId}?financialYear=${financialYear}` });
-            const existingPlan = existingData?.plan || [];
-            debugger;
-            // Merge existing + new items
-            const mergedPlan = [...existingPlan, ...newItems];
-        
-            if (existingPlan.length > 0) {
-                // Use change request API
-                const [res, err] = await EsgddAPIs.esgddChangePlan({
-                    changeRequest: { plan: mergedPlan },
-                    comment: 'Add items via manual entry',
-                    entityId,
-                });
-                if (!res) throw new Error(err || "Change request failed");
-            } else {
-                // Create new plan
-                const [res, err] = await EsgddAPIs.saveEscap({
-                    plan: mergedPlan,
-=======
             if (replaceExisting) {
                 const finalData = {
                     plan: newItems,
->>>>>>> 866dedea318ec39266812f8d1be51bb61bdc47ed
                     email: company.email,
                     financialYear,
                     finalAcceptance: { founderAcceptance: false, investorAcceptance: false },
@@ -751,30 +671,12 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
         setFormRows([{
             id: "1", item: "", category: "environmental", priority: "Medium", issue: "", relatedFinding: "",
             measures: "", resource: "", deliverable: "", timelineMonth: 0, dealCondition: "none",
-<<<<<<< HEAD
-            statusUpdate: "", investorStatusUpdate: "", reviewRemarks: "", lastReviewDate: "", implementationSupportNeeded: "",
-            closureVerifiedBy: "", actualDate: "", status: "pending", targetDate: "", esgLever: "", capSource: "",
-=======
             updateNote: "", reviewRemarks: "", lastReviewDate: "", implementationSupportNeeded: "",
             closureVerifiedBy: "", actualDate: "", status: "overdue", investorStatus: "", targetDate: "", esgLever: "", capSource: "",
->>>>>>> 866dedea318ec39266812f8d1be51bb61bdc47ed
             progressPercentage: 0, assignedTo: "", remarks: "",
         }]);
     };
 
-<<<<<<< HEAD
-    useEffect(() => {
-        if (selectedCompany) {
-            const company = companies.find(c => c.id === selectedCompany);
-            if (company && !company.dateOfInvestment) {
-                setShowInvestmentDateAlert(true);
-            } else {
-                setShowInvestmentDateAlert(false);
-            }
-        }
-
-    }, [selectedCompany]);
-=======
     // ✅ Reusable checkbox component
     const InformFounderCheckbox = () => (
         <div className="flex items-center space-x-2">
@@ -793,7 +695,6 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
             </Label>
         </div>
     );
->>>>>>> 866dedea318ec39266812f8d1be51bb61bdc47ed
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
@@ -840,17 +741,6 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                                                 ))}
                                             </SelectContent>
                                         </Select>
-                                        {showInvestmentDateAlert && (
-                                            <div className="mt-2 p-3 rounded-md border border-red-300 bg-red-50 text-red-700 text-sm">
-                                                ⚠️ Investment date is missing.{" "}
-                                                <span
-                                                    className="underline cursor-pointer font-medium"
-                                                    onClick={() => navigate(`/portfolio/${selectedCompany}`)}
-                                                >
-                                                    Add investment date
-                                                </span>
-                                            </div>
-                                        )}
                                     </div>
 
                                     <div className="flex justify-end">
@@ -991,14 +881,11 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                                                     />
                                                 </div>
                                                 <div>
-                                                    <Label>Target Date {row.targetDate instanceof Date ? row.targetDate.toLocaleDateString() : row.targetDate}</Label>
+                                                    <Label>Target Date</Label>
                                                     <Input
                                                         type="date"
-                                                        value={row.targetDate
-                                                            ? new Date(row.targetDate).toISOString().split("T")[0]
-                                                            : ""}
+                                                        value={row.targetDate}
                                                         onChange={(e) => updateRow(row.id, "targetDate", e.target.value)}
-                                                        disabled={true}
                                                     />
                                                 </div>
                                                 <div>
@@ -1046,41 +933,16 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                                             </div>
 
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-<<<<<<< HEAD
-
-                                                <div>
-                                                    <Label>Current Status Update (Company)</Label>
-                                                    <Textarea
-                                                        value={row.statusUpdate}
-                                                        onChange={(e) => updateRow(row.id, "statusUpdate", e.target.value)}
-=======
                                                 <div>
                                                     <Label>Current Status Update (Company)</Label>
                                                     <Textarea
                                                         value={row.status}
                                                         onChange={(e) => updateRow(row.id, "status", e.target.value)}
->>>>>>> 866dedea318ec39266812f8d1be51bb61bdc47ed
                                                         disabled
                                                         placeholder="Latest update on this action item"
                                                         className="min-h-[60px]"
                                                     />
                                                 </div>
-<<<<<<< HEAD
-
-                                                {/* 15.1 Current Status Update Investor*/}
-                                                <div>
-                                                    <Label>Current Status Update (Investor)</Label>
-                                                    <Textarea
-                                                        value={row.investorStatusUpdate}
-                                                        onChange={(e) => updateRow(row.id, "investorStatusUpdate", e.target.value)}
-                                                        placeholder="Latest update on this action item"
-                                                        className="min-h-[60px]"
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            {/* 16. Review Remarks & 17. Last Review Date */}
-=======
                                                 {/* <div>
                                                     <Label>Current Status Update (Investor)</Label>
                                                     <Textarea
@@ -1092,7 +954,6 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                                                 </div> */}
                                             </div>
 
->>>>>>> 866dedea318ec39266812f8d1be51bb61bdc47ed
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div>
                                                     <Label>Review Remarks</Label>
