@@ -100,8 +100,8 @@ function App() {
         element={
           <Shell>
             <Sidebar />
-            <ScrollArea className="flex-1 w-full p-4 md:p-8">
-              <div className="flex justify-end space-x-4">
+            <ScrollArea className="flex-1 w-full md:p-8">
+              {/* <div className="flex justify-end space-x-4">
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button variant="outline">Log Out</Button>
@@ -122,7 +122,7 @@ function App() {
                   </AlertDialogContent>
                 </AlertDialog>
                 <ModeToggle />
-              </div>
+              </div> */}
 
               <Routes>
                 <Route path="dashboard" element={<Dashboard />} />

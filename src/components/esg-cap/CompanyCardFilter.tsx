@@ -91,9 +91,9 @@ export function CompanyCardFilter({
 }: CompanyCardFilterProps) {
   return (
     <div className="space-y-4">
-      <Label className="block text-base font-semibold text-gray-800">
+      {/* <Label className="block text-base font-semibold text-gray-800">
         Filter by Company
-      </Label>
+      </Label> */}
 
       {loading ? (
         <div className="flex items-center justify-center py-12 text-muted-foreground">
