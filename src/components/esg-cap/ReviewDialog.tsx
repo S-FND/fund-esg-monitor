@@ -141,7 +141,11 @@ export function ReviewDialog({
         title: "Please click on 'Request Cap Change'",
         description: "To save the changes and notify the company about the changes.",
         duration: Infinity,
-        variant: "destructive",
+        style: {
+          backgroundColor: '#3b82f6',
+          color: '#ffffff',
+          border: 'none',
+        },
       });
     }else{
       setDataEditStatus(true);
@@ -150,7 +154,7 @@ export function ReviewDialog({
         title: "Please click on 'Update Final Cap'",
         description: "To save the changes and notify the company about the changes.",
         duration: Infinity,
-        variant: "destructive",
+        variant: "default",
       });
     }
   };
@@ -339,27 +343,28 @@ export function ReviewDialog({
 
               {/* Type (CP/CS) */}
               <div>
-                <h4 className="font-semibold mb-1">Type (CP/CS/ESG FORWARD AREAS)</h4>
+                <h4 className="font-semibold mb-1">CP/CS/ESG Roadmap</h4>
                 {isEditable ? (
                   <Select
-                    value={editedItem.CS || ""}
-                    onValueChange={(value) => handleInputChange("CS", value)}
+                    value={editedItem.dealCondition || ""}
+                    onValueChange={(value) => handleInputChange("dealCondition", value)}
                   >
-                    <SelectTrigger className={isFieldChanged("CS") ? "border-orange-400" : ""}>
+                    <SelectTrigger className={isFieldChanged("dealCondition") ? "border-orange-400" : ""}>
                       <SelectValue placeholder="Select Type" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="CP">CP</SelectItem>
                       <SelectItem value="CS">CS</SelectItem>
-                      <SelectItem value="ESG_FORWARD_AREAS">ESG Forward areas</SelectItem>
+                      <SelectItem value="ESG_Roadmap">ESG Roadmap</SelectItem>
+                      <SelectItem value="none">none</SelectItem>
                     </SelectContent>
                   </Select>
                 ) : (
-                  <p>{editedItem.CS || "-"}</p>
+                  <p>{editedItem.dealCondition || "-"}</p>
                 )}
-                {isFieldChanged("CS") && (
+                {isFieldChanged("dealCondition") && (
                   <p className="text-xs text-amber-600 mt-1">
-                    Original: {originalItem?.CS || "-"}
+                    Original: {originalItem?.dealCondition || "-"}
                   </p>
                 )}
               </div>
