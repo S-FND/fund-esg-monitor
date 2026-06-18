@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 // import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -436,23 +436,38 @@ const AdminDashboard = () => {
       //   .eq('enabled', true);
       // if (error) throw error;
       // return data || [];
-      debugger;
-      const data=await http.get("mis/company-feature-settings?enabled=true");
+      const data = await http.get("mis/company-feature-settings?enabled=true");
       if (data.error) throw data.error;
-      if(data.data){
+      if (data.data) {
         return data.data;
       }
     },
   });
 
   // Build a map: featureKey -> Set of company IDs that have it enabled
-  const featureEnabledMap = new Map<string, Set<string>>();
-  if (featureSettings) {
-    for (const s of featureSettings) {
-      if (!featureEnabledMap.has(s.feature_key)) featureEnabledMap.set(s.feature_key, new Set());
-      featureEnabledMap.get(s.feature_key)!.add(s.company_id);
+  // const featureEnabledMap = new Map<string, Set<string>>();
+  // if (featureSettings) {
+  //   for (const s of featureSettings) {
+  //     if (!featureEnabledMap.has(s.feature_key)) featureEnabledMap.set(s.feature_key, new Set());
+  //     featureEnabledMap.get(s.feature_key)!.add(s.company_id);
+  //   }
+  // }
+  const featureEnabledMap = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+
+    if (featureSettings) {
+      for (const s of featureSettings) {
+        if (!map.has(s.feature_key)) {
+          map.set(s.feature_key, new Set());
+        }
+        map.get(s.feature_key)!.add(s.companyId);
+      }
     }
-  }
+
+    return map;
+  }, [featureSettings]);
+
+  
 
   const availableFeatures = filters.period === 'quarterly' ? QUARTERLY_FEATURES : [...QUARTERLY_FEATURES, ...ANNUAL_FEATURES];
 
