@@ -139,7 +139,6 @@ export const FeatureAnalyticsView = ({
   // For packaging analytics, also include fashionMaterials companies (they contribute fashion packaging data)
   const [featureEnabledCompanyIds, setFeatureEnabledCompanyIds] = useState<Set<string> | null>(null);
   useEffect(() => {
-    debugger;
     const fetchFeatureCompanies = async () => {
       const featureKeys = featureKey === 'primarySecondaryPackaging'
         ? ['primarySecondaryPackaging', 'fashionMaterials']
@@ -147,7 +146,7 @@ export const FeatureAnalyticsView = ({
 
       const data = await http
         .get<{ company_id: string; feature_key: string }[]>(
-          '/company-feature-settings'
+          'mis/company-feature-settings'
         );
 
       if (data) {
