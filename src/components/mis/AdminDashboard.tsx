@@ -94,7 +94,6 @@ const renderFeatureCard = (
   handleSelectFeature: (feat: string) => void,
   useQuarterlyCombined?: boolean,
 ) => {
-  console.log('renderFeatureCard', feature, data);
   const mapping = FEATURE_FIELD_MAPPINGS[feature.key];
   const kpiCount = mapping?.kpis.filter((k: any) => !k.excludeFromProgress).length || 0;
   const filteredIds = new Set(data.filteredCompanies.map((c: any) => c.id));
@@ -468,9 +467,7 @@ const AdminDashboard = () => {
     return map;
   }, [featureSettings]);
 
-  useEffect(() => {
-    console.log('Feature settings for dashboard:', featureSettings);
-  }, [featureSettings]);
+  
 
   const availableFeatures = filters.period === 'quarterly' ? QUARTERLY_FEATURES : [...QUARTERLY_FEATURES, ...ANNUAL_FEATURES];
 
