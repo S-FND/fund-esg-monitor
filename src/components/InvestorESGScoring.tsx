@@ -66,11 +66,19 @@ export const ESGCapScoring: React.FC<ESGCapScoringProps> = ({ items, onFilterCha
   ).length;
 
   const submittedPendingReviewCount = filteredItems.filter(
-    item => getEffectiveStatus(item) === 'submitted'
+    item => {
+      const companyStatus = (item.companyStatus || '').toLowerCase().trim();
+      const investorStatus = (item.investorStatus || '').toLowerCase().trim();
+      const effectiveStatus = getEffectiveStatus(item);
+      
+      // Company has submitted AND investor hasn't closed it yet
+      return (companyStatus === 'submitted') && 
+            investorStatus === 'under-review' 
+    }
   ).length;
 
   const resubmitRequestedCount = filteredItems.filter(
-    item => (item.investorStatus || '').toLowerCase().trim() === 're-submit-requested'
+    item => (item.investorStatus || '').toLowerCase().trim() === 're-submit requested'
   ).length;
   
   const closedThisMonthCount = filteredItems.filter(
@@ -107,7 +115,7 @@ export const ESGCapScoring: React.FC<ESGCapScoringProps> = ({ items, onFilterCha
     <div className="space-y-4">
       <Card>
         <CardContent className="py-3">
-          <div className="grid grid-cols-7 gap-2">
+          <div className="grid grid-cols-6 gap-2">
             {/* 1. Portfolio Compliance Score - STATIC */}
             <div className="text-center p-2 rounded-lg bg-green-50 cursor-default">
               <div className="flex items-center justify-center gap-1">
@@ -140,8 +148,8 @@ export const ESGCapScoring: React.FC<ESGCapScoringProps> = ({ items, onFilterCha
 
             {/* 4. Submitted Pending Review - CLICKABLE */}
             <div 
-              className={getCardClass('submitted', "bg-purple-50")}
-              onClick={() => handleFilter('submitted')}
+              className={getCardClass('submitted-pending-review', "bg-purple-50")}
+              onClick={() => handleFilter('submitted-pending-review')}
             >
               <div className="flex items-center justify-center gap-1">
                 <div className="text-lg font-bold text-purple-600">{submittedPendingReviewCount}</div>
@@ -172,12 +180,12 @@ export const ESGCapScoring: React.FC<ESGCapScoringProps> = ({ items, onFilterCha
             </div>
 
             {/* 7. Critical Risk Flags - STATIC */}
-            <div className="text-center p-2 rounded-lg bg-red-50 cursor-default">
+            {/* <div className="text-center p-2 rounded-lg bg-red-50 cursor-default">
               <div className="flex items-center justify-center gap-1">
                 <div className="text-lg font-bold text-red-600">{highPriorityCount}</div>
               </div>
               <div className="text-[10px] text-red-600 font-medium leading-tight">Critical Risk Flags</div>
-            </div>
+            </div> */}
           </div>
         </CardContent>
       </Card>

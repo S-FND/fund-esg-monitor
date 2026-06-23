@@ -594,7 +594,7 @@ export default function ESGCAP() {
         const effectiveStatus = getEffectiveStatus(item);
         const companyStatus = (item.companyStatus || '').toLowerCase();
         const priority = (item.priority || '').toLowerCase();
-
+        const rawInvestorStatus = (item.investorStatus || '').toLowerCase().trim();
         // ✅ FILTER: high-priority-overdue - Use INVESTOR STATUS
         if (activeFilter === 'high-priority-overdue') {
           return investorStatus === 'high-priority-overdue';
@@ -609,9 +609,17 @@ export default function ESGCAP() {
           return effectiveStatus === 'submitted';
         }
 
+        if (activeFilter === 'submitted-pending-review') {
+          return companyStatus === 'submitted' && 
+                 (investorStatus === 'under-review' || rawInvestorStatus === 'under review');
+        }
+
         // ✅ FILTER: re-submit-requested - Use INVESTOR STATUS
         if (activeFilter === 're-submit-requested') {
-          return investorStatus === 're-submit-requested';
+          const status = (item.investorStatus || '').toLowerCase().trim();
+          return status === 're-submit-requested' ||
+            status === 're-submit requested' ||
+            getDerivedInvestorStatus(item) === 're-submit-requested';
         }
 
         // ✅ FILTER: closed-this-month - Check if closed AND target date in current month
@@ -646,10 +654,10 @@ export default function ESGCAP() {
           today.setHours(0, 0, 0, 0);
           const target = new Date(item.targetDate);
           target.setHours(0, 0, 0, 0);
-          
+
           // Check if target date is in the future AND not in current month
           const isCurrentMonth = target.getMonth() === today.getMonth() &&
-                                 target.getFullYear() === today.getFullYear();
+            target.getFullYear() === today.getFullYear();
           return target > today && !isCurrentMonth && investorStatus !== 'closed';
         }
 
