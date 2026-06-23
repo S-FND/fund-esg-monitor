@@ -359,7 +359,7 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
             entityId: companyEntityId,
             itemId: capItem?._id,
             fileName: payload.fileName,
-            status: payload.status,
+            companyStatus: payload.companyStatus,
             reason: payload.reason
         })
         if (error) {
@@ -367,12 +367,26 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
             return; // ✅ stop execution
         }
 
-        if (data?.status) {
-            toast.success(`${payload.fileName} ${payload.status === "Accepted" ? "approved" : "rejected"}`);
+        if (data?.companyStatus) {
+            toast.success(`${payload.fileName} ${payload.companyStatus === "Accepted" ? "approved" : "rejected"}`);
             setIsSummaryOpen(false);
             await loadData();
         }
     }
+
+    const formatInvestorStatusDisplay = (status: string): string => {
+        if (!status) return '';
+        
+        // Remove hyphens and split into words
+        const words = status.split('-');
+        
+        // Capitalize first letter of each word and join with space
+        const formatted = words
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+          .join(' ');
+        
+        return formatted;
+      };
 
     return (
         <div className="min-h-screen bg-[hsl(220_25%_97%)] dark:bg-background">
@@ -398,7 +412,25 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                                 <MetaPill label={`${editMode ? (editedItem.priority || "") : (capItem.priority || "")}`} />
                                 <MetaPill label={editMode ? (editedItem.targetDate ? `Due ${new Date(editedItem.targetDate).toLocaleDateString()}` : "") : (capItem.targetDate ? `Due ${new Date(capItem.targetDate).toLocaleDateString()}` : "")} tone="blue" />
                                 <MetaPill label={editMode ? (editedItem.category || "") : (capItem.category || "")} />
-                                <MetaPill label={editMode ? (editedItem.status?.replaceAll("_", " ") || "") : (capItem.status?.replaceAll("_", " ") || "")} tone={capItem.status === "completed" ? "green" : capItem.status === "pending" ? "amber" : "blue"} />
+                                <MetaPill 
+                                label={editMode ? (editedItem.companyStatus?.replaceAll("_", " ") || "") : (capItem.companyStatus?.replaceAll("_", " ") || "")} 
+                                tone={
+                                    capItem.companyStatus === "closed" ? "green" :
+                                    capItem.companyStatus === "submitted" ? "amber" :
+                                    capItem.companyStatus === "partly-submitted" ? "blue" :
+                                    capItem.companyStatus === "re-submit-Required" ? "red" :
+                                    "default"
+                                } 
+                                />
+                                <MetaPill 
+                                    label={editMode ? (editedItem.investorStatus?.replace(/-/g, ' ')?.replace(/\b\w/g, char => char.toUpperCase()) || "") : (capItem.investorStatus?.replace(/-/g, ' ')?.replace(/\b\w/g, char => char.toUpperCase()) || "")} 
+                                    tone={
+                                        capItem.investorStatus === "high-priority-overdue" ? "red" :
+                                        capItem.investorStatus === "closed" ? "green" :
+                                        capItem.investorStatus === "submitted" ? "amber" :
+                                        "default"
+                                    } 
+                                />
                             </div>
                         </div>
                         <div className="flex gap-2 items-center">
@@ -474,23 +506,18 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                                 <div>
                                     <div className="text-sm font-semibold">Company Status</div>
                                     {editMode ? (
-                                        <Select value={editedItem.status} onValueChange={(val) => setEditedItem({ ...editedItem, status: val })}>
-                                            <SelectTrigger><SelectValue /></SelectTrigger>
+                                        <Select value={editedItem.companyStatus} onValueChange={(val) => setEditedItem({ ...editedItem, companyStatus: val })}>
+                                            <SelectTrigger><SelectValue placeholder="Select Company Status" /></SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="upcoming" disabled>Upcoming</SelectItem>
-                                                <SelectItem value="due in this month" disabled>
-                                                    due in this month
-                                                </SelectItem>
+                                                <SelectItem value="due-in-this-month" disabled> due in this month </SelectItem>
                                                 <SelectItem value="overdue" disabled>Overdue</SelectItem>
+                                                <SelectItem value="partly-submitted">Partly Submitted</SelectItem>
                                                 <SelectItem value="submitted">Submitted</SelectItem>
                                                 <SelectItem value="closed">Closed</SelectItem>
-                                                <SelectItem value="request to re-submit">
-                                                    Request to Re-submit
-                                                </SelectItem>
                                             </SelectContent>
                                         </Select>
                                     ) : (
-                                        <div className="mt-1 text-sm">{capItem.status}</div>
+                                        <div className="mt-1 text-sm">{capItem.companyStatus}</div>
                                     )}
                                 </div>
                                 <div>
@@ -604,12 +631,15 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                                 <div className="mt-2">
                                     {editMode ? (
                                         <Select value={editedItem.investorStatus || 'Under Review'} onValueChange={(val) => setEditedItem({ ...editedItem, investorStatus: val })}>
-                                            <SelectTrigger className="w-full"><SelectValue placeholder="Select status" /></SelectTrigger>
+                                            <SelectTrigger className="w-full"><SelectValue placeholder="Select Investor Status"  /></SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="under review">
+                                                <SelectItem value="re-submit-requested">
+                                                    Re-submit Requested
+                                                </SelectItem>
+                                                <SelectItem value="under-review">
                                                     Under Review
                                                 </SelectItem>
-                                                <SelectItem value="reviewed with comments">
+                                                <SelectItem value="reviewed-with-comments">
                                                     Reviewed with Comments
                                                 </SelectItem>
                                                 <SelectItem value="closed">
@@ -624,8 +654,14 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                                         <div className="mt-1 flex items-center gap-3 rounded-lg border bg-card p-4">
                                             {/* <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-emerald-500 bg-emerald-500 text-white"><CheckCircle2 className="h-4 w-4" /></span> */}
                                             <div>
-                                                <div className="text-sm font-semibold">{capItem.investorStatus || ' '}</div>
-                                                <div className="text-xs text-muted-foreground">{capItem.lastReviewDate ? new Date(capItem.lastReviewDate).toLocaleDateString() : ''}</div>
+                                                <div className="text-sm font-semibold">{formatInvestorStatusDisplay(capItem.investorStatus) || ' '}</div>
+                                                <div className="text-xs text-muted-foreground">
+                                                {capItem.investorStatus && (
+                                                <div className="text-xs text-muted-foreground">
+                                                    {new Date(capItem.lastReviewDate).toLocaleDateString()}
+                                                </div>
+                                                )}
+                                                </div>
                                             </div>
                                         </div>
                                     )}
