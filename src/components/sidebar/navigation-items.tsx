@@ -72,11 +72,11 @@ export const misNavItem: NavItemWithSubItems = {
       href: "/mis/dashboard",
       icon: FileText,
     },
-    // {
-    //   title: "Portfolio",
-    //   href: "/mis/portfolio",
-    //   icon: FileCheck,
-    // },
+    {
+      title: "Portfolio",
+      href: "/mis/portfolio",
+      icon: FileCheck,
+    },
     // {
     //   title: "Feature Management",
     //   href: "/mis/features",
@@ -92,11 +92,11 @@ export const misNavItem: NavItemWithSubItems = {
     //   href: "/mis/settings",
     //   icon: FileText,
     // },
-    // {
-    //   title: "Help & Support",
-    //   href: "/mis/support",
-    //   icon: FileCheck,
-    // },
+    {
+      title: "Help & Support",
+      href: "/mis/support",
+      icon: FileCheck,
+    },
   ]
 };
 

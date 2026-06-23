@@ -1,3 +1,9 @@
+:root {
+  --status-success: 142 72% 29%;
+  --status-warning: 38 92% 50%;
+  --status-error: 0 72% 51%;
+  --status-info: 217 91% 60%;
+}
 #root {
   max-width: 1280px;
   margin: 0 auto;

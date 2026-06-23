@@ -1,5 +1,4 @@
 import { useNavigate } from 'react-router-dom';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -117,12 +116,13 @@ const Notifications = () => {
       markAsRead(notification.id);
     }
     if (notification.company_id) {
-      navigate(`/admin/portfolio/${notification.company_id}`);
+      navigate(`/mis/portfolio/${notification.company_id}`);
     }
   };
 
   return (
-    <DashboardLayout>
+    <div className="space-y-6">
+      <div className="space-y-6">
       <PageHeader
         title="Notifications"
         subtitle={`${unreadCount} unread notification${unreadCount !== 1 ? 's' : ''}`}
@@ -177,7 +177,8 @@ const Notifications = () => {
           ))}
         </div>
       )}
-    </DashboardLayout>
+    </div>
+    </div>
   );
 };
 

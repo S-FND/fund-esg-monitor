@@ -406,7 +406,7 @@ export const FeatureAnalyticsView = ({
     const sourceKpiKey = (companyData as any)._sourceKpiKey as string | undefined;
     const sourceCalcId = (companyData as any)._sourceCalcId as string | undefined;
     const sourceInsightKey = mergedExtra.sourceInsightKey;
-    navigate('/admin/analytics-detail', {
+    navigate('/mis/analytics-detail', {
       state: { title, featureLabel: mapping.featureLabel, companyData, filters: { ...filters, feature: featureKey }, isPct, allFilteredCompanies, ...mergedExtra, sourceKpiKey, sourceInsightKey, sourceCalcId },
     });
   };

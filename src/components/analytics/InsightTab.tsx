@@ -144,7 +144,7 @@ export const InsightTab = ({ insights, timeSeries, companyRawData, companyCount,
     // appear in the detail view's "Not Considered" stat card
     const scopedAllCompanies = allFilteredCompanies;
     const lowBrands = lowCompletenessMap[key as string] || new Set();
-    navigate('/admin/analytics-detail', {
+    navigate('/mis/analytics-detail', {
       state: {
         title,
         featureLabel: 'Cross-Module: ESG',
@@ -214,7 +214,7 @@ export const InsightTab = ({ insights, timeSeries, companyRawData, companyCount,
       timeliness: 'Based on latest first-submission date across all periods (Q1–Q4, FY) vs deadline tiers: ≤ Feb 4 = 100, Feb 5–20 = 90–100 (linear decay), Feb 21–24 = 70–90 (steeper decay), after Feb 24 = 70 minus 1 pt/day. No submissions before March 3 cutoff = 0.\n\nUnit: Score (0–100)',
     };
 
-    navigate('/admin/analytics-detail', {
+    navigate('/mis/analytics-detail', {
       state: {
         title: `${metricLabel} — Category ${categoryLabel}`,
         featureLabel: 'Company Rankings',
@@ -283,7 +283,7 @@ export const InsightTab = ({ insights, timeSeries, companyRawData, companyCount,
       <section>
         <div 
           className="flex items-center gap-2 mb-3 cursor-pointer group"
-          onClick={() => navigate(`/admin/company-rankings?year=${filters.year}&quarter=${filters.quarter || 'Q4'}`)}
+          onClick={() => navigate(`/mis/company-rankings?year=${filters.year}&quarter=${filters.quarter || 'Q4'}`)}
         >
           <Trophy className="w-5 h-5 text-amber-500" />
           <h2 className="text-base font-semibold group-hover:underline">Company Rankings</h2>

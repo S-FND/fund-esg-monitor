@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { FEATURE_FIELD_MAPPINGS } from '@/lib/featureFieldMapping';
 import { isCompanyExcluded } from '@/lib/companyExclusions';
 import { useAsOf, isPeriodAfterCutoff } from '@/contexts/AsOfContext';
+import { http } from '@/utils/httpInterceptor';
 
 interface QuarterProgress {
   quarter: string;
@@ -119,6 +120,7 @@ const countFilledKPIs = (
 };
 
 export const useAllQuartersProgress = (companyId: string, year: number = 2025, refreshKey: number = 0, applyExclusions: boolean = true): AllQuartersProgressData => {
+  
   const [allEntries, setAllEntries] = useState<{ kpi_id: string; quarter: string; value: string | null }[]>([]);
   const [enabledFeatures, setEnabledFeatures] = useState<{ feature_key: string; feature_type: string }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -126,26 +128,34 @@ export const useAllQuartersProgress = (companyId: string, year: number = 2025, r
 
   // Load entries and company feature settings
   useEffect(() => {
+    console.log('Loading data for companyId in useAllQuartersProgress:', companyId, 'year:', year);
     const loadData = async () => {
       setIsLoading(true);
       try {
         // Fetch entries and feature settings in parallel
-        const [entriesResult, featuresResult] = await Promise.all([
-          supabase
-            .from('kpi_entries')
-            .select('kpi_id, quarter, value')
-            .eq('company_id', companyId)
-            .eq('year', year),
-          supabase
-            .from('company_feature_settings')
-            .select('feature_key, feature_type, enabled')
-            .eq('company_id', companyId)
-            .eq('enabled', true),
-        ]);
+        // const [entriesResult, featuresResult] = await Promise.all([
+        //   supabase
+        //     .from('kpi_entries')
+        //     .select('kpi_id, quarter, value')
+        //     .eq('company_id', companyId)
+        //     .eq('year', year),
+        //   supabase
+        //     .from('company_feature_settings')
+        //     .select('feature_key, feature_type, enabled')
+        //     .eq('company_id', companyId)
+        //     .eq('enabled', true),
+        // ]);
 
+        let entryData= await http.get<{ kpi_id: string; quarter: string; value: string | null }[]>(`mis/kpi-entries?companyId=${companyId}&year=${year}`);
+        let featuresData= await http.get<{ feature_key: string; feature_type: string; enabled: boolean }[]>(`mis/company-feature-settings?companyId=${companyId}`);
+
+        let entriesResult=entryData.data ? { data: entryData.data, error: null } : { data: null, error: new Error('Failed to load entries') };
+        let featuresResult=featuresData.data ? { data: featuresData.data.filter(f => f.enabled), error: null } : { data: null, error: new Error('Failed to load features') };
         if (entriesResult.error) throw entriesResult.error;
         if (featuresResult.error) throw featuresResult.error;
-        
+        // console.log('Loaded entries:', entriesResult.data);
+        // console.log('Loaded features:', featuresResult.data);
+
         setAllEntries(entriesResult.data || []);
         setEnabledFeatures(featuresResult.data || []);
       } catch (error) {
@@ -184,12 +194,15 @@ export const useAllQuartersProgress = (companyId: string, year: number = 2025, r
 
     const quarterlyTotal = getFeatureKPICount(effectiveQuarterly);
     const annualTotal = getFeatureKPICount(effectiveAnnual);
-
+    console.log('Effective quarterly features:', effectiveQuarterly);
+    console.log('Effective annual features:', effectiveAnnual);
+    console.log('Quarterly total KPIs:', quarterlyTotal);
+    console.log('Annual total KPIs:', annualTotal);
     PERIODS.forEach(period => {
       // Skip excluded quarters for this company
       // Skip periods past the "As of" cutoff so the snapshot reflects what was available then.
       const pastCutoff = isPeriodAfterCutoff(period, year, asOf);
-      if (pastCutoff || (applyExclusions && isCompanyExcluded(companyId, period, year))) {
+      if (pastCutoff || (applyExclusions && isCompanyExcluded(companyId, period))) {
         quarters[period] = {
           quarter: period,
           total: 0,
