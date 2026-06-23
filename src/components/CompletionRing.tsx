@@ -25,10 +25,9 @@ export const CompletionRing = ({
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
 
   const getColor = () => {
-    if (percentage === 100) return 'stroke-status-success';
-    if (percentage >= 75) return 'stroke-esg-environmental';
-    if (percentage >= 50) return 'stroke-status-warning';
-    return 'stroke-status-error';
+    if (percentage >= 75) return '#22c55e';
+    if (percentage >= 50) return '#f59e0b';
+    return '#ef4444';
   };
 
   return (
@@ -41,7 +40,7 @@ export const CompletionRing = ({
           r={radius}
           fill="none"
           strokeWidth={config.stroke}
-          className="stroke-muted"
+          stroke="#e5e7eb"
         />
         {/* Progress circle */}
         <circle
@@ -51,16 +50,19 @@ export const CompletionRing = ({
           fill="none"
           strokeWidth={config.stroke}
           strokeLinecap="round"
-          className={cn('transition-all duration-500 ease-out', getColor())}
           style={{
             strokeDasharray: circumference,
             strokeDashoffset: strokeDashoffset,
+            stroke: getColor(),
+            transition: 'stroke-dashoffset 0.5s ease-out',
           }}
         />
       </svg>
       {showLabel && (
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className={cn('font-bold', config.text)}>{percentage}%</span>
+          <span className={cn('font-bold', config.text)} style={{ color: getColor() }}>
+            {percentage}%
+          </span>
         </div>
       )}
     </div>

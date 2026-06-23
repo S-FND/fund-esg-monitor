@@ -6,7 +6,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { QCategory } from '@/types/esg';
 import { computeSummary } from '@/lib/analyticsCalc';
 import { exportCSV, exportPDF, exportDetailXLSX, buildFilterSummary, ExportColumn, PDFExportOptions } from '@/lib/exportUtils';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -16,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { ArrowLeft, Download, Users, Info, UserX, FileText, FileSpreadsheet } from 'lucide-react';
 import { RATIO_COMPONENT_COLUMNS, CIRCULAR_ECONOMY_FASHION_HEADERS } from '@/lib/ratioComponentColumns';
+import { http } from '@/utils/httpInterceptor';
 
 interface CompanyDataRow {
   brand: string;
@@ -407,13 +407,16 @@ const AnalyticsDetail = () => {
       const featureKeys = featureKey === 'primarySecondaryPackaging'
         ? ['primarySecondaryPackaging', 'fashionMaterials']
         : [featureKey];
-      const { data } = await supabase
-        .from('company_feature_settings')
-        .select('company_id')
-        .in('feature_key', featureKeys)
-        .eq('enabled', true);
-      if (data && data.length > 0) {
-        setFeatureEnabledCompanyIds(new Set(data.map(d => d.company_id)));
+      // const { data } = await supabase
+      //   .from('company_feature_settings')
+      //   .select('company_id')
+      //   .in('feature_key', featureKeys)
+      //   .eq('enabled', true);
+
+      const { data } = await http.get<{ data: {company_id: string,feature_key: string,feature_type: string,enabled: boolean }[] }>("/mis/company-feature-settings");
+
+      if (data && data.data && data.data.length > 0) {
+        setFeatureEnabledCompanyIds(new Set(data.data.map(d => d.company_id)));
       }
     };
     fetchIds();
@@ -1581,18 +1584,20 @@ const AnalyticsDetail = () => {
 
   if (!state) {
     return (
-      <DashboardLayout>
+      <div className="space-y-6">
+      <div className="space-y-6">
         <PageHeader title="Analytics Detail" subtitle="No data available" />
         <Card className="mt-4">
           <CardContent className="py-12 text-center">
             <p className="text-muted-foreground">No analytics data to display. Please navigate from the dashboard.</p>
-            <Button variant="outline" className="mt-4" onClick={() => navigate('/admin/dashboard')}>
+            <Button variant="outline" className="mt-4" onClick={() => navigate('/mis/dashboard')}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Dashboard
             </Button>
           </CardContent>
         </Card>
-      </DashboardLayout>
+      </div>
+      </div>
     );
   }
 
@@ -1756,7 +1761,8 @@ const AnalyticsDetail = () => {
   const isLoadingFresh = isRefetching;
 
   return (
-    <DashboardLayout>
+    <div className="space-y-6">
+      <div className="space-y-6">
       <div className="flex items-center gap-3 mb-4">
         <Button variant="ghost" size="sm" onClick={() => {
           const p = new URLSearchParams();
@@ -1770,7 +1776,7 @@ const AnalyticsDetail = () => {
           if (filters?.qCategory) p.set('qCategory', filters.qCategory);
           if (filters?.companyId) p.set('companyId', filters.companyId);
           if (state?.sourceInsightKey) p.set('tab', 'insight');
-          navigate(`/admin/dashboard?${p.toString()}`);
+          navigate(`/mis/dashboard?${p.toString()}`);
         }}>
           <ArrowLeft className="w-4 h-4 mr-1" />
           Back
@@ -2082,7 +2088,8 @@ const AnalyticsDetail = () => {
 
         return renderCompanyTable(displayData, showMissing ? 'Companies Not Considered (KPI Not Filled)' : 'Company-wise Data', ratioColumnHeaders, true);
       })()}
-    </DashboardLayout>
+    </div>
+    </div>
   );
 };
 

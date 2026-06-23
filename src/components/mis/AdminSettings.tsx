@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,15 +9,38 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { useAuth } from '@/contexts/AuthContext';
 import { useAdminSettings } from '@/hooks/useAdminSettings';
 import { supabase } from '@/integrations/supabase/client';
-import { User, Mail, Building2, Shield, Save, RotateCcw, CalendarIcon, Clock, BookOpen, Upload, FileText, Trash2 } from 'lucide-react';
+import { User, Mail, Building2, Shield, Save, RotateCcw, CalendarIcon, Clock, BookOpen, Upload, FileText, Trash2, Award, LockIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { EDIT_RIGHTS_PAUSED } from '@/lib/companyAccessControl';
 
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+
 const AdminSettings = () => {
   const { user } = useAuth();
-  const { getDataCollectionDueDate, setDataCollectionDueDate, loading: settingsLoading, saving: settingsSaving } = useAdminSettings();
+
+  const {
+    getDataCollectionDueDate,
+    setDataCollectionDueDate,
+    getPublishedPeriod,
+    getPublishedAt,
+    getPublishedBy,
+    publishPeriod,
+    loading: settingsLoading,
+    saving: settingsSaving,
+  } = useAdminSettings();
   
   const [name, setName] = useState(user?.name || 'Fireside Admin');
   const [email, setEmail] = useState(user?.email || 'admin@fireside.vc');
@@ -83,7 +105,8 @@ const AdminSettings = () => {
   };
 
   return (
-    <DashboardLayout>
+    <div className="space-y-6">
+      <div className="space-y-6">
       <PageHeader
         title="Settings"
         subtitle="Manage your account and preferences"
@@ -253,10 +276,133 @@ const AdminSettings = () => {
             </div>
           </CardContent>
         </Card>
+
+        <PublishScoresCard
+          currentPeriod={getPublishedPeriod()}
+          publishedAt={getPublishedAt()}
+          publishedBy={getPublishedBy()}
+          loading={settingsLoading}
+          saving={settingsSaving}
+          onPublish={(y, q) => publishPeriod(y, q, user?.name || 'Fireside Admin')}
+        />
         {/* Founder's Guide Management */}
         <FoundersGuideCard />
       </div>
-    </DashboardLayout>
+    </div>
+    </div>
+  );
+};
+
+interface PublishScoresCardProps {
+  currentPeriod: { year: number; quarter: string };
+  publishedAt: Date | null;
+  publishedBy: string | null;
+  loading: boolean;
+  saving: boolean;
+  onPublish: (year: number, quarter: string) => Promise<boolean>;
+}
+
+const PublishScoresCard = ({ currentPeriod, publishedAt, publishedBy, loading, saving, onPublish }: PublishScoresCardProps) => {
+  const [year, setYear] = useState<string>(String(currentPeriod.year));
+  const [quarter, setQuarter] = useState<string>(currentPeriod.quarter);
+
+  useEffect(() => {
+    setYear(String(currentPeriod.year));
+    setQuarter(currentPeriod.quarter);
+  }, [currentPeriod.year, currentPeriod.quarter]);
+
+  const handlePublish = async () => {
+    if (EDIT_RIGHTS_PAUSED) {
+      toast.error('Editing is paused for all users until further notice.');
+      return;
+    }
+    const ok = await onPublish(parseInt(year, 10), quarter);
+    if (ok) {
+      toast.success(`Published ${quarter} ${year} scores to all company dashboards`);
+    }
+  };
+
+  const isSame = parseInt(year, 10) === currentPeriod.year && quarter === currentPeriod.quarter;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Award className="w-5 h-5" />
+          Recalibrate & Publish ESG Scores
+        </CardTitle>
+        <CardDescription>
+          Sets the reporting period whose ESG grades, percentile cards, rankings and
+          recommendations are shown on every company dashboard. Use this after a
+          quarter's submission window closes and scores are recalibrated.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-center gap-3 p-3 rounded-md border bg-muted/30">
+          <LockIcon className="w-5 h-5 text-primary flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium">
+              Currently published: {currentPeriod.quarter} {currentPeriod.year}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {publishedAt ? `Published ${format(publishedAt, 'PPP p')}` : 'Default snapshot (never explicitly published)'}
+              {publishedBy ? ` by ${publishedBy}` : ''}
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 max-w-md">
+          <div className="space-y-1">
+            <Label className="text-xs">Year</Label>
+            <Select value={year} onValueChange={setYear}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="2024">2024</SelectItem>
+                <SelectItem value="2025">2025</SelectItem>
+                <SelectItem value="2026">2026</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Quarter</Label>
+            <Select value={quarter} onValueChange={setQuarter}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Q1">Q1 (JFM)</SelectItem>
+                <SelectItem value="Q2">Q2 (AMJ)</SelectItem>
+                <SelectItem value="Q3">Q3 (JAS)</SelectItem>
+                <SelectItem value="Q4">Q4 (OND)</SelectItem>
+                <SelectItem value="FY">FY (Annual)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button disabled={loading || saving || isSame}>
+              <Award className="w-4 h-4 mr-2" />
+              {isSame ? 'Already published' : `Publish ${quarter} ${year} scores`}
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Publish {quarter} {year} ESG scores?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Every company dashboard will immediately switch to showing scores,
+                grades, percentile cards, rankings and recommendations computed from{' '}
+                <strong>{quarter} {year}</strong> data. The locked-period banner on
+                company dashboards will update to reference this period.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handlePublish}>Publish</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </CardContent>
+    </Card>
   );
 };
 

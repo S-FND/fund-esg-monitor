@@ -47,6 +47,7 @@ import { FEATURE_FIELD_MAPPINGS } from '@/lib/featureFieldMapping';
 import { QUARTERLY_FEATURES, ANNUAL_FEATURES } from '@/hooks/useCompanyFeatures';
 import { isCompanyExcluded } from '@/lib/companyExclusions';
 import { http } from '@/utils/httpInterceptor';
+import { cn } from '@/lib/utils';
 
 // All possible feature keys categorized (same as useAllQuartersProgress)
 const ALL_QUARTERLY_FEATURES = [
@@ -201,18 +202,18 @@ const Portfolio = () => {
         // ✅ Group fetched data by company_id in JS instead of per-company queries
         const featuresByCompany = new Map<string, Set<string>>();
         for (const row of featureResult.data ?? []) {
-          if (!featuresByCompany.has(row.company_id)) {
-            featuresByCompany.set(row.company_id, new Set());
+          if (!featuresByCompany.has(row.companyId)) {
+            featuresByCompany.set(row.companyId, new Set());
           }
-          featuresByCompany.get(row.company_id)!.add(row.feature_key);
+          featuresByCompany.get(row.companyId)!.add(row.feature_key);
         }
 
         const entriesByCompany = new Map<string, typeof entriesResult.data>();
         for (const row of entriesResult.data ?? []) {
-          if (!entriesByCompany.has(row.company_id)) {
-            entriesByCompany.set(row.company_id, []);
+          if (!entriesByCompany.has(row.companyId)) {
+            entriesByCompany.set(row.companyId, []);
           }
-          entriesByCompany.get(row.company_id)!.push(row);
+          entriesByCompany.get(row.companyId)!.push(row);
         }
 
         const progressMap: Record<string, CompanyProgress> = {};
@@ -424,12 +425,12 @@ const Portfolio = () => {
     //   supabase.from('kpi_master').select('id, name, esg, category, sub_category, period, feature_module'),
     // ]);
     const [entriesRes, featuresRes, profilesRes, kpiRes] = await Promise.all([
-      http.get(`/mis/kpi-entries?companyIds=${ids.join(',')}`),
-      http.get(`/mis/company-feature-settings?companyIds=${ids.join(',')}`),
-      http.get(`/mis/company-profiles?companyIds=${ids.join(',')}`),
-      http.get('/mis/kpi-master'),
+      http.get(`mis/kpi-entries?companyIds=${ids.join(',')}`),
+      http.get(`mis/company-feature-settings?companyIds=${ids.join(',')}`),
+      http.get(`mis/company-profiles?companyIds=${ids.join(',')}`),
+      http.get('mis/kpi-masters'),
     ]);
-    
+
     const entries = entriesRes.data ?? [];
     const features = featuresRes.data ?? [];
     const profiles = profilesRes.data ?? [];
@@ -807,7 +808,7 @@ const Portfolio = () => {
                   <TableCell className="text-right font-medium">
                     {formatRevenue(company.revenueFY2425)}
                   </TableCell>
-                  <TableCell className="text-center">
+                  {/* <TableCell className="text-center">
                     <div className="flex justify-center">
                       {isLoadingProgress ? (
                         <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
@@ -823,6 +824,30 @@ const Portfolio = () => {
                     >
                       {completion.periodsSubmitted}/{completion.consideredPeriods}
                     </Badge>
+                  </TableCell> */}
+                  <TableCell className="text-center">
+                    <div className="flex justify-center">
+                      {isLoadingProgress ? (
+                        <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                      ) : (
+                        <CompletionRing percentage={completion.percentage} size="sm" />
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        "text-xs font-medium",
+                        completion.periodsSubmitted === completion.consideredPeriods
+                          ? "border-green-400 text-green-600 bg-green-50"
+                          : completion.periodsSubmitted > 0
+                            ? "border-orange-400 text-orange-500 bg-orange-50"
+                            : "border-gray-300 text-gray-500 bg-gray-50"
+                      )}
+                    >
+                      {completion.periodsSubmitted}/{completion.consideredPeriods}
+                    </Badge>
                   </TableCell>
                   <TableCell className="text-center">
                     <span className="font-medium">{completion.filled}/{completion.total}</span>
@@ -832,7 +857,7 @@ const Portfolio = () => {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => navigate(`/admin/portfolio/${company.id}`)}
+                        onClick={() => navigate(`/mis/portfolio/${company.id}`)}
                       >
                         <Eye className="w-4 h-4" />
                       </Button>

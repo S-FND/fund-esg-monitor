@@ -19,6 +19,7 @@ import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 import { useQuery } from '@tanstack/react-query';
 import { FEATURE_FIELD_MAPPINGS, KPIDefinition, FeatureFieldMapping } from '@/lib/featureFieldMapping';
+import { http } from '@/utils/httpInterceptor';
 
 const FEATURE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   businessInformation: Briefcase,
@@ -63,6 +64,7 @@ const FeatureManagement = () => {
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
   const [isExporting, setIsExporting] = useState(false);
   const [expandedFeatures, setExpandedFeatures] = useState<Set<string>>(new Set());
+
   const { 
     features, 
     loading, 
@@ -77,7 +79,6 @@ const FeatureManagement = () => {
   } = useCompanyFeatures(selectedCompanyId);
 
   const investedCompanies = mockCompanies.filter(c => c.investmentStatus === 'Invested');
-
   // Select first company by default
   useEffect(() => {
     if (investedCompanies.length > 0 && !selectedCompanyId) {
@@ -123,20 +124,32 @@ const FeatureManagement = () => {
       if (!selectedCompanyId) return {} as FeatureKPIData;
 
       // Fetch all KPIs
-      const { data: kpis, error: kpisError } = await supabase
-        .from('kpi_master')
-        .select('id, name, category, sub_category, feature_module, period')
-        .not('feature_module', 'is', null);
+      // const { data: kpis, error: kpisError } = await supabase
+      //   .from('kpi_master')
+      //   .select('id, name, category, sub_category, feature_module, period')
+      //   .not('feature_module', 'is', null);
 
-      if (kpisError) throw kpisError;
+        const kpisData=await http.get<{ id: string; name: string; category: string; sub_category: string; feature_module: string; period: string }[]>(
+          'mis/kpi-masters'
+        );
+        console.log('kpisData',kpisData);
+        const kpis=kpisData.data; 
+      // if (kpisError) throw kpisError;
 
       // Fetch KPI entries for this company
-      const { data: entries, error: entriesError } = await supabase
-        .from('kpi_entries')
-        .select('kpi_id, value, quarter, year')
-        .eq('company_id', selectedCompanyId);
+      // const { data: entries, error: entriesError } = await supabase
+      //   .from('kpi_entries')
+      //   .select('kpi_id, value, quarter, year')
+      //   .eq('company_id', selectedCompanyId);
 
-      if (entriesError) throw entriesError;
+        const entriesData=await http.get<{ kpi_id: string; value: string; quarter: string; year: number }[]>(
+          `mis/kpi-entries?companyId=${selectedCompanyId}`
+        );
+        console.log('entriesData',entriesData);
+
+        let entries=entriesData.data;
+
+      // if (entriesError) throw entriesError;
 
       // Create entries map
       const entriesMap = new Map<string, { quarter: string; year: number; value: string }[]>();
@@ -317,23 +330,39 @@ const FeatureManagement = () => {
         .map(f => f.key);
 
       // Fetch KPIs grouped by feature module
-      const { data: kpis, error } = await supabase
-        .from('kpi_master')
-        .select('id, name, category, sub_category, feature_module, esg, core_level, period')
-        .in('feature_module', enabledFeatureKeys)
-        .order('feature_module')
-        .order('category')
-        .order('sub_category');
+      // const { data: kpis, error } = await supabase
+      //   .from('kpi_master')
+      //   .select('id, name, category, sub_category, feature_module, esg, core_level, period')
+      //   .in('feature_module', enabledFeatureKeys)
+      //   .order('feature_module')
+      //   .order('category')
+      //   .order('sub_category');
 
-      if (error) throw error;
+      const kpisData=await http.get<{ id: string; name: string; category: string; sub_category: string; feature_module: string; esg: string; core_level: string; period: string }[]>(
+        'mis/kpi-masters',
+        {
+          params: {
+            featureModules: enabledFeatureKeys.join(',')
+          }
+        }
+      );
+
+      const kpis=kpisData.data;
+
+      // if (error) throw error;
 
       // Fetch KPI entries for this company
-      const { data: entries, error: entriesError } = await supabase
-        .from('kpi_entries')
-        .select('kpi_id, value, quarter, year')
-        .eq('company_id', selectedCompanyId);
+      // const { data: entries, error: entriesError } = await supabase
+      //   .from('kpi_entries')
+      //   .select('kpi_id, value, quarter, year')
+      //   .eq('company_id', selectedCompanyId);
+      const entriesData=await http.get<{ kpi_id: string; value: string; quarter: string; year: number }[]>(
+        `mis/kpi-entries?companyId=${selectedCompanyId}`
+      );
+        console.log('entriesData',entriesData);
+        let entries=entriesData.data;
 
-      if (entriesError) throw entriesError;
+      // if (entriesError) throw entriesError;
 
       // Create a map of KPI entries by kpi_id
       const entriesMap = new Map<string, { quarter: string; year: number; value: string }[]>();

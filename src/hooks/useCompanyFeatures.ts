@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { EDIT_RIGHTS_PAUSED } from '@/lib/companyAccessControl';
+import { http } from '@/utils/httpInterceptor';
 
 // Feature modules configuration
 export const QUARTERLY_FEATURES = [
@@ -56,26 +57,28 @@ export const useCompanyFeatures = (companyId?: string) => {
 
     try {
       setLoading(true);
-      const { data, error: fetchError } = await supabase
-        .from('company_feature_settings')
-        .select('*')
-        .eq('company_id', companyId);
+      // const { data, error: fetchError } = await supabase
+      //   .from('company_feature_settings')
+      //   .select('*')
+      //   .eq('company_id', companyId);
 
-      if (fetchError) throw fetchError;
+      const data=await http.get(`mis/company-feature-settings?companyId=${companyId}`) as { data: CompanyFeatureSetting[]; error?: any };
 
+      if (data.error) throw data.error;
+      console.log('Fetched company features:', data.data);
       // Get the set of current feature keys
       const currentFeatureKeys = new Set(ALL_FEATURES.map(f => f.key));
       
       // Check if we have all the current feature keys in the database
-      const existingKeys = new Set((data || []).map(d => d.feature_key));
+      const existingKeys = new Set((data.data || []).map(d => d.feature_key));
       const missingKeys = ALL_FEATURES.filter(f => !existingKeys.has(f.key));
 
       // If no features exist or there are missing keys, upsert the features
-      if (!data || data.length === 0 || missingKeys.length > 0) {
+      if (!data.data || data.data.length === 0 || missingKeys.length > 0) {
         // Create default features for all keys (will upsert)
         const defaultFeatures = ALL_FEATURES.map((f) => {
           // Check if this feature already exists (for existing keys, preserve their settings)
-          const existing = (data || []).find(d => d.feature_key === f.key);
+          const existing = (data.data || []).find(d => d.feature_key === f.key);
           return {
             company_id: companyId,
             feature_key: f.key,
@@ -86,17 +89,19 @@ export const useCompanyFeatures = (companyId?: string) => {
         });
 
         // Use upsert to handle both insert and update
-        const { data: upsertedData, error: upsertError } = await supabase
-          .from('company_feature_settings')
-          .upsert(defaultFeatures, { 
-            onConflict: 'company_id,feature_key',
-            ignoreDuplicates: false 
-          })
-          .select();
+        // const { data: upsertedData, error: upsertError } = await supabase
+        //   .from('company_feature_settings')
+        //   .upsert(defaultFeatures, { 
+        //     onConflict: 'company_id,feature_key',
+        //     ignoreDuplicates: false 
+        //   })
+        //   .select();
 
-        if (upsertError) throw upsertError;
+        const upsertedData=await http.post(`mis/company-feature-settings`,defaultFeatures) as { data: CompanyFeatureSetting[]; error?: any };
+
+        if (upsertedData.error) throw upsertedData.error;
         
-        const typedData = (upsertedData || []).map((item) => ({
+        const typedData = (upsertedData.data || []).map((item) => ({
           ...item,
           feature_type: item.feature_type as FeatureType,
           is_optional: item.is_optional ?? false,
@@ -104,7 +109,7 @@ export const useCompanyFeatures = (companyId?: string) => {
         setFeatures(typedData);
       } else {
         // Filter to only include features that are in our current feature list
-        const validData = data.filter(d => currentFeatureKeys.has(d.feature_key as FeatureKey));
+        const validData = data.data.filter(d => currentFeatureKeys.has(d.feature_key as FeatureKey));
         const typedData = validData.map((item) => ({
           ...item,
           feature_type: item.feature_type as FeatureType,
@@ -121,6 +126,7 @@ export const useCompanyFeatures = (companyId?: string) => {
       setLoading(false);
     }
   }, [companyId]);
+
 
   useEffect(() => {
     fetchFeatures();
@@ -171,13 +177,14 @@ export const useCompanyFeatures = (companyId?: string) => {
       
       // Process each pending change
       for (const [featureKey, changes] of pendingChanges.entries()) {
-        const { error: updateError } = await supabase
-          .from('company_feature_settings')
-          .update(changes)
-          .eq('company_id', companyId)
-          .eq('feature_key', featureKey);
+        console.log(`Saving changes for feature ${featureKey}:`, changes);
+        // const { error: updateError } = await supabase
+        //   .from('company_feature_settings')
+        //   .update(changes)
+        //   .eq('company_id', companyId)
+        //   .eq('feature_key', featureKey);
 
-        if (updateError) throw updateError;
+        // if (updateError) throw updateError;
       }
 
       // Update local state with all changes

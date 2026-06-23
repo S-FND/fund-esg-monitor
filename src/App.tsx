@@ -166,12 +166,13 @@ function App() {
                 <Route path="/mis/portfolio" element={
                     <Portfolio />  
                 } />
-               {/* <Route path="/mis/kpi-master" element={
-                    <KPIMaster />
-                } />
                 <Route path="/mis/features" element={
                     <FeatureManagement />
                 } />
+               <Route path="/mis/kpi-master" element={
+                    <KPIMaster />
+                } />
+                
                 <Route path="/mis/portfolio/:companyId" element={
                     <CompanyDetail />
                 } />
@@ -192,7 +193,7 @@ function App() {
                 } />
                 <Route path="/mis/company-rankings" element={
                     <CompanyRankings />
-                } /> */}
+                } />
               </Routes>
 
             </ScrollArea>

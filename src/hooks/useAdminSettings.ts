@@ -41,7 +41,7 @@ export const useAdminSettings = () => {
   const updateSetting = async (key: string, value: string | null): Promise<boolean> => {
     try {
       setSaving(true);
-      
+
       const { error } = await supabase
         .from('admin_settings')
         .update({ setting_value: value })
@@ -49,10 +49,10 @@ export const useAdminSettings = () => {
 
       if (error) throw error;
 
-      setSettings(prev => 
+      setSettings(prev =>
         prev.map(s => s.setting_key === key ? { ...s, setting_value: value } : s)
       );
-      
+
       toast.success('Setting updated successfully');
       return true;
     } catch (err: any) {
@@ -76,6 +76,45 @@ export const useAdminSettings = () => {
     return updateSetting('data_collection_due_date', value);
   };
 
+  // ─── Published Score Period ───
+  // The reporting period whose scores/grades/percentiles/rankings/recommendations
+  // are currently shown on company dashboards. Defaults to Q4 2025 until an admin
+  // explicitly publishes a new period (typically after JFM 2026 submissions close).
+  const getPublishedPeriod = (): { year: number; quarter: string } => {
+    const raw = getSetting('published_score_period');
+    if (!raw) return { year: 2025, quarter: 'FY' };
+    try {
+      const parsed = JSON.parse(raw);
+      const y = Number(parsed?.year);
+      const q = String(parsed?.quarter || 'FY');
+      if (!Number.isFinite(y)) return { year: 2025, quarter: 'FY' };
+      return { year: y, quarter: q };
+    } catch {
+      return { year: 2025, quarter: 'FY' };
+    }
+  };
+
+  const getPublishedAt = (): Date | null => {
+    const s = getSetting('published_score_at');
+    if (!s) return null;
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+  };
+
+  const getPublishedBy = (): string | null => getSetting('published_score_by');
+
+  const publishPeriod = async (
+    year: number,
+    quarter: string,
+    publishedBy?: string,
+  ): Promise<boolean> => {
+    const ok1 = await updateSetting('published_score_period', JSON.stringify({ year, quarter }));
+    const ok2 = await updateSetting('published_score_at', new Date().toISOString());
+    const ok3 = await updateSetting('published_score_by', publishedBy || 'Fireside Admin');
+    return ok1 && ok2 && ok3;
+  }
+
+
   return {
     settings,
     loading,
@@ -84,6 +123,10 @@ export const useAdminSettings = () => {
     updateSetting,
     getDataCollectionDueDate,
     setDataCollectionDueDate,
-    refetch: fetchSettings,
+    getPublishedPeriod,
+    getPublishedAt,
+    getPublishedBy,
+    publishPeriod,
+    refetch: fetchSettings
   };
 };
