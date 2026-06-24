@@ -830,9 +830,9 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                                                                     )}
                                                                 </div>
                                                                 {/* Note */}
-                                                                {!hasFiles && noResponseEntry?.indicatorNote && (
+                                                                {!hasFiles && indicator?.indicatorNote && (
                                                                     <div className="mt-1 text-xs text-muted-foreground italic break-words">
-                                                                        Note: {noResponseEntry.indicatorNote}
+                                                                        Note: {indicator.indicatorNote}
                                                                     </div>
                                                                 )}
                                                             </>
