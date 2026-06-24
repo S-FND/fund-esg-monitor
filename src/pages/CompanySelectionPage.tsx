@@ -134,42 +134,59 @@ export default function CompanySelectionPage() {
                 const apiCompanies = json.data || [];
 
                 const mappedCompanies: Company[] = apiCompanies.map((apiCompany: any) => {
-                    const mockMatch = mockCompanies.find(
-                        (m) => m.contactEmail === apiCompany.email
-                    );
-
-                    const fundNames = apiCompany.fundCompany?.map((f: any) => f.fundName) || [];
-                    const teamMembers = apiCompany.assignedTeamMembers?.map((tm: any) => tm.teamMemberName) || [];
-
-                    const esgEntityId = apiCompany.user?.entityId || apiCompany.companyId || apiCompany._id;
-
-                    return {
-                        _id: apiCompany._id,
-                        email: apiCompany.email || "",
-                        companyName: apiCompany.companyName || "",
-                        companyId: apiCompany.companyId,
-                        entityId: apiCompany.user?.entityId,
-                        esgEntityId: esgEntityId,
-                        firesidePoc: mockMatch?.fl || teamMembers[0] || "",
-                        sector: apiCompany.sector || "",
-                        opportunityStatus: apiCompany.opportunityStatus || "",
-                        fundCompany: apiCompany.fundCompany || [],
-                        assignedTeamMembers: apiCompany.assignedTeamMembers || [],
-                        companyDetails: {
-                            industry: apiCompany.sector || mockMatch?.industry || "",
-                            fund: fundNames[0] || mockMatch?.fund || "",
-                            revenue_stage: mockMatch?.revenueStage || "",
-                            q_category: mockMatch?.qCategory || "",
-                            fireside_category: mockMatch?.firesideCategory || "",
-                        },
-                        hasESGData: false,
-                        esgStatus: 'not_started' as ESGStatus,
-                        esgPlanCount: 0,
-                        esgCompletedCount: 0,
-                        esgOverdueCount: 0,
-                        isLoadingESG: false,
-                    };
-                });
+                  const mockMatch = mockCompanies.find(
+                      (m) => m.contactEmail === apiCompany.email
+                  );
+              
+                  const fundNames = apiCompany.fundCompany?.map((f: any) => f.fundName) || [];
+                  const teamMembers = apiCompany.assignedTeamMembers?.map((tm: any) => tm.teamMemberName) || [];
+              
+                  const esgEntityId = apiCompany.user?.entityId || apiCompany.companyId || apiCompany._id;
+                  const details = apiCompany.companyDetails || {};
+              
+                  // DEBUG: Log what we're getting
+                  console.log(`Company: ${apiCompany.companyName}`, {
+                      fundFromFundCompany: fundNames,
+                      fundFromDetails: details.fund,
+                      sector: apiCompany.sector,
+                      detailsSector: details.fireside_category,
+                      revenue: details.revenue_stage,
+                      qCat: details.q_category
+                  });
+              
+                  // Get fund - prioritize details.fund since fundCompany is empty
+                  let fundValue = details.fund || "";
+                  if (!fundValue && fundNames.length > 0) {
+                      fundValue = fundNames[0];
+                  }
+              
+                  return {
+                      _id: apiCompany._id,
+                      email: apiCompany.email || "",
+                      companyName: apiCompany.companyName || "",
+                      companyId: apiCompany.companyId,
+                      entityId: apiCompany.user?.entityId,
+                      esgEntityId: esgEntityId,
+                      firesidePoc: mockMatch?.fl || teamMembers[0] || "",
+                      sector: apiCompany.sector || "",
+                      opportunityStatus: apiCompany.opportunityStatus || "",
+                      fundCompany: apiCompany.fundCompany || [],
+                      assignedTeamMembers: apiCompany.assignedTeamMembers || [],
+                      companyDetails: {
+                          industry: apiCompany.sector || details.fireside_category || "",  // Use both
+                          fund: fundValue,  // ← Use the resolved fund
+                          revenue_stage: details.revenue_stage || "",
+                          q_category: details.q_category || "",
+                          fireside_category: details.fireside_category || apiCompany.sector || "",
+                      },
+                      hasESGData: false,
+                      esgStatus: 'not_started' as ESGStatus,
+                      esgPlanCount: 0,
+                      esgCompletedCount: 0,
+                      esgOverdueCount: 0,
+                      isLoadingESG: false,
+                  };
+              });
 
                 setCompanies(mappedCompanies);
                 setIsInitialLoad(false);
@@ -226,9 +243,13 @@ export default function CompanySelectionPage() {
             const matchesQCat = filters.qCat === "All Q Cat" || 
                 company.companyDetails?.q_category === filters.qCat;
 
-            const matchesFireside = filters.firesidePoc === "All POCs" || 
-                company.firesidePoc === filters.firesidePoc ||
-                company.assignedTeamMembers?.some((tm: any) => tm.teamMemberName === filters.firesidePoc);
+            const matchesFireside =
+                filters.firesidePoc === "All POCs" ||
+                company.firesidePoc?.toLowerCase().trim() === filters.firesidePoc.toLowerCase().trim() ||
+                company.companyDetails?.fireside_category?.toLowerCase().trim() === filters.firesidePoc.toLowerCase().trim() ||
+                company.assignedTeamMembers?.some((tm: any) =>
+                  tm.teamMemberName?.toLowerCase().trim() === filters.firesidePoc.toLowerCase().trim()
+                );
 
             return (
                 matchesSearch &&

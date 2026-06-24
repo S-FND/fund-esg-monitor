@@ -189,7 +189,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
 
     const buildNewItems = (): ESGCapItem[] => {
         return formRows.map((row, i) => ({
-            reportId: selectedCompany,
+            reportId: propEntityId || '',
             item: row.item,
             category: row.category,
             priority: row.priority,
@@ -523,7 +523,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                             const timelineMonth = timelineRaw ? Math.max(0, Number(timelineRaw)) : undefined;
     
                             newItems.push({
-                                reportId: selectedCompany,
+                                reportId: propEntityId || '',
                                 id: `${Date.now()}-${Math.random()}`,
                                 item,
                                 measures,

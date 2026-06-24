@@ -584,7 +584,7 @@ export function CAPTable({
 
     // Map for other statuses - EXACTLY matching the Select options
     const map: Record<string, { label: string; className: string; icon: React.ReactNode }> = {
-      "re-submit-requested": {
+      "re-submit requested": {
         label: "Re-submit Requested",
         className: "bg-amber-100 text-amber-800 border-amber-300 px-2.5 py-1 whitespace-nowrap",
         icon: <RotateCcw className="h-3 w-3 mr-1" />
@@ -728,8 +728,10 @@ export function CAPTable({
           <tbody>
             {sortedItems.map((item, index) => {
               const originalItem = getOriginalItem(item.id);
+              const isInvestorHighlighted = item.highlights?.investor === true;
               return (
-                <tr key={item.id} className={`${getRowClassName(item)} ${isComparisonView ? "bg-muted/30 hover:bg-muted/50" : "hover:bg-gray-50"}`}>
+                <tr key={item.id} className={`${getRowClassName(item)} ${isComparisonView ? "bg-muted/30 hover:bg-muted/50" : "hover:bg-gray-50"} ${isInvestorHighlighted ? "border-l-4 border-green-500" : ""
+                  }`}>
                   {!showFullColumns ? (
                     // COMPACT VIEW ROWS
                     <>

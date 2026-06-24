@@ -8,10 +8,7 @@ export const getEffectiveStatus = (item: ESGCapItem): CAPStatus => {
   const companyStatus = normalize(item.companyStatus);
   const investorStatus = normalize(item.investorStatus);
 
-  // 1. If investor status is 'closed', return 'closed'
-  if (investorStatus === 'closed') {
-    return 'closed' as CAPStatus;
-  }
+  
 
   // 2. If company status is 'closed', return 'closed'
   if (companyStatus === 'closed') {
@@ -23,13 +20,18 @@ export const getEffectiveStatus = (item: ESGCapItem): CAPStatus => {
     return 'partly-submitted' as CAPStatus;
   }
 
-  // ✅ CHANGED: 'submitted-pending-review' now returns as 'submitted'
-  if (companyStatus === 'submitted-pending-review' || companyStatus === 'submitted') {
+  // ✅ CHANGED: 'submitted'
+  if (companyStatus === 'submitted') {
     return 'submitted' as CAPStatus;
   }
 
-  if (companyStatus === 're-submit-required' || companyStatus === 're-submit-requested') {
-    return 're-submit-required' as CAPStatus;
+  // 1. If investor status is 'closed', return 'closed'
+  if (investorStatus === 'closed') {
+    return 'closed' as CAPStatus;
+  }
+
+  if (investorStatus === 're-submit requested') {
+    return 're-submit-requested' as CAPStatus;
   }
 
   // 4. All other cases → derive from targetDate

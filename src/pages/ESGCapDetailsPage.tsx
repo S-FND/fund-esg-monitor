@@ -241,6 +241,7 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                     ? {
                         ...item,
                         ...editedItem,
+                        highlights: { investor: false, company: true },
                     }
                     : item
             );
