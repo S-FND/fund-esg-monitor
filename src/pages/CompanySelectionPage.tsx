@@ -144,16 +144,6 @@ export default function CompanySelectionPage() {
                   const esgEntityId = apiCompany.user?.entityId || apiCompany.companyId || apiCompany._id;
                   const details = apiCompany.companyDetails || {};
               
-                  // DEBUG: Log what we're getting
-                  console.log(`Company: ${apiCompany.companyName}`, {
-                      fundFromFundCompany: fundNames,
-                      fundFromDetails: details.fund,
-                      sector: apiCompany.sector,
-                      detailsSector: details.fireside_category,
-                      revenue: details.revenue_stage,
-                      qCat: details.q_category
-                  });
-              
                   // Get fund - prioritize details.fund since fundCompany is empty
                   let fundValue = details.fund || "";
                   if (!fundValue && fundNames.length > 0) {
