@@ -49,6 +49,7 @@ import { http } from "@/utils/httpInterceptor";
 import Login from "./pages/Login";
 import Auth from "./pages/Auth";
 import CompanySelectionPage from "./pages/CompanySelectionPage";
+import ProtectedRoute from "./contexts/ProtectedRoute";
 
 function App() {
   const { toast } = useToast();
@@ -98,6 +99,7 @@ function App() {
       <Route
         path="/*"
         element={
+          <ProtectedRoute>
           <Shell>
             <Sidebar />
             <ScrollArea className="flex-1 w-full md:p-8">
@@ -149,6 +151,7 @@ function App() {
 
             </ScrollArea>
           </Shell>
+          </ProtectedRoute>
         }
       />
 

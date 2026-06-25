@@ -64,7 +64,7 @@ export default function CompanySelectionPage() {
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(8);
-    
+    const [esgFilter, setEsgFilter] = useState<"all" | "closed" | "pending" | "open" | "not_started">("all");
     // Use ref to track if ESG data has been fetched for each company
     const esgFetchedRef = useRef<Set<string>>(new Set());
     const isFetchingRef = useRef(false);
@@ -241,16 +241,22 @@ export default function CompanySelectionPage() {
                   tm.teamMemberName?.toLowerCase().trim() === filters.firesidePoc.toLowerCase().trim()
                 );
 
+            const matchesESG =
+                esgFilter === "all"
+                  ? true
+                  : company.esgStatus === esgFilter;    
+
             return (
                 matchesSearch &&
                 matchesIndustry &&
                 matchesFund &&
                 matchesRevenue &&
                 matchesQCat &&
-                matchesFireside
+                matchesFireside &&
+                matchesESG
             );
         });
-    }, [companies, searchTerm, filters]);
+    }, [companies, searchTerm, filters, esgFilter]);
 
     // Get current page companies
     const getCurrentPageCompanies = () => {
