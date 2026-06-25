@@ -1,9 +1,11 @@
-import { useEffect, useState, useMemo, useRef } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { CompanyCardFilter } from "@/components/esg-cap/CompanyCardFilter";
-import { Leaf, ChevronLeft, ChevronRight } from "lucide-react";
+import { 
+    Leaf, ChevronLeft, ChevronRight, AlertTriangle, CheckCircle, 
+    Clock, FileText, RefreshCw, Building2 
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { mockCompanies } from "@/data/mockData";
 import {
     Select,
     SelectContent,
@@ -12,16 +14,12 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-
-type ESGStatus = 'open' | 'closed' | 'pending' | 'not_started' | 'submitted' | 'overdue' | 'upcoming' | 'under_review';
+import { Card, CardContent } from "@/components/ui/card";
 
 interface Company {
-    _id?: string;
+    _id: string;
     email: string;
     companyName: string;
-    entityId?: string;
-    companyId?: string;
-    firesidePoc?: string;
     sector?: string;
     opportunityStatus?: string;
     fundCompany?: Array<{ fundName: string; stageOfInvestment?: string }>;
@@ -33,50 +31,79 @@ interface Company {
         q_category?: string;
         fireside_category?: string;
     };
-    esgStatus?: ESGStatus;
-    esgData?: any;
-    esgPlanCount?: number;
-    esgCompletedCount?: number;
-    esgOverdueCount?: number;
-    esgEntityId?: string;
-    hasESGData?: boolean;
-    isLoadingESG?: boolean;
+    esgStatus: 'open' | 'closed' | 'pending' | 'not_started';
+    user?: {
+        entityId: string;
+        name: string;
+    };
+    // These will come from backend once added
+    esgSummary?: {
+        totalItems: number;
+        completedItems: number;
+        overdueItems: number;
+        pendingItems: number;
+        hasPlan: boolean;
+        status: string;
+    };
+    statusBreakdown?: {
+        highPriorityOverdue: number;
+        partlySubmitted: number;
+        submittedPendingReview: number;
+        resubmitRequested: number;
+        closedThisMonth: number;
+    };
 }
 
-interface ESGPlanResponse {
+interface DashboardResponse {
     status: boolean;
-    plan: Array<{
-        status: string;
-        investorStatus?: string;
-        category?: string;
-        [key: string]: any;
-    }>;
-    entityId: string;
+    summary: {
+        total: number;
+        closed: number;
+        pending: number;
+        open: number;
+        notStarted: number;
+        statusBreakdown?: {
+            highPriorityOverdue: number;
+            partlySubmitted: number;
+            submittedPendingReview: number;
+            resubmitRequested: number;
+            closedThisMonth: number;
+        };
+        totalPlans?: number;
+        totalCompleted?: number;
+        totalOverdue?: number;
+        totalPending?: number;
+        completionRate?: number;
+    };
+    data: Company[];
 }
+
+type FilterType = 'all' | 'closed' | 'pending' | 'open' | 'not_started' | 
+                  'highPriorityOverdue' | 'partlySubmitted' | 'submittedPendingReview' | 
+                  'resubmitRequested' | 'closedThisMonth';
 
 export default function CompanySelectionPage() {
     const [companies, setCompanies] = useState<Company[]>([]);
     const [loading, setLoading] = useState(true);
-    const [loadingESG, setLoadingESG] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
-    const [isInitialLoad, setIsInitialLoad] = useState(true);
+    const [summary, setSummary] = useState<DashboardResponse['summary'] | null>(null);
+    const [activeFilter, setActiveFilter] = useState<FilterType>('all');
     
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(8);
-    const [esgFilter, setEsgFilter] = useState<"all" | "closed" | "pending" | "open" | "not_started">("all");
-    // Use ref to track if ESG data has been fetched for each company
-    const esgFetchedRef = useRef<Set<string>>(new Set());
-    const isFetchingRef = useRef(false);
     
     const industryOptions = [
-      "All Industries",
-      "Beauty & Personal Care",
-      "Fashion & Lifestyle",
-      "Health & Wellness",
-      "Food & Beverage",
-      "Home & Décor",
-      "Platform Enablers",
+        "All Industries",
+        "ClimateTech",
+        "FinTech",
+        "Quick Commerce",
+        "Ecomm",
+        "Technology / Software Development",
+        "Financial Services / Digital Payments",
+        "Logistics / Supply Chain Management",
+        "Environmental Technology / Waste Management",
+        "Others",
     ];
     
     const fundOptions = ["All Funds", "Fund I", "Fund II", "Fund III", "Fund IV"];
@@ -122,93 +149,38 @@ export default function CompanySelectionPage() {
         "₹500+ Cr": "500+",
     };
 
-    // Fetch companies
+    // Fetch dashboard data
     useEffect(() => {
-        const fetchCompanies = async () => {
+        const fetchDashboard = async () => {
             setLoading(true);
             try {
-                const res = await fetch(`${import.meta.env.VITE_API_URL}/investor/companyInfo`, {
-                    headers: { Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
-                });
-                const json = await res.json();
-                const apiCompanies = json.data || [];
-
-                const mappedCompanies: Company[] = apiCompanies.map((apiCompany: any) => {
-                  const mockMatch = mockCompanies.find(
-                      (m) => m.contactEmail === apiCompany.email
-                  );
-              
-                  const fundNames = apiCompany.fundCompany?.map((f: any) => f.fundName) || [];
-                  const teamMembers = apiCompany.assignedTeamMembers?.map((tm: any) => tm.teamMemberName) || [];
-              
-                  const esgEntityId = apiCompany.user?.entityId || apiCompany.companyId || apiCompany._id;
-                  const details = apiCompany.companyDetails || {};
-              
-                  // Get fund - prioritize details.fund since fundCompany is empty
-                  let fundValue = details.fund || "";
-                  if (!fundValue && fundNames.length > 0) {
-                      fundValue = fundNames[0];
-                  }
-              
-                  return {
-                      _id: apiCompany._id,
-                      email: apiCompany.email || "",
-                      companyName: apiCompany.companyName || "",
-                      companyId: apiCompany.companyId,
-                      entityId: apiCompany.user?.entityId,
-                      esgEntityId: esgEntityId,
-                      firesidePoc: mockMatch?.fl || teamMembers[0] || "",
-                      sector: apiCompany.sector || "",
-                      opportunityStatus: apiCompany.opportunityStatus || "",
-                      fundCompany: apiCompany.fundCompany || [],
-                      assignedTeamMembers: apiCompany.assignedTeamMembers || [],
-                      companyDetails: {
-                          industry: apiCompany.sector || details.fireside_category || "",  // Use both
-                          fund: fundValue,  // ← Use the resolved fund
-                          revenue_stage: details.revenue_stage || "",
-                          q_category: details.q_category || "",
-                          fireside_category: details.fireside_category || apiCompany.sector || "",
-                      },
-                      hasESGData: false,
-                      esgStatus: 'not_started' as ESGStatus,
-                      esgPlanCount: 0,
-                      esgCompletedCount: 0,
-                      esgOverdueCount: 0,
-                      isLoadingESG: false,
-                  };
-              });
-
-                setCompanies(mappedCompanies);
-                setIsInitialLoad(false);
-            } catch (error) {
-                console.error("Failed to load API, using mock data", error);
-                const fallback: Company[] = mockCompanies.map((mock) => ({
-                    email: mock.contactEmail || "",
-                    companyName: mock.name || "",
-                    entityId: mock.id || "",
-                    esgEntityId: mock.id || "",
-                    firesidePoc: mock.fl || "",
-                    companyDetails: {
-                        industry: mock.industry || "",
-                        fund: mock.fund || "",
-                        revenue_stage: mock.revenueStage || "",
-                        q_category: mock.qCategory || "",
-                        fireside_category: mock.firesideCategory || "",
+                const res = await fetch(`${import.meta.env.VITE_API_URL}/investor/companyInfo/dashboard/esgcap`, {
+                    headers: { 
+                        Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+                        'Content-Type': 'application/json',
                     },
-                    hasESGData: false,
-                    esgStatus: 'not_started' as ESGStatus,
-                    esgPlanCount: 0,
-                    esgCompletedCount: 0,
-                    esgOverdueCount: 0,
-                    isLoadingESG: false,
-                }));
-                setCompanies(fallback);
-                setIsInitialLoad(false);
+                });
+                
+                if (!res.ok) {
+                    throw new Error(`HTTP error! status: ${res.status}`);
+                }
+                
+                const json: DashboardResponse = await res.json();
+                console.log('Dashboard response:', json);
+                
+                if (json.status) {
+                    setCompanies(json.data || []);
+                    setSummary(json.summary);
+                }
+            } catch (error) {
+                console.error("Failed to fetch dashboard:", error);
+                setCompanies([]);
+                setSummary(null);
             } finally {
                 setLoading(false);
             }
         };
-        fetchCompanies();
+        fetchDashboard();
     }, []);
 
     // Apply all filters
@@ -238,13 +210,44 @@ export default function CompanySelectionPage() {
                 company.firesidePoc?.toLowerCase().trim() === filters.firesidePoc.toLowerCase().trim() ||
                 company.companyDetails?.fireside_category?.toLowerCase().trim() === filters.firesidePoc.toLowerCase().trim() ||
                 company.assignedTeamMembers?.some((tm: any) =>
-                  tm.teamMemberName?.toLowerCase().trim() === filters.firesidePoc.toLowerCase().trim()
+                    tm.teamMemberName?.toLowerCase().trim() === filters.firesidePoc.toLowerCase().trim()
                 );
 
-            const matchesESG =
-                esgFilter === "all"
-                  ? true
-                  : company.esgStatus === esgFilter;    
+            // Apply ESG filter
+            let matchesESG = true;
+            if (activeFilter !== 'all') {
+                switch (activeFilter) {
+                    case 'closed':
+                        matchesESG = company.esgStatus === 'closed';
+                        break;
+                    case 'pending':
+                        matchesESG = company.esgStatus === 'pending';
+                        break;
+                    case 'open':
+                        matchesESG = company.esgStatus === 'open';
+                        break;
+                    case 'not_started':
+                        matchesESG = company.esgStatus === 'not_started';
+                        break;
+                    case 'highPriorityOverdue':
+                        matchesESG = (company.statusBreakdown?.highPriorityOverdue || 0) > 0;
+                        break;
+                    case 'partlySubmitted':
+                        matchesESG = (company.statusBreakdown?.partlySubmitted || 0) > 0;
+                        break;
+                    case 'submittedPendingReview':
+                        matchesESG = (company.statusBreakdown?.submittedPendingReview || 0) > 0;
+                        break;
+                    case 'resubmitRequested':
+                        matchesESG = (company.statusBreakdown?.resubmitRequested || 0) > 0;
+                        break;
+                    case 'closedThisMonth':
+                        matchesESG = (company.statusBreakdown?.closedThisMonth || 0) > 0;
+                        break;
+                    default:
+                        matchesESG = true;
+                }
+            }
 
             return (
                 matchesSearch &&
@@ -256,7 +259,7 @@ export default function CompanySelectionPage() {
                 matchesESG
             );
         });
-    }, [companies, searchTerm, filters, esgFilter]);
+    }, [companies, searchTerm, filters, activeFilter]);
 
     // Get current page companies
     const getCurrentPageCompanies = () => {
@@ -268,184 +271,6 @@ export default function CompanySelectionPage() {
     const totalItems = filteredCompanies.length;
     const totalPages = Math.ceil(totalItems / itemsPerPage);
     const currentPageCompanies = getCurrentPageCompanies();
-
-    // Fetch ESG data ONLY for companies on the current page
-    useEffect(() => {
-        const fetchESGDataForCurrentPage = async () => {
-            // Prevent multiple simultaneous fetches
-            if (isFetchingRef.current) return;
-            if (loading || isInitialLoad || currentPageCompanies.length === 0) return;
-            
-            // Find companies on current page that need ESG data
-            const companiesToFetch = currentPageCompanies.filter(c => 
-                !c.hasESGData && 
-                !c.isLoadingESG && 
-                !esgFetchedRef.current.has(c.email)
-            );
-            
-            if (companiesToFetch.length === 0) {
-                return;
-            }
-
-            isFetchingRef.current = true;
-            setLoadingESG(true);
-            
-            try {
-                // Mark companies as loading
-                setCompanies(prevCompanies => 
-                    prevCompanies.map(company => {
-                        if (companiesToFetch.some(c => c.email === company.email)) {
-                            return { ...company, isLoadingESG: true };
-                        }
-                        return company;
-                    })
-                );
-
-                const promises = companiesToFetch.map(async (company) => {
-                    const esgId = company.esgEntityId || company.entityId || company.companyId || company._id;
-                    
-                    if (!esgId) {
-                        esgFetchedRef.current.add(company.email);
-                        return {
-                            email: company.email,
-                            status: 'not_started' as ESGStatus,
-                            hasData: false,
-                            planCount: 0,
-                            completedCount: 0,
-                            overdueCount: 0,
-                        };
-                    }
-
-                    try {
-                        const res = await fetch(
-                            `${import.meta.env.VITE_API_URL}/investor/esgdd/escap/plan/${esgId}`,
-                            {
-                                headers: { Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
-                            }
-                        );
-                        
-                        esgFetchedRef.current.add(company.email);
-                        
-                        if (res.ok) {
-                            const data: ESGPlanResponse = await res.json();
-                            
-                            if (data.status && data.plan && data.plan.length > 0) {
-                                const plan = data.plan;
-                                const completed = plan.filter((item: any) => 
-                                    item.status === 'submitted' || 
-                                    item.investorStatus === 'closed' ||
-                                    item.status === 'closed'
-                                ).length;
-                                
-                                const overdue = plan.filter((item: any) => 
-                                    item.status === 'overdue'
-                                ).length;
-                                
-                                const underReview = plan.filter((item: any) => 
-                                    item.investorStatus === 'under review' ||
-                                    item.status === 'under review'
-                                ).length;
-                                
-                                let overallStatus: ESGStatus = 'not_started';
-                                if (completed === plan.length) {
-                                    overallStatus = 'closed';
-                                } else if (completed > 0 || underReview > 0) {
-                                    overallStatus = 'pending';
-                                } else if (overdue > 0) {
-                                    overallStatus = 'open';
-                                } else {
-                                    overallStatus = 'open';
-                                }
-                                
-                                return {
-                                    email: company.email,
-                                    status: overallStatus,
-                                    hasData: true,
-                                    planCount: plan.length,
-                                    completedCount: completed,
-                                    overdueCount: overdue,
-                                };
-                            }
-                        }
-                        
-                        return {
-                            email: company.email,
-                            status: 'not_started' as ESGStatus,
-                            hasData: false,
-                            planCount: 0,
-                            completedCount: 0,
-                            overdueCount: 0,
-                        };
-                    } catch (error) {
-                        console.warn(`No ESG data for ${company.companyName}:`, error);
-                        return {
-                            email: company.email,
-                            status: 'not_started' as ESGStatus,
-                            hasData: false,
-                            planCount: 0,
-                            completedCount: 0,
-                            overdueCount: 0,
-                        };
-                    }
-                });
-
-                const results = await Promise.all(promises);
-                
-                // Update companies with ESG data
-                setCompanies(prevCompanies => 
-                    prevCompanies.map(company => {
-                        const result = results.find(r => r.email === company.email);
-                        if (result) {
-                            return { 
-                                ...company, 
-                                esgStatus: result.status,
-                                hasESGData: result.hasData,
-                                esgPlanCount: result.planCount,
-                                esgCompletedCount: result.completedCount,
-                                esgOverdueCount: result.overdueCount,
-                                isLoadingESG: false,
-                            };
-                        }
-                        return { ...company, isLoadingESG: false };
-                    })
-                );
-            } catch (error) {
-                console.error("Failed to fetch ESG data", error);
-                setCompanies(prevCompanies => 
-                    prevCompanies.map(company => ({ ...company, isLoadingESG: false }))
-                );
-            } finally {
-                setLoadingESG(false);
-                isFetchingRef.current = false;
-            }
-        };
-
-        fetchESGDataForCurrentPage();
-    }, [currentPageCompanies, loading, isInitialLoad, currentPage, itemsPerPage]);
-
-    // Calculate ESG stats for ALL filtered companies (using cached data)
-    const esgStats = useMemo(() => {
-        const allFiltered = filteredCompanies;
-        const open = allFiltered.filter(c => c.esgStatus === 'open').length;
-        const closed = allFiltered.filter(c => c.esgStatus === 'closed').length;
-        const pending = allFiltered.filter(c => c.esgStatus === 'pending').length;
-        const notStarted = allFiltered.filter(c => c.esgStatus === 'not_started' || !c.esgStatus).length;
-        const totalPlans = allFiltered.reduce((sum, c) => sum + (c.esgPlanCount || 0), 0);
-        const totalCompleted = allFiltered.reduce((sum, c) => sum + (c.esgCompletedCount || 0), 0);
-        const totalOverdue = allFiltered.reduce((sum, c) => sum + (c.esgOverdueCount || 0), 0);
-        
-        return {
-            total: allFiltered.length,
-            open,
-            closed,
-            pending,
-            notStarted,
-            totalPlans,
-            totalCompleted,
-            totalOverdue,
-            completionRate: totalPlans > 0 ? Math.round((totalCompleted / totalPlans) * 100) : 0,
-        };
-    }, [filteredCompanies]);
 
     // Pagination handlers
     const handlePageChange = (page: number) => {
@@ -465,11 +290,96 @@ export default function CompanySelectionPage() {
     // Reset to page 1 when filters change
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchTerm, filters]);
+    }, [searchTerm, filters, activeFilter]);
+
+    // Click handler for status cards
+    const handleStatusClick = (filter: FilterType) => {
+        setActiveFilter(activeFilter === filter ? 'all' : filter);
+        setCurrentPage(1);
+    };
+
+    // Get status card style
+    const getStatusCardStyle = (filter: FilterType, count: number) => {
+        const isActive = activeFilter === filter;
+        const baseStyle = "cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5";
+        const activeStyle = isActive ? "ring-2 ring-emerald-500 shadow-lg bg-emerald-50/50" : "";
+        const disabledStyle = count === 0 ? "opacity-50 cursor-not-allowed hover:shadow-none hover:-translate-y-0" : "";
+        return `${baseStyle} ${activeStyle} ${disabledStyle}`;
+    };
+
+    // Format number with icon
+    const formatStatusCard = (label: string, count: number, icon: React.ReactNode, color: string, filter: FilterType) => {
+        return (
+            <Card 
+                className={getStatusCardStyle(filter, count)}
+                onClick={() => count > 0 && handleStatusClick(filter)}
+            >
+                <CardContent className="p-3">
+                    <div className="flex items-center justify-between">
+                        {icon}
+                        <span className="text-xs text-gray-400">{label}</span>
+                    </div>
+                    <p className={`text-xl font-bold ${color}`}>{count}</p>
+                    <p className="text-xs text-gray-500">{count === 1 ? 'Company' : 'Companies'}</p>
+                </CardContent>
+            </Card>
+        );
+    };
+
+    // Calculate stats from the data
+    const getStats = () => {
+        if (summary) {
+            return {
+                total: summary.total || 0,
+                closed: summary.closed || 0,
+                pending: summary.pending || 0,
+                open: summary.open || 0,
+                notStarted: summary.notStarted || 0,
+                highPriorityOverdue: summary.statusBreakdown?.highPriorityOverdue || 0,
+                partlySubmitted: summary.statusBreakdown?.partlySubmitted || 0,
+                submittedPendingReview: summary.statusBreakdown?.submittedPendingReview || 0,
+                resubmitRequested: summary.statusBreakdown?.resubmitRequested || 0,
+                closedThisMonth: summary.statusBreakdown?.closedThisMonth || 0,
+                totalPlans: summary.totalPlans || 0,
+                totalCompleted: summary.totalCompleted || 0,
+                totalOverdue: summary.totalOverdue || 0,
+                totalPending: summary.totalPending || 0,
+                completionRate: summary.completionRate || 0,
+            };
+        }
+        
+        // Fallback: calculate from companies array
+        const total = companies.length;
+        const closed = companies.filter(c => c.esgStatus === 'closed').length;
+        const pending = companies.filter(c => c.esgStatus === 'pending').length;
+        const open = companies.filter(c => c.esgStatus === 'open').length;
+        const notStarted = companies.filter(c => c.esgStatus === 'not_started').length;
+        
+        return {
+            total,
+            closed,
+            pending,
+            open,
+            notStarted,
+            highPriorityOverdue: 0,
+            partlySubmitted: 0,
+            submittedPendingReview: 0,
+            resubmitRequested: 0,
+            closedThisMonth: 0,
+            totalPlans: 0,
+            totalCompleted: 0,
+            totalOverdue: 0,
+            totalPending: 0,
+            completionRate: 0,
+        };
+    };
+
+    const stats = getStats();
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-emerald-50/40 to-white">
-            <div className="container mx-auto py-12 px-4">
+            <div className="container mx-auto py-8 px-4">
+                {/* Filters Row */}
                 <div className="flex flex-wrap items-center gap-3 mb-6">
                     <Input
                         placeholder="Search company by name or email..."
@@ -558,49 +468,141 @@ export default function CompanySelectionPage() {
                     </Select>
                 </div>
 
-                {/* Eco-friendly heading with ESG Stats */}
-                <div className="flex flex-wrap justify-between items-center mb-6 gap-2">
-                    <div className="flex items-center gap-2">
-                        <div className="bg-emerald-100 p-1.5 rounded-full">
-                            <Leaf className="h-4 w-4 text-emerald-600" />
-                        </div>
-                        <div>
-                            <h1 className="text-xl font-bold text-emerald-800">Select a Company</h1>
-                            <p className="text-xs text-emerald-600/70">Choose a company to view its ESG CAP</p>
-                        </div>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-4 text-sm">
-                        <span className="text-emerald-600">
-                            {filteredCompanies.length} total companies
+                {/* ESG Dashboard Cards */}
+                <div className="mb-6">
+                    <div className="flex flex-wrap items-center gap-2 mb-3">
+                        <Building2 className="h-4 w-4 text-emerald-600" />
+                        <h2 className="text-sm font-semibold text-gray-700">ESG Dashboard</h2>
+                        <span className="text-xs text-gray-400 ml-2">
+                            Click on any card to filter companies
                         </span>
-                        {!loadingESG && filteredCompanies.length > 0 && (
-                            <div className="flex flex-wrap items-center gap-3 bg-white px-3 py-1.5 rounded-full shadow-sm border border-gray-100">
-                                <span className="text-xs font-medium text-gray-600">ESG Status:</span>
-                                <span className="text-xs">
-                                    <span className="text-emerald-600 font-medium">● Closed {esgStats.closed}</span>
-                                    <span className="mx-1 text-gray-300">|</span>
-                                    <span className="text-yellow-500 font-medium">● Pending {esgStats.pending}</span>
-                                    <span className="mx-1 text-gray-300">|</span>
-                                    <span className="text-orange-400 font-medium">● Open {esgStats.open}</span>
-                                    <span className="mx-1 text-gray-300">|</span>
-                                    <span className="text-blue-400 font-medium">● Not Started {esgStats.notStarted}</span>
-                                </span>
-                                {esgStats.totalPlans > 0 && (
-                                    <span className="text-xs text-gray-400 border-l pl-2">
-                                        {/* Plans: {esgStats.totalPlans} | Done: {esgStats.totalCompleted} ({esgStats.completionRate}%) */}
-                                        {esgStats.totalOverdue > 0 && (
-                                            <span className="text-red-500 ml-1">⚠ {esgStats.totalOverdue} overdue</span>
-                                        )}
-                                    </span>
-                                )}
-                            </div>
-                        )}
-                        {loadingESG && (
-                            <span className="text-xs text-gray-400 animate-pulse">Loading ESG data...</span>
+                        {activeFilter !== 'all' && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleStatusClick('all')}
+                                className="text-xs text-emerald-600 hover:text-emerald-700"
+                            >
+                                Clear Filter ✕
+                            </Button>
                         )}
                     </div>
+                    
+                    {/* Row 1: Main Status Cards */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                        {formatStatusCard('Total', stats.total, <FileText className="h-4 w-4 text-gray-400" />, 'text-gray-800', 'all')}
+                        {formatStatusCard('Closed', stats.closed, <CheckCircle className="h-4 w-4 text-emerald-500" />, 'text-emerald-600', 'closed')}
+                        {formatStatusCard('Pending', stats.pending, <Clock className="h-4 w-4 text-yellow-500" />, 'text-yellow-600', 'pending')}
+                        {formatStatusCard('Open', stats.open, <AlertTriangle className="h-4 w-4 text-orange-400" />, 'text-orange-500', 'open')}
+                        {formatStatusCard('Not Started', stats.notStarted, <FileText className="h-4 w-4 text-blue-400" />, 'text-blue-500', 'not_started')}
+                    </div>
+
+                    {/* Row 2: Detailed Status Breakdown - Only show if there's data */}
+                    {(stats.highPriorityOverdue > 0 || stats.partlySubmitted > 0 || 
+                      stats.submittedPendingReview > 0 || stats.resubmitRequested > 0 || 
+                      stats.closedThisMonth > 0) && (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 mt-3">
+                            <Card 
+                                className={getStatusCardStyle('highPriorityOverdue', stats.highPriorityOverdue)}
+                                onClick={() => stats.highPriorityOverdue > 0 && handleStatusClick('highPriorityOverdue')}
+                            >
+                                <CardContent className="p-3">
+                                    <div className="flex items-center justify-between">
+                                        <AlertTriangle className="h-4 w-4 text-red-500" />
+                                        <span className="text-xs text-gray-400">High Priority</span>
+                                    </div>
+                                    <p className="text-xl font-bold text-red-600">{stats.highPriorityOverdue}</p>
+                                    <p className="text-xs text-gray-500">Overdue Items</p>
+                                </CardContent>
+                            </Card>
+
+                            <Card 
+                                className={getStatusCardStyle('partlySubmitted', stats.partlySubmitted)}
+                                onClick={() => stats.partlySubmitted > 0 && handleStatusClick('partlySubmitted')}
+                            >
+                                <CardContent className="p-3">
+                                    <div className="flex items-center justify-between">
+                                        <FileText className="h-4 w-4 text-purple-400" />
+                                        <span className="text-xs text-gray-400">Partly</span>
+                                    </div>
+                                    <p className="text-xl font-bold text-purple-600">{stats.partlySubmitted}</p>
+                                    <p className="text-xs text-gray-500">Submitted Items</p>
+                                </CardContent>
+                            </Card>
+
+                            <Card 
+                                className={getStatusCardStyle('submittedPendingReview', stats.submittedPendingReview)}
+                                onClick={() => stats.submittedPendingReview > 0 && handleStatusClick('submittedPendingReview')}
+                            >
+                                <CardContent className="p-3">
+                                    <div className="flex items-center justify-between">
+                                        <Clock className="h-4 w-4 text-yellow-400" />
+                                        <span className="text-xs text-gray-400">Pending</span>
+                                    </div>
+                                    <p className="text-xl font-bold text-yellow-600">{stats.submittedPendingReview}</p>
+                                    <p className="text-xs text-gray-500">Review Items</p>
+                                </CardContent>
+                            </Card>
+
+                            <Card 
+                                className={getStatusCardStyle('resubmitRequested', stats.resubmitRequested)}
+                                onClick={() => stats.resubmitRequested > 0 && handleStatusClick('resubmitRequested')}
+                            >
+                                <CardContent className="p-3">
+                                    <div className="flex items-center justify-between">
+                                        <RefreshCw className="h-4 w-4 text-orange-400" />
+                                        <span className="text-xs text-gray-400">Re-submit</span>
+                                    </div>
+                                    <p className="text-xl font-bold text-orange-600">{stats.resubmitRequested}</p>
+                                    <p className="text-xs text-gray-500">Requested</p>
+                                </CardContent>
+                            </Card>
+
+                            <Card 
+                                className={getStatusCardStyle('closedThisMonth', stats.closedThisMonth)}
+                                onClick={() => stats.closedThisMonth > 0 && handleStatusClick('closedThisMonth')}
+                            >
+                                <CardContent className="p-3">
+                                    <div className="flex items-center justify-between">
+                                        <CheckCircle className="h-4 w-4 text-emerald-400" />
+                                        <span className="text-xs text-gray-400">Closed</span>
+                                    </div>
+                                    <p className="text-xl font-bold text-emerald-600">{stats.closedThisMonth}</p>
+                                    <p className="text-xs text-gray-500">This Month</p>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    )}
+
+                    {/* Stats Summary Bar - Only if there are plans */}
+                    {stats.totalPlans > 0 && (
+                        <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-gray-500 bg-white px-4 py-2 rounded-lg border">
+                            <span>📊 Total Plans: <strong>{stats.totalPlans}</strong></span>
+                            <span>✅ Completed: <strong className="text-emerald-600">{stats.totalCompleted}</strong></span>
+                            <span>⏳ Pending: <strong className="text-yellow-600">{stats.totalPending}</strong></span>
+                            <span>⚠️ Overdue: <strong className="text-red-600">{stats.totalOverdue}</strong></span>
+                            <span>📈 Completion Rate: <strong className="text-emerald-600">{stats.completionRate}%</strong></span>
+                            {/* Progress Bar */}
+                            <div className="flex-1 min-w-[100px]">
+                                <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                    <div 
+                                        className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                                        style={{ width: `${stats.completionRate}%` }}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    
+                    {/* Show message when no ESG data */}
+                    {/* {stats.totalPlans === 0 && stats.total > 0 && (
+                        <div className="mt-3 text-center text-sm text-gray-400 bg-white px-4 py-3 rounded-lg border border-dashed">
+                            📋 No ESG plans available yet. Click on a company to start creating ESG CAP.
+                        </div>
+                    )} */}
                 </div>
 
+                {/* Company List */}
                 <CompanyCardFilter
                     companies={currentPageCompanies}
                     selectedCompany=""
