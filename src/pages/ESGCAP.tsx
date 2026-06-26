@@ -1,29 +1,19 @@
-import { useEffect, useState, useRef, useCallback, useMemo } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { useEffect, useState, useRef, useMemo } from "react";
+import { Card, CardContent, } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
-import { ESGCapItem, CAPStatus, CAPType, CAPPriority, CAPTable } from "@/components/esg-cap/CAPTable";
+import { ESGCapItem, CAPStatus, CAPPriority, CAPTable } from "@/components/esg-cap/CAPTable";
 import { ComparePlan, ReviewDialog } from "@/components/esg-cap/ReviewDialog";
-import { FilterControls } from "@/components/esg-cap/FilterControls";
-import { AlertsPanel } from "@/components/esg-cap/AlertsPanel";
-import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import {
-  ArrowLeft,
-  ArrowRight,
-  ArrowUp,
-  ArrowDown,
-  FileText,
-  CheckCircle2,
-  Clock,
-  Target
-} from "lucide-react";
 import { http } from "@/utils/httpInterceptor";
 import { useESGCAPAlerts } from "@/hooks/useESGCAPAlerts";
 import { AddCAPDialog } from "@/components/esg-cap/AddCAPDialog";
 import { EsgddAPIs } from "@/network/esgdd";
 import Loader from "@/components/ui/loader";
 import { ESGCapScoring } from "@/components/InvestorESGScoring";
-import { getEffectiveStatus } from '@/utils/esgStatus';
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { getDerivedInvestorStatus } from '@/utils/investorStatusUtils';
+import { getEffectiveStatus } from "@/utils/esgStatus";
 interface PlanHistory {
   updateByUserId: string;
   status: string;
@@ -51,10 +41,17 @@ interface APIResponse {
 }
 
 export default function ESGCAP() {
+  const { companyEmail } = useParams<{ companyEmail: string }>();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const [selectedCompany, setSelectedCompany] = useState<string>(() => {
+    return companyEmail ? decodeURIComponent(companyEmail) : "all";
+  });
+
   const [portfolioCompanies, setPortfolioCompanies] = useState([]);
   const [selectedItem, setSelectedItem] = useState<ESGCapItem | null>(null);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
-  const [selectedCompany, setSelectedCompany] = useState<string>("all");
   const { user, userRole } = useAuth();
   const [showComparisonView, setShowComparisonView] = useState(false);
   const [planData, setPlanData] = useState<APIResponse | null>(null);
@@ -70,13 +67,17 @@ export default function ESGCAP() {
   const [selectedEntityId, setSelectedEntityId] = useState(null)
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
 
-  const alerts = useESGCAPAlerts(filteredCAPItems, previousCapItemsRef.current, planData?.finalPlan);
+  useEffect(() => {
+    if (companyEmail) {
+      setSelectedCompany(decodeURIComponent(companyEmail));
+    } else {
+      setSelectedCompany("all");
+    }
+  }, [companyEmail]);
 
   const [financialYear, setFinancialYear] = useState("");
-
   const [isEditingFinalized, setIsEditingFinalized] = useState(false);
   const originalPlanRef = useRef<ESGCapItem[]>([]);
-  const [isSavingFinalized, setIsSavingFinalized] = useState(false);
 
   useEffect(() => {
     const currentDate = new Date();
@@ -586,44 +587,80 @@ export default function ESGCAP() {
     let items = showComparisonView && comparePlanData
       ? comparePlanData.founderPlan
       : capItems;
-    
+
     if (activeFilter) {
       items = items.filter(item => {
-        const investorStatus = (item.investorStatus || '').toLowerCase();
-        const itemStatus = (item.status || '').toLowerCase();
-        
-        // CLOSED card: Show items where investorStatus = 'closed'
-        if (activeFilter === 'closed') {
-          return investorStatus === 'closed';
+        const investorStatus = getDerivedInvestorStatus(item);
+        const effectiveStatus = getEffectiveStatus(item);
+        const companyStatus = (item.companyStatus || '').toLowerCase();
+        const priority = (item.priority || '').toLowerCase();
+        const rawInvestorStatus = (item.investorStatus || '').toLowerCase().trim();
+        // ✅ FILTER: high-priority-overdue - Use INVESTOR STATUS
+        if (activeFilter === 'high-priority-overdue') {
+          return investorStatus === 'high-priority-overdue';
         }
-        
-        // SUBMITTED card: Show items where status = 'submitted'
-        // (regardless of investorStatus)
+
+        // ✅ FILTER: partly-submitted - Use COMPANY STATUS
+        if (activeFilter === 'partly-submitted') {
+          return effectiveStatus === 'partly-submitted';
+        }
+
         if (activeFilter === 'submitted') {
-          return itemStatus === 'submitted';
+          return effectiveStatus === 'submitted';
         }
-        
-        // For date-based filters (overdue, due in this month, upcoming)
-        // Exclude items that are already in submitted or closed cards
-        if (investorStatus === 'closed' || itemStatus === 'submitted') {
-          return false;
+
+        if (activeFilter === 'submitted-pending-review') {
+          return companyStatus === 'submitted' && 
+                 (investorStatus === 'under-review' || rawInvestorStatus === 'under review');
         }
-        
-        // Check date-based status
-        if (!item.targetDate) return false;
-        
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const target = new Date(item.targetDate);
-        target.setHours(0, 0, 0, 0);
-        
-        const isCurrentMonth = target.getMonth() === today.getMonth() &&
-                               target.getFullYear() === today.getFullYear();
-        
-        if (activeFilter === 'due in this month') return isCurrentMonth;
-        if (activeFilter === 'overdue') return target < today;
-        if (activeFilter === 'upcoming') return target > today && !isCurrentMonth;
-        
+
+        // ✅ FILTER: re-submit-requested - Use INVESTOR STATUS
+        if (activeFilter === 're-submit-requested') {
+          const status = (item.investorStatus || '').toLowerCase().trim();
+          return status === 're-submit-requested' ||
+            status === 're-submit requested' ||
+            getDerivedInvestorStatus(item) === 're-submit-requested';
+        }
+
+        // ✅ FILTER: closed-this-month - Check if closed AND target date in current month
+        if (activeFilter === 'closed-this-month') {
+          const isClosed = investorStatus === 'closed' || effectiveStatus === 'closed';
+          if (!isClosed || !item.targetDate) return false;
+
+          const today = new Date();
+          const target = new Date(item.targetDate);
+          return target.getMonth() === today.getMonth() &&
+            target.getFullYear() === today.getFullYear();
+        }
+
+        // ✅ FILTER: overdue (from Critical Risk Flags) - Use COMPANY STATUS
+        if (activeFilter === 'overdue') {
+          return effectiveStatus === 'overdue';
+        }
+
+        // ✅ FILTER: due-in-this-month (from Critical Risk Flags) - Use COMPANY STATUS
+        if (activeFilter === 'due-in-this-month') {
+          if (!item.targetDate) return false;
+          const today = new Date();
+          const target = new Date(item.targetDate);
+          return target.getMonth() === today.getMonth() &&
+            target.getFullYear() === today.getFullYear() &&
+            investorStatus !== 'closed';
+        }
+
+        if (activeFilter === 'upcoming') {
+          if (!item.targetDate) return false;
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const target = new Date(item.targetDate);
+          target.setHours(0, 0, 0, 0);
+
+          // Check if target date is in the future AND not in current month
+          const isCurrentMonth = target.getMonth() === today.getMonth() &&
+            target.getFullYear() === today.getFullYear();
+          return target > today && !isCurrentMonth && investorStatus !== 'closed';
+        }
+
         return false;
       });
     }
@@ -671,10 +708,18 @@ export default function ESGCAP() {
   const loggedInUser = getLoggedInUser();
   const isFiresideEmail = loggedInUser?.email?.endsWith('@fireside.com') ?? false;
 
+  // Find the selected company object
+  const selectedCompanyObject = portfolioCompanies.find(
+    c => c.email === selectedCompany || c._id === selectedCompany
+  );
+  const companyObjectId = selectedCompanyObject?._id;
 
   return (
     <div className="space-y-6">
       <Loader show={loading} text={loadingMessage} />
+      <Button variant="ghost" onClick={() => navigate("/esg-dd/cap")} className="mb-2">
+        ← Back to companies
+      </Button>
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">ESG Corrective Action Plan</h1>
@@ -686,6 +731,12 @@ export default function ESGCAP() {
           onAddItem={handleAddItem}
           onAddMultipleItems={handleAddMultipleItems}
           existingPlan={capItems}
+          onRefresh={() => {
+            if (selectedEntityId) getPlanList(selectedEntityId);
+          }}
+          companyId={companyObjectId}
+          companyEmail={selectedCompany !== "all" ? selectedCompany : undefined}
+          entityId={selectedEntityId}
         />
       </div>
 
@@ -720,16 +771,16 @@ export default function ESGCAP() {
       {/* </div> */}
 
       <CardContent className="p-0">
-        {/* Company filter (unchanged) */}
-        {!isFiresideEmail && (
-          <div className="flex items-center justify-between mb-6">
+        {/* Company filter */}
+        {/* <div className="flex items-center justify-between mb-6">
             <FilterControls
               companies={portfolioCompanies}
               selectedCompany={selectedCompany}
               onCompanyChange={setSelectedCompany}
             />
-          </div>
-        )}
+          </div>  */}
+
+
 
         {/* Alerts panel (unchanged) comment for fire side*/}
         {/* {filteredCAPItems.length > 0 && (
@@ -782,6 +833,7 @@ export default function ESGCAP() {
                         onRevertField={handleRevertField}
                         finalPlan={isEditingFinalized ? false : isPlanFinalized}
                         progressPercentage={progressPercentage}
+                        companyEmail={selectedCompany !== "all" ? selectedCompany : undefined}
                         companyEntityId={selectedEntityId}
                         setReloadData={setReloadData}
                       />

@@ -25,6 +25,8 @@ interface AddCAPDialogProps {
     existingPlan?: ESGCapItem[];
     entityId?: string;
     onRefresh?: () => void;
+    companyId?: string;
+    companyEmail?: string;
 }
 
 interface CAPFormRow {
@@ -47,7 +49,7 @@ interface CAPFormRow {
     implementationSupportNeeded: string;
     closureVerifiedBy: string;
     actualDate: string;
-    status: CAPStatus;
+    companyStatus: CAPStatus;
     investorStatus: string;
     targetDate: string;
     esgLever: string;
@@ -57,17 +59,20 @@ interface CAPFormRow {
     remarks: string;
 }
 
-export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [], entityId: propEntityId, onRefresh }: AddCAPDialogProps) {
+export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [], entityId: propEntityId, onRefresh, companyId: propCompanyId, companyEmail: propCompanyEmail}: AddCAPDialogProps) {
     const [open, setOpen] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [companies, setCompanies] = useState<Company[]>([]);
     const [loadingCompanies, setLoadingCompanies] = useState(false);
     const [financialYear, setFinancialYear] = useState("");
-    const [selectedCompany, setSelectedCompany] = useState<string>("");
     const [replaceExisting, setReplaceExisting] = useState(false);
     const [informFounder, setInformFounder] = useState(true);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const hasPreSelectedCompany = !!propCompanyId && !!propCompanyEmail;
+    const [selectedCompany, setSelectedCompany] = useState<string>(propCompanyId || "");
+    const selectedCompanyEmail = propCompanyEmail || "";
 
     useEffect(() => {
         const currentDate = new Date();
@@ -92,8 +97,8 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
         return `${year}-${month}-${day}`;
     };
 
-    const [formRows, setFormRows] = useState<CAPFormRow[]>([{
-        id: "1",
+    const createEmptyRow = (): CAPFormRow => ({
+        id: crypto.randomUUID(),
         item: "",
         category: "environmental",
         priority: "Medium",
@@ -104,15 +109,13 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
         deliverable: "",
         timelineMonth: 0,
         dealCondition: "none",
-        // statusUpdate: "",
         updateNote: "",
-        // investorStatusUpdate: "",
         reviewRemarks: "",
         lastReviewDate: "",
         implementationSupportNeeded: "",
         closureVerifiedBy: "",
         actualDate: "",
-        status: "overdue",
+        companyStatus: "",
         investorStatus: "",
         targetDate: "",
         esgLever: "",
@@ -120,7 +123,9 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
         progressPercentage: 0,
         assignedTo: "",
         remarks: "",
-    }]);
+      });
+
+    const [formRows, setFormRows] = useState<CAPFormRow[]>([ createEmptyRow(), ]);
 
     useEffect(() => {
         if (open && companies.length === 0) {
@@ -169,36 +174,8 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
     };
 
     const addRow = () => {
-        const nextId = (formRows.length + 1).toString();
-        setFormRows([...formRows, {
-            id: nextId,
-            item: "",
-            category: "environmental",
-            priority: "Medium",
-            issue: "",
-            relatedFinding: "",
-            measures: "",
-            resource: "",
-            deliverable: "",
-            timelineMonth: 0,
-            dealCondition: "none",
-            // statusUpdate: "",
-            updateNote: "",
-            // investorStatusUpdate: "",
-            reviewRemarks: "",
-            lastReviewDate: "",
-            implementationSupportNeeded: "",
-            closureVerifiedBy: "",
-            actualDate: "",
-            status: "overdue",
-            investorStatus: "",
-            targetDate: "",
-            esgLever: "",
-            capSource: "",
-            progressPercentage: 0,
-            assignedTo: "",
-            remarks: "",
-        }]);
+        const nextId = crypto.randomUUID();
+        setFormRows([...formRows, createEmptyRow()]);
     };
 
     const removeRow = (id: string) => {
@@ -212,7 +189,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
 
     const buildNewItems = (): ESGCapItem[] => {
         return formRows.map((row, i) => ({
-            reportId: selectedCompany,
+            reportId: propEntityId || '',
             item: row.item,
             category: row.category,
             priority: row.priority,
@@ -230,7 +207,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
             implementationSupportNeeded: row.implementationSupportNeeded || undefined,
             closureVerifiedBy: row.closureVerifiedBy || undefined,
             actualDate: parseToDateInput(row.actualDate) || undefined,
-            status: row.status,
+            companyStatus: row.companyStatus,
             investorStatus: row.investorStatus,
             targetDate: parseToDateInput(row.targetDate) || undefined,
             esgLever: row.esgLever || undefined,
@@ -247,7 +224,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
-        if (!selectedCompany) {
+        if (!hasPreSelectedCompany && !selectedCompany) {
             toast({ title: "Company Required", description: "Please select a company.", variant: "destructive" });
             setIsSubmitting(false);
             return;
@@ -274,11 +251,15 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
             }
         }
 
-        const company = companies.find(c => c.id === selectedCompany);
-        if (!company) {
-            toast({ title: "Invalid Company", description: "Selected company is not valid.", variant: "destructive" });
-            setIsSubmitting(false);
-            return;
+        let companyEmailForApi = selectedCompanyEmail;
+        if (!hasPreSelectedCompany) {
+            const company = companies.find(c => c.id === selectedCompany);
+            if (!company) {
+                toast({ title: "Invalid Company", description: "Selected company is not valid.", variant: "destructive" });
+                setIsSubmitting(false);
+                return;
+            }
+            companyEmailForApi = company.email;
         }
 
         const newItems = buildNewItems();
@@ -287,7 +268,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
             if (replaceExisting) {
                 const finalData = {
                     plan: newItems,
-                    email: company.email,
+                    email: companyEmailForApi,
                     financialYear,
                     finalAcceptance: { founderAcceptance: false, investorAcceptance: false },
                     informFounder, // ✅ Pass to backend
@@ -298,13 +279,25 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                 toast({ title: "CAP Items Replaced", description: `Replaced existing plan with ${newItems.length} items.` });
                 if (onRefresh) await onRefresh();
             } else {
-                const entityId = propEntityId || (company as any).user?.entityId;
+                let entityId = propEntityId;
+                if (!entityId && hasPreSelectedCompany) {
+                    // Try to get entityId from the companies array using the companyId
+                    const company = companies.find(c => c.id === selectedCompany);
+                    if (company) {
+                    entityId = (company as any).user?.entityId;
+                    }
+                }
+                if (!hasPreSelectedCompany) {
+                    const company = companies.find(c => c.id === selectedCompany);
+                    if (!company) throw new Error("Company not found");
+                    entityId = propEntityId || (company as any).user?.entityId;
+                }
                 if (!entityId) throw new Error("Entity ID missing");
 
                 if (!existingPlan || existingPlan.length === 0) {
                     const finalData = {
                         plan: newItems,
-                        email: company.email,
+                        email: companyEmailForApi,
                         financialYear,
                         finalAcceptance: { founderAcceptance: false, investorAcceptance: false },
                         informFounder, // ✅ Pass to backend
@@ -336,13 +329,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
 
             if (onRefresh) await onRefresh();
 
-            setFormRows([{
-                id: "1", item: "", category: "environmental", priority: "Medium", issue: "", relatedFinding: "",
-                measures: "", resource: "", deliverable: "", timelineMonth: 0, dealCondition: "none",
-                updateNote: "", reviewRemarks: "", lastReviewDate: "", implementationSupportNeeded: "",
-                closureVerifiedBy: "", actualDate: "", status: "overdue", investorStatus: "", targetDate: "", esgLever: "", capSource: "",
-                progressPercentage: 0, assignedTo: "", remarks: "",
-            }]);
+            setFormRows([createEmptyRow()]);
             setSelectedFile(null);
             setSelectedCompany("");
             setInformFounder(true); // ✅ Reset to default
@@ -367,17 +354,12 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
     };
 
     const handleFileUpload = async () => {
-        if (!selectedCompany) {
+        if (!hasPreSelectedCompany && !selectedCompany) {
             toast({ title: "Company Required", description: "Please select a company.", variant: "destructive" });
             return;
         }
-        if (!selectedFile) {
-            toast({ title: "No File", description: "Please select a CSV file first.", variant: "destructive" });
-            return;
-        }
-        const company = companies.find(c => c.id === selectedCompany);
-        if (!company) return;
-    
+        if (!selectedFile) return;
+        let companyEmailForApi = hasPreSelectedCompany ? selectedCompanyEmail : undefined;
         setUploading(true);
     
         try {
@@ -474,15 +456,17 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                             // ✅ Company Status → maps to `status` field
                             let companyStatusRaw = getField(row, ["Company Status", "companystatus"]).toLowerCase();
                             const statusMap: Record<string, string> = {
-                                'upcoming': "upcoming",
-                                'due in <1 month': "due in <1 month",
+                                'due-in-this-month': "due-in-this-month",
+                                'due in <1 month': "due-in-this-month",
                                 'overdue': "overdue",
+                                'partly-submitted': "partly-submitted",
+                                'partly submitted': "partly-submitted",
+                                're-submit-required': "re-submit-required",
+                                're-submit required': "re-submit-required",
                                 'submitted': "submitted",
-                                'request to re-submit': "request to re-submit",
-                                'request to resubmit': "request to re-submit",
+                                'closed': "closed",
                             };
-
-                            const status = statusMap[companyStatusRaw] || " ";
+                            const companyStatus = statusMap[companyStatusRaw] || " ";
     
                             // ✅ Investor Status → maps to `investorStatus` field (raw text)
                             const investorStatusRaw = getField(row, ["Investor Status", "investorstatus"]).toLowerCase().trim();
@@ -493,12 +477,11 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                                 'under review': "Under Review",
                                 'under_review': "Under Review",
                                 'reviewed with comments': "Reviewed with Comments",
-                                'reviewed_with_comments': "Reviewed with Comments",
+                                'reviewed-with-comments': "Reviewed with Comments",
+                                're-submit-requested': "re-submit-requested",
                                 'closed': "Closed",
                                 'deferred': "Deferred",
                             };
-                            const investorStatus = investorStatusMap[investorStatusRaw] || "";
-    
                             const targetDateRaw = getField(row, ["Target Date", "targetdate"]);
                             const actualDateRaw = getField(row, ["Completed On", "completedon", "actualdate"]);
                             const lastReviewRaw = getField(row, ["Last Review Date", "lastreviewdate"]);
@@ -540,7 +523,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                             const timelineMonth = timelineRaw ? Math.max(0, Number(timelineRaw)) : undefined;
     
                             newItems.push({
-                                reportId: selectedCompany,
+                                reportId: propEntityId || '',
                                 id: `${Date.now()}-${Math.random()}`,
                                 item,
                                 measures,
@@ -553,7 +536,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                                 timelineMonth,
                                 targetDate: parseDateDMY(targetDateRaw),
                                 actualDate: parseDateDMY(actualDateRaw),
-                                status,
+                                companyStatus: companyStatus,
                                 investorStatus: investorStatusRaw,
                                 dealCondition: validDealCondition,
                                 progressPercentage: undefined,
@@ -573,12 +556,11 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                         if (newItems.length === 0) {
                             throw new Error("No valid items found. Check console for debug info.");
                         }
-    
                         // Submit logic
                         if (replaceExisting) {
                             const finalData = {
                                 plan: newItems,
-                                email: company.email,
+                                email: companyEmailForApi,
                                 financialYear,
                                 finalAcceptance: { founderAcceptance: false, investorAcceptance: false },
                                 informFounder,
@@ -589,13 +571,25 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                             toast({ title: "CAP Items Replaced", description: `Replaced with ${newItems.length} items.` });
                             if (onRefresh) await onRefresh();
                         } else {
-                            const entityId = propEntityId || (company as any).user?.entityId;
+                            let entityId = propEntityId;
+                            if (!entityId && hasPreSelectedCompany) {
+                                // Try to get entityId from the companies array using the companyId
+                                const company = companies.find(c => c.id === selectedCompany);
+                                if (company) {
+                                entityId = (company as any).user?.entityId;
+                                }
+                            }
+                            if (!hasPreSelectedCompany) {
+                                const company = companies.find(c => c.id === selectedCompany);
+                                if (!company) throw new Error("Company not found");
+                                entityId = propEntityId || (company as any).user?.entityId;
+                            }
                             if (!entityId) throw new Error("Entity ID missing");
     
                             if (!existingPlan || existingPlan.length === 0) {
                                 const finalData = {
                                     plan: newItems,
-                                    email: company.email,
+                                    email: companyEmailForApi,
                                     financialYear,
                                     finalAcceptance: { founderAcceptance: false, investorAcceptance: false },
                                     informFounder,
@@ -647,7 +641,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
     const downloadTemplate = () => {
         const template = [
             'CAP Item,Priority,Target Date,Company Status,Investor Status,Completed On,CP/CS/ESG Roadmap,Category,"Issue and Related Finding","Measures & Corrective Actions",Completion Indicator,"Timeline Month","Add Update","Review Comments","Last Review Date","Closure Verified By","Assigned To","Implementation Support Needed","ESG Lever","CAP Source"',
-            '"Example: Improve emissions",High,16-May-24,"In Progress","In Progress",16-May-24,CP,environmental,"Carbon reporting gaps","Implement tracking system","ESG Manager",6,"Approved","Review comments",01-Nov-23,"John Doe","jane@example.com","IT support needed","Policy development","Training material"'
+            '"Example: Improve emissions",High,16-May-24,partly-submitted,submitted,16-May-24,CP,environmental,"Carbon reporting gaps","Implement tracking system","ESG Manager",6,"Approved","Review comments",01-Nov-23,"John Doe","jane@example.com","IT support needed","Policy development","Training material"'
         ].join('\n');
     
         const blob = new Blob(["\uFEFF" + template], { type: 'text/csv;charset=utf-8' });
@@ -668,13 +662,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
         setSelectedCompany("");
         setSelectedFile(null);
         setInformFounder(true); // ✅ Reset to default
-        setFormRows([{
-            id: "1", item: "", category: "environmental", priority: "Medium", issue: "", relatedFinding: "",
-            measures: "", resource: "", deliverable: "", timelineMonth: 0, dealCondition: "none",
-            updateNote: "", reviewRemarks: "", lastReviewDate: "", implementationSupportNeeded: "",
-            closureVerifiedBy: "", actualDate: "", status: "overdue", investorStatus: "", targetDate: "", esgLever: "", capSource: "",
-            progressPercentage: 0, assignedTo: "", remarks: "",
-        }]);
+        setFormRows([createEmptyRow()]);
     };
 
     // ✅ Reusable checkbox component
@@ -726,23 +714,26 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                             <CardHeader><CardTitle>Add Multiple CAP Items</CardTitle></CardHeader>
                             <CardContent>
                                 <div className="space-y-6">
-                                    <div>
-                                        <Label htmlFor="company">Company *</Label>
-                                        <Select value={selectedCompany} onValueChange={setSelectedCompany} disabled={loadingCompanies}>
-                                            <SelectTrigger><SelectValue placeholder={loadingCompanies ? "Loading companies..." : "Select company"} /></SelectTrigger>
-                                            <SelectContent>
-                                                {companies.map((company, index) => (
-                                                    <SelectItem
-                                                        key={`${company.id}-${index}-${company.email}`}
-                                                        value={company.id.toString()}
-                                                    >
-                                                        {company.name}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-
+                                    {!hasPreSelectedCompany && (
+                                            <div>
+                                                <Label htmlFor="company">Company *</Label>
+                                                <Select value={selectedCompany} onValueChange={setSelectedCompany} disabled={loadingCompanies}>
+                                                    <SelectTrigger><SelectValue placeholder={loadingCompanies ? "Loading companies..." : "Select company"} /></SelectTrigger>
+                                                    <SelectContent>
+                                                        {companies.map((company) => (
+                                                            <SelectItem key={company.id} value={company.id}>
+                                                                {company.name}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                        )}
+                                        {hasPreSelectedCompany && (
+                                            <div className="rounded-md bg-muted p-3 text-sm">
+                                                <span className="font-medium">Company:</span> {propCompanyEmail}
+                                            </div>
+                                        )}
                                     <div className="flex justify-end">
                                         <Button type="button" variant="outline" onClick={addRow}>
                                             <Plus className="h-4 w-4 mr-2" />Add Another Item
@@ -842,7 +833,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                                                     <Input
                                                         value={row.capSource}
                                                         onChange={(e) => updateRow(row.id, "capSource", e.target.value)}
-                                                        placeholder="e.g., Policy, Training, Technology"
+                                                        placeholder=""
                                                     />
                                                 </div>
                                             </div>
@@ -865,6 +856,20 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                                                         onChange={(e) => updateRow(row.id, "deliverable", e.target.value)}
                                                         placeholder="What will be delivered?"
                                                         className="min-h-[60px]"
+                                                    />
+                                                    {/* ✅ Instructional note */}
+                                                    <p className="text-xs text-muted-foreground mt-1.5">
+                                                        Each line (separate with ## for multiple indicators) will appear as a <strong>“Completion Indicator”</strong> on the CAP details page. 
+                                                        The company will upload evidence (documents, notes) against each indicator using the <strong>“Attachments & Evidence”</strong> button.
+                                                    </p>
+                                                </div>
+
+                                                <div>
+                                                    <Label>Current Status Update (Company)</Label>
+                                                    <Textarea
+                                                        value={row.updateNote}
+                                                        onChange={(e) => updateRow(row.id, "updateNote", e.target.value)}
+                                                        placeholder="Latest update on this action item"
                                                     />
                                                 </div>
                                             </div>
@@ -915,35 +920,60 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                                                     </Select>
                                                 </div>
                                                 <div>
-                                                    <Label>Status</Label>
+                                                    <Label>Company Status</Label>
                                                     <Select
-                                                        value={row.status}
-                                                        onValueChange={(value: CAPStatus) => updateRow(row.id, "status", value)}
+                                                        value={row.companyStatus}
+                                                        onValueChange={(value: CAPStatus) => updateRow(row.id, "companyStatus", value)}
                                                     >
-                                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                                        <SelectTrigger><SelectValue placeholder="Select Company Status" /></SelectTrigger>
                                                         <SelectContent>
-                                                            <SelectItem value="pending">Pending</SelectItem>
-                                                            <SelectItem value="in_review">In Review</SelectItem>
-                                                            <SelectItem value="accepted">Accepted</SelectItem>
-                                                            <SelectItem value="completed">Completed</SelectItem>
-                                                            <SelectItem value="overdue">Overdue</SelectItem>
+                                                            <SelectItem value="due-in-this-month" disabled>Due in this month</SelectItem>
+                                                            <SelectItem value="overdue" disabled>Overdue</SelectItem>
+                                                            <SelectItem value="partly-submitted">Partly Submitted</SelectItem>
+                                                            <SelectItem value="submitted">Submitted</SelectItem>
+                                                            <SelectItem value="closed">Closed</SelectItem>
                                                         </SelectContent>
+                                                    </Select>
+                                                </div>
+                                                {/* Investor Status */}
+                                                <div>
+                                                    <Label>Investor Status</Label>
+                                                    <Select
+                                                        value={row.investorStatus}
+                                                        onValueChange={(value: string) => updateRow(row.id, "investorStatus", value)}
+                                                    >
+                                                        <SelectTrigger><SelectValue placeholder="Select Investor Status" /></SelectTrigger>
+                                                        <SelectContent>
+                                                        <SelectItem value="re-submit-requested">
+                                                            Re-submit Requested
+                                                        </SelectItem>
+                                                        <SelectItem value="under-review">
+                                                            Under Review
+                                                        </SelectItem>
+                                                        <SelectItem value="reviewed-with-comments">
+                                                            Reviewed with Comments
+                                                        </SelectItem>
+                                                        <SelectItem value="closed">
+                                                            Closed
+                                                        </SelectItem>
+                                                        <SelectItem value="deferred">
+                                                            Deferred
+                                                        </SelectItem>
+                                                    </SelectContent>
                                                     </Select>
                                                 </div>
                                             </div>
 
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div>
                                                     <Label>Current Status Update (Company)</Label>
                                                     <Textarea
-                                                        value={row.status}
-                                                        onChange={(e) => updateRow(row.id, "status", e.target.value)}
-                                                        disabled
+                                                        value={row.updateNote}
+                                                        onChange={(e) => updateRow(row.id, "updateNote", e.target.value)}
                                                         placeholder="Latest update on this action item"
-                                                        className="min-h-[60px]"
                                                     />
                                                 </div>
-                                                {/* <div>
+                                                <div>
                                                     <Label>Current Status Update (Investor)</Label>
                                                     <Textarea
                                                         value={row.investorStatusUpdate}
@@ -951,8 +981,8 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                                                         placeholder="Latest update on this action item"
                                                         className="min-h-[60px]"
                                                     />
-                                                </div> */}
-                                            </div>
+                                                </div>
+                                            </div> */}
 
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div>
@@ -1031,7 +1061,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                                             <Button variant="outline" onClick={handleCancel}>Cancel</Button>
                                             <Button
                                                 onClick={handleSubmit}
-                                                disabled={loadingCompanies || isSubmitting || !selectedCompany || formRows.some(row => !row.item?.trim() || !row.measures?.trim())}
+                                                disabled={loadingCompanies || isSubmitting || (!hasPreSelectedCompany && !selectedCompany) || formRows.some(row => !row.item?.trim() || !row.measures?.trim())}
                                             >
                                                 {isSubmitting ? "Adding..." : "Add CAP Items"}
                                             </Button>
@@ -1046,17 +1076,26 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                         <Card>
                             <CardHeader><CardTitle>Upload CAP Items from Template</CardTitle></CardHeader>
                             <CardContent className="space-y-4">
-                                <div>
-                                    <Label>Company *</Label>
-                                    <Select value={selectedCompany} onValueChange={setSelectedCompany} disabled={loadingCompanies}>
-                                        <SelectTrigger><SelectValue placeholder={loadingCompanies ? "Loading companies..." : "Select company"} /></SelectTrigger>
-                                        <SelectContent>
-                                            {companies.map(company => (
-                                                <SelectItem key={company.id} value={company.id}>{company.name}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                            {!hasPreSelectedCompany && (
+                            <div>
+                                <Label>Company *</Label>
+                                <Select value={selectedCompany} onValueChange={setSelectedCompany} disabled={loadingCompanies}>
+                                <SelectTrigger><SelectValue placeholder={loadingCompanies ? "Loading companies..." : "Select company"} /></SelectTrigger>
+                                    <SelectContent>
+                                        {companies.map((company) => (
+                                            <SelectItem key={company.id} value={company.id}>
+                                                {company.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            )}
+                            {hasPreSelectedCompany && (
+                                <div className="rounded-md bg-muted p-3 text-sm">
+                                    <span className="font-medium">Company:</span> {propCompanyEmail}
                                 </div>
+                            )}
 
                                 <div className="flex gap-2">
                                     <Button variant="outline" onClick={downloadTemplate}>
@@ -1069,7 +1108,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                                         <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
                                         <label htmlFor="file-upload" className="cursor-pointer mt-4 block">
                                             <span className="text-sm">Drop CSV here or <span className="text-primary underline">browse</span></span>
-                                            <input id="file-upload" type="file" accept=".csv" className="sr-only" onChange={onFileSelect} disabled={uploading || !selectedCompany} />
+                                            <input id="file-upload" type="file" accept=".csv" className="sr-only" onChange={onFileSelect} disabled={uploading || (!hasPreSelectedCompany && !selectedCompany)} />
                                         </label>
                                         <p className="text-xs text-muted-foreground mt-1">CSV files only (max 5MB)</p>
                                     </div>
@@ -1117,7 +1156,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                                     </div>
                                     <div className="flex justify-end gap-2">
                                         <Button variant="outline" onClick={handleCancel}>Cancel</Button>
-                                        <Button onClick={handleFileUpload} disabled={uploading || !selectedCompany || !selectedFile}>
+                                        <Button onClick={handleFileUpload} disabled={uploading || (!hasPreSelectedCompany && !selectedCompany) || !selectedFile}>
                                             {uploading ? "Uploading..." : "Upload"}
                                         </Button>
                                     </div>

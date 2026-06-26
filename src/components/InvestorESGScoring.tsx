@@ -1,7 +1,8 @@
 import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { ESGCapItem } from './esg-cap/CAPTable';
+import { getDerivedInvestorStatus, isInvestorStatusClosed } from '@/utils/investorStatusUtils';
+import { getEffectiveStatus } from '@/utils/esgStatus';
 
 interface ESGCapScoringProps {
   items: ESGCapItem[];
@@ -11,34 +12,34 @@ interface ESGCapScoringProps {
 
 export const ESGCapScoring: React.FC<ESGCapScoringProps> = ({ items, onFilterChange, activeFilter }) => {
 
-  // Priority weightages
+  // ✅ FILTER: Only include CP and CS items for card counting (exclude ESG_Roadmap)
+  const filteredItems = items.filter(
+    item => item.dealCondition === 'CP' || item.dealCondition === 'CS'
+  );
+
+  // Priority weightages for compliance score
   const priorityWeights = {
     High: 2,
     Medium: 1,
     Low: 0.5
   };
 
-  const totalItems = items.length;
+  const totalItems = filteredItems.length;
   const baseWeight = totalItems > 0 ? 100 / totalItems : 0;
 
-  const totalWeightage = items.reduce((sum, item) => {
+  const totalWeightage = filteredItems.reduce((sum, item) => {
     const priority = item.priority || 'Medium';
     const weight = priorityWeights[priority] || priorityWeights.Medium;
     return sum + (baseWeight * weight);
   }, 0);
 
-  const isClosed = (item: ESGCapItem) =>
-    (item.investorStatus || '').toLowerCase() === 'closed';
-
-  // ✅ Use investorStatus "Closed" for completed items
-  const completedWeightage = items
-    .filter(isClosed)
+  const completedWeightage = filteredItems
+    .filter(isInvestorStatusClosed)
     .reduce((sum, item) => {
       const priority = item.priority || 'Medium';
       const weight = priorityWeights[priority] || priorityWeights.Medium;
       return sum + (baseWeight * weight);
     }, 0);
-
 
   const progressPercentage = totalWeightage > 0
     ? (completedWeightage / totalWeightage) * 100
@@ -46,140 +47,148 @@ export const ESGCapScoring: React.FC<ESGCapScoringProps> = ({ items, onFilterCha
 
   const safeProgress = Math.max(0, Math.min(100, progressPercentage));
 
-  const getDateStatus = (item: ESGCapItem) => {
-    const investorStatus = (item.investorStatus || "").toLowerCase();
-  
-    if (investorStatus === "closed") {
-      return "closed";
-    }
-  
-    if (item.status === "submitted") {
-      return "submitted";
-    }
-  
-    if (!item.targetDate) {
-      return " ";
-    }
-  
+  // Helper: Check if target date is in current month
+  const isInCurrentMonth = (targetDate?: string): boolean => {
+    if (!targetDate) return false;
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
-  
-    const target = new Date(item.targetDate);
-    target.setHours(0, 0, 0, 0);
-  
-  
-    if (
-      target.getMonth() === today.getMonth() &&
-      target.getFullYear() === today.getFullYear()
-    ) {
-      return "due in this month";
-    }
-
-    if (target < today) {
-        return "overdue";
-    }
-  
-    return "upcoming";
+    const target = new Date(targetDate);
+    return target.getMonth() === today.getMonth() &&
+           target.getFullYear() === today.getFullYear();
   };
-  
-  const completedCount = items.filter(
-    item => getDateStatus(item) === "closed"
-  ).length;
-  
-  const submittedCount = items.filter(
-    item => (item.status || '').toLowerCase() === 'submitted'
-  ).length;
-  
-  const overdueCount = items.filter(
-    item => getDateStatus(item) === "overdue"
-  ).length;
-  
-  const dueSoonCount = items.filter(
-    item => getDateStatus(item) === "due in this month"
-  ).length;
-  
-  const upcomingCount = items.filter(
-    item => getDateStatus(item) === "upcoming"
+
+  // ✅ All metrics use filteredItems (ONLY CP and CS)
+  const highPriorityOverdue = filteredItems.filter(
+    item => getDerivedInvestorStatus(item) === 'high-priority-overdue'
   ).length;
 
-  // Helper to style active card while preserving original background colors
-  const getCardClass = (filterKey: string | null, defaultBg: string) => {
-    let baseClass = "text-center p-3 rounded-lg cursor-pointer transition-all hover:shadow-md";
-    if (activeFilter === filterKey) {
-      return `${baseClass} ring-2 ring-primary bg-primary/10`;
+  const partlySubmittedCount = filteredItems.filter(
+    item => getEffectiveStatus(item) === 'partly-submitted'
+  ).length;
+
+  const submittedPendingReviewCount = filteredItems.filter(
+    item => {
+      const companyStatus = (item.companyStatus || '').toLowerCase().trim();
+      const investorStatus = (item.investorStatus || '').toLowerCase().trim();
+      const effectiveStatus = getEffectiveStatus(item);
+      
+      // Company has submitted AND investor hasn't closed it yet
+      return (companyStatus === 'submitted') && 
+            investorStatus === 'under-review' 
     }
-    return `${baseClass} ${defaultBg}`;
+  ).length;
+
+  const resubmitRequestedCount = filteredItems.filter(
+    item => (item.investorStatus || '').toLowerCase().trim() === 're-submit requested'
+  ).length;
+  
+  const closedThisMonthCount = filteredItems.filter(
+    item => {
+      const isClosed = isInvestorStatusClosed(item);
+      return isClosed && isInCurrentMonth(item.targetDate);
+    }
+  ).length;
+
+  const highPriorityCount = filteredItems.filter(
+    item => item.priority === 'High'
+  ).length;
+
+  // Helper to style active card
+  const getCardClass = (filterKey: string | null, defaultBg: string, isStatic: boolean = false) => {
+    const baseClass = "text-center p-2 rounded-lg transition-all";
+    if (isStatic) {
+      return `${baseClass} ${defaultBg} cursor-default`;
+    }
+    const clickableClass = "cursor-pointer hover:shadow-md hover:scale-105";
+    if (activeFilter === filterKey) {
+      return `${baseClass} ${clickableClass} ring-2 ring-primary bg-primary/10 shadow-lg`;
+    }
+    return `${baseClass} ${clickableClass} ${defaultBg}`;
+  };
+
+  const handleFilter = (filterKey: string | null, isStatic: boolean = false) => {
+    if (isStatic) return;
+    const newFilter = activeFilter === filterKey ? null : filterKey;
+    onFilterChange?.(newFilter);
   };
 
   return (
-    <Card className="mt-6">
-      <CardContent className="pt-6">
-        <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h3 className="text-lg font-semibold">ESG CAP Progress</h3>
-            {/* <div className="text-2xl font-bold text-primary">
-              {progressPercentage.toFixed(1)}%
+    <div className="space-y-4">
+      <Card>
+        <CardContent className="py-3">
+          <div className="grid grid-cols-6 gap-2">
+            {/* 1. Portfolio Compliance Score - STATIC */}
+            <div className="text-center p-2 rounded-lg bg-green-50 cursor-default">
+              <div className="flex items-center justify-center gap-1">
+                <div className="text-lg font-bold text-green-600">{safeProgress.toFixed(1)}%</div>
+              </div>
+              <div className="text-[10px] text-muted-foreground leading-tight">Portfolio Compliance Score</div>
+            </div>
+
+            {/* 2. High Priority Overdue - CLICKABLE */}
+            <div 
+              className={getCardClass('high-priority-overdue', "bg-red-50")}
+              onClick={() => handleFilter('high-priority-overdue')}
+            >
+              <div className="flex items-center justify-center gap-1">
+                <div className="text-lg font-bold text-red-600">{highPriorityOverdue}</div>
+              </div>
+              <div className="text-[10px] text-red-600 font-medium leading-tight">High Priority Overdue</div>
+            </div>
+
+            {/* 3. Partly Submitted - CLICKABLE */}
+            <div 
+              className={getCardClass('partly-submitted', "bg-blue-50")}
+              onClick={() => handleFilter('partly-submitted')}
+            >
+              <div className="flex items-center justify-center gap-1">
+                <div className="text-lg font-bold text-blue-600">{partlySubmittedCount}</div>
+              </div>
+              <div className="text-[10px] text-blue-600 font-medium leading-tight">Partly Submitted</div>
+            </div>
+
+            {/* 4. Submitted Pending Review - CLICKABLE */}
+            <div 
+              className={getCardClass('submitted-pending-review', "bg-purple-50")}
+              onClick={() => handleFilter('submitted-pending-review')}
+            >
+              <div className="flex items-center justify-center gap-1">
+                <div className="text-lg font-bold text-purple-600">{submittedPendingReviewCount}</div>
+              </div>
+              <div className="text-[10px] text-purple-600 font-medium leading-tight">Submitted Pending Review</div>
+            </div>
+
+            {/* 5. Re-submit Requested - CLICKABLE */}
+            <div 
+              className={getCardClass('re-submit-requested', "bg-amber-50")}
+              onClick={() => handleFilter('re-submit-requested')}
+            >
+              <div className="flex items-center justify-center gap-1">
+                <div className="text-lg font-bold text-amber-600">{resubmitRequestedCount}</div>
+              </div>
+              <div className="text-[10px] text-amber-600 font-medium leading-tight">Re-submit Requested</div>
+            </div>
+
+            {/* 6. Closed This Month - CLICKABLE */}
+            <div 
+              className={getCardClass('closed-this-month', "bg-emerald-50")}
+              onClick={() => handleFilter('closed-this-month')}
+            >
+              <div className="flex items-center justify-center gap-1">
+                <div className="text-lg font-bold text-emerald-600">{closedThisMonthCount}</div>
+              </div>
+              <div className="text-[10px] text-emerald-600 font-medium leading-tight">Closed This Month</div>
+            </div>
+
+            {/* 7. Critical Risk Flags - STATIC */}
+            {/* <div className="text-center p-2 rounded-lg bg-red-50 cursor-default">
+              <div className="flex items-center justify-center gap-1">
+                <div className="text-lg font-bold text-red-600">{highPriorityCount}</div>
+              </div>
+              <div className="text-[10px] text-red-600 font-medium leading-tight">Critical Risk Flags</div>
             </div> */}
           </div>
-
-          <Progress value={safeProgress} className="w-full h-3" style={{ backgroundColor: '#f8fafc' }} />
-
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 text-sm">
-            <div
-              className={getCardClass(null, "bg-muted/50")}
-              onClick={() => onFilterChange?.(null)}
-            >
-              <div className="font-semibold text-lg">{totalItems}</div>
-              <div className="text-muted-foreground">Total</div>
-            </div>
-
-            <div
-              className={getCardClass('closed', "bg-green-50")}
-              onClick={() => onFilterChange?.('closed')}
-            >
-              <div className="font-semibold text-lg text-green-700">{completedCount}</div>
-              <div className="text-green-600">Closed</div>
-            </div>
-
-            <div
-              className={getCardClass('due in this month', "bg-orange-50")}
-              onClick={() => onFilterChange?.('due in this month')}
-            >
-              <div className="font-semibold text-lg text-orange-700">{dueSoonCount}</div>
-              <div className="text-orange-600">Due in this Month</div>
-            </div>
-
-            <div
-              className={getCardClass('overdue', "bg-red-50")}
-              onClick={() => onFilterChange?.('overdue')}
-            >
-              <div className="font-semibold text-lg text-red-700">{overdueCount}</div>
-              <div className="text-red-600">Overdue</div>
-            </div>
-
-            <div
-              className={getCardClass('submitted', "bg-blue-50")}
-              onClick={() => onFilterChange?.('submitted')}
-            >
-              <div className="font-semibold text-lg text-blue-700">{submittedCount}</div>
-              <div className="text-blue-600">Submitted</div>
-            </div>
-
-            <div
-              className={getCardClass('upcoming', "bg-slate-50")}
-              onClick={() => onFilterChange?.('upcoming')}
-            >
-              <div className="font-semibold text-lg text-slate-700">{upcomingCount}</div>
-              <div className="text-slate-600">Upcoming</div>
-            </div>
-          </div>
-
-          {/* <div className="flex justify-between text-sm text-muted-foreground">
-            <span>Weighted Score: {completedWeightage.toFixed(1)} / {totalWeightage.toFixed(1)}</span>
-            <span>Progress: {progressPercentage.toFixed(1)}% Complete</span>
-          </div> */}
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
