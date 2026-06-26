@@ -61,6 +61,7 @@ import AdminSupport from "./components/mis/AdminSupport";
 import AnalyticsDetail from "./components/mis/AnalyticsDetail";
 import CompanyRankings from "./components/mis/CompanyRankings";
 import CompanySelectionPage from "./pages/CompanySelectionPage";
+import ProtectedRoute from "./contexts/ProtectedRoute";
 
 function App() {
   const { toast } = useToast();
@@ -110,6 +111,7 @@ function App() {
       <Route
         path="/*"
         element={
+          <ProtectedRoute>
           <Shell>
             <Sidebar />
             <ScrollArea className="flex-1 w-full md:p-8">
@@ -198,6 +200,7 @@ function App() {
 
             </ScrollArea>
           </Shell>
+          </ProtectedRoute>
         }
       />
 
