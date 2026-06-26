@@ -451,7 +451,7 @@ export default function CompanySelectionPage() {
                         </SelectContent>
                     </Select>
 
-                    <Select
+                    {/* <Select
                         value={filters.firesidePoc}
                         onValueChange={(val) => setFilters((prev) => ({ ...prev, firesidePoc: val }))}
                     >
@@ -465,7 +465,7 @@ export default function CompanySelectionPage() {
                                 </SelectItem>
                             ))}
                         </SelectContent>
-                    </Select>
+                    </Select> */}
                 </div>
 
                 {/* ESG Dashboard Cards */}
