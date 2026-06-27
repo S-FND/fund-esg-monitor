@@ -16,6 +16,111 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
+// Helper: Normalize status
+const normalize = (s?: string) => (s ?? '').trim().toLowerCase();
+
+// Helper: Check if target date is in current month
+const isInCurrentMonth = (targetDate?: string): boolean => {
+    if (!targetDate) return false;
+    const today = new Date();
+    const target = new Date(targetDate);
+    return target.getMonth() === today.getMonth() &&
+        target.getFullYear() === today.getFullYear();
+};
+
+// Get effective status (matches ESGCapScoring logic)
+const getEffectiveCompanyStatus = (item: any): string => {
+    const companyStatus = normalize(item.companyStatus ?? item.status);
+    const investorStatus = normalize(item.investorStatus);
+
+    // 1. INVESTOR STATUS TAKES PRIORITY
+    if (investorStatus === 'closed') return 'closed';
+    if (investorStatus === 're-submit-requested' || investorStatus === 're-submit requested') {
+        return 're-submit-requested';
+    }
+    if (investorStatus === 'partly-submitted' || investorStatus === 'partly submitted') {
+        return 'partly-submitted';
+    }
+    if (investorStatus === 'submitted-pending-review' || investorStatus === 'submitted pending review') {
+        return 'submitted-pending-review';
+    }
+    if (investorStatus === 'under-review' || investorStatus === 'under review') {
+        if (companyStatus === 'submitted' || companyStatus === 'submitted-pending-review') {
+            return 'submitted-pending-review';
+        }
+    }
+
+    // 2. Check company status
+    if (companyStatus === 'closed') return 'closed';
+    if (companyStatus === 'partly-submitted' || companyStatus === 'partly submitted') {
+        return 'partly-submitted';
+    }
+    if (companyStatus === 'submitted' || companyStatus === 'submitted') {
+        return 'submitted';
+    }
+    if (companyStatus === 'submitted-pending-review' || companyStatus === 'submitted pending review') {
+        return 'submitted-pending-review';
+    }
+    if (companyStatus === 're-submit-required' || companyStatus === 're-submit required') {
+        return 're-submit-requested';
+    }
+    if (companyStatus === 'overdue') return 'overdue';
+
+    // 3. Check target date
+    if (!item.targetDate) return '';
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const target = new Date(item.targetDate);
+    target.setHours(0, 0, 0, 0);
+
+    if (target.getMonth() === today.getMonth() &&
+        target.getFullYear() === today.getFullYear()) {
+        return 'due-in-this-month';
+    }
+    if (target < today) return 'overdue';
+    return 'upcoming';
+};
+
+// Get investor status
+const getInvestorStatus = (item: any): string => {
+    const investorStatus = normalize(item.investorStatus);
+    const companyStatus = normalize(item.companyStatus ?? item.status);
+
+    if (investorStatus === 'closed') return 'closed';
+    if (investorStatus === 're-submit-requested' || investorStatus === 're-submit requested') {
+        return 're-submit-requested';
+    }
+    if (investorStatus === 'partly-submitted' || investorStatus === 'partly submitted') {
+        return 'partly-submitted';
+    }
+    if (investorStatus === 'submitted-pending-review' || investorStatus === 'submitted pending review') {
+        return 'submitted-pending-review';
+    }
+
+    if (companyStatus === 'closed') return 'closed';
+    if (companyStatus === 'partly-submitted' || companyStatus === 'partly submitted') {
+        return 'partly-submitted';
+    }
+    if (companyStatus === 'submitted-pending-review' || companyStatus === 'submitted pending review') {
+        return 'submitted-pending-review';
+    }
+    if (companyStatus === 're-submit-required' || companyStatus === 're-submit required') {
+        return 're-submit-requested';
+    }
+
+    if (companyStatus === 'overdue' &&
+        (normalize(item.priority) === 'high' || normalize(item.priority) === 'high priority')) {
+        return 'high-priority-overdue';
+    }
+
+    return getEffectiveCompanyStatus(item);
+};
+
+// Check if item is closed
+const isClosed = (item: any): boolean => {
+    return getInvestorStatus(item) === 'closed';
+};
+
 interface Company {
     _id: string;
     email: string;
@@ -36,7 +141,6 @@ interface Company {
         entityId: string;
         name: string;
     };
-    // These will come from backend once added
     esgSummary?: {
         totalItems: number;
         completedItems: number;
@@ -45,13 +149,7 @@ interface Company {
         hasPlan: boolean;
         status: string;
     };
-    statusBreakdown?: {
-        highPriorityOverdue: number;
-        partlySubmitted: number;
-        submittedPendingReview: number;
-        resubmitRequested: number;
-        closedThisMonth: number;
-    };
+    _planItems?: any[];
 }
 
 interface DashboardResponse {
@@ -62,32 +160,29 @@ interface DashboardResponse {
         pending: number;
         open: number;
         notStarted: number;
-        statusBreakdown?: {
-            highPriorityOverdue: number;
-            partlySubmitted: number;
-            submittedPendingReview: number;
-            resubmitRequested: number;
-            closedThisMonth: number;
-        };
-        totalPlans?: number;
-        totalCompleted?: number;
-        totalOverdue?: number;
-        totalPending?: number;
-        completionRate?: number;
+        complianceScore?: number;
+        dueThisMonth?: number;
+        overdue?: number;
+        partlySubmitted?: number;
+        resubmitRequested?: number;
+        submittedPendingReview?: number;
+        closedCount?: number;
+        totalItems?: number;
+        completedItems?: number;
+        progressPercentage?: number;
     };
     data: Company[];
 }
 
-type FilterType = 'all' | 'closed' | 'pending' | 'open' | 'not_started' | 
-                  'highPriorityOverdue' | 'partlySubmitted' | 'submittedPendingReview' | 
-                  'resubmitRequested' | 'closedThisMonth';
+type ScoringFilterType = 'all' | 'due-in-this-month' | 'overdue' | 'partly-submitted' | 
+                         're-submit-requested' | 'submitted-pending-review' | 'closed';
 
 export default function CompanySelectionPage() {
     const [companies, setCompanies] = useState<Company[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [summary, setSummary] = useState<DashboardResponse['summary'] | null>(null);
-    const [activeFilter, setActiveFilter] = useState<FilterType>('all');
+    const [scoringFilter, setScoringFilter] = useState<ScoringFilterType>('all');
     
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1);
@@ -183,6 +278,65 @@ export default function CompanySelectionPage() {
         fetchDashboard();
     }, []);
 
+    // Calculate filter counts for each scoring category
+    const filterCounts = useMemo(() => {
+        const counts = {
+            'due-in-this-month': 0,
+            'overdue': 0,
+            'partly-submitted': 0,
+            're-submit-requested': 0,
+            'submitted-pending-review': 0,
+            'closed': 0,
+        };
+
+        companies.forEach((company) => {
+            if (!company._planItems || company._planItems.length === 0) return;
+            
+            const planItems = company._planItems;
+            const filteredItems = planItems.filter(
+                (item: any) => item.dealCondition === 'CP' || item.dealCondition === 'CS'
+            );
+            
+            if (filteredItems.length === 0) return;
+
+            // Check each filter category
+            const hasDueThisMonth = filteredItems.some((item: any) => {
+                const effectiveStatus = getEffectiveCompanyStatus(item);
+                return effectiveStatus === 'due-in-this-month' && !isClosed(item);
+            });
+            if (hasDueThisMonth) counts['due-in-this-month']++;
+
+            const hasOverdue = filteredItems.some((item: any) => {
+                const effectiveStatus = getEffectiveCompanyStatus(item);
+                return effectiveStatus === 'overdue' && !isClosed(item);
+            });
+            if (hasOverdue) counts['overdue']++;
+
+            const hasPartlySubmitted = filteredItems.some((item: any) => 
+                getInvestorStatus(item) === 'partly-submitted'
+            );
+            if (hasPartlySubmitted) counts['partly-submitted']++;
+
+            const hasResubmit = filteredItems.some((item: any) => 
+                getInvestorStatus(item) === 're-submit-requested'
+            );
+            if (hasResubmit) counts['re-submit-requested']++;
+
+            const hasPendingReview = filteredItems.some((item: any) => {
+                const companyStatus = normalize(item.companyStatus ?? item.status);
+                const investorStatus = normalize(item.investorStatus);
+                return (companyStatus === 'submitted' || companyStatus === 'submitted-pending-review') &&
+                    (investorStatus === 'under-review' || investorStatus === 'under review');
+            });
+            if (hasPendingReview) counts['submitted-pending-review']++;
+
+            const allClosed = filteredItems.every((item: any) => isClosed(item));
+            if (allClosed) counts['closed']++;
+        });
+
+        return counts;
+    }, [companies]);
+
     // Apply all filters
     const filteredCompanies = useMemo(() => {
         return companies.filter((company) => {
@@ -213,40 +367,69 @@ export default function CompanySelectionPage() {
                     tm.teamMemberName?.toLowerCase().trim() === filters.firesidePoc.toLowerCase().trim()
                 );
 
-            // Apply ESG filter
-            let matchesESG = true;
-            if (activeFilter !== 'all') {
-                switch (activeFilter) {
-                    case 'closed':
-                        matchesESG = company.esgStatus === 'closed';
-                        break;
-                    case 'pending':
-                        matchesESG = company.esgStatus === 'pending';
-                        break;
-                    case 'open':
-                        matchesESG = company.esgStatus === 'open';
-                        break;
-                    case 'not_started':
-                        matchesESG = company.esgStatus === 'not_started';
-                        break;
-                    case 'highPriorityOverdue':
-                        matchesESG = (company.statusBreakdown?.highPriorityOverdue || 0) > 0;
-                        break;
-                    case 'partlySubmitted':
-                        matchesESG = (company.statusBreakdown?.partlySubmitted || 0) > 0;
-                        break;
-                    case 'submittedPendingReview':
-                        matchesESG = (company.statusBreakdown?.submittedPendingReview || 0) > 0;
-                        break;
-                    case 'resubmitRequested':
-                        matchesESG = (company.statusBreakdown?.resubmitRequested || 0) > 0;
-                        break;
-                    case 'closedThisMonth':
-                        matchesESG = (company.statusBreakdown?.closedThisMonth || 0) > 0;
-                        break;
-                    default:
-                        matchesESG = true;
+            // Apply scoring filter
+            let matchesScoring = true;
+            if (scoringFilter !== 'all' && company._planItems && company._planItems.length > 0) {
+                const planItems = company._planItems;
+                const filteredItems = planItems.filter(
+                    (item: any) => item.dealCondition === 'CP' || item.dealCondition === 'CS'
+                );
+                
+                if (filteredItems.length === 0) {
+                    matchesScoring = false;
+                } else {
+                    switch (scoringFilter) {
+                        case 'closed':
+                            const allClosed = filteredItems.every((item: any) => isClosed(item));
+                            matchesScoring = allClosed;
+                            break;
+                            
+                        case 'due-in-this-month':
+                            const hasDueThisMonth = filteredItems.some((item: any) => {
+                                const effectiveStatus = getEffectiveCompanyStatus(item);
+                                return effectiveStatus === 'due-in-this-month' && !isClosed(item);
+                            });
+                            matchesScoring = hasDueThisMonth;
+                            break;
+                            
+                        case 'overdue':
+                            const hasOverdue = filteredItems.some((item: any) => {
+                                const effectiveStatus = getEffectiveCompanyStatus(item);
+                                return effectiveStatus === 'overdue' && !isClosed(item);
+                            });
+                            matchesScoring = hasOverdue;
+                            break;
+                            
+                        case 'partly-submitted':
+                            const hasPartlySubmitted = filteredItems.some((item: any) => 
+                                getInvestorStatus(item) === 'partly-submitted'
+                            );
+                            matchesScoring = hasPartlySubmitted;
+                            break;
+                            
+                        case 're-submit-requested':
+                            const hasResubmit = filteredItems.some((item: any) => 
+                                getInvestorStatus(item) === 're-submit-requested'
+                            );
+                            matchesScoring = hasResubmit;
+                            break;
+                            
+                        case 'submitted-pending-review':
+                            const hasPendingReview = filteredItems.some((item: any) => {
+                                const companyStatus = normalize(item.companyStatus ?? item.status);
+                                const investorStatus = normalize(item.investorStatus);
+                                return (companyStatus === 'submitted' || companyStatus === 'submitted-pending-review') &&
+                                    (investorStatus === 'under-review' || investorStatus === 'under review');
+                            });
+                            matchesScoring = hasPendingReview;
+                            break;
+                            
+                        default:
+                            matchesScoring = true;
+                    }
                 }
+            } else if (scoringFilter !== 'all' && (!company._planItems || company._planItems.length === 0)) {
+                matchesScoring = false;
             }
 
             return (
@@ -256,10 +439,10 @@ export default function CompanySelectionPage() {
                 matchesRevenue &&
                 matchesQCat &&
                 matchesFireside &&
-                matchesESG
+                matchesScoring
             );
         });
-    }, [companies, searchTerm, filters, activeFilter]);
+    }, [companies, searchTerm, filters, scoringFilter]);
 
     // Get current page companies
     const getCurrentPageCompanies = () => {
@@ -284,97 +467,39 @@ export default function CompanySelectionPage() {
     };
 
     const handleCompanySelect = (companyEmail: string) => {
-      navigate(`/esg-dd/cap/${encodeURIComponent(companyEmail)}`);
-    }; 
+        const company = companies.find(c => c.email === companyEmail);
+        const entityId = company?.user?.entityId || company?._id;
+        if (entityId) {
+            navigate(`/esg-dd/cap/${encodeURIComponent(entityId)}`);
+        } else {
+            navigate(`/esg-dd/cap/${encodeURIComponent(companyEmail)}`);
+        }
+    };
 
     // Reset to page 1 when filters change
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchTerm, filters, activeFilter]);
+    }, [searchTerm, filters, scoringFilter]);
 
-    // Click handler for status cards
-    const handleStatusClick = (filter: FilterType) => {
-        setActiveFilter(activeFilter === filter ? 'all' : filter);
+    // Click handler for scoring cards
+    const handleScoringClick = (filter: ScoringFilterType) => {
+        setScoringFilter(scoringFilter === filter ? 'all' : filter);
         setCurrentPage(1);
     };
 
-    // Get status card style
-    const getStatusCardStyle = (filter: FilterType, count: number) => {
-        const isActive = activeFilter === filter;
-        const baseStyle = "cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5";
-        const activeStyle = isActive ? "ring-2 ring-emerald-500 shadow-lg bg-emerald-50/50" : "";
-        const disabledStyle = count === 0 ? "opacity-50 cursor-not-allowed hover:shadow-none hover:-translate-y-0" : "";
-        return `${baseStyle} ${activeStyle} ${disabledStyle}`;
-    };
-
-    // Format number with icon
-    const formatStatusCard = (label: string, count: number, icon: React.ReactNode, color: string, filter: FilterType) => {
-        return (
-            <Card 
-                className={getStatusCardStyle(filter, count)}
-                onClick={() => count > 0 && handleStatusClick(filter)}
-            >
-                <CardContent className="p-3">
-                    <div className="flex items-center justify-between">
-                        {icon}
-                        <span className="text-xs text-gray-400">{label}</span>
-                    </div>
-                    <p className={`text-xl font-bold ${color}`}>{count}</p>
-                    <p className="text-xs text-gray-500">{count === 1 ? 'Company' : 'Companies'}</p>
-                </CardContent>
-            </Card>
-        );
-    };
-
-    // Calculate stats from the data
-    const getStats = () => {
-        if (summary) {
-            return {
-                total: summary.total || 0,
-                closed: summary.closed || 0,
-                pending: summary.pending || 0,
-                open: summary.open || 0,
-                notStarted: summary.notStarted || 0,
-                highPriorityOverdue: summary.statusBreakdown?.highPriorityOverdue || 0,
-                partlySubmitted: summary.statusBreakdown?.partlySubmitted || 0,
-                submittedPendingReview: summary.statusBreakdown?.submittedPendingReview || 0,
-                resubmitRequested: summary.statusBreakdown?.resubmitRequested || 0,
-                closedThisMonth: summary.statusBreakdown?.closedThisMonth || 0,
-                totalPlans: summary.totalPlans || 0,
-                totalCompleted: summary.totalCompleted || 0,
-                totalOverdue: summary.totalOverdue || 0,
-                totalPending: summary.totalPending || 0,
-                completionRate: summary.completionRate || 0,
-            };
+    // Get card style based on active filter
+    const getCardClass = (filterKey: string, defaultBg: string, isStatic: boolean = false, count: number = 0) => {
+        const baseClass = "text-center p-2 rounded-lg transition-all";
+        if (isStatic) {
+            return `${baseClass} ${defaultBg} cursor-default`;
         }
-        
-        // Fallback: calculate from companies array
-        const total = companies.length;
-        const closed = companies.filter(c => c.esgStatus === 'closed').length;
-        const pending = companies.filter(c => c.esgStatus === 'pending').length;
-        const open = companies.filter(c => c.esgStatus === 'open').length;
-        const notStarted = companies.filter(c => c.esgStatus === 'not_started').length;
-        
-        return {
-            total,
-            closed,
-            pending,
-            open,
-            notStarted,
-            highPriorityOverdue: 0,
-            partlySubmitted: 0,
-            submittedPendingReview: 0,
-            resubmitRequested: 0,
-            closedThisMonth: 0,
-            totalPlans: 0,
-            totalCompleted: 0,
-            totalOverdue: 0,
-            totalPending: 0,
-            completionRate: 0,
-        };
+        const clickableClass = "cursor-pointer hover:shadow-md hover:scale-105";
+        const disabledClass = count === 0 ? "opacity-50 cursor-not-allowed hover:shadow-none hover:scale-100" : "";
+        if (scoringFilter === filterKey && count > 0) {
+            return `${baseClass} ${clickableClass} ring-2 ring-primary bg-primary/10 shadow-lg`;
+        }
+        return `${baseClass} ${clickableClass} ${disabledClass} ${defaultBg}`;
     };
-
-    const stats = getStats();
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-emerald-50/40 to-white">
@@ -468,7 +593,7 @@ export default function CompanySelectionPage() {
                     </Select>
                 </div>
 
-                {/* ESG Dashboard Cards */}
+                {/* ESG Scoring Cards */}
                 <div className="mb-6">
                     <div className="flex flex-wrap items-center gap-2 mb-3">
                         <Building2 className="h-4 w-4 text-emerald-600" />
@@ -476,130 +601,108 @@ export default function CompanySelectionPage() {
                         <span className="text-xs text-gray-400 ml-2">
                             Click on any card to filter companies
                         </span>
-                        {activeFilter !== 'all' && (
+                        {scoringFilter !== 'all' && (
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => handleStatusClick('all')}
+                                onClick={() => handleScoringClick('all')}
                                 className="text-xs text-emerald-600 hover:text-emerald-700"
                             >
                                 Clear Filter ✕
                             </Button>
                         )}
                     </div>
-                    
-                    {/* Row 1: Main Status Cards */}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-                        {formatStatusCard('Total', stats.total, <FileText className="h-4 w-4 text-gray-400" />, 'text-gray-800', 'all')}
-                        {formatStatusCard('Closed', stats.closed, <CheckCircle className="h-4 w-4 text-emerald-500" />, 'text-emerald-600', 'closed')}
-                        {formatStatusCard('Pending', stats.pending, <Clock className="h-4 w-4 text-yellow-500" />, 'text-yellow-600', 'pending')}
-                        {formatStatusCard('Open', stats.open, <AlertTriangle className="h-4 w-4 text-orange-400" />, 'text-orange-500', 'open')}
-                        {formatStatusCard('Not Started', stats.notStarted, <FileText className="h-4 w-4 text-blue-400" />, 'text-blue-500', 'not_started')}
-                    </div>
 
-                    {/* Row 2: Detailed Status Breakdown - Only show if there's data */}
-                    {(stats.highPriorityOverdue > 0 || stats.partlySubmitted > 0 || 
-                      stats.submittedPendingReview > 0 || stats.resubmitRequested > 0 || 
-                      stats.closedThisMonth > 0) && (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 mt-3">
-                            <Card 
-                                className={getStatusCardStyle('highPriorityOverdue', stats.highPriorityOverdue)}
-                                onClick={() => stats.highPriorityOverdue > 0 && handleStatusClick('highPriorityOverdue')}
-                            >
-                                <CardContent className="p-3">
-                                    <div className="flex items-center justify-between">
-                                        <AlertTriangle className="h-4 w-4 text-red-500" />
-                                        <span className="text-xs text-gray-400">High Priority</span>
+                    <Card>
+                        <CardContent className="py-3">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-2">
+                                {/* 1. Compliance Score - STATIC */}
+                                <div className="text-center p-2 rounded-lg bg-green-50 cursor-default">
+                                    <div className="text-lg font-bold text-green-600">
+                                        {summary?.complianceScore ?? 0}%
                                     </div>
-                                    <p className="text-xl font-bold text-red-600">{stats.highPriorityOverdue}</p>
-                                    <p className="text-xs text-gray-500">Overdue Items</p>
-                                </CardContent>
-                            </Card>
+                                    <div className="text-[10px] text-muted-foreground leading-tight">Compliance Score</div>
+                                </div>
 
-                            <Card 
-                                className={getStatusCardStyle('partlySubmitted', stats.partlySubmitted)}
-                                onClick={() => stats.partlySubmitted > 0 && handleStatusClick('partlySubmitted')}
-                            >
-                                <CardContent className="p-3">
-                                    <div className="flex items-center justify-between">
-                                        <FileText className="h-4 w-4 text-purple-400" />
-                                        <span className="text-xs text-gray-400">Partly</span>
-                                    </div>
-                                    <p className="text-xl font-bold text-purple-600">{stats.partlySubmitted}</p>
-                                    <p className="text-xs text-gray-500">Submitted Items</p>
-                                </CardContent>
-                            </Card>
+                                {/* 2. Due This Month - Shows company count */}
+                                <div
+                                    className={getCardClass('due-in-this-month', "bg-orange-50", false, filterCounts['due-in-this-month'])}
+                                    onClick={() => filterCounts['due-in-this-month'] > 0 && handleScoringClick('due-in-this-month')}
+                                >
+                                    <div className="text-lg font-bold text-orange-600">{filterCounts['due-in-this-month']}</div>
+                                    <div className="text-[10px] text-orange-600 font-medium leading-tight">Due in Month</div>
+                                </div>
 
-                            <Card 
-                                className={getStatusCardStyle('submittedPendingReview', stats.submittedPendingReview)}
-                                onClick={() => stats.submittedPendingReview > 0 && handleStatusClick('submittedPendingReview')}
-                            >
-                                <CardContent className="p-3">
-                                    <div className="flex items-center justify-between">
-                                        <Clock className="h-4 w-4 text-yellow-400" />
-                                        <span className="text-xs text-gray-400">Pending</span>
-                                    </div>
-                                    <p className="text-xl font-bold text-yellow-600">{stats.submittedPendingReview}</p>
-                                    <p className="text-xs text-gray-500">Review Items</p>
-                                </CardContent>
-                            </Card>
+                                {/* 3. Overdue - Shows company count */}
+                                <div
+                                    className={getCardClass('overdue', "bg-red-50", false, filterCounts['overdue'])}
+                                    onClick={() => filterCounts['overdue'] > 0 && handleScoringClick('overdue')}
+                                >
+                                    <div className="text-lg font-bold text-red-600">{filterCounts['overdue']}</div>
+                                    <div className="text-[10px] text-red-600 font-medium leading-tight">Overdue</div>
+                                </div>
 
-                            <Card 
-                                className={getStatusCardStyle('resubmitRequested', stats.resubmitRequested)}
-                                onClick={() => stats.resubmitRequested > 0 && handleStatusClick('resubmitRequested')}
-                            >
-                                <CardContent className="p-3">
-                                    <div className="flex items-center justify-between">
-                                        <RefreshCw className="h-4 w-4 text-orange-400" />
-                                        <span className="text-xs text-gray-400">Re-submit</span>
-                                    </div>
-                                    <p className="text-xl font-bold text-orange-600">{stats.resubmitRequested}</p>
-                                    <p className="text-xs text-gray-500">Requested</p>
-                                </CardContent>
-                            </Card>
+                                {/* 4. Partly Submitted - Shows company count */}
+                                <div
+                                    className={getCardClass('partly-submitted', "bg-blue-50", false, filterCounts['partly-submitted'])}
+                                    onClick={() => filterCounts['partly-submitted'] > 0 && handleScoringClick('partly-submitted')}
+                                >
+                                    <div className="text-lg font-bold text-blue-600">{filterCounts['partly-submitted']}</div>
+                                    <div className="text-[10px] text-blue-600 font-medium leading-tight">Partly Submitted</div>
+                                </div>
 
-                            <Card 
-                                className={getStatusCardStyle('closedThisMonth', stats.closedThisMonth)}
-                                onClick={() => stats.closedThisMonth > 0 && handleStatusClick('closedThisMonth')}
-                            >
-                                <CardContent className="p-3">
-                                    <div className="flex items-center justify-between">
-                                        <CheckCircle className="h-4 w-4 text-emerald-400" />
-                                        <span className="text-xs text-gray-400">Closed</span>
-                                    </div>
-                                    <p className="text-xl font-bold text-emerald-600">{stats.closedThisMonth}</p>
-                                    <p className="text-xs text-gray-500">This Month</p>
-                                </CardContent>
-                            </Card>
-                        </div>
-                    )}
+                                {/* 5. Re-submit Requested - Shows company count */}
+                                <div
+                                    className={getCardClass('re-submit-requested', "bg-amber-50", false, filterCounts['re-submit-requested'])}
+                                    onClick={() => filterCounts['re-submit-requested'] > 0 && handleScoringClick('re-submit-requested')}
+                                >
+                                    <div className="text-lg font-bold text-amber-600">{filterCounts['re-submit-requested']}</div>
+                                    <div className="text-[10px] text-amber-600 font-medium leading-tight">Re-submit Requested</div>
+                                </div>
 
-                    {/* Stats Summary Bar - Only if there are plans */}
-                    {stats.totalPlans > 0 && (
-                        <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-gray-500 bg-white px-4 py-2 rounded-lg border">
-                            <span>📊 Total Plans: <strong>{stats.totalPlans}</strong></span>
-                            <span>✅ Completed: <strong className="text-emerald-600">{stats.totalCompleted}</strong></span>
-                            <span>⏳ Pending: <strong className="text-yellow-600">{stats.totalPending}</strong></span>
-                            <span>⚠️ Overdue: <strong className="text-red-600">{stats.totalOverdue}</strong></span>
-                            <span>📈 Completion Rate: <strong className="text-emerald-600">{stats.completionRate}%</strong></span>
-                            {/* Progress Bar */}
-                            <div className="flex-1 min-w-[100px]">
-                                <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                                    <div 
-                                        className="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                                        style={{ width: `${stats.completionRate}%` }}
-                                    />
+                                {/* 6. Submitted Pending Review - Shows company count */}
+                                <div
+                                    className={getCardClass('submitted-pending-review', "bg-purple-50", false, filterCounts['submitted-pending-review'])}
+                                    onClick={() => filterCounts['submitted-pending-review'] > 0 && handleScoringClick('submitted-pending-review')}
+                                >
+                                    <div className="text-lg font-bold text-purple-600">{filterCounts['submitted-pending-review']}</div>
+                                    <div className="text-[10px] text-purple-600 font-medium leading-tight">Pending Review</div>
+                                </div>
+
+                                {/* 7. Closed - Shows company count */}
+                                <div
+                                    className={getCardClass('closed', "bg-green-50", false, filterCounts['closed'])}
+                                    onClick={() => filterCounts['closed'] > 0 && handleScoringClick('closed')}
+                                >
+                                    <div className="text-lg font-bold text-green-600">{filterCounts['closed']}</div>
+                                    <div className="text-[10px] text-green-600 font-medium leading-tight">Closed</div>
+                                </div>
+
+                                {/* 8. Total Companies - STATIC */}
+                                <div className="text-center p-2 rounded-lg bg-gray-50 cursor-default">
+                                    <div className="text-lg font-bold text-gray-700">{summary?.total ?? 0}</div>
+                                    <div className="text-[10px] text-gray-600 font-medium leading-tight">Total Companies</div>
                                 </div>
                             </div>
-                        </div>
-                    )}
-                    
-                    {/* Show message when no ESG data */}
-                    {/* {stats.totalPlans === 0 && stats.total > 0 && (
-                        <div className="mt-3 text-center text-sm text-gray-400 bg-white px-4 py-3 rounded-lg border border-dashed">
-                            📋 No ESG plans available yet. Click on a company to start creating ESG CAP.
-                        </div>
-                    )} */}
+
+                            {/* Progress Bar */}
+                            {(summary?.totalItems ?? 0) > 0 && (
+                                <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-gray-500 bg-gray-50 px-4 py-2 rounded-lg border">
+                                    <span>📊 Total Items: <strong>{summary?.totalItems ?? 0}</strong></span>
+                                    <span>✅ Completed: <strong className="text-emerald-600">{summary?.completedItems ?? 0}</strong></span>
+                                    <span>📈 Progress: <strong className="text-emerald-600">{summary?.progressPercentage ?? 0}%</strong></span>
+                                    <div className="flex-1 min-w-[100px]">
+                                        <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                            <div 
+                                                className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                                                style={{ width: `${summary?.progressPercentage ?? 0}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
                 </div>
 
                 {/* Company List */}
