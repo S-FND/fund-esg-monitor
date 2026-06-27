@@ -467,13 +467,7 @@ export default function CompanySelectionPage() {
     };
 
     const handleCompanySelect = (companyEmail: string) => {
-        const company = companies.find(c => c.email === companyEmail);
-        const entityId = company?.user?.entityId || company?._id;
-        if (entityId) {
-            navigate(`/esg-dd/cap/${encodeURIComponent(entityId)}`);
-        } else {
-            navigate(`/esg-dd/cap/${encodeURIComponent(companyEmail)}`);
-        }
+        navigate(`/esg-dd/cap/${encodeURIComponent(companyEmail)}`);
     };
 
     // Reset to page 1 when filters change
