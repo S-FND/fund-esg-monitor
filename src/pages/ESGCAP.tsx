@@ -12,6 +12,8 @@ import Loader from "@/components/ui/loader";
 import { ESGCapScoring } from "@/components/InvestorESGScoring";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { getDerivedInvestorStatus } from '@/utils/investorStatusUtils';
+import { getEffectiveStatus } from "@/utils/esgStatus";
 interface PlanHistory {
   updateByUserId: string;
   status: string;
@@ -585,44 +587,80 @@ export default function ESGCAP() {
     let items = showComparisonView && comparePlanData
       ? comparePlanData.founderPlan
       : capItems;
-    
+
     if (activeFilter) {
       items = items.filter(item => {
-        const investorStatus = (item.investorStatus || '').toLowerCase();
-        const itemStatus = (item.status || '').toLowerCase();
-        
-        // CLOSED card: Show items where investorStatus = 'closed'
-        if (activeFilter === 'closed') {
-          return investorStatus === 'closed';
+        const investorStatus = getDerivedInvestorStatus(item);
+        const effectiveStatus = getEffectiveStatus(item);
+        const companyStatus = (item.companyStatus || '').toLowerCase();
+        const priority = (item.priority || '').toLowerCase();
+        const rawInvestorStatus = (item.investorStatus || '').toLowerCase().trim();
+        // ✅ FILTER: high-priority-overdue - Use INVESTOR STATUS
+        if (activeFilter === 'high-priority-overdue') {
+          return investorStatus === 'high-priority-overdue';
         }
-        
-        // SUBMITTED card: Show items where status = 'submitted'
-        // (regardless of investorStatus)
+
+        // ✅ FILTER: partly-submitted - Use COMPANY STATUS
+        if (activeFilter === 'partly-submitted') {
+          return effectiveStatus === 'partly-submitted';
+        }
+
         if (activeFilter === 'submitted') {
-          return itemStatus === 'submitted';
+          return effectiveStatus === 'submitted';
         }
-        
-        // For date-based filters (overdue, due in this month, upcoming)
-        // Exclude items that are already in submitted or closed cards
-        if (investorStatus === 'closed' || itemStatus === 'submitted') {
-          return false;
+
+        if (activeFilter === 'submitted-pending-review') {
+          return companyStatus === 'submitted' && 
+                 (investorStatus === 'under-review' || rawInvestorStatus === 'under review');
         }
-        
-        // Check month-based status
-        if (!item.targetDate) return false;
-        
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const target = new Date(item.targetDate);
-        target.setHours(0, 0, 0, 0);
-        
-        const isCurrentMonth = target.getMonth() === today.getMonth() &&
-                               target.getFullYear() === today.getFullYear();
-        
-        if (activeFilter === 'due in this month') { return isCurrentMonth; }
-        if (activeFilter === 'overdue') { return target < today && !isCurrentMonth; }
-        if (activeFilter === 'upcoming') { return target > today; }
-        
+
+        // ✅ FILTER: re-submit-requested - Use INVESTOR STATUS
+        if (activeFilter === 're-submit-requested') {
+          const status = (item.investorStatus || '').toLowerCase().trim();
+          return status === 're-submit-requested' ||
+            status === 're-submit requested' ||
+            getDerivedInvestorStatus(item) === 're-submit-requested';
+        }
+
+        // ✅ FILTER: closed-this-month - Check if closed AND target date in current month
+        if (activeFilter === 'closed-this-month') {
+          const isClosed = investorStatus === 'closed' || effectiveStatus === 'closed';
+          if (!isClosed || !item.targetDate) return false;
+
+          const today = new Date();
+          const target = new Date(item.targetDate);
+          return target.getMonth() === today.getMonth() &&
+            target.getFullYear() === today.getFullYear();
+        }
+
+        // ✅ FILTER: overdue (from Critical Risk Flags) - Use COMPANY STATUS
+        if (activeFilter === 'overdue') {
+          return effectiveStatus === 'overdue';
+        }
+
+        // ✅ FILTER: due-in-this-month (from Critical Risk Flags) - Use COMPANY STATUS
+        if (activeFilter === 'due-in-this-month') {
+          if (!item.targetDate) return false;
+          const today = new Date();
+          const target = new Date(item.targetDate);
+          return target.getMonth() === today.getMonth() &&
+            target.getFullYear() === today.getFullYear() &&
+            investorStatus !== 'closed';
+        }
+
+        if (activeFilter === 'upcoming') {
+          if (!item.targetDate) return false;
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const target = new Date(item.targetDate);
+          target.setHours(0, 0, 0, 0);
+
+          // Check if target date is in the future AND not in current month
+          const isCurrentMonth = target.getMonth() === today.getMonth() &&
+            target.getFullYear() === today.getFullYear();
+          return target > today && !isCurrentMonth && investorStatus !== 'closed';
+        }
+
         return false;
       });
     }
@@ -694,7 +732,7 @@ export default function ESGCAP() {
           onAddMultipleItems={handleAddMultipleItems}
           existingPlan={capItems}
           onRefresh={() => {
-              if (selectedEntityId) getPlanList(selectedEntityId);
+            if (selectedEntityId) getPlanList(selectedEntityId);
           }}
           companyId={companyObjectId}
           companyEmail={selectedCompany !== "all" ? selectedCompany : undefined}
@@ -734,7 +772,7 @@ export default function ESGCAP() {
 
       <CardContent className="p-0">
         {/* Company filter */}
-          {/* <div className="flex items-center justify-between mb-6">
+        {/* <div className="flex items-center justify-between mb-6">
             <FilterControls
               companies={portfolioCompanies}
               selectedCompany={selectedCompany}
@@ -742,7 +780,7 @@ export default function ESGCAP() {
             />
           </div>  */}
 
-          
+
 
         {/* Alerts panel (unchanged) comment for fire side*/}
         {/* {filteredCAPItems.length > 0 && (

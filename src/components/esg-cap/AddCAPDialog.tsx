@@ -49,7 +49,7 @@ interface CAPFormRow {
     implementationSupportNeeded: string;
     closureVerifiedBy: string;
     actualDate: string;
-    status: CAPStatus;
+    companyStatus: CAPStatus;
     investorStatus: string;
     targetDate: string;
     esgLever: string;
@@ -115,7 +115,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
         implementationSupportNeeded: "",
         closureVerifiedBy: "",
         actualDate: "",
-        status: "overdue",
+        companyStatus: "",
         investorStatus: "",
         targetDate: "",
         esgLever: "",
@@ -189,7 +189,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
 
     const buildNewItems = (): ESGCapItem[] => {
         return formRows.map((row, i) => ({
-            reportId: selectedCompany,
+            reportId: propEntityId || '',
             item: row.item,
             category: row.category,
             priority: row.priority,
@@ -207,7 +207,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
             implementationSupportNeeded: row.implementationSupportNeeded || undefined,
             closureVerifiedBy: row.closureVerifiedBy || undefined,
             actualDate: parseToDateInput(row.actualDate) || undefined,
-            status: row.status,
+            companyStatus: row.companyStatus,
             investorStatus: row.investorStatus,
             targetDate: parseToDateInput(row.targetDate) || undefined,
             esgLever: row.esgLever || undefined,
@@ -456,15 +456,17 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                             // ✅ Company Status → maps to `status` field
                             let companyStatusRaw = getField(row, ["Company Status", "companystatus"]).toLowerCase();
                             const statusMap: Record<string, string> = {
-                                'upcoming': "upcoming",
-                                'due in <1 month': "due in <1 month",
+                                'due-in-this-month': "due-in-this-month",
+                                'due in <1 month': "due-in-this-month",
                                 'overdue': "overdue",
+                                'partly-submitted': "partly-submitted",
+                                'partly submitted': "partly-submitted",
+                                're-submit-required': "re-submit-required",
+                                're-submit required': "re-submit-required",
                                 'submitted': "submitted",
-                                'request to re-submit': "request to re-submit",
-                                'request to resubmit': "request to re-submit",
+                                'closed': "closed",
                             };
-
-                            const status = statusMap[companyStatusRaw] || " ";
+                            const companyStatus = statusMap[companyStatusRaw] || " ";
     
                             // ✅ Investor Status → maps to `investorStatus` field (raw text)
                             const investorStatusRaw = getField(row, ["Investor Status", "investorstatus"]).toLowerCase().trim();
@@ -475,7 +477,8 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                                 'under review': "Under Review",
                                 'under_review': "Under Review",
                                 'reviewed with comments': "Reviewed with Comments",
-                                'reviewed_with_comments': "Reviewed with Comments",
+                                'reviewed-with-comments': "Reviewed with Comments",
+                                're-submit-requested': "re-submit-requested",
                                 'closed': "Closed",
                                 'deferred': "Deferred",
                             };
@@ -520,7 +523,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                             const timelineMonth = timelineRaw ? Math.max(0, Number(timelineRaw)) : undefined;
     
                             newItems.push({
-                                reportId: selectedCompany,
+                                reportId: propEntityId || '',
                                 id: `${Date.now()}-${Math.random()}`,
                                 item,
                                 measures,
@@ -533,7 +536,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                                 timelineMonth,
                                 targetDate: parseDateDMY(targetDateRaw),
                                 actualDate: parseDateDMY(actualDateRaw),
-                                status,
+                                companyStatus: companyStatus,
                                 investorStatus: investorStatusRaw,
                                 dealCondition: validDealCondition,
                                 progressPercentage: undefined,
@@ -638,7 +641,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
     const downloadTemplate = () => {
         const template = [
             'CAP Item,Priority,Target Date,Company Status,Investor Status,Completed On,CP/CS/ESG Roadmap,Category,"Issue and Related Finding","Measures & Corrective Actions",Completion Indicator,"Timeline Month","Add Update","Review Comments","Last Review Date","Closure Verified By","Assigned To","Implementation Support Needed","ESG Lever","CAP Source"',
-            '"Example: Improve emissions",High,16-May-24,"In Progress","In Progress",16-May-24,CP,environmental,"Carbon reporting gaps","Implement tracking system","ESG Manager",6,"Approved","Review comments",01-Nov-23,"John Doe","jane@example.com","IT support needed","Policy development","Training material"'
+            '"Example: Improve emissions",High,16-May-24,partly-submitted,submitted,16-May-24,CP,environmental,"Carbon reporting gaps","Implement tracking system","ESG Manager",6,"Approved","Review comments",01-Nov-23,"John Doe","jane@example.com","IT support needed","Policy development","Training material"'
         ].join('\n');
     
         const blob = new Blob(["\uFEFF" + template], { type: 'text/csv;charset=utf-8' });
@@ -917,19 +920,46 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                                                     </Select>
                                                 </div>
                                                 <div>
-                                                    <Label>Status</Label>
+                                                    <Label>Company Status</Label>
                                                     <Select
-                                                        value={row.status}
-                                                        onValueChange={(value: CAPStatus) => updateRow(row.id, "status", value)}
+                                                        value={row.companyStatus}
+                                                        onValueChange={(value: CAPStatus) => updateRow(row.id, "companyStatus", value)}
                                                     >
-                                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                                        <SelectTrigger><SelectValue placeholder="Select Company Status" /></SelectTrigger>
                                                         <SelectContent>
-                                                            <SelectItem value="pending">Pending</SelectItem>
-                                                            <SelectItem value="in_review">In Review</SelectItem>
-                                                            <SelectItem value="accepted">Accepted</SelectItem>
-                                                            <SelectItem value="completed">Completed</SelectItem>
-                                                            <SelectItem value="overdue">Overdue</SelectItem>
+                                                            <SelectItem value="due-in-this-month" disabled>Due in this month</SelectItem>
+                                                            <SelectItem value="overdue" disabled>Overdue</SelectItem>
+                                                            <SelectItem value="partly-submitted">Partly Submitted</SelectItem>
+                                                            <SelectItem value="submitted">Submitted</SelectItem>
+                                                            <SelectItem value="closed">Closed</SelectItem>
                                                         </SelectContent>
+                                                    </Select>
+                                                </div>
+                                                {/* Investor Status */}
+                                                <div>
+                                                    <Label>Investor Status</Label>
+                                                    <Select
+                                                        value={row.investorStatus}
+                                                        onValueChange={(value: string) => updateRow(row.id, "investorStatus", value)}
+                                                    >
+                                                        <SelectTrigger><SelectValue placeholder="Select Investor Status" /></SelectTrigger>
+                                                        <SelectContent>
+                                                        <SelectItem value="re-submit-requested">
+                                                            Re-submit Requested
+                                                        </SelectItem>
+                                                        <SelectItem value="under-review">
+                                                            Under Review
+                                                        </SelectItem>
+                                                        <SelectItem value="reviewed-with-comments">
+                                                            Reviewed with Comments
+                                                        </SelectItem>
+                                                        <SelectItem value="closed">
+                                                            Closed
+                                                        </SelectItem>
+                                                        <SelectItem value="deferred">
+                                                            Deferred
+                                                        </SelectItem>
+                                                    </SelectContent>
                                                     </Select>
                                                 </div>
                                             </div>
