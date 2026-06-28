@@ -61,7 +61,7 @@ export const useSupportTickets = (companyId?: string, fetchAll: boolean = false)
       // let query = supabase
       //   .from('support_tickets')
       //   .select('*')
-      //   .order('created_at', { ascending: false });
+      //   .order('created_at', { ascending: false }) ;
 
       let tickets=await http.get<SupportTicket[]>("mis/support-tickets");
       if(tickets.error) throw tickets.error;
