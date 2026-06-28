@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { TicketStatus } from '@/types/esg';
+import { http } from '@/utils/httpInterceptor';
 
 export interface SupportTicket {
   id: string;
@@ -24,6 +25,7 @@ export interface SupportTicket {
   contact_phone?: string;
   created_at: string;
   updated_at: string;
+  createdAt:Date | string
 }
 
 interface CreateTicketData {
@@ -52,27 +54,31 @@ export const useSupportTickets = (companyId?: string, fetchAll: boolean = false)
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-
   const fetchTickets = useCallback(async () => {
     try {
       setLoading(true);
       
-      let query = supabase
-        .from('support_tickets')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
+      // let query = supabase
+      //   .from('support_tickets')
+      //   .select('*')
+      //   .order('created_at', { ascending: false });
+
+      let tickets=await http.get<SupportTicket[]>("mis/support-tickets");
+      if(tickets.error) throw tickets.error;
+      let data=tickets.data;
       // If not fetching all, filter by company_id
       if (!fetchAll && companyId) {
-        query = query.eq('company_id', companyId);
+        // query = query.eq('company_id', companyId);
+        data=data.filter(d => d.company_id == companyId)
+
       } else if (!fetchAll && !companyId) {
         setLoading(false);
         return;
       }
 
-      const { data, error } = await query;
+      // const { data, error } = await query;
 
-      if (error) throw error;
+      // if (error) throw error;
       
       // Map status values for backward compatibility
       const mappedData = (data || []).map(ticket => ({
@@ -95,11 +101,13 @@ export const useSupportTickets = (companyId?: string, fetchAll: boolean = false)
   const createTicket = async (data: CreateTicketData): Promise<boolean> => {
     try {
       setSubmitting(true);
-      const { error } = await supabase
-        .from('support_tickets')
-        .insert([data]);
+      // const { error } = await supabase
+      //   .from('support_tickets')
+      //   .insert([data]);
 
-      if (error) throw error;
+      const ticketCreate=await http.post('mis/support-tickets',{...data})
+
+      if (ticketCreate.error) throw ticketCreate.error;
 
       toast.success('Your issue has been submitted successfully. Our team will get back to you soon.');
       await fetchTickets();
@@ -116,12 +124,14 @@ export const useSupportTickets = (companyId?: string, fetchAll: boolean = false)
   const updateTicket = async (ticketId: string, data: UpdateTicketData): Promise<boolean> => {
     try {
       setSubmitting(true);
-      const { error } = await supabase
-        .from('support_tickets')
-        .update(data)
-        .eq('id', ticketId);
+      // const { error } = await supabase
+      //   .from('support_tickets')
+      //   .update(data)
+      //   .eq('id', ticketId);
 
-      if (error) throw error;
+      // const ticketUpdate=await http.post("mis/")
+
+      // if (error) throw error;
 
       toast.success('Ticket updated successfully');
       await fetchTickets();

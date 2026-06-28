@@ -77,21 +77,21 @@ export const misNavItem: NavItemWithSubItems = {
       href: "/mis/portfolio",
       icon: FileCheck,
     },
-    // {
-    //   title: "Feature Management",
-    //   href: "/mis/features",
-    //   icon: FileText,
-    // },
-    // {
-    //   title: "Notifictions",
-    //   href: "/mis/notifications",
-    //   icon: FileCheck,
-    // },
-    // {
-    //   title: "Settings",
-    //   href: "/mis/settings",
-    //   icon: FileText,
-    // },
+    {
+      title: "Feature Management",
+      href: "/mis/features",
+      icon: FileText,
+    },
+    {
+      title: "Notifictions",
+      href: "/mis/notifications",
+      icon: FileCheck,
+    },
+    {
+      title: "Settings",
+      href: "/mis/settings",
+      icon: FileText,
+    },
     {
       title: "Help & Support",
       href: "/mis/support",

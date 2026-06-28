@@ -62,13 +62,13 @@ export const useCompanyFeatures = (companyId?: string) => {
       //   .select('*')
       //   .eq('company_id', companyId);
 
-      const data=await http.get(`mis/company-feature-settings?companyId=${companyId}`) as { data: CompanyFeatureSetting[]; error?: any };
+      const data = await http.get(`mis/company-feature-settings?companyId=${companyId}`) as { data: CompanyFeatureSetting[]; error?: any };
 
       if (data.error) throw data.error;
       console.log('Fetched company features:', data.data);
       // Get the set of current feature keys
       const currentFeatureKeys = new Set(ALL_FEATURES.map(f => f.key));
-      
+
       // Check if we have all the current feature keys in the database
       const existingKeys = new Set((data.data || []).map(d => d.feature_key));
       const missingKeys = ALL_FEATURES.filter(f => !existingKeys.has(f.key));
@@ -97,10 +97,10 @@ export const useCompanyFeatures = (companyId?: string) => {
         //   })
         //   .select();
 
-        const upsertedData=await http.post(`mis/company-feature-settings`,defaultFeatures) as { data: CompanyFeatureSetting[]; error?: any };
+        const upsertedData = await http.post(`mis/company-feature-settings`, defaultFeatures) as { data: CompanyFeatureSetting[]; error?: any };
 
         if (upsertedData.error) throw upsertedData.error;
-        
+
         const typedData = (upsertedData.data || []).map((item) => ({
           ...item,
           feature_type: item.feature_type as FeatureType,
@@ -174,10 +174,13 @@ export const useCompanyFeatures = (companyId?: string) => {
 
     try {
       setSaving(true);
-      
+      console.log('pendingChanges.entries()', pendingChanges.entries())
+      console.log('pendingChanges', pendingChanges)
       // Process each pending change
+      let featureToUpdate = [];
       for (const [featureKey, changes] of pendingChanges.entries()) {
         console.log(`Saving changes for feature ${featureKey}:`, changes);
+        featureToUpdate.push({ featureKey, ...(changes.is_optional ? { is_optional: changes.is_optional } : {}), ...(changes.enabled !== null ? { enabled: changes.enabled } : {}) })
         // const { error: updateError } = await supabase
         //   .from('company_feature_settings')
         //   .update(changes)
@@ -186,6 +189,17 @@ export const useCompanyFeatures = (companyId?: string) => {
 
         // if (updateError) throw updateError;
       }
+
+
+      console.log('featureToUpdate', featureToUpdate)
+
+      const featuresUpdate = await http.post("mis/company-feature-settings/update",
+        {
+          features: featureToUpdate,
+          companyId: companyId
+        });
+
+      if (featuresUpdate.error) throw featuresUpdate.error;
 
       // Update local state with all changes
       setFeatures((prev) =>
