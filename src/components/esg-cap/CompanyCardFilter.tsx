@@ -249,7 +249,7 @@ export function CompanyCardFilter({
                                         </div>
                                     )}
 
-                                    {showESGStatus && (
+                                    {/* {showESGStatus && (
                                         <div className="mt-3 w-full">
                                             <div className="flex items-center gap-2 flex-wrap">
                                                 <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full ${getStatusBgColor(displayStatus)} border`}>
@@ -278,7 +278,7 @@ export function CompanyCardFilter({
                                                 )}
                                             </div>
                                         </div>
-                                    )}
+                                    )} */}
                                 </div>
                             </button>
                         );
