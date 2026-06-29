@@ -174,7 +174,7 @@ interface DashboardResponse {
     data: Company[];
 }
 
-type ScoringFilterType = 'all' | 'due-in-this-month' | 'overdue' | 'partly-submitted' | 
+type ScoringFilterType = 'all'| 'hasCap' | 'due-in-this-month' | 'overdue' | 'partly-submitted' | 
                          're-submit-requested' | 'submitted-pending-review' | 'closed';
 
 export default function CompanySelectionPage() {
@@ -337,6 +337,10 @@ export default function CompanySelectionPage() {
         return counts;
     }, [companies]);
 
+    const totalWithCap = useMemo(() => {
+      return companies.filter(c => c._planItems && c._planItems.length > 0).length;
+    }, [companies]);
+
     // Apply all filters
     const filteredCompanies = useMemo(() => {
         return companies.filter((company) => {
@@ -423,6 +427,10 @@ export default function CompanySelectionPage() {
                             });
                             matchesScoring = hasPendingReview;
                             break;
+
+                        case 'hasCap':
+                          matchesScoring = company._planItems && company._planItems.length > 0;
+                          break;    
                             
                         default:
                             matchesScoring = true;
@@ -445,15 +453,15 @@ export default function CompanySelectionPage() {
     }, [companies, searchTerm, filters, scoringFilter]);
 
     // Get current page companies
-    const getCurrentPageCompanies = () => {
-        const startIndex = (currentPage - 1) * itemsPerPage;
-        const endIndex = startIndex + itemsPerPage;
-        return filteredCompanies.slice(startIndex, endIndex);
-    };
+    // const getCurrentPageCompanies = () => {
+    //     const startIndex = (currentPage - 1) * itemsPerPage;
+    //     const endIndex = startIndex + itemsPerPage;
+    //     return filteredCompanies.slice(startIndex, endIndex);
+    // };
+    // const currentPageCompanies = getCurrentPageCompanies();
 
     const totalItems = filteredCompanies.length;
     const totalPages = Math.ceil(totalItems / itemsPerPage);
-    const currentPageCompanies = getCurrentPageCompanies();
 
     // Pagination handlers
     const handlePageChange = (page: number) => {
@@ -495,6 +503,42 @@ export default function CompanySelectionPage() {
         return `${baseClass} ${clickableClass} ${disabledClass} ${defaultBg}`;
     };
 
+    const enrichedCurrentPageCompanies = useMemo(() => {
+      const startIndex = (currentPage - 1) * itemsPerPage;
+      const endIndex = startIndex + itemsPerPage;
+      const pageCompanies = filteredCompanies.slice(startIndex, endIndex);
+  
+      return pageCompanies.map(company => {
+          const plans = company._planItems || [];
+          const totalItems = plans.length;
+          const completedItems = plans.filter(p => isClosed(p)).length;
+          const overdueItems = plans.filter(p => p.status === 'overdue').length;
+  
+          // Count open and pending items
+          let openItems = 0;
+          let pendingItems = 0;
+          plans.forEach(p => {
+              if (isClosed(p)) return;
+              const eff = getEffectiveCompanyStatus(p);
+              const inv = getInvestorStatus(p);
+              if (inv === 'partly-submitted' || inv === 'submitted-pending-review' ||
+                  inv === 're-submit-requested' || inv === 'high-priority-overdue') {
+                  pendingItems++;
+              } else if (eff === 'overdue' || eff === 'due-in-this-month' || eff === 'upcoming' || eff === '' || eff === 'submitted') {
+                  openItems++;
+              }
+          });
+  
+          return {
+              ...company,
+              esgPlanCount: totalItems,
+              esgCompletedCount: completedItems,
+              esgOverdueCount: overdueItems,
+              esgOpenCount: openItems,
+              esgPendingCount: pendingItems,
+          };
+      });
+  }, [filteredCompanies, currentPage, itemsPerPage]);
     return (
         <div className="min-h-screen bg-gradient-to-b from-emerald-50/40 to-white">
             <div className="container mx-auto py-8 px-4">
@@ -672,9 +716,12 @@ export default function CompanySelectionPage() {
                                     <div className="text-[10px] text-green-600 font-medium leading-tight">Closed</div>
                                 </div>
 
-                                {/* 8. Total Companies - STATIC */}
-                                <div className="text-center p-2 rounded-lg bg-gray-50 cursor-default">
-                                    <div className="text-lg font-bold text-gray-700">{summary?.total ?? 0}</div>
+                                {/* 8. Total Companies - clickable to show only companies with CAP */}
+                                <div
+                                    className={getCardClass('hasCap', "bg-gray-50", false, totalWithCap)}
+                                    onClick={() => totalWithCap > 0 && handleScoringClick('hasCap')}
+                                >
+                                    <div className="text-lg font-bold text-gray-700">{totalWithCap}</div>
                                     <div className="text-[10px] text-gray-600 font-medium leading-tight">Total Companies</div>
                                 </div>
                             </div>
@@ -701,7 +748,7 @@ export default function CompanySelectionPage() {
 
                 {/* Company List */}
                 <CompanyCardFilter
-                    companies={currentPageCompanies}
+                    companies={enrichedCurrentPageCompanies}
                     selectedCompany=""
                     onCompanyChange={handleCompanySelect}
                     loading={loading}
