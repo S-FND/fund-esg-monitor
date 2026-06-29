@@ -680,7 +680,7 @@ export default function CompanySelectionPage() {
                             </div>
 
                             {/* Progress Bar */}
-                            {(summary?.totalItems ?? 0) > 0 && (
+                            {/* {(summary?.totalItems ?? 0) > 0 && (
                                 <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-gray-500 bg-gray-50 px-4 py-2 rounded-lg border">
                                     <span>📊 Total Items: <strong>{summary?.totalItems ?? 0}</strong></span>
                                     <span>✅ Completed: <strong className="text-emerald-600">{summary?.completedItems ?? 0}</strong></span>
@@ -694,7 +694,7 @@ export default function CompanySelectionPage() {
                                         </div>
                                     </div>
                                 </div>
-                            )}
+                            )} */}
                         </CardContent>
                     </Card>
                 </div>
