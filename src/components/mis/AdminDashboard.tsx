@@ -27,7 +27,7 @@ const INDUSTRIES: Industry[] = ['Beauty & Personal Care', 'Fashion & Lifestyle',
 const FUNDS: Fund[] = ['Fund I', 'Fund II', 'Fund III', 'Fund IV'];
 const REVENUE_STAGES: RevenueStage[] = ['0-50', '50-100', '100-500', '500+'];
 const Q_CATEGORIES: QCategory[] = ['Q', 'Q1', 'Q2', 'Q3', 'Early'];
-const YEARS = [2023, 2024, 2025];
+const YEARS = [2023, 2024, 2025,2026];
 const QUARTERS = ['Q1', 'Q2', 'Q3', 'Q4'];
 
 /** Read dashboard filters from URL search params so navigate(-1) restores them */

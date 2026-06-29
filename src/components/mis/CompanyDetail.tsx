@@ -308,7 +308,6 @@ const CompanyDetail = () => {
 
         // if (error) throw error;
         const data = companyProfileResponse.data;
-        debugger;
         if (data) {
           setCompanyProfile({
             revenueStage: data[0].revenue_stage as RevenueStage,
@@ -423,13 +422,12 @@ const CompanyDetail = () => {
         //   .select('feature_key, enabled, is_optional')
         //   .eq('company_id', companyId);
 
-        const { data, error } = await http.get<{ data: { feature_key: string; enabled: boolean; is_optional: boolean }[] }>(`mis/company-feature-settings?companyId=${companyId}`);
+        const { data, error } = await http.get< { feature_key: string; enabled: boolean; is_optional: boolean }[] >(`mis/company-feature-settings?companyId=${companyId}`);
 
         if (error) throw error;
-
-        if (data && data.data) {
+        if (data ) {
           const settingsMap: Record<string, { enabled: boolean; isOptional: boolean }> = {};
-          data.data.forEach(setting => {
+          data.forEach(setting => {
             settingsMap[setting.feature_key] = {
               enabled: setting.enabled,
               isOptional: setting.is_optional
@@ -897,7 +895,6 @@ const CompanyDetail = () => {
         });
       }
     });
-
     return allFeatureKPIs;
   }, [featureSettings, relevantFeatures]);
 

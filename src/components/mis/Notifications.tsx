@@ -28,13 +28,13 @@ const NotificationCard = ({
   onViewCompany: () => void;
 }) => {
   const Icon = getNotificationIcon(notification.notification_type);
-  const timeAgo = formatDistanceToNow(new Date(notification.created_at), { addSuffix: true });
-  const fullDate = format(new Date(notification.created_at), 'PPP p');
+  const timeAgo = formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true });
+  const fullDate = format(new Date(notification.createdAt), 'PPP p');
 
   return (
     <Card className={cn(
       'transition-colors',
-      !notification.is_read && 'border-primary/30 bg-primary/5'
+      !notification.isRead && 'border-primary/30 bg-primary/5'
     )}>
       <CardContent className="p-4">
         <div className="flex items-start gap-4">
@@ -54,11 +54,11 @@ const NotificationCard = ({
                 <div className="flex items-center gap-2">
                   <h4 className={cn(
                     'text-sm',
-                    !notification.is_read && 'font-semibold'
+                    !notification.isRead && 'font-semibold'
                   )}>
                     {notification.title}
                   </h4>
-                  {!notification.is_read && (
+                  {!notification.isRead && (
                     <Badge variant="default" className="text-[10px] px-1.5 py-0">New</Badge>
                   )}
                 </div>
@@ -67,11 +67,11 @@ const NotificationCard = ({
                   <span className="text-xs text-muted-foreground" title={fullDate}>
                     {timeAgo}
                   </span>
-                  {notification.quarter && notification.year && (
+                  {notification.metadata.quarter && notification.metadata.year && (
                     <>
                       <span className="text-muted-foreground">•</span>
                       <Badge variant="outline" className="text-xs">
-                        {notification.quarter} {notification.year}
+                        {notification.metadata.quarter} {notification.metadata.year}
                       </Badge>
                     </>
                   )}
@@ -89,7 +89,7 @@ const NotificationCard = ({
                     View
                   </Button>
                 )}
-                {!notification.is_read && (
+                {!notification.isRead && (
                   <Button
                     variant="ghost"
                     size="icon"
@@ -112,8 +112,8 @@ const Notifications = () => {
   const { notifications, unreadCount, isLoading, markAsRead, markAllAsRead } = useAdminNotifications();
 
   const handleViewCompany = (notification: AdminNotification) => {
-    if (!notification.is_read) {
-      markAsRead(notification.id);
+    if (!notification.isRead) {
+      markAsRead(notification._id);
     }
     if (notification.company_id) {
       navigate(`/mis/portfolio/${notification.company_id}`);
@@ -167,11 +167,11 @@ const Notifications = () => {
         </Card>
       ) : (
         <div className="space-y-3">
-          {notifications.map(notification => (
+          {notifications.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map(notification => (
             <NotificationCard
-              key={notification.id}
+              key={notification._id}
               notification={notification}
-              onMarkAsRead={() => markAsRead(notification.id)}
+              onMarkAsRead={() => markAsRead(notification._id)}
               onViewCompany={() => handleViewCompany(notification)}
             />
           ))}

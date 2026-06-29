@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -39,6 +39,7 @@ import {
   Building2,
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { http } from '@/utils/httpInterceptor';
 
 // Admin-specific feature tabs
 const ADMIN_FEATURE_TABS = [
@@ -52,7 +53,7 @@ const ADMIN_FEATURE_TABS = [
 const AdminSupport = () => {
   const { user } = useAuth();
   const adminId = user?.id || 'admin-1';
-  const { tickets, loading, submitting, createTicket } = useSupportTickets(adminId);
+  const {  submitting, createTicket } = useSupportTickets(adminId);
 
   // Form State
   const [selectedCompany, setSelectedCompany] = useState('');
@@ -63,10 +64,56 @@ const AdminSupport = () => {
   const [contactEmail, setContactEmail] = useState(user?.email || '');
   const [contactPhone, setContactPhone] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
+  const [loading,setLoading]=useState(false)
+  const [tickets, setTickets] = useState<SupportTicket[]>([]);
 
   // Get sorted company list
   const sortedCompanies = useMemo(() => {
     return [...mockCompanies].sort((a, b) => (a.brand || a.name).localeCompare(b.brand || b.name));
+  }, []);
+
+  const fetchTickets = useCallback(async () => {
+    try {
+      setLoading(true);
+      
+      // let query = supabase
+      //   .from('support_tickets')
+      //   .select('*')
+      //   .order('created_at', { ascending: false });
+
+      let tickets=await http.get<SupportTicket[]>("mis/support-tickets");
+      if(tickets.error) throw tickets.error;
+      let data=tickets.data;
+      // If not fetching all, filter by company_id
+      // if (!fetchAll && companyId) {
+      //   // query = query.eq('company_id', companyId);
+      //   data=data.filter(d => d.company_id == companyId)
+
+      // } else if (!fetchAll && !companyId) {
+      //   setLoading(false);
+      //   return;
+      // }
+
+      // const { data, error } = await query;
+
+      // if (error) throw error;
+      
+      // Map status values for backward compatibility
+      const mappedData = (data || []).map(ticket => ({
+        ...ticket,
+        status: ticket.status === 'in_progress' ? 'work_in_progress' : ticket.status
+      })) as SupportTicket[];
+      
+      setTickets(mappedData);
+    } catch (err: any) {
+      console.error('Error fetching support tickets:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchTickets();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -379,7 +426,7 @@ const AdminSupport = () => {
                             <TableCell>{getPriorityBadge(ticket.priority)}</TableCell>
                             <TableCell>{getStatusBadge(ticket.status)}</TableCell>
                             <TableCell className="text-sm text-muted-foreground">
-                              {format(new Date(ticket.created_at), 'MMM d, yyyy')}
+                              {format(new Date(ticket.createdAt), 'MMM d, yyyy')}
                             </TableCell>
                           </TableRow>
                         ))}
