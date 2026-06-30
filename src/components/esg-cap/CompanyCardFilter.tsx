@@ -250,39 +250,36 @@ export function CompanyCardFilter({
                                             Fund: {company.fundCompany.map(f => f.fundName).join(', ')}
                                         </div>
                                     )}
+                                    {showESGStatus && (
+                                        <div className="mt-3 w-full">
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                {/* Item counts */}
+                                                {company.esgPlanCount !== undefined && company.esgPlanCount > 0 && (
+                                                    <div className="flex items-center gap-1 text-xs text-gray-500">
+                                                        <span>{company.esgPlanCount} items</span>
 
-{showESGStatus && (
-                                <div className="mt-3 w-full">
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                        {/* Item counts */}
-                                        {company.esgPlanCount !== undefined && company.esgPlanCount > 0 && (
-                                            <div className="flex items-center gap-1 text-xs text-gray-500">
-                                                <FileText className="h-3 w-3" />
-                                                <span>{company.esgPlanCount} items</span>
+                                                        {company.esgCompletedCount !== undefined && company.esgCompletedCount > 0 && (
+                                                            <span className="text-emerald-600">{company.esgCompletedCount} closed</span>
+                                                        )}
 
-                                                {company.esgCompletedCount !== undefined && company.esgCompletedCount > 0 && (
-                                                    <span className="text-emerald-600">({company.esgCompletedCount} done)</span>
-                                                )}
+                                                        {company.esgOpenCount !== undefined && company.esgOpenCount > 0 && (
+                                                            <span className="text-orange-500">{company.esgOpenCount} open</span>
+                                                        )}
 
-                                                {company.esgOpenCount !== undefined && company.esgOpenCount > 0 && (
-                                                    <span className="text-orange-500">{company.esgOpenCount} open</span>
-                                                )}
+                                                        {company.esgPendingCount !== undefined && company.esgPendingCount > 0 && (
+                                                            <span className="text-yellow-500">{company.esgPendingCount} pending</span>
+                                                        )}
 
-                                                {company.esgPendingCount !== undefined && company.esgPendingCount > 0 && (
-                                                    <span className="text-yellow-500">{company.esgPendingCount} pending</span>
-                                                )}
-
-                                                {company.esgOverdueCount !== undefined && company.esgOverdueCount > 0 && (
-                                                    <span className="text-red-500 flex items-center">
-                                                        <AlertTriangle className="h-3 w-3 ml-0.5" />
-                                                        {company.esgOverdueCount}
-                                                    </span>
+                                                        {company.esgOverdueCount > 0 && (
+                                                            <span className="text-red-500 flex items-center gap-1">
+                                                                {company.esgOverdueCount} overdue
+                                                            </span>
+                                                            )}
+                                                    </div>
                                                 )}
                                             </div>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
+                                        </div>
+                                    )}
                                 </div>
                             </button>
                         );

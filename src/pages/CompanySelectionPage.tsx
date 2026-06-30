@@ -189,17 +189,14 @@ export default function CompanySelectionPage() {
     const [itemsPerPage, setItemsPerPage] = useState(8);
     
     const industryOptions = [
-        "All Industries",
-        "ClimateTech",
-        "FinTech",
-        "Quick Commerce",
-        "Ecomm",
-        "Technology / Software Development",
-        "Financial Services / Digital Payments",
-        "Logistics / Supply Chain Management",
-        "Environmental Technology / Waste Management",
-        "Others",
-    ];
+      "All Industries",
+      "Beauty & Personal Care",
+      "Fashion & Lifestyle",
+      "Health & Wellness",
+      "Food & Beverage",
+      "Home & Décor",
+      "Platform Enablers "
+  ];
     
     const fundOptions = ["All Funds", "Fund I", "Fund II", "Fund III", "Fund IV"];
     
