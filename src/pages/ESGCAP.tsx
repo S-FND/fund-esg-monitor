@@ -14,6 +14,8 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { getDerivedInvestorStatus } from '@/utils/investorStatusUtils';
 import { getEffectiveStatus } from "@/utils/esgStatus";
+import { calculateComplianceScore } from "./useComplianceScore";
+import { mapESGCapItems } from "./mapESGCapItem";
 interface PlanHistory {
   updateByUserId: string;
   status: string;
@@ -451,6 +453,13 @@ export default function ESGCAP() {
 
   const progressPercentage = calculateProgress();
 
+  const result = useMemo(() => {
+    if (!planData?.plan) return null;
+    return calculateComplianceScore(mapESGCapItems(planData.plan));
+  }, [planData]);
+
+  console.log("ESG CAP Compliance Score:", result);
+
   useEffect(() => {
     getCompanyInfoList();
   }, []);
@@ -745,6 +754,7 @@ export default function ESGCAP() {
         items={capItems}
         onFilterChange={setActiveFilter}
         activeFilter={activeFilter}
+        complianceScore={result?.overallScore}
       />
 
       {/* <div className="flex items-center justify-between">
