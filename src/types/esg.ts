@@ -184,4 +184,4 @@ export interface User {
 }
 
 // Support ticket status types
-export type TicketStatus = 'open' | 'work_in_progress' | 'in_review' | 'resolved' | 'closed';
+export type TicketStatus = 'open' | 'work_in_progress' | 'in_review' | 'resolved' | 'closed' | 'in_progress';

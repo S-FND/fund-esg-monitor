@@ -8,9 +8,10 @@ interface ESGCapScoringProps {
   items: ESGCapItem[];
   onFilterChange?: (filterKey: string | null) => void;
   activeFilter?: string | null;
+  complianceScore?: number; // Optional prop for compliance score
 }
 
-export const ESGCapScoring: React.FC<ESGCapScoringProps> = ({ items, onFilterChange, activeFilter }) => {
+export const ESGCapScoring: React.FC<ESGCapScoringProps> = ({ items, onFilterChange, activeFilter,complianceScore }) => {
 
   // ✅ FILTER: Only include CP and CS items for card counting (exclude ESG_Roadmap)
   const filteredItems = items.filter(
@@ -119,7 +120,7 @@ export const ESGCapScoring: React.FC<ESGCapScoringProps> = ({ items, onFilterCha
             {/* 1. Portfolio Compliance Score - STATIC */}
             <div className="text-center p-2 rounded-lg bg-green-50 cursor-default">
               <div className="flex items-center justify-center gap-1">
-                <div className="text-lg font-bold text-green-600">{safeProgress.toFixed(1)}%</div>
+                <div className="text-lg font-bold text-green-600">{complianceScore?.toFixed(1)}%</div>
               </div>
               <div className="text-[10px] text-muted-foreground leading-tight">Portfolio Compliance Score</div>
             </div>
