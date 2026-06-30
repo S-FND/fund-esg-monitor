@@ -57,7 +57,7 @@ export function SidebarNavigation() {
       // };
       let accessList;
       if(user?.isParent && (!user?.assignedPages || user.assignedPages.length == 0)){
-        accessList=["Dashboard","Investor General Info", "Funds", "Team", "Portfolio Companies", "ESG DD", "ESG CAP", "Valuation"];
+        accessList=["Investor General Info", "Funds", "Team", "Portfolio Companies", "ESG DD", "ESG CAP", "Valuation"];
       } else if (user?.assignedPages && user.assignedPages.length > 0) {
         accessList = user?.assignedPages?.flatMap(p => {
           const modules = [p.moduleName];
