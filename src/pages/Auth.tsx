@@ -394,7 +394,7 @@ export default function Auth() {
             const { user, token, access, roleMenu = [] } = data;
             localStorage.setItem("auth_token", token);
             await handleTokenAuth(token);
-            navigate("/dashboard");
+            navigate("/investor-info");
             toast({ title: "Welcome back!", description: "Successfully signed in." });
         } catch (error: any) {
             toast({ title: "Error signing in", description: error.message, variant: "destructive" });
@@ -531,7 +531,7 @@ export default function Auth() {
                 localStorage.setItem("token", JSON.stringify(data.token));
                 toast({ title: "Success", description: "Account Created Successfully" });
                 setLoading(false);
-                navigate("/dashboard");
+                navigate("/investor-info");
             } else {
                 toast({ title: "Error", description: data.message || "Registration failed", variant: "destructive" });
             }
