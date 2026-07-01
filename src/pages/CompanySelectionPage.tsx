@@ -241,9 +241,12 @@ export default function CompanySelectionPage() {
         "₹500+ Cr": "500+",
     };
 
+  
+
     // Fetch dashboard data
     useEffect(() => {
         const fetchDashboard = async () => {
+            
             setLoading(true);
             try {
                 const res = await fetch(`${import.meta.env.VITE_API_URL}/investor/companyInfo/dashboard/esgcap`, {
@@ -265,7 +268,7 @@ export default function CompanySelectionPage() {
                     setSummary(json.summary);
                 }
             } catch (error) {
-                console.error("Failed to fetch dashboard:", error);
+                console.error("Failed to fetch dashboard summary data:", error);
                 setCompanies([]);
                 setSummary(null);
             } finally {
@@ -274,6 +277,10 @@ export default function CompanySelectionPage() {
         };
         fetchDashboard();
     }, []);
+
+    useEffect(() => {
+        console.log("Summary updated:", summary);
+    },[summary])
 
     // Calculate filter counts for each scoring category
     const filterCounts = useMemo(() => {
@@ -470,6 +477,10 @@ export default function CompanySelectionPage() {
         setItemsPerPage(newItemsPerPage);
         setCurrentPage(1);
     };
+
+      useEffect(() => {
+        console.log("Filters updated:", filterCounts);
+    }, [filterCounts]);
 
     const handleCompanySelect = (companyEmail: string) => {
         navigate(`/esg-dd/cap/${encodeURIComponent(companyEmail)}`);

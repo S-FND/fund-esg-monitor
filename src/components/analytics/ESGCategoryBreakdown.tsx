@@ -58,7 +58,7 @@ const getCategoryForPercentile = (percentile: number): string => {
 
 export const ESGCategoryBreakdown = ({ title, companies, onClose, onCategoryClick, lowCompletenessBrands }: ESGCategoryBreakdownProps) => {
   const [showScores, setShowScores] = useState(false);
-
+console.log("ESGCategoryBreakdown - companies:", companies);
   const withPercentiles = assignPercentiles(companies);
 
   const categorized = CATEGORIES.map(cat => ({
@@ -73,7 +73,7 @@ export const ESGCategoryBreakdown = ({ title, companies, onClose, onCategoryClic
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <CardTitle className="text-sm">{title} — Category Breakdown</CardTitle>
+            <CardTitle className="text-sm">{title} — Grade Breakdown</CardTitle>
             <Badge variant="secondary" className="text-[10px]">n={companies.length}</Badge>
           </div>
           <div className="flex items-center gap-3">

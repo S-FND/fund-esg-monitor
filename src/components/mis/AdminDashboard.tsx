@@ -11,7 +11,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useAnalyticsDashboardData, AnalyticsFilters } from '@/hooks/useAnalyticsDashboardData';
 import { FeatureAnalyticsView } from '@/components/analytics/FeatureAnalyticsView';
-import { InsightTab } from '@/components/analytics/InsightTab';
 import { exportCSV, exportTransposedCSV, exportPDF, exportXLSX, captureCharts, buildFilterSummary, ExportColumn } from '@/lib/exportUtils';
 import { buildAllFeatureCharts, renderFeatureChartsInPDF } from '@/lib/pdfChartRenderer';
 import { FEATURE_INSIGHT_METRICS, FEATURE_AGGREGATION_EXPORTS } from '@/lib/featureInsightMetrics';
@@ -22,6 +21,7 @@ import { mockCompanies } from '@/data/mockData';
 import { useQuery } from '@tanstack/react-query';
 // import { supabase } from '@/integrations/supabase/client';
 import { http } from '@/utils/httpInterceptor';
+import { InsightTab } from '../analytics/InsightsTab';
 
 const INDUSTRIES: Industry[] = ['Beauty & Personal Care', 'Fashion & Lifestyle', 'Health & Wellness', 'Food & Beverage', 'Home & Décor', 'Platform Enablers'];
 const FUNDS: Fund[] = ['Fund I', 'Fund II', 'Fund III', 'Fund IV'];
@@ -106,6 +106,7 @@ const renderFeatureCard = (
   const rawDataSource = useQuarterlyCombined && data.quarterlyCombinedRawData
     ? data.quarterlyCombinedRawData
     : data.companyRawData;
+    // console.log(`[Feature Card] ${feature.label} - applicableCompanyCount: ${applicableCompanyCount}, rawDataSource length: ${rawDataSource.length}, dbPrefixes: ${dbPrefixes.join(', ')}`);
   const companiesWithData = rawDataSource.filter((c: any) => {
     if (!mapping) return false;
     if (enabledForFeature && !enabledForFeature.has(c.companyId)) return false;
@@ -144,7 +145,7 @@ const renderFeatureCard = (
 };
 // ─── Insight metric labels for export ───
 const INSIGHT_EXPORT_KEYS: { key: keyof import('@/hooks/useAnalyticsDashboardData').InsightMetrics; label: string }[] = [
-  { key: 'esgCompositeScore', label: 'ESG Composite Score' },
+  { key: 'esgCompositeScore', label: 'ESG Performance Composite Score' },
   { key: 'socialScore', label: 'Social Score' },
   { key: 'circularEconomyIndex', label: 'Environment Score' },
   { key: 'governanceScore', label: 'Governance Score' },
