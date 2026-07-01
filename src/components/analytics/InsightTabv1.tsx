@@ -14,6 +14,8 @@ import {
 import { BarChart3, Users, ExternalLink, CheckCircle2, RefreshCw, Clock, Trophy, ArrowDown, ArrowUp, ArrowUpDown, Leaf, UsersRound, Shield, ChevronDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
+import CompanyDashboard from '../mis/CompanyDashboard';
+import { mockCompanies } from '@/data/mockData';
 
 interface InsightTabProps {
   insights: InsightMetrics;
@@ -60,8 +62,18 @@ const PercentileBadge = ({ value, type }: { value: number; type: 'completeness' 
   );
 };
 
-export const InsightTab = ({ insights, timeSeries, companyRawData, companyCount, filters }: InsightTabProps) => {
+export const InsightTabv1 = ({ insights, timeSeries, companyRawData, companyCount, filters }: InsightTabProps) => {
+  console.log('InsightTab props:', { insights, timeSeries, companyRawData, companyCount, filters });
   const navigate = useNavigate();
+  if (filters?.companyId) {
+    return (
+      <CompanyDashboard
+        companyId={filters.companyId}
+        companyName={mockCompanies.find(c => c.id === filters.companyId)?.brand || 'Company'}
+        filters={filters}
+      />
+    );
+  }
   const { rankings: allRankings, isLoading: rankingsLoading } = usePortfolioRankings(filters.year, filters.quarter || 'Q4');
   // Restrict rankings to companies in the currently filtered scope (industry, fund, revenue stage, Q category, Fireside POC, company)
   const filteredBrandSet = useMemo(() => new Set(companyRawData.map(c => c.brand)), [companyRawData]);
@@ -217,7 +229,7 @@ export const InsightTab = ({ insights, timeSeries, companyRawData, companyCount,
     navigate('/mis/analytics-detail', {
       state: {
         title: `${metricLabel} — Category ${categoryLabel}`,
-        featureLabel: 'Company Rankings',
+        featureLabel: 'Responsiveness Score',
         companyData,
         filters,
         isPct: false,
@@ -286,7 +298,7 @@ export const InsightTab = ({ insights, timeSeries, companyRawData, companyCount,
           onClick={() => navigate(`/mis/company-rankings?year=${filters.year}&quarter=${filters.quarter || 'Q4'}`)}
         >
           <Trophy className="w-5 h-5 text-amber-500" />
-          <h2 className="text-base font-semibold group-hover:underline">Company Rankings</h2>
+          <h2 className="text-base font-semibold group-hover:underline">Responsiveness Score</h2>
           <Badge variant="outline" className="text-xs">Completeness · Consistency · Timeliness</Badge>
           <Badge variant="secondary" className="text-xs">
             <Users className="w-3 h-3 mr-1" />
@@ -391,7 +403,7 @@ export const InsightTab = ({ insights, timeSeries, companyRawData, companyCount,
       <section>
         <div className="flex items-center gap-2 mb-3">
           <BarChart3 className="w-5 h-5 text-primary" />
-          <h2 className="text-base font-semibold">Cross-Module: ESG Composite Scores</h2>
+          <h2 className="text-base font-semibold">Cross-Module: ESG Performance Composite Scores</h2>
           <Badge variant="outline" className="text-xs">Auto-calculated</Badge>
           <Badge variant="secondary" className="text-xs">
             <Users className="w-3 h-3 mr-1" />
@@ -403,7 +415,7 @@ export const InsightTab = ({ insights, timeSeries, companyRawData, companyCount,
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           {/* ESG Composite - Larger card spanning or visually prominent */}
           {[
-            { key: 'esgCompositeScore', label: 'ESG Composite Score', value: perCompanyScores.esgCompositeScore, icon: <BarChart3 className="w-4 h-4 text-emerald-600" />, color: 'border-emerald-300 dark:border-emerald-700 bg-emerald-50/50 dark:bg-emerald-950/20', large: true, count: submittingCount },
+            { key: 'esgCompositeScore', label: 'ESG Performance Composite Score', value: perCompanyScores.esgCompositeScore, icon: <BarChart3 className="w-4 h-4 text-emerald-600" />, color: 'border-emerald-300 dark:border-emerald-700 bg-emerald-50/50 dark:bg-emerald-950/20', large: true, count: submittingCount },
             { key: 'circularEconomyIndex', label: 'Environment Score', value: perCompanyScores.circularEconomyIndex, icon: <Leaf className="w-4 h-4 text-amber-600" />, color: 'border-amber-200 dark:border-amber-800 bg-amber-50/30 dark:bg-amber-950/10', large: false, count: envEligibleCompanies.length },
             { key: 'socialScore', label: 'Social Score', value: perCompanyScores.socialScore, icon: <UsersRound className="w-4 h-4 text-blue-600" />, color: 'border-blue-200 dark:border-blue-800 bg-blue-50/30 dark:bg-blue-950/10', large: false, count: submittingCount },
             { key: 'governanceScore', label: 'Governance Score', value: perCompanyScores.governanceScore, icon: <Shield className="w-4 h-4 text-purple-600" />, color: 'border-purple-200 dark:border-purple-800 bg-purple-50/30 dark:bg-purple-950/10', large: false, count: submittingCount },
@@ -437,11 +449,12 @@ export const InsightTab = ({ insights, timeSeries, companyRawData, companyCount,
         {/* Inline Category Breakdown */}
         {expandedScore && (() => {
           const scoreMap: Record<string, { title: string; insightKey: keyof InsightMetrics }> = {
-            esgCompositeScore: { title: 'ESG Composite Score', insightKey: 'esgCompositeScore' },
+            esgCompositeScore: { title: 'ESG Performance Composite Score', insightKey: 'esgCompositeScore' },
             circularEconomyIndex: { title: 'Environment Score', insightKey: 'circularEconomyIndex' },
             socialScore: { title: 'Social Score', insightKey: 'socialScore' },
             governanceScore: { title: 'Governance Score', insightKey: 'governanceScore' },
           };
+          console.log('Expanded Score:', expandedScore);
           const config = scoreMap[expandedScore];
           if (!config) return null;
           const pool = expandedScore === 'circularEconomyIndex' ? envEligibleCompanies : submittingCompanies;
@@ -495,7 +508,7 @@ export const InsightTab = ({ insights, timeSeries, companyRawData, companyCount,
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height={260}>
-                  <LineChart data={insightTrends} onClick={() => handleDrillDown('ESG Composite Score', 'esgCompositeScore')} style={{ cursor: 'pointer' }}>
+                  <LineChart data={insightTrends} onClick={() => handleDrillDown('ESG Performance Composite Score', 'esgCompositeScore')} style={{ cursor: 'pointer' }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis dataKey="period" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
                     <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />

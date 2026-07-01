@@ -101,7 +101,7 @@ const CompanyRankings = () => {
             </Button>
             <div className="flex items-center gap-2">
               <Trophy className="w-5 h-5 text-amber-500" />
-              <h1 className="text-lg font-semibold">Company Rankings</h1>
+              <h1 className="text-lg font-semibold">Responsiveness Score</h1>
             </div>
             <Badge variant="outline" className="text-xs">
               {quarter} {year}

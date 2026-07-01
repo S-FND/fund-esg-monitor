@@ -105,7 +105,7 @@ const dbToKPI = (row: DBKPIMaster): KPI => {
 };
 
 const QUARTERS = ['Q1', 'Q2', 'Q3', 'Q4', 'AY'];
-const YEARS = [2025, 2024, 2023, 2022, 2021];
+const YEARS = [2026,2025, 2024, 2023, 2022, 2021];
 
 // Helper to format JSON values for display
 const formatDisplayValue = (value: string): string => {

@@ -38,7 +38,7 @@ const formatIndianNumber = (num: number, maxFractionDigits = 2): string => {
   const isNeg = num < 0;
   const abs = Math.abs(num);
   const [intPart, decPart] = abs.toFixed(maxFractionDigits).split('.');
-  
+
   // Apply Indian comma grouping: last 3 digits, then groups of 2
   let result = '';
   if (intPart.length <= 3) {
@@ -52,7 +52,7 @@ const formatIndianNumber = (num: number, maxFractionDigits = 2): string => {
     }
     result = groups.join(',') + ',' + last3;
   }
-  
+
   if (decPart) result += '.' + decPart;
   return (isNeg ? '-' : '') + result;
 };
@@ -87,7 +87,7 @@ const INSIGHT_FORMULA_MAP: Record<string, { formula: string; inputs: string[] }>
   'epr compliant': { formula: 'Count of companies with EPR Compliance % > 0 (cumulative across quarters)', inputs: ['EPR Compliance % per company'] },
   'epr compliance gap': { formula: 'EPR Targets (MT) − Total Packaging Recycled (MT)', inputs: ['EPR Targets (MT)', 'Total Packaging Recycled (MT)'] },
   'voluntary plastic initiative': { formula: 'Count of companies with Voluntary Plastic Neutrality % > 0 (cumulative across quarters)', inputs: ['Voluntary Plastic Neutrality % per company'] },
-  
+
   // Incidents & Grievances
   'total incident count': { formula: 'Sum of all incident_*_cases KPIs', inputs: ['Safety Incident Cases', 'Environmental Incident Cases', 'Compliance Incident Cases', 'Other Incident Cases'] },
   'case resolution rate': { formula: '(Total Cases − Total Open Cases) / Total Cases × 100', inputs: ['Total Cases', 'Total Open Cases'] },
@@ -279,8 +279,8 @@ const deriveUnitInfo = (title: string, isPct?: boolean): { unit: string; formula
 
   // Employee headcount fields
   if (t.includes('employee') || t.includes('workforce') || t.includes('male') || t.includes('female') || t.includes('collar') ||
-      t.includes('full-time') || t.includes('contractual') || t.includes('part-time') || t.includes('total employment') ||
-      t.includes('board') || t.includes('c-level') || t.includes('leadership') || t.includes('independent member')) {
+    t.includes('full-time') || t.includes('contractual') || t.includes('part-time') || t.includes('total employment') ||
+    t.includes('board') || t.includes('c-level') || t.includes('leadership') || t.includes('independent member')) {
     return { unit: 'Headcount', formula: 'Sum of per-company employee counts' };
   }
 
@@ -337,6 +337,7 @@ const deriveUnitOnly = (t: string, isPct?: boolean): string => {
 };
 
 const AnalyticsDetail = () => {
+  console.log("Entering AnalyticsDetail component");
   const location = useLocation();
   const navigate = useNavigate();
   const [showMissing, setShowMissing] = useState(false);
@@ -399,27 +400,101 @@ const AnalyticsDetail = () => {
 
   // Fetch feature-enabled company IDs so the detail rebuild matches the dashboard scoping
   const [featureEnabledCompanyIds, setFeatureEnabledCompanyIds] = useState<Set<string> | null>(null);
+  // useEffect(() => {
+  //   const featureKey = state?.filters?.feature;
+  //   if (!featureKey) { setFeatureEnabledCompanyIds(null); return; }
+  //   const fetchIds = async () => {
+  //     // For packaging analytics, also include fashionMaterials companies
+  //     const featureKeys = featureKey === 'primarySecondaryPackaging'
+  //       ? ['primarySecondaryPackaging', 'fashionMaterials']
+  //       : [featureKey];
+  //     // const { data } = await supabase
+  //     //   .from('company_feature_settings')
+  //     //   .select('company_id')
+  //     //   .in('feature_key', featureKeys)
+  //     //   .eq('enabled', true);
+
+  //     const { data } = await http.get<{ data: {company_id: string,feature_key: string,feature_type: string,enabled: boolean }[] }>("mis/company-feature-settings?enabled=true");
+
+  //     if (data && data.data && data.data.length > 0) {
+  //       setFeatureEnabledCompanyIds(new Set(data.data.map(d => d.company_id)));
+  //     }
+  //   };
+  //   fetchIds();
+  // }, [state?.filters?.feature]);
+
+  // useEffect(() => {
+  //   const featureKey = state?.filters?.feature;
+  //   if (!featureKey) { setFeatureEnabledCompanyIds(null); return; }
+
+  //   let cancelled = false;
+
+  //   const fetchIds = async () => {
+  //     // For packaging analytics, also include fashionMaterials companies
+  //     const featureKeys = featureKey === 'primarySecondaryPackaging'
+  //       ? ['primarySecondaryPackaging', 'fashionMaterials']
+  //       : [featureKey];
+
+  //     try {
+  //       const { data } = await http.get<{ data: { company_id: string; feature_key: string; feature_type: string; enabled: boolean }[] }>(
+  //         "mis/company-feature-settings?enabled=true"
+  //       );
+
+  //       if (cancelled) return;
+
+  //       const rows = data?.data ?? [];
+  //       const filtered = rows.filter(
+  //         d => d.enabled && featureKeys.includes(d.feature_key)
+  //       );
+
+  //       setFeatureEnabledCompanyIds(
+  //         filtered.length > 0 ? new Set(filtered.map(d => d.company_id)) : null
+  //       );
+  //     } catch (err) {
+  //       if (!cancelled) {
+  //         console.error('Failed to fetch feature-enabled company ids', err);
+  //         setFeatureEnabledCompanyIds(null);
+  //       }
+  //     }
+  //   };
+
+  //   fetchIds();
+  //   return () => { cancelled = true; };
+  // }, [state?.filters?.feature]);
+
   useEffect(() => {
     const featureKey = state?.filters?.feature;
     if (!featureKey) { setFeatureEnabledCompanyIds(null); return; }
+
+    let cancelled = false;
+    console.log(`[featureIds] EFFECT START at ${Date.now()} for feature:`, featureKey);
+
     const fetchIds = async () => {
-      // For packaging analytics, also include fashionMaterials companies
       const featureKeys = featureKey === 'primarySecondaryPackaging'
         ? ['primarySecondaryPackaging', 'fashionMaterials']
         : [featureKey];
-      // const { data } = await supabase
-      //   .from('company_feature_settings')
-      //   .select('company_id')
-      //   .in('feature_key', featureKeys)
-      //   .eq('enabled', true);
 
-      const { data } = await http.get<{ data: {company_id: string,feature_key: string,feature_type: string,enabled: boolean }[] }>("/mis/company-feature-settings");
+      const { data } = await http.get<{ data: { company_id: string; feature_key: string; feature_type: string; enabled: boolean }[] }>(
+        "mis/company-feature-settings?enabled=true"
+      );
 
-      if (data && data.data && data.data.length > 0) {
-        setFeatureEnabledCompanyIds(new Set(data.data.map(d => d.company_id)));
+      if (cancelled) {
+        console.log(`[featureIds] DISCARDED stale response at ${Date.now()}`);
+        return;
       }
+
+      const rows = data?.data ?? [];
+      const filtered = rows.filter(d => d.enabled && featureKeys.includes(d.feature_key));
+      console.log(`[featureIds] RESOLVED at ${Date.now()}`, 'total rows:', rows.length, 'filtered:', filtered.length);
+
+      setFeatureEnabledCompanyIds(filtered.length > 0 ? new Set(filtered.map(d => d.company_id)) : null);
     };
+
     fetchIds();
+    return () => {
+      cancelled = true;
+      console.log(`[featureIds] EFFECT CLEANUP (cancelled) at ${Date.now()}`);
+    };
   }, [state?.filters?.feature]);
 
   // Helper: filter raw data to only feature-enabled companies (when available)
@@ -547,6 +622,13 @@ const AnalyticsDetail = () => {
   // Rebuild company data from fresh data with quarterly breakdowns
   const rebuiltCompanyData = useMemo(() => {
     if (!freshData || !state || !canRefetch) return null;
+    console.log(`[rebuild] RUNNING at ${Date.now()}`, {
+      hasFreshData: !!freshData,
+      featureIdsSize: featureEnabledCompanyIds?.size ?? 'null',
+      sourceKpiKey: state.sourceKpiKey,
+      sourceInsightKey: state.sourceInsightKey,
+      sourceCalcId: state.sourceCalcId,
+    });
 
     const sourceKpiKey = state.sourceKpiKey;
     const sourceInsightKey = state.sourceInsightKey as keyof InsightMetrics | undefined;
@@ -601,6 +683,16 @@ const AnalyticsDetail = () => {
       }
 
       // For Q4 snapshot metrics, use Q4 data as the source for filtering & value
+      // let q4Source = useQ4ForValue ? (freshData.quarterlyPerQuarterRawData!['Q4'] || []) : null;
+      // if (q4Source && kpiFeaturePrefixes) {
+      //   q4Source = q4Source.filter(c => {
+      //     const keys = Object.keys(c.kpis).filter(k => c.kpis[k]?.trim());
+      //     return keys.some(k => kpiFeaturePrefixes.some(p => k.startsWith(p)));
+      //   });
+      // }
+      // const valueSource = q4Source || rawData;
+
+      // For Q4 snapshot metrics, use Q4 data as the source for filtering & value
       let q4Source = useQ4ForValue ? (freshData.quarterlyPerQuarterRawData!['Q4'] || []) : null;
       if (q4Source && kpiFeaturePrefixes) {
         q4Source = q4Source.filter(c => {
@@ -608,7 +700,17 @@ const AnalyticsDetail = () => {
           return keys.some(k => kpiFeaturePrefixes.some(p => k.startsWith(p)));
         });
       }
-      const valueSource = q4Source || rawData;
+
+      // Only trust the Q4 snapshot if it's at least as complete as the annual/combined
+      // fallback for this specific KPI. Prevents using a near-empty Q4 array when
+      // Q4 hasn't been reported yet (e.g. selecting a current/future year like Q1 2026).
+      const q4FilledCount = q4Source ? q4Source.filter(c => c.kpis[sourceKpiKey]?.trim()).length : 0;
+      const annualFilledCount = rawData.filter(c => c.kpis[sourceKpiKey]?.trim()).length;
+      const q4HasMeaningfulData = q4FilledCount > 0 && q4FilledCount >= annualFilledCount;
+
+      const valueSource = q4HasMeaningfulData ? q4Source! : rawData;
+
+      console.log('[Q4 fallback check]', { q4FilledCount, annualFilledCount, q4HasMeaningfulData, valueSourceLength: valueSource.length });
 
       // KPI keys where annual Value = SUM of quarterly values (not the averaged combined value)
       const sumNotAvgKeys = new Set(['leadership_avg_cxo_compensation']);
@@ -658,6 +760,8 @@ const AnalyticsDetail = () => {
           }
           return row;
         });
+      console.log(`[rebuild] sourceKpiKey DONE`, rows.length, 'rows, vs state.companyData:', state.companyData?.length);
+
       return rows;
     }
     // Annual-only insight keys that don't have quarterly breakdowns
@@ -690,12 +794,12 @@ const AnalyticsDetail = () => {
       if (annualOnlyInsightKeysSet.has(sourceInsightKey) && freshData.companyRawData) {
         const checkKey = sourceInsightKey === 'waterRecyclingRate' || sourceInsightKey === 'totalWaterConsumption' ? 'water_detailed_office_water_consumed'
           : sourceInsightKey === 'totalEnergyConsumption' || sourceInsightKey === 'renewableEnergyMix' ? 'energy_detailed_office_energy_consumed'
-          : sourceInsightKey === 'wasteDiversionRate' || sourceInsightKey === 'totalWasteGeneratedInsight' ? 'waste_detailed_office_waste_generated'
-          : sourceInsightKey === 'policyAdoptionRate' || sourceInsightKey === 'trainingCoverageRate' ? 'policy_posh_in_place'
-          : sourceInsightKey === 'esgCompositeScore' || sourceInsightKey === 'circularEconomyIndex' ? 'waste_detailed_office_waste_generated'
-          : sourceInsightKey === 'supplyChainSustainabilityScore' || sourceInsightKey === 'governanceScore' ? 'policy_supplier_code_of_conduct_in_place'
-          : sourceInsightKey === 'deiCompositeScore' ? 'employees_wc_male_fulltime'
-          : 'waste_detailed_office_waste_generated';
+            : sourceInsightKey === 'wasteDiversionRate' || sourceInsightKey === 'totalWasteGeneratedInsight' ? 'waste_detailed_office_waste_generated'
+              : sourceInsightKey === 'policyAdoptionRate' || sourceInsightKey === 'trainingCoverageRate' ? 'policy_posh_in_place'
+                : sourceInsightKey === 'esgCompositeScore' || sourceInsightKey === 'circularEconomyIndex' ? 'waste_detailed_office_waste_generated'
+                  : sourceInsightKey === 'supplyChainSustainabilityScore' || sourceInsightKey === 'governanceScore' ? 'policy_supplier_code_of_conduct_in_place'
+                    : sourceInsightKey === 'deiCompositeScore' ? 'employees_wc_male_fulltime'
+                      : 'waste_detailed_office_waste_generated';
         const hasDataInQuarterly = rawData.some(c => {
           const v = parseFloat(c.kpis[checkKey] || '0') || 0;
           return v > 0;
@@ -827,6 +931,8 @@ const AnalyticsDetail = () => {
             },
           });
         });
+        console.log(`[rebuild] plasticReductionPct DONE`, plasticRows.length, 'rows');
+
         return plasticRows;
       }
 
@@ -1498,6 +1604,9 @@ const AnalyticsDetail = () => {
     ? rebuiltCompanyData
     : (state?.companyData || []);
 
+  console.log(`[activeCompanyData] at ${Date.now()}`, 'using:', (rebuiltCompanyData && rebuiltCompanyData.length > 0) ? 'REBUILT' : 'STATE.companyData', 'length:', activeCompanyData.length);
+
+
   // Auto-detect quarterly data from both state and rebuilt data
   // Auto-detect meaningful quarterly data (exclude all-zero quarterly values)
   const autoHasQuarterly = stateHasQuarterly || activeCompanyData.some(r => {
@@ -1585,18 +1694,18 @@ const AnalyticsDetail = () => {
   if (!state) {
     return (
       <div className="space-y-6">
-      <div className="space-y-6">
-        <PageHeader title="Analytics Detail" subtitle="No data available" />
-        <Card className="mt-4">
-          <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground">No analytics data to display. Please navigate from the dashboard.</p>
-            <Button variant="outline" className="mt-4" onClick={() => navigate('/mis/dashboard')}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Dashboard
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+        <div className="space-y-6">
+          <PageHeader title="Analytics Detail" subtitle="No data available" />
+          <Card className="mt-4">
+            <CardContent className="py-12 text-center">
+              <p className="text-muted-foreground">No analytics data to display. Please navigate from the dashboard.</p>
+              <Button variant="outline" className="mt-4" onClick={() => navigate('/mis/dashboard')}>
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Dashboard
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
@@ -1625,8 +1734,8 @@ const AnalyticsDetail = () => {
   const envFeatureMissingBrands = new Set(
     state?.sourceInsightKey === 'esgCompositeScore'
       ? activeCompanyData
-          .filter(c => c.ratioColumns?.['E Score (35%)'] === 'N/A')
-          .map(c => c.brand)
+        .filter(c => c.ratioColumns?.['E Score (35%)'] === 'N/A')
+        .map(c => c.brand)
       : []
   );
   const missingCompanies: CompanyDataRow[] = (allFilteredCompanies || [])
@@ -1654,7 +1763,6 @@ const AnalyticsDetail = () => {
     if (!isNaN(aNum) && !isNaN(bNum)) return isAscendingMetric ? aNum - bNum : bNum - aNum;
     return a.brand.localeCompare(b.brand);
   });
-
   // Display data: either the companies with data, or missing companies
   const displayData = showMissing ? missingCompanies : sortedData;
 
@@ -1755,158 +1863,180 @@ const AnalyticsDetail = () => {
 
   const periodLabel = filters?.quarterlyKpiCombined
     ? `Q1-Q4 Combined ${filterYear}`
-    : filters?.period === 'quarterly' 
-      ? `${filterQuarter !== 'all' ? filterQuarter : filters.quarter} ${filterYear}` 
+    : filters?.period === 'quarterly'
+      ? `${filterQuarter !== 'all' ? filterQuarter : filters.quarter} ${filterYear}`
       : `Annual ${filterYear}`;
   const isLoadingFresh = isRefetching;
 
   return (
     <div className="space-y-6">
       <div className="space-y-6">
-      <div className="flex items-center gap-3 mb-4">
-        <Button variant="ghost" size="sm" onClick={() => {
-          const p = new URLSearchParams();
-          if (filters?.period) p.set('period', filters.period);
-          if (filters?.quarter) p.set('quarter', filters.quarter);
-          if (filters?.year) p.set('year', String(filters.year));
-          if (filters?.feature) p.set('feature', filters.feature);
-          if (filters?.industry) p.set('industry', filters.industry);
-          if (filters?.fund) p.set('fund', filters.fund);
-          if (filters?.revenueStage) p.set('revenueStage', filters.revenueStage);
-          if (filters?.qCategory) p.set('qCategory', filters.qCategory);
-          if (filters?.companyId) p.set('companyId', filters.companyId);
-          if (state?.sourceInsightKey) p.set('tab', 'insight');
-          navigate(`/mis/dashboard?${p.toString()}`);
-        }}>
-          <ArrowLeft className="w-4 h-4 mr-1" />
-          Back
-        </Button>
-        <div className="flex-1">
-          <h1 className="text-lg font-semibold">{title}</h1>
-          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-            <Badge variant="outline" className="text-xs">{featureLabel}</Badge>
-            <Badge variant="secondary" className="text-xs">{periodLabel}</Badge>
-            <Badge variant="secondary" className="text-xs">
-              <Users className="w-3 h-3 mr-1" />
-              n={filteredCompanyData.length}
-            </Badge>
-            <Badge variant="outline" className="text-xs font-mono">{unit}</Badge>
-            {isLoadingFresh && <Badge variant="secondary" className="text-xs animate-pulse">Loading {filterYear} data…</Badge>}
+        <div className="flex items-center gap-3 mb-4">
+          <Button variant="ghost" size="sm" onClick={() => {
+            const p = new URLSearchParams();
+            if (filters?.period) p.set('period', filters.period);
+            if (filters?.quarter) p.set('quarter', filters.quarter);
+            if (filters?.year) p.set('year', String(filters.year));
+            if (filters?.feature) p.set('feature', filters.feature);
+            if (filters?.industry) p.set('industry', filters.industry);
+            if (filters?.fund) p.set('fund', filters.fund);
+            if (filters?.revenueStage) p.set('revenueStage', filters.revenueStage);
+            if (filters?.qCategory) p.set('qCategory', filters.qCategory);
+            if (filters?.companyId) p.set('companyId', filters.companyId);
+            if (state?.sourceInsightKey) p.set('tab', 'insight');
+            navigate(`/mis/dashboard?${p.toString()}`);
+          }}>
+            <ArrowLeft className="w-4 h-4 mr-1" />
+            Back
+          </Button>
+          <div className="flex-1">
+            <h1 className="text-lg font-semibold">{title}</h1>
+            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+              <Badge variant="outline" className="text-xs">{featureLabel}</Badge>
+              <Badge variant="secondary" className="text-xs">{periodLabel}</Badge>
+              <Badge variant="secondary" className="text-xs">
+                <Users className="w-3 h-3 mr-1" />
+                n={filteredCompanyData.length}
+              </Badge>
+              <Badge variant="outline" className="text-xs font-mono">{unit}</Badge>
+              {isLoadingFresh && <Badge variant="secondary" className="text-xs animate-pulse">Loading {filterYear} data…</Badge>}
+            </div>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {/* Quarter filter: always shown */}
+            <Select
+              value={filterQuarter}
+              onValueChange={setFilterQuarter}
+            >
+              <SelectTrigger className="h-8 w-[100px] text-xs">
+                <SelectValue placeholder="Quarter" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Quarters</SelectItem>
+                <SelectItem value="Q1">Q1</SelectItem>
+                <SelectItem value="Q2">Q2</SelectItem>
+                <SelectItem value="Q3">Q3</SelectItem>
+                <SelectItem value="Q4">Q4</SelectItem>
+              </SelectContent>
+            </Select>
+            {/* Year filter: enabled with available years */}
+            <Select value={filterYear} onValueChange={setFilterYear}>
+              <SelectTrigger className="h-8 w-[90px] text-xs">
+                <SelectValue placeholder="Year" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="2024">2024</SelectItem>
+                <SelectItem value="2025">2025</SelectItem>
+                <SelectItem value="2026">2026</SelectItem>
+              </SelectContent>
+            </Select>
+            {/* Q Category filter */}
+            <Select value={filterQCategory} onValueChange={setFilterQCategory}>
+              <SelectTrigger className="h-8 w-[90px] text-xs">
+                <SelectValue placeholder="Q Cat" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Q Cat</SelectItem>
+                <SelectItem value="Q">Q</SelectItem>
+                <SelectItem value="Q1">Q1</SelectItem>
+                <SelectItem value="Q2">Q2</SelectItem>
+                <SelectItem value="Q3">Q3</SelectItem>
+                <SelectItem value="Early">Early</SelectItem>
+              </SelectContent>
+            </Select>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Download className="w-4 h-4 mr-1" />
+                  Export
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleExportExcel}>
+                  <FileSpreadsheet className="w-4 h-4 mr-2" />
+                  Export Excel
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportPDF}>
+                  <FileText className="w-4 h-4 mr-2" />
+                  Export PDF
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {/* Quarter filter: always shown */}
-          <Select 
-            value={filterQuarter} 
-            onValueChange={setFilterQuarter}
-          >
-            <SelectTrigger className="h-8 w-[100px] text-xs">
-              <SelectValue placeholder="Quarter" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Quarters</SelectItem>
-              <SelectItem value="Q1">Q1</SelectItem>
-              <SelectItem value="Q2">Q2</SelectItem>
-              <SelectItem value="Q3">Q3</SelectItem>
-              <SelectItem value="Q4">Q4</SelectItem>
-            </SelectContent>
-          </Select>
-          {/* Year filter: enabled with available years */}
-          <Select value={filterYear} onValueChange={setFilterYear}>
-            <SelectTrigger className="h-8 w-[90px] text-xs">
-              <SelectValue placeholder="Year" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="2024">2024</SelectItem>
-              <SelectItem value="2025">2025</SelectItem>
-            </SelectContent>
-          </Select>
-          {/* Q Category filter */}
-          <Select value={filterQCategory} onValueChange={setFilterQCategory}>
-            <SelectTrigger className="h-8 w-[90px] text-xs">
-              <SelectValue placeholder="Q Cat" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Q Cat</SelectItem>
-              <SelectItem value="Q">Q</SelectItem>
-              <SelectItem value="Q1">Q1</SelectItem>
-              <SelectItem value="Q2">Q2</SelectItem>
-              <SelectItem value="Q3">Q3</SelectItem>
-              <SelectItem value="Early">Early</SelectItem>
-            </SelectContent>
-          </Select>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                <Download className="w-4 h-4 mr-1" />
-                Export
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handleExportExcel}>
-                <FileSpreadsheet className="w-4 h-4 mr-2" />
-                Export Excel
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleExportPDF}>
-                <FileText className="w-4 h-4 mr-2" />
-                Export PDF
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
 
-      {/* Calculation methodology — hide for text/comment detail views and partner name lists */}
-      {!isTextFieldResponses && !isAdditionalComments && !isAwardsOrMedia && !tLower.includes('partner name') && (() => {
-        const insightMeta = findInsightMeta(title);
-        return (
-          <Card className="mb-4 bg-muted/30 border-dashed">
-            <CardContent className="py-3 px-4 flex items-start gap-2">
-              <Info className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
-              <div className="flex-1">
-                <p className="text-xs font-medium text-muted-foreground">Calculation Method</p>
-                <p className="text-sm font-medium mt-0.5 whitespace-pre-line">{formula}</p>
-                <p className="text-xs text-muted-foreground mt-1">Unit: <span className="font-mono font-medium">{unit}</span></p>
-                {insightMeta && insightMeta.inputs.length > 0 && (
-                  <div className="mt-2 pt-2 border-t border-dashed border-border">
-                    <p className="text-xs font-medium text-muted-foreground mb-1">Input Fields Used</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {insightMeta.inputs.map((input, idx) => (
-                        <Badge key={idx} variant="secondary" className="text-[10px] font-normal">
-                          {input}
-                        </Badge>
-                      ))}
+        {/* Calculation methodology — hide for text/comment detail views and partner name lists */}
+        {!isTextFieldResponses && !isAdditionalComments && !isAwardsOrMedia && !tLower.includes('partner name') && (() => {
+          const insightMeta = findInsightMeta(title);
+          return (
+            <Card className="mb-4 bg-muted/30 border-dashed">
+              <CardContent className="py-3 px-4 flex items-start gap-2">
+                <Info className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+                <div className="flex-1">
+                  <p className="text-xs font-medium text-muted-foreground">Calculation Method</p>
+                  <p className="text-sm font-medium mt-0.5 whitespace-pre-line">{formula}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Unit: <span className="font-mono font-medium">{unit}</span></p>
+                  {insightMeta && insightMeta.inputs.length > 0 && (
+                    <div className="mt-2 pt-2 border-t border-dashed border-border">
+                      <p className="text-xs font-medium text-muted-foreground mb-1">Input Fields Used</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {insightMeta.inputs.map((input, idx) => (
+                          <Badge key={idx} variant="secondary" className="text-[10px] font-normal">
+                            {input}
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })()}
-
-      {/* Summary stats */}
-      {isNumeric && !isTextFieldResponses && !isAdditionalComments && (() => {
-        const isCompanyCountMetric = tLower.includes('compliant companies') || tLower.includes('initiative companies') || tLower.includes('partner');
-        const statCards = isCompanyCountMetric ? [
-          { label: 'Companies', value: String(filteredCompanyData.length) },
-        ] : [
-          ...(!isPct && !state?.sourceInsightKey ? [{ label: 'Total', value: formatValue(total.toFixed(isOperationsFeature ? 0 : 2)) }] : []),
-          ...(!isOperationsFeature ? [{ label: 'Average', value: formatValue(avg.toFixed(2)) }] : []),
-          { label: 'Highest', value: formatValue(max.toFixed(isOperationsFeature ? 0 : 2)) },
-          { label: 'Lowest', value: formatValue(min.toFixed(isOperationsFeature ? 0 : 2)) },
-        ];
-        return (
-        <div className={`grid gap-3 mb-4 ${isPct || state?.sourceInsightKey || isCompanyCountMetric ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-2 md:grid-cols-5'}`}>
-          {statCards.map(stat => (
-            <Card key={stat.label}>
-              <CardContent className="pt-3 pb-2">
-                <p className="text-xs text-muted-foreground">{stat.label}</p>
-                <p className="text-lg font-bold">{stat.value}</p>
+                  )}
+                </div>
               </CardContent>
             </Card>
-          ))}
-          {missingCompanies.length > 0 && !isMsmeMetric && !state?.hideNotConsidered && (
+          );
+        })()}
+
+        {/* Summary stats */}
+        {isNumeric && !isTextFieldResponses && !isAdditionalComments && (() => {
+          const isCompanyCountMetric = tLower.includes('compliant companies') || tLower.includes('initiative companies') || tLower.includes('partner');
+          const statCards = isCompanyCountMetric ? [
+            { label: 'Companies', value: String(filteredCompanyData.length) },
+          ] : [
+            ...(!isPct && !state?.sourceInsightKey ? [{ label: 'Total', value: formatValue(total.toFixed(isOperationsFeature ? 0 : 2)) }] : []),
+            ...(!isOperationsFeature ? [{ label: 'Average', value: formatValue(avg.toFixed(2)) }] : []),
+            { label: 'Highest', value: formatValue(max.toFixed(isOperationsFeature ? 0 : 2)) },
+            { label: 'Lowest', value: formatValue(min.toFixed(isOperationsFeature ? 0 : 2)) },
+          ];
+          return (
+            <div className={`grid gap-3 mb-4 ${isPct || state?.sourceInsightKey || isCompanyCountMetric ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-2 md:grid-cols-5'}`}>
+              {statCards.map(stat => (
+                <Card key={stat.label}>
+                  <CardContent className="pt-3 pb-2">
+                    <p className="text-xs text-muted-foreground">{stat.label}</p>
+                    <p className="text-lg font-bold">{stat.value}</p>
+                  </CardContent>
+                </Card>
+              ))}
+              {missingCompanies.length > 0 && !isMsmeMetric && !state?.hideNotConsidered && (
+                <Card
+                  className={`cursor-pointer hover:shadow-md transition-shadow ${showMissing ? 'border-destructive/50 bg-destructive/5' : ''}`}
+                  onClick={() => setShowMissing(!showMissing)}
+                >
+                  <CardContent className="pt-3 pb-2">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <UserX className="w-3.5 h-3.5 text-destructive" />
+                      <p className="text-xs text-muted-foreground">Not Considered</p>
+                    </div>
+                    <p className="text-lg font-bold text-destructive">{missingCompanies.length}</p>
+                    <p className="text-[10px] text-muted-foreground">companies · KPI not filled</p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          );
+        })()}
+
+        {/* Not-considered card when no numeric stats */}
+        {!isNumeric && missingCompanies.length > 0 && !isMsmeMetric && !state?.hideNotConsidered && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
             <Card
               className={`cursor-pointer hover:shadow-md transition-shadow ${showMissing ? 'border-destructive/50 bg-destructive/5' : ''}`}
               onClick={() => setShowMissing(!showMissing)}
@@ -1920,175 +2050,158 @@ const AnalyticsDetail = () => {
                 <p className="text-[10px] text-muted-foreground">companies · KPI not filled</p>
               </CardContent>
             </Card>
-          )}
-        </div>
-        );
-      })()}
+          </div>
+        )}
 
-      {/* Not-considered card when no numeric stats */}
-      {!isNumeric && missingCompanies.length > 0 && !isMsmeMetric && !state?.hideNotConsidered && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-          <Card
-            className={`cursor-pointer hover:shadow-md transition-shadow ${showMissing ? 'border-destructive/50 bg-destructive/5' : ''}`}
-            onClick={() => setShowMissing(!showMissing)}
-          >
-            <CardContent className="pt-3 pb-2">
-              <div className="flex items-center gap-1.5 mb-0.5">
-                <UserX className="w-3.5 h-3.5 text-destructive" />
-                <p className="text-xs text-muted-foreground">Not Considered</p>
-              </div>
-              <p className="text-lg font-bold text-destructive">{missingCompanies.length}</p>
-              <p className="text-[10px] text-muted-foreground">companies · KPI not filled</p>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+        {/* Company-wise table */}
+        {(() => {
+          const isCircularEconomy = state?.sourceInsightKey === 'circularEconomyIndex';
+          const nonFashionHeaders = ratioColumnHeaders; // default headers from config
+          const fashionHeaders = CIRCULAR_ECONOMY_FASHION_HEADERS;
 
-      {/* Company-wise table */}
-      {(() => {
-        const isCircularEconomy = state?.sourceInsightKey === 'circularEconomyIndex';
-        const nonFashionHeaders = ratioColumnHeaders; // default headers from config
-        const fashionHeaders = CIRCULAR_ECONOMY_FASHION_HEADERS;
-
-        const renderCompanyTable = (
-          tableData: typeof displayData,
-          tableLabel: string,
-          headers: string[] | undefined,
-          showSubTotal: boolean,
-        ) => (
-          <Card className="mb-4">
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm">
-                  {showMissing ? 'Companies Not Considered (KPI Not Filled)' : tableLabel}
-                </CardTitle>
-                {showMissing && (
-                  <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => setShowMissing(false)}>
-                    ← Back to data
-                  </Button>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-md border overflow-auto max-h-[60vh]">
-                <Table>
-                  <TableHeader>
-                     <TableRow>
-                       <TableHead className="w-8 text-xs">#</TableHead>
-                       <TableHead className="text-xs">Brand</TableHead>
-                       <TableHead className="text-xs">Industry</TableHead>
-                       <TableHead className={`text-xs ${(isAdditionalComments || isTextFieldResponses) ? '' : 'text-right'}`}>{showMissing ? 'Status' : (isAdditionalComments) ? 'Response' : isTextFieldResponses ? (textFieldHasValidity ? 'Response (Name)' : 'Response') : 'Value'}</TableHead>
-                       {!showMissing && autoHasQuarterly && <>
-                         <TableHead className="text-xs text-right">Q1</TableHead>
-                         <TableHead className="text-xs text-right">Q2</TableHead>
-                         <TableHead className="text-xs text-right">Q3</TableHead>
-                         <TableHead className="text-xs text-right">Q4</TableHead>
-                       </>}
-                       {!showMissing && headers && headers.map(h => (
+          const renderCompanyTable = (
+            tableData: typeof displayData,
+            tableLabel: string,
+            headers: string[] | undefined,
+            showSubTotal: boolean,
+          ) => (
+            <Card className="mb-4">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm">
+                    {showMissing ? 'Companies Not Considered (KPI Not Filled)' : tableLabel}
+                  </CardTitle>
+                  {showMissing && (
+                    <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => setShowMissing(false)}>
+                      ← Back to data
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-md border overflow-auto max-h-[60vh]">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-8 text-xs">#</TableHead>
+                        <TableHead className="text-xs">Brand</TableHead>
+                        <TableHead className="text-xs">Industry</TableHead>
+                        {!showMissing && headers && headers.map(h => (
+                          <TableHead key={h} className="text-xs text-right">{h}</TableHead>
+                        ))}
+                        <TableHead className={`text-xs ${(isAdditionalComments || isTextFieldResponses) ? '' : 'text-right'}`}>{showMissing ? 'Status' : (isAdditionalComments) ? 'Response' : isTextFieldResponses ? (textFieldHasValidity ? 'Response (Name)' : 'Response') : 'Value'}</TableHead>
+                        {!showMissing && autoHasQuarterly && <>
+                          <TableHead className="text-xs text-right">Q1 {filterYear}</TableHead>
+                          <TableHead className="text-xs text-right">Q2 {filterYear}</TableHead>
+                          <TableHead className="text-xs text-right">Q3 {filterYear}</TableHead>
+                          <TableHead className="text-xs text-right">Q4 {filterYear}</TableHead>
+                        </>}
+                        {/* {!showMissing && headers && headers.map(h => (
                          <TableHead key={h} className="text-xs text-right">{h}</TableHead>
-                       ))}
-                       {!showMissing && isAwards && <><TableHead className="text-xs">Award Title</TableHead><TableHead className="text-xs">Award Description</TableHead></>}
-                       {!showMissing && isMedia && <><TableHead className="text-xs">Title</TableHead><TableHead className="text-xs">Relevant Link</TableHead></>}
-                       {!showMissing && isTextFieldResponses && <TableHead className="text-xs">Field</TableHead>}
-                       {!showMissing && textFieldHasValidity && <TableHead className="text-xs">Validity</TableHead>}
-                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {tableData.length === 0 ? (
-                       <TableRow>
-                         <TableCell colSpan={4 + (autoHasQuarterly ? 4 : 0) + (headers?.length || 0) + ((isAwards || isMedia) ? 2 : 0) + (isTextFieldResponses ? 1 : 0) + (textFieldHasValidity ? 1 : 0)} className="text-center text-muted-foreground py-8">
-                           {showMissing ? 'All companies have filled this KPI' : 'No company data available for this metric'}
-                         </TableCell>
-                       </TableRow>
-                    ) : (
-                      tableData.map((row, i) => {
-                         const isLowCompleteness = state?.lowCompletenessBrands?.includes(row.brand);
-                         return (
-                         <TableRow key={`${row.brand}-${i}`} className={showMissing ? 'bg-destructive/5' : ''}>
-                           <TableCell className="text-xs text-muted-foreground">{i + 1}</TableCell>
-                           <TableCell className={`text-xs font-medium ${isLowCompleteness ? 'text-red-600 dark:text-red-400' : ''}`}>
-                             {row.brand}
-                           </TableCell>
-                           <TableCell className="text-xs">
-                             <Badge variant="outline" className="text-[10px]">{row.industry}</Badge>
-                           </TableCell>
-                           <TableCell className={`text-xs ${(isAdditionalComments || isTextFieldResponses) ? 'whitespace-pre-wrap break-words max-w-md' : 'text-right font-mono'}`}>
-                             {showMissing ? (
-                               <Badge variant="destructive" className="text-[10px]">Not filled</Badge>
-                             ) : (isAdditionalComments || isTextFieldResponses) ? (
-                               row.value || '—'
-                             ) : (
-                               formatValue(row.value, false) || '—'
-                             )}
-                           </TableCell>
-                           {!showMissing && autoHasQuarterly && <>
-                             <TableCell className="text-xs text-right font-mono">{formatValue(row.q1 || '', false) || '—'}</TableCell>
-                             <TableCell className="text-xs text-right font-mono">{formatValue(row.q2 || '', false) || '—'}</TableCell>
-                             <TableCell className="text-xs text-right font-mono">{formatValue(row.q3 || '', false) || '—'}</TableCell>
-                             <TableCell className="text-xs text-right font-mono">{formatValue(row.q4 || '', false) || '—'}</TableCell>
-                           </>}
-                            {!showMissing && headers && headers.map(h => {
-                               const cellVal = row.ratioColumns?.[h] || '';
-                               const isNA = cellVal === '-1' || cellVal === 'N/A' || cellVal === 'NA';
-                               return <TableCell key={h} className={`text-xs text-right font-mono ${isNA ? 'text-muted-foreground italic' : ''}`}>{isNA ? 'NA' : (formatValue(cellVal, false) || '—')}</TableCell>;
-                            })}
-                           {!showMissing && isAwards && <><TableCell className="text-xs whitespace-pre-wrap break-words max-w-xs">{row.col1 || '—'}</TableCell><TableCell className="text-xs whitespace-pre-wrap break-words max-w-xs">{row.col2 || '—'}</TableCell></>}
-                           {!showMissing && isMedia && <><TableCell className="text-xs whitespace-pre-wrap break-words max-w-xs">{row.col1 || '—'}</TableCell><TableCell className="text-xs whitespace-pre-wrap break-words max-w-xs">{row.col2 || '—'}</TableCell></>}
-                           {!showMissing && isTextFieldResponses && <TableCell className="text-xs whitespace-pre-wrap break-words max-w-xs">{row.col1 || '—'}</TableCell>}
-                           {!showMissing && textFieldHasValidity && <TableCell className="text-xs whitespace-pre-wrap break-words max-w-xs">{row.col2 || '—'}</TableCell>}
-                         </TableRow>
-                         );
-                      })
-                    )}
-                    {/* Sub-total row for insight metrics with ratio columns */}
-                    {showSubTotal && !showMissing && state?.sourceInsightKey && headers && tableData.length > 0 && (() => {
-                      const SUB_TOTAL_INSIGHTS = new Set([
-                        'recycledContentRatio', 'mtPlasticPerCrRevenue', 'eprComplianceRate', 'eprComplianceGap',
-                        'recyclableVsNonRecyclablePrimary', 'syntheticVsNaturalFiberRatio', 'monoMaterialRecyclablePct',
-                        'recycledPlasticAdoptionFashion',
-                      ]);
-                      if (!SUB_TOTAL_INSIGHTS.has(state.sourceInsightKey)) return null;
-                      const colSums: Record<string, number> = {};
-                      headers.forEach(h => { colSums[h] = 0; });
-                      tableData.forEach(row => {
-                        headers.forEach(h => {
-                          colSums[h] += parseFloat(row.ratioColumns?.[h] || '0') || 0;
-                        });
-                      });
-                      const valueSum = tableData.reduce((s, r) => s + (parseFloat(r.value) || 0), 0);
-                      return (
-                        <TableRow className="bg-muted/50 font-semibold border-t-2">
-                          <TableCell className="text-xs"></TableCell>
-                          <TableCell className="text-xs font-bold" colSpan={2}>Responses (Sub-Total)</TableCell>
-                          <TableCell className="text-xs text-right font-mono font-bold">{formatValue(valueSum.toFixed(2), false)}</TableCell>
-                          {autoHasQuarterly && <><TableCell /><TableCell /><TableCell /><TableCell /></>}
-                          {headers.map(h => (
-                            <TableCell key={h} className="text-xs text-right font-mono font-bold">{formatValue(colSums[h].toFixed(2), false)}</TableCell>
-                          ))}
+                       ))} */}
+                        {!showMissing && isAwards && <><TableHead className="text-xs">Award Title</TableHead><TableHead className="text-xs">Award Description</TableHead></>}
+                        {!showMissing && isMedia && <><TableHead className="text-xs">Title</TableHead><TableHead className="text-xs">Relevant Link</TableHead></>}
+                        {!showMissing && isTextFieldResponses && <TableHead className="text-xs">Field</TableHead>}
+                        {!showMissing && textFieldHasValidity && <TableHead className="text-xs">Validity</TableHead>}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {tableData.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={4 + (autoHasQuarterly ? 4 : 0) + (headers?.length || 0) + ((isAwards || isMedia) ? 2 : 0) + (isTextFieldResponses ? 1 : 0) + (textFieldHasValidity ? 1 : 0)} className="text-center text-muted-foreground py-8">
+                            {showMissing ? 'All companies have filled this KPI' : 'No company data available for this metric'}
+                          </TableCell>
                         </TableRow>
-                      );
-                    })()}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-        );
+                      ) : (
+                        tableData.map((row, i) => {
+                          const isLowCompleteness = state?.lowCompletenessBrands?.includes(row.brand);
+                          return (
+                            <TableRow key={`${row.brand}-${i}`} className={showMissing ? 'bg-destructive/5' : ''}>
+                              <TableCell className="text-xs text-muted-foreground">{i + 1}</TableCell>
+                              <TableCell className={`text-xs font-medium ${isLowCompleteness ? 'text-red-600 dark:text-red-400' : ''}`}>
+                                {row.brand}
+                              </TableCell>
+                              <TableCell className="text-xs">
+                                <Badge variant="outline" className="text-[10px]">{row.industry}</Badge>
+                              </TableCell>
+                              {!showMissing && headers && headers.map(h => {
+                                const cellVal = row.ratioColumns?.[h] || '';
+                                const isNA = cellVal === '-1' || cellVal === 'N/A' || cellVal === 'NA';
+                                return <TableCell key={h} className={`text-xs text-right font-mono ${isNA ? 'text-muted-foreground italic' : ''}`}>{isNA ? 'NA' : (formatValue(cellVal, false) || '—')}</TableCell>;
+                              })}
+                              <TableCell className={`text-xs ${(isAdditionalComments || isTextFieldResponses) ? 'whitespace-pre-wrap break-words max-w-md' : 'text-right font-mono'}`}>
+                                {showMissing ? (
+                                  <Badge variant="destructive" className="text-[10px]">Not filled</Badge>
+                                ) : (isAdditionalComments || isTextFieldResponses) ? (
+                                  row.value || '—'
+                                ) : (
+                                  formatValue(row.value, false) || '—'
+                                )}
+                              </TableCell>
+                              {!showMissing && autoHasQuarterly && <>
+                                <TableCell className="text-xs text-right font-mono">{formatValue(row.q1 || '', false) || '—'}</TableCell>
+                                <TableCell className="text-xs text-right font-mono">{formatValue(row.q2 || '', false) || '—'}</TableCell>
+                                <TableCell className="text-xs text-right font-mono">{formatValue(row.q3 || '', false) || '—'}</TableCell>
+                                <TableCell className="text-xs text-right font-mono">{formatValue(row.q4 || '', false) || '—'}</TableCell>
+                              </>}
 
-        if (isCircularEconomy && !showMissing) {
-          const nonFashionData = displayData.filter(r => !r.usesFashionPackaging);
-          const fashionData = displayData.filter(r => r.usesFashionPackaging);
-          return (
-            <>
-              {renderCompanyTable(nonFashionData, 'Non-Fashion Companies', nonFashionHeaders, true)}
-              {renderCompanyTable(fashionData, 'Fashion & Lifestyle Companies', fashionHeaders, false)}
-            </>
+                              {!showMissing && isAwards && <><TableCell className="text-xs whitespace-pre-wrap break-words max-w-xs">{row.col1 || '—'}</TableCell><TableCell className="text-xs whitespace-pre-wrap break-words max-w-xs">{row.col2 || '—'}</TableCell></>}
+                              {!showMissing && isMedia && <><TableCell className="text-xs whitespace-pre-wrap break-words max-w-xs">{row.col1 || '—'}</TableCell><TableCell className="text-xs whitespace-pre-wrap break-words max-w-xs">{row.col2 || '—'}</TableCell></>}
+                              {!showMissing && isTextFieldResponses && <TableCell className="text-xs whitespace-pre-wrap break-words max-w-xs">{row.col1 || '—'}</TableCell>}
+                              {!showMissing && textFieldHasValidity && <TableCell className="text-xs whitespace-pre-wrap break-words max-w-xs">{row.col2 || '—'}</TableCell>}
+                            </TableRow>
+                          );
+                        })
+                      )}
+                      {/* Sub-total row for insight metrics with ratio columns */}
+                      {showSubTotal && !showMissing && state?.sourceInsightKey && headers && tableData.length > 0 && (() => {
+                        const SUB_TOTAL_INSIGHTS = new Set([
+                          'recycledContentRatio', 'mtPlasticPerCrRevenue', 'eprComplianceRate', 'eprComplianceGap',
+                          'recyclableVsNonRecyclablePrimary', 'syntheticVsNaturalFiberRatio', 'monoMaterialRecyclablePct',
+                          'recycledPlasticAdoptionFashion',
+                        ]);
+                        if (!SUB_TOTAL_INSIGHTS.has(state.sourceInsightKey)) return null;
+                        const colSums: Record<string, number> = {};
+                        headers.forEach(h => { colSums[h] = 0; });
+                        tableData.forEach(row => {
+                          headers.forEach(h => {
+                            colSums[h] += parseFloat(row.ratioColumns?.[h] || '0') || 0;
+                          });
+                        });
+                        const valueSum = tableData.reduce((s, r) => s + (parseFloat(r.value) || 0), 0);
+                        return (
+                          <TableRow className="bg-muted/50 font-semibold border-t-2">
+                            <TableCell className="text-xs"></TableCell>
+                            <TableCell className="text-xs font-bold" colSpan={2}>Responses (Sub-Total)</TableCell>
+                            <TableCell className="text-xs text-right font-mono font-bold">{formatValue(valueSum.toFixed(2), false)}</TableCell>
+                            {autoHasQuarterly && <><TableCell /><TableCell /><TableCell /><TableCell /></>}
+                            {headers.map(h => (
+                              <TableCell key={h} className="text-xs text-right font-mono font-bold">{formatValue(colSums[h].toFixed(2), false)}</TableCell>
+                            ))}
+                          </TableRow>
+                        );
+                      })()}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
           );
-        }
 
-        return renderCompanyTable(displayData, showMissing ? 'Companies Not Considered (KPI Not Filled)' : 'Company-wise Data', ratioColumnHeaders, true);
-      })()}
-    </div>
+          if (isCircularEconomy && !showMissing) {
+            const nonFashionData = displayData.filter(r => !r.usesFashionPackaging);
+            const fashionData = displayData.filter(r => r.usesFashionPackaging);
+            return (
+              <>
+                {renderCompanyTable(nonFashionData, 'Non-Fashion Companies', nonFashionHeaders, true)}
+                {renderCompanyTable(fashionData, 'Fashion & Lifestyle Companies', fashionHeaders, false)}
+              </>
+            );
+          }
+
+          return renderCompanyTable(displayData, showMissing ? 'Companies Not Considered (KPI Not Filled)' : 'Company-wise Data', ratioColumnHeaders, true);
+        })()}
+      </div>
     </div>
   );
 };
