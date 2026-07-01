@@ -1551,7 +1551,8 @@ export function deriveInsights(agg: AggregationMetrics, industry?: string, hasFa
 //   });
 // };
 
-export const useAnalyticsDashboardData = (filters: AnalyticsFilters) => {
+export const useAnalyticsDashboardData = (filters: AnalyticsFilters,kpiEntries?: { companyId: string; kpi_id: string; value: string | null; quarter: string; year: number }[],
+  featureRows?:{ companyId: string; feature_key: string, enabled: boolean }[]) => {
   const { asOf } = useAsOf();
   const [data, setData] = useState<AnalyticsDashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -1560,6 +1561,12 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters) => {
   // Stable serialized key to prevent re-fetching on referentially-new-but-equal filter objects
   const filtersKey = JSON.stringify(filters);
   const asOfKey = `${asOf?.month ?? 'live'}-${asOf?.year ?? 'live'}`;
+
+  // useEffect(() => {
+  //   if (filters.year && filters.year == 2025) {
+
+  //   }
+  // }, [filters]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1604,11 +1611,12 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters) => {
           `mis/kpi-entries?years=${years.join(',')}`
         );
         allEntries = res.data || [];
+        console.log('Fetched KPI entries:', allEntries.filter(e => e.year === 2026), 'entries for years', years);
         if (asOf) {
           allEntries = allEntries.filter(e => !isPeriodAfterCutoff(e.quarter, e.year, asOf));
         }
 
-        const featuresRes = await http.get<{ companyId: string; feature_key: string,enabled: boolean }[]>(
+        const featuresRes = await http.get<{ companyId: string; feature_key: string, enabled: boolean }[]>(
           'mis/company-feature-settings?enabled=true'
         );
         const featureRows = featuresRes.data || [];
@@ -1647,6 +1655,9 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters) => {
         });
 
         let filteredCompanies = mockCompanies.filter(c => c.investmentStatus === 'Invested');
+        if (filters.year && filters.year == 2025) {
+          filteredCompanies = filteredCompanies.filter(c => !['company-44','company-45'].includes(c.id))
+        }
         if (filters.industry) filteredCompanies = filteredCompanies.filter(c => c.industry === filters.industry);
         if (filters.fund) filteredCompanies = filteredCompanies.filter(c => c.fund === filters.fund);
         if (filters.revenueStage) filteredCompanies = filteredCompanies.filter(c => c.revenueStage === filters.revenueStage);
@@ -1654,7 +1665,6 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters) => {
         if (filters.firesidePOC) filteredCompanies = filteredCompanies.filter(c => c.fl === filters.firesidePOC);
         if (filters.companyId) filteredCompanies = filteredCompanies.filter(c => c.id === filters.companyId);
         const companyIds = new Set(filteredCompanies.map(c => c.id));
-        console.log(`Filtered companies (${filteredCompanies.length}):`, filteredCompanies.map(c => c.name));
         const timeSeries: TimeSeriesPoint[] = periods.map(p => {
           const periodEntries = allEntries.filter(e => {
             if (!companyIds.has(e.companyId)) return false;
@@ -1719,7 +1729,7 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters) => {
           const kpis = currentByCompany[company.id] || {};
           const aggregation = buildAggregation(kpis);
           const hasFashionPkg = fashionPkgCompanyIds.has(company.id);
-                        // console.log(`Company ${company.name} (${company.id}) - `);
+          // console.log(`Company ${company.name} (${company.id}) - `);
 
           const insights = deriveInsights(aggregation, company.industry, hasFashionPkg);
           const obj = {
@@ -1794,7 +1804,6 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters) => {
             if (!q14ByCompanyQuarter[e.companyId][e.quarter]) q14ByCompanyQuarter[e.companyId][e.quarter] = {};
             q14ByCompanyQuarter[e.companyId][e.quarter][e.kpi_id] = e.value || '';
           });
-          console.log('Q1-Q4 entries by company and quarter:', filteredCompanies, q14ByCompanyQuarter);
           quarterlyCombinedRawData = filteredCompanies.map(company => {
             const quarterData = q14ByCompanyQuarter[company.id] || {};
             const qs = Object.keys(quarterData);
@@ -1860,7 +1869,6 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters) => {
 
             const aggregation = buildAggregation(combinedKpis);
             const hasFashionPkg = fashionPkgCompanyIds.has(company.id);
-                          console.log(`Company ${company.name} (${company.id}) `);
 
             const insights = deriveInsights(aggregation, company.industry, hasFashionPkg);
             return {
@@ -1893,11 +1901,11 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters) => {
 
           const combinedAggs = quarterlyCombinedRawData.map(c => c.aggregation);
           quarterlyCombinedAggregation = sumAggregations(combinedAggs);
-          
+
           quarterlyCombinedInsights = deriveInsights(quarterlyCombinedAggregation);
-          console.log('Quarterly combined raw data:', quarterlyCombinedRawData);  
+          // console.log('Quarterly combined raw data:', quarterlyCombinedRawData);  
           const submitting = quarterlyCombinedRawData.filter(c => Object.keys(c.kpis).length > 0);
-          console.log('Companies submitting Q1-Q4 data:', submitting);
+          // console.log('Companies submitting Q1-Q4 data:', submitting);
           const avgField = (key: keyof InsightMetrics) => {
             const vals = submitting.map(c => c.insights[key] as number).filter(v => !isNaN(v));
             return vals.length > 0 ? r2(vals.reduce((s, v) => s + v, 0) / vals.length) : 0;
@@ -1912,7 +1920,6 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters) => {
             quarterlyPerQuarterRawData![q] = filteredCompanies.map(company => {
               const kpis = q14ByCompanyQuarter[company.id]?.[q] || {};
               const aggregation = buildAggregation(kpis);
-              console.log(`Company ${company.name} (${company.id}) - Quarter ${q} `);
               const insights = deriveInsights(aggregation, company.industry, fashionPkgCompanyIds.has(company.id));
               return {
                 companyId: company.id,
@@ -2165,7 +2172,7 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters) => {
     fetchData();
 
     return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtersKey, asOfKey]);
 
   return { data, isLoading, error };

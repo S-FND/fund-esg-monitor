@@ -449,6 +449,7 @@ export function applyEnvironmentPercentileNormalization(
 
   // ─── Recompute ESG Composite Score with updated E sub-score ───
   companies.forEach(c => {
+    // console.log("Checking composite score for company:", c.companyId, "hasEnvironmentFeature:", c.hasEnvironmentFeature);
     const eSub = c.insights.circularEconomyIndex;
     const sSub = c.insights.socialScore;
     const gSub = c.insights.governanceScore;

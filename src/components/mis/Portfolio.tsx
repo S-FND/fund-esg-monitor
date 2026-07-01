@@ -136,7 +136,7 @@ const Portfolio = () => {
   const [companyProgress, setCompanyProgress] = useState<Record<string, CompanyProgress>>({});
   const [isLoadingProgress, setIsLoadingProgress] = useState(true);
   const [progressError, setProgressError] = useState<string | null>(null);
-
+  const [filterYear, setFilterYear] = useState<string>('2025'); // Default year filter
 
 
 
@@ -187,7 +187,7 @@ const Portfolio = () => {
 
         const [featureResult, entriesResult] = await Promise.all([
           http.get('mis/company-feature-settings?enabled=true'),
-          http.get('mis/kpi-entries?year=2025')
+          http.get(`mis/kpi-entries?year=${filterYear}`)
           // supabase
           //   .from('kpi_entries')
           //   .select('company_id, kpi_id, quarter, value, submitted_at')
@@ -315,7 +315,7 @@ const Portfolio = () => {
     return () => {
       cancelled = true;
     };
-  }, [companies]); // isCompanyExcluded and countFilledKPIs assumed stable (module-level or useCallback)
+  }, [companies,filterYear]); // isCompanyExcluded and countFilledKPIs assumed stable (module-level or useCallback)
 
   const filteredCompanies = companies.filter((company) => {
     const matchesSearch = company.brand.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -745,6 +745,17 @@ const Portfolio = () => {
                 {qCat}
               </SelectItem>
             ))}
+          </SelectContent>
+        </Select>
+        
+        <Select value={filterYear} onValueChange={setFilterYear}>
+          <SelectTrigger className="w-full sm:w-[140px]">
+            <SelectValue placeholder="Year" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="2024">2024</SelectItem>
+            <SelectItem value="2025">2025</SelectItem>
+            <SelectItem value="2026">2026</SelectItem>
           </SelectContent>
         </Select>
       </div>
