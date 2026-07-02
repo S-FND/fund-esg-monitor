@@ -250,7 +250,7 @@ const Portfolio = () => {
           let periodsSubmitted = 0;
           let consideredPeriods = 0;
 
-          const periods = ['Q1', 'Q2', 'Q3', 'Q4', 'FY'] as const;
+          const periods =  filterYear == '2025'? ['Q1', 'Q2', 'Q3', 'Q4', 'FY'] as const : ['Q1'];
 
           for (const period of periods) {
             if (isCompanyExcluded(company.id, period, Number(filterYear))) continue;
