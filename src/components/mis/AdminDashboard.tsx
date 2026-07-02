@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+
 import { useAnalyticsDashboardData, AnalyticsFilters } from '@/hooks/useAnalyticsDashboardData';
 import { FeatureAnalyticsView } from '@/components/analytics/FeatureAnalyticsView';
 import { exportCSV, exportTransposedCSV, exportPDF, exportXLSX, captureCharts, buildFilterSummary, ExportColumn } from '@/lib/exportUtils';
@@ -36,13 +37,14 @@ const filtersFromParams = (sp: URLSearchParams): { filters: AnalyticsFilters; fe
     filters: {
       period: (sp.get('period') as 'quarterly' | 'annual') || 'annual',
       quarter: sp.get('quarter') || 'Q1',
-      year: parseInt(sp.get('year') || '2025', 10),
+      year: parseInt(sp.get('year') || '2026', 10),
       industry: (sp.get('industry') as Industry) || undefined,
       fund: (sp.get('fund') as Fund) || undefined,
       revenueStage: (sp.get('revenueStage') as RevenueStage) || undefined,
       companyId: sp.get('companyId') || undefined,
       qCategory: (sp.get('qCategory') as QCategory) || undefined,
       firesidePOC: sp.get('firesidePOC') || undefined,
+      cumulative: sp.get('cumulative') === 'true' || sp.get('feature') === 'cumulative',
     },
     feature: sp.get('feature') || '',
   };
@@ -179,6 +181,8 @@ const buildComprehensiveExportData = (
   selectedFeature: string,
   availableFeatures: { key: string; label: string }[],
 ) => {
+  const isCumulativeMode = selectedFeature === 'cumulative';
+  const exportFeature = (!selectedFeature || isCumulativeMode) ? '' : selectedFeature;
   const cols: ExportColumn[] = [
     { header: 'Brand', accessor: (c: any) => c.brand },
     { header: 'Industry', accessor: (c: any) => c.industry },
@@ -186,29 +190,29 @@ const buildComprehensiveExportData = (
     { header: 'KPIs Filled', accessor: (c: any) => String(Object.keys(c.kpis).filter((k: string) => c.kpis[k]?.trim()).length) },
   ];
 
-  if (selectedFeature) {
+  if (exportFeature) {
     // Single feature — export all its KPIs (no 20-KPI limit)
-    const mapping = FEATURE_FIELD_MAPPINGS[selectedFeature];
+    const mapping = FEATURE_FIELD_MAPPINGS[exportFeature];
     if (mapping) {
       mapping.kpis.forEach((kpi: any) => {
         if (kpi.fields && kpi.fields.length > 0) {
           kpi.fields.forEach((field: any) => {
             cols.push({
               header: `[${mapping.featureLabel}] ${kpi.label} — ${field.label}`,
-              accessor: (c: any) => resolveFieldValue(c.kpis, selectedFeature, kpi.id, field.id),
+              accessor: (c: any) => resolveFieldValue(c.kpis, exportFeature, kpi.id, field.id),
             });
           });
         } else {
           cols.push({
             header: `[${mapping.featureLabel}] ${kpi.label}`,
-            accessor: (c: any) => resolveFieldValue(c.kpis, selectedFeature, kpi.id, kpi.id),
+            accessor: (c: any) => resolveFieldValue(c.kpis, exportFeature, kpi.id, kpi.id),
           });
         }
       });
     }
 
     // Add feature-specific aggregation computed metrics
-    const aggMetrics = FEATURE_AGGREGATION_EXPORTS[selectedFeature];
+    const aggMetrics = FEATURE_AGGREGATION_EXPORTS[exportFeature];
     if (aggMetrics) {
       aggMetrics.forEach(m => {
         cols.push({
@@ -219,7 +223,7 @@ const buildComprehensiveExportData = (
     }
 
     // Add feature-specific derived insight metrics per company
-    const featureInsights = FEATURE_INSIGHT_METRICS[selectedFeature];
+    const featureInsights = FEATURE_INSIGHT_METRICS[exportFeature];
     if (featureInsights) {
       featureInsights.forEach(metric => {
         cols.push({
@@ -295,9 +299,9 @@ const buildComprehensiveExportData = (
   }
 
   // Choose the right data source
-  const rawData = (filters.period === 'annual' && selectedFeature && QUARTERLY_FEATURES.some(f => f.key === selectedFeature) && data.quarterlyCombinedRawData)
+  const rawData = (filters.period === 'annual' && exportFeature && QUARTERLY_FEATURES.some(f => f.key === exportFeature) && data.quarterlyCombinedRawData)
     ? data.quarterlyCombinedRawData
-    : (filters.period === 'annual' && !selectedFeature && data.quarterlyCombinedRawData)
+    : (filters.period === 'annual' && !exportFeature && data.quarterlyCombinedRawData)
       // For "all features" annual export, merge quarterly combined data into annual data
       ? mergeRawDataSources(data.companyRawData, data.quarterlyCombinedRawData)
       : data.companyRawData;
@@ -326,8 +330,8 @@ const mergeRawDataSources = (annualData: any[], quarterlyCombinedData: any[]): a
 const AdminDashboard = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const initial = filtersFromParams(searchParams);
-  const [filters, setFilters] = useState<AnalyticsFilters>(initial.filters);
-  const [selectedFeature, setSelectedFeature] = useState<string>(initial.feature);
+  const [filters, setFilters] = useState<AnalyticsFilters>({ ...initial.filters, cumulative: initial.filters.cumulative });
+  const [selectedFeature, setSelectedFeature] = useState<string>("cumulative"); //initial.feature
 
   // Sync state → URL search params (replace, not push, to avoid polluting history)
   const syncParams = useCallback((f: AnalyticsFilters, feat: string) => {
@@ -342,6 +346,7 @@ const AdminDashboard = () => {
     if (f.qCategory) p.qCategory = f.qCategory;
     if (f.firesidePOC) p.firesidePOC = f.firesidePOC;
     if (f.companyId) p.companyId = f.companyId;
+    if (f.cumulative) p.cumulative = 'true';
     if (feat) p.feature = feat;
     setSearchParams(p, { replace: true });
   }, [setSearchParams]);
@@ -358,11 +363,21 @@ const AdminDashboard = () => {
 
   const handleSelectFeature = (feat: string) => {
     setSelectedFeature(feat);
-    syncParams(filters, feat);
+    setFilters(prev => {
+      const next = { ...prev, cumulative: feat === 'cumulative' };
+      syncParams(next, feat);
+      return next;
+    });
   };
 
-  const { data, isLoading, error } = useAnalyticsDashboardData(filters);
+  useEffect(()=>{
+    handleSelectFeature('cumulative')
+  },[])
 
+  // const { data, isLoading, error } = useAnalyticsDataWithHelpers(filters);
+  const isFeatureView = selectedFeature && selectedFeature !== 'cumulative';
+  
+const { data, isLoading, error } = useAnalyticsDashboardData(filters);
   // ─── Build detail tables for PDF export (derived insights + aggregation per-company) ───
   const buildPDFDetailTables = (rawData: any[], featureKeys: { key: string; label: string }[]): import('@/lib/exportUtils').PDFDetailTable[] => {
     const tables: import('@/lib/exportUtils').PDFDetailTable[] = [];
@@ -426,6 +441,12 @@ const AdminDashboard = () => {
 
     return tables;
   };
+
+  useEffect(() => {
+    if (data) {
+      console.log('[AdminDashboard] Data loaded:', data);
+    }
+  }, [data]);
 
   // Fetch per-feature enabled company counts
   const { data: featureSettings } = useQuery({
@@ -627,9 +648,11 @@ const AdminDashboard = () => {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={() => {
-                    const featureLabel = selectedFeature
-                      ? (availableFeatures.find(f => f.key === selectedFeature)?.label || selectedFeature)
-                      : 'Complete_Analytics';
+                    const featureLabel = selectedFeature === 'cumulative'
+                      ? 'Cumulative_Data'
+                      : selectedFeature
+                        ? (availableFeatures.find(f => f.key === selectedFeature)?.label || selectedFeature)
+                        : 'Complete_Analytics';
                     // Build comprehensive columns & row data covering all features + insights
                     const { cols, rawData } = buildComprehensiveExportData(data, filters, selectedFeature, availableFeatures);
                     const safeName = `${featureLabel}_${filters.period}_${filters.year}`.replace(/[^a-zA-Z0-9]/g, '_');
@@ -647,9 +670,11 @@ const AdminDashboard = () => {
                     Export Excel
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={async () => {
-                    const featureLabel = selectedFeature
-                      ? (availableFeatures.find(f => f.key === selectedFeature)?.label || selectedFeature)
-                      : 'Complete_Analytics';
+                    const featureLabel = selectedFeature === 'cumulative'
+                      ? 'Cumulative_Data'
+                      : selectedFeature
+                        ? (availableFeatures.find(f => f.key === selectedFeature)?.label || selectedFeature)
+                        : 'Complete_Analytics';
                     const { cols, rawData } = buildComprehensiveExportData(data, filters, selectedFeature, availableFeatures);
                     const summaryCards = [
                       { label: 'Companies', value: String(data.companyCount) },
@@ -659,12 +684,13 @@ const AdminDashboard = () => {
                     const chartImages = await captureCharts();
 
                     // Build programmatic charts for all features
-                    const chartFeatures = selectedFeature
-                      ? [{ key: selectedFeature, label: availableFeatures.find(f => f.key === selectedFeature)?.label || selectedFeature }]
-                      : (filters.period === 'quarterly' ? QUARTERLY_FEATURES : [...QUARTERLY_FEATURES, ...ANNUAL_FEATURES]);
-                    const chartRawData = (filters.period === 'annual' && !selectedFeature && data.quarterlyCombinedRawData)
+                                      const isCumulativeMode = selectedFeature === 'cumulative';
+                    const chartFeatures = (!selectedFeature || isCumulativeMode)
+                      ? (filters.period === 'quarterly' ? QUARTERLY_FEATURES : [...QUARTERLY_FEATURES, ...ANNUAL_FEATURES])
+                      : [{ key: selectedFeature, label: availableFeatures.find(f => f.key === selectedFeature)?.label || selectedFeature }];
+                    const chartRawData = (filters.period === 'annual' && (!selectedFeature || isCumulativeMode) && data.quarterlyCombinedRawData)
                       ? mergeRawDataSources(data.companyRawData, data.quarterlyCombinedRawData)
-                      : (filters.period === 'annual' && selectedFeature && QUARTERLY_FEATURES.some(f => f.key === selectedFeature) && data.quarterlyCombinedRawData)
+                      : (filters.period === 'annual' && selectedFeature && !isCumulativeMode && QUARTERLY_FEATURES.some(f => f.key === selectedFeature) && data.quarterlyCombinedRawData)
                         ? data.quarterlyCombinedRawData
                         : data.companyRawData;
                     const featureChartSections = buildAllFeatureCharts(chartRawData, chartFeatures);
@@ -706,6 +732,7 @@ const AdminDashboard = () => {
           <SelectTrigger className="w-64 h-8 text-xs"><SelectValue placeholder="Select Feature" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="overview">📊 Overview (All Features)</SelectItem>
+            <SelectItem value="cumulative">📈 Cumulative data</SelectItem>
             {filters.period === 'annual' && (
               <>
                 <SelectItem disabled value="__quarterly_header" className="text-xs font-semibold text-muted-foreground">— Quarterly KPIs (Q1-Q4 Combined) —</SelectItem>
@@ -728,7 +755,9 @@ const AdminDashboard = () => {
 
         {selectedFeature && (
           <Badge variant="outline" className="text-xs">
-            {availableFeatures.find(f => f.key === selectedFeature)?.label}
+            {selectedFeature === 'cumulative'
+              ? 'Cumulative data'
+              : availableFeatures.find(f => f.key === selectedFeature)?.label}
             {filters.period === 'annual' && QUARTERLY_FEATURES.some(f => f.key === selectedFeature) && ' (Q1-Q4)'}
           </Badge>
         )}
@@ -747,7 +776,7 @@ const AdminDashboard = () => {
           ))}
         </div>
       ) : data ? (
-        selectedFeature ? (
+        isFeatureView ? (
           /* Feature-specific view */
           <div className="mt-4">
             <FeatureAnalyticsView

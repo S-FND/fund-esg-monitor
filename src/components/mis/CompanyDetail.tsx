@@ -236,8 +236,8 @@ const CompanyDetail = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
   // Period selector states
-  const [selectedQuarter, setSelectedQuarter] = useState<string>('Q4');
-  const [selectedYear, setSelectedYear] = useState<number>(2025);
+  const [selectedQuarter, setSelectedQuarter] = useState<string>('Q1');
+  const [selectedYear, setSelectedYear] = useState<number>(2026);
 
   // Edit profile dialog states
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
@@ -985,6 +985,10 @@ const CompanyDetail = () => {
       };
     });
   }, [allQuartersProgress]);
+
+  useEffect(()=>{
+    console.log('Quarterly progress updated:', allQuartersProgress);  
+  },[allQuartersProgress])
 
   // Filter and search feature KPIs
   const filteredFeatureKPIs = useMemo(() => {
