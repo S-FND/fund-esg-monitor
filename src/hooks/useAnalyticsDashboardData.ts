@@ -7,6 +7,7 @@ import { applyEnvironmentPercentileNormalization, applySocialScorePercentileNorm
 import { useAsOf, isPeriodAfterCutoff } from '@/contexts/AsOfContext';
 import { KpiEntryRaw } from './usePortfolioRankings';
 import { useEffect, useState } from 'react';
+import { filterKpiEntries } from '@/utils/kpiEntryFilters';
 import { http } from '@/utils/httpInterceptor';
 
 // ──── Types ────
@@ -20,6 +21,7 @@ export interface AnalyticsFilters {
   companyId?: string;
   qCategory?: QCategory;
   firesidePOC?: string;
+  cumulative?: boolean;
 }
 
 export interface CompanyRawMetrics {
@@ -530,7 +532,7 @@ export function buildAggregation(kpis: Record<string, string>): AggregationMetri
   };
 }
 
-function sumAggregations(items: AggregationMetrics[]): AggregationMetrics {
+export function sumAggregations(items: AggregationMetrics[]): AggregationMetrics {
   if (items.length === 0) return buildAggregation({});
 
   const sum = (key: keyof AggregationMetrics) => items.reduce((a, b) => a + (b[key] as number), 0);
@@ -1581,6 +1583,8 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters,kpiEntries?:
         const quarters = ['Q1', 'Q2', 'Q3', 'Q4'];
         const periods: { quarter: string; year: number }[] = [];
 
+        const includeCumulativeQ1NextYear = filters.cumulative && filters.year === 2025;
+
         if (filters.period === 'quarterly') {
           let qi = quarters.indexOf(START_QUARTER);
           let y = START_YEAR;
@@ -1595,6 +1599,9 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters,kpiEntries?:
           if (periods.length === 0) {
             periods.push({ quarter: filters.quarter || 'Q1', year: filters.year });
           }
+          if (includeCumulativeQ1NextYear && !periods.some(p => p.quarter === 'Q1' && p.year === filters.year + 1)) {
+            periods.push({ quarter: 'Q1', year: filters.year + 1 });
+          }
         } else {
           for (let y = START_YEAR; y <= filters.year; y++) {
             periods.push({ quarter: 'FY', year: y });
@@ -1602,6 +1609,9 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters,kpiEntries?:
           ['Q1', 'Q2', 'Q3', 'Q4'].forEach(q => {
             periods.push({ quarter: q, year: filters.year });
           });
+          if (includeCumulativeQ1NextYear) {
+            periods.push({ quarter: 'Q1', year: filters.year + 1 });
+          }
         }
 
         const years = [...new Set(periods.map(p => p.year))];
@@ -1665,12 +1675,13 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters,kpiEntries?:
         if (filters.firesidePOC) filteredCompanies = filteredCompanies.filter(c => c.fl === filters.firesidePOC);
         if (filters.companyId) filteredCompanies = filteredCompanies.filter(c => c.id === filters.companyId);
         const companyIds = new Set(filteredCompanies.map(c => c.id));
+        console.log('filters.cumulative',filters.cumulative);
         const timeSeries: TimeSeriesPoint[] = periods.map(p => {
-          const periodEntries = allEntries.filter(e => {
-            if (!companyIds.has(e.companyId)) return false;
-            if (isCompanyExcluded(e.companyId, e.quarter, e.year)) return false;
-            if (p.quarter === 'FY') return (e.quarter === 'FY' || e.quarter === 'Annual') && e.year === p.year;
-            return e.quarter === p.quarter && e.year === p.year;
+          const periodEntries = filterKpiEntries(allEntries, {
+            companyIds,
+            quarter: p.quarter,
+            year: p.year,
+            cumulative: filters.cumulative,
           });
 
           const byCompany: Record<string, Record<string, string>> = {};
@@ -1711,11 +1722,11 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters,kpiEntries?:
         const current = currentPeriod?.aggregation || buildAggregation({});
         const currentInsights = currentPeriod?.insights || deriveInsights(current);
 
-        const currentEntries = allEntries.filter(e => {
-          if (!companyIds.has(e.companyId)) return false;
-          if (isCompanyExcluded(e.companyId, e.quarter, e.year)) return false;
-          if (currentQ === 'FY') return (e.quarter === 'FY' || e.quarter === 'Annual') && e.year === filters.year;
-          return e.quarter === currentQ && e.year === filters.year;
+        const currentEntries = filterKpiEntries(allEntries, {
+          companyIds,
+          quarter: currentQ,
+          year: filters.year,
+          cumulative: filters.cumulative,
         });
 
         const currentByCompany: Record<string, Record<string, string>> = {};
@@ -1753,10 +1764,11 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters,kpiEntries?:
         // Removed illegal useEffect from here — log moved outside
         // console.log('Company raw data for current period:', companyRawData);
 
-        const vprQ14Entries = allEntries.filter(e => {
-          if (!companyIds.has(e.companyId)) return false;
-          if (isCompanyExcluded(e.companyId, e.quarter, e.year)) return false;
-          return ['Q1', 'Q2', 'Q3', 'Q4'].includes(e.quarter) && e.year === filters.year;
+        const vprQ14Entries = filterKpiEntries(allEntries, {
+          companyIds,
+          quarters: ['Q1', 'Q2', 'Q3', 'Q4'],
+          year: filters.year,
+          cumulative: filters.cumulative,
         });
         const vprByCompanyQuarter: Record<string, Record<string, Record<string, string>>> = {};
         vprQ14Entries.forEach(e => {
@@ -1792,10 +1804,11 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters,kpiEntries?:
           const MAX_KPI_PATTERNS = ['epr_compliance_pct', 'voluntary_plastic_neutrality'];
           const isMaxAcrossQuartersKpi = (id: string) => MAX_KPI_PATTERNS.some(p => id.includes(p));
 
-          const q14Entries = allEntries.filter(e => {
-            if (!companyIds.has(e.companyId)) return false;
-            if (isCompanyExcluded(e.companyId, e.quarter, e.year)) return false;
-            return ['Q1', 'Q2', 'Q3', 'Q4'].includes(e.quarter) && e.year === filters.year;
+          const q14Entries = filterKpiEntries(allEntries, {
+            companyIds,
+            quarters: ['Q1', 'Q2', 'Q3', 'Q4'],
+            year: filters.year,
+            cumulative: filters.cumulative,
           });
 
           const q14ByCompanyQuarter: Record<string, Record<string, Record<string, string>>> = {};
@@ -1938,10 +1951,11 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters,kpiEntries?:
             });
           });
         } else {
-          const q14Entries = allEntries.filter(e => {
-            if (!companyIds.has(e.companyId)) return false;
-            if (isCompanyExcluded(e.companyId, e.quarter, e.year)) return false;
-            return ['Q1', 'Q2', 'Q3', 'Q4'].includes(e.quarter) && e.year === filters.year;
+          const q14Entries = filterKpiEntries(allEntries, {
+            companyIds,
+            quarters: ['Q1', 'Q2', 'Q3', 'Q4'],
+            year: filters.year,
+            cumulative: filters.cumulative,
           });
           const q14ByCompanyQuarter: Record<string, Record<string, Record<string, string>>> = {};
           q14Entries.forEach(e => {
@@ -1986,10 +2000,11 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters,kpiEntries?:
             const MAX_KPI_PATTERNS2 = ['epr_compliance_pct', 'voluntary_plastic_neutrality'];
             const isMaxAcrossQuartersKpi2 = (id: string) => MAX_KPI_PATTERNS2.some(p => id.includes(p));
 
-            const allQ14Entries = allEntries.filter(e => {
-              if (!allCompanyIds.has(e.companyId)) return false;
-              if (isCompanyExcluded(e.companyId, e.quarter, e.year)) return false;
-              return ['Q1', 'Q2', 'Q3', 'Q4'].includes(e.quarter) && e.year === filters.year;
+            const allQ14Entries = filterKpiEntries(allEntries, {
+              companyIds: allCompanyIds,
+              quarters: ['Q1', 'Q2', 'Q3', 'Q4'],
+              year: filters.year,
+              cumulative: filters.cumulative,
             });
 
             const allQ14ByCQ: Record<string, Record<string, Record<string, string>>> = {};
@@ -2062,11 +2077,11 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters,kpiEntries?:
             applyEnvironmentPercentileNormalization(allQuarterlyCombinedRawData, allVirginReductions);
             applySocialScorePercentileNormalization(allQuarterlyCombinedRawData, sourcingCompanyIds);
           } else {
-            const allCurrentEntries = allEntries.filter(e => {
-              if (!allCompanyIds.has(e.companyId)) return false;
-              if (isCompanyExcluded(e.companyId, e.quarter, e.year)) return false;
-              const currentQ2 = filters.quarter || 'Q1';
-              return e.quarter === currentQ2 && e.year === filters.year;
+            const allCurrentEntries = filterKpiEntries(allEntries, {
+              companyIds: allCompanyIds,
+              quarter: filters.quarter || 'Q1',
+              year: filters.year,
+              cumulative: filters.cumulative,
             });
 
             const allCurrentByCompany: Record<string, Record<string, string>> = {};
@@ -2095,10 +2110,11 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters,kpiEntries?:
               };
             });
 
-            const allVprQ14 = allEntries.filter(e => {
-              if (!allCompanyIds.has(e.companyId)) return false;
-              if (isCompanyExcluded(e.companyId, e.quarter, e.year)) return false;
-              return ['Q1', 'Q2', 'Q3', 'Q4'].includes(e.quarter) && e.year === filters.year;
+            const allVprQ14 = filterKpiEntries(allEntries, {
+              companyIds: allCompanyIds,
+              quarters: ['Q1', 'Q2', 'Q3', 'Q4'],
+              year: filters.year,
+              cumulative: filters.cumulative,
             });
             const allVprByCQ: Record<string, Record<string, Record<string, string>>> = {};
             allVprQ14.forEach(e => {

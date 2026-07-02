@@ -155,6 +155,8 @@ export const useAllQuartersProgress = (companyId: string, year: number = 2025, r
         if (featuresResult.error) throw featuresResult.error;
         // console.log('Loaded entries:', entriesResult.data);
         // console.log('Loaded features:', featuresResult.data);
+        console.log('Loaded entries:', entriesResult.data);
+        console.log('Loaded features:', featuresResult.data);
 
         setAllEntries(entriesResult.data || []);
         setEnabledFeatures(featuresResult.data || []);
@@ -211,8 +213,9 @@ export const useAllQuartersProgress = (companyId: string, year: number = 2025, r
         };
         return;
       }
-
+      console.log("allEntries length:", allEntries.length, "for period:", period, "year:", year);
       const periodEntries = allEntries.filter(entry => entry.quarter === period);
+      console.log(`Entries for ${period} ${year}:`, periodEntries.length, periodEntries);
       
       const featuresToCount = period === 'FY' ? effectiveAnnual : effectiveQuarterly;
       const expectedTotal = period === 'FY' ? annualTotal : quarterlyTotal;

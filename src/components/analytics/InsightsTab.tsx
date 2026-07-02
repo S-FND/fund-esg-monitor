@@ -99,6 +99,7 @@ const InsightTabInner = ({
   const { rankings: allRankings, isLoading: rankingsLoading } = usePortfolioRankings(
     filters.year,
     filters.quarter || 'Q4',
+    filters.cumulative,
   );
   const filteredBrandSet = useMemo(
     () => new Set(companyRawData.map(c => c.brand)),
