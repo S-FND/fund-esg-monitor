@@ -17,6 +17,155 @@ import { ArrowLeft, Download, Users, Info, UserX, FileText, FileSpreadsheet } fr
 import { RATIO_COMPONENT_COLUMNS, CIRCULAR_ECONOMY_FASHION_HEADERS } from '@/lib/ratioComponentColumns';
 import { http } from '@/utils/httpInterceptor';
 
+/** Returns true if the value is considered empty */
+const isEmptyValue = (value: unknown): boolean => {
+  if (value == null) return true;
+
+  const text = String(value).trim().toLowerCase();
+
+  if (
+    text === "" ||
+    text === "-1" ||
+    text === "-" ||
+    text === "--" ||
+    text === "null" ||
+    text === "undefined"
+  ) {
+    return true;
+  }
+
+  const num = Number(text);
+
+  return !Number.isNaN(num) && num === 0;
+};
+
+// ===== Helper to decide if row should be red =====
+const shouldHighlightRed = (row: CompanyDataRow, metricTitle: string): boolean => {
+  const ratioCols = row.ratioColumns || {};
+  const titleLower = metricTitle.toLowerCase();
+
+  // Core logic: red if emptyCount > applicableCount / 2
+  const checkRed = (fields: string[]): boolean => {
+    // 1. Exclude fields that are "N/A" (not applicable)
+    const applicableFields = fields.filter(f => {
+      const val = ratioCols[f];
+      if (val == null) return true; // missing → applicable (will be counted as empty)
+      const text = String(val).trim().toLowerCase();
+      return text !== 'na' && text !== 'n/a';
+    });
+  
+    if (applicableFields.length === 0) return false;
+  
+    // 2. Count empty fields among applicable ones
+    const emptyCount = applicableFields.filter(f => {
+      const val = ratioCols[f];
+      return isEmptyValue(val);
+    }).length;
+  
+    // 3. Red if emptyCount reaches threshold based on applicable count
+    const n = applicableFields.length;
+    let threshold;
+    if (n === 1) threshold = 1;
+    else if (n === 2) threshold = 2;
+    else if (n === 3) threshold = 2;
+    else if (n === 4) threshold = 3;
+    else if (n === 5) threshold = 4;
+    else threshold = Math.ceil(n * 0.7); // fallback
+  
+    return emptyCount >= threshold;
+  };
+
+  // ---- Field-based detection (primary) ----
+
+  // ESG (3 fields)
+  const hasESG = ratioCols['E Score (35%)'] !== undefined ||
+                 ratioCols['S Score (25%)'] !== undefined ||
+                 ratioCols['G Score (40%)'] !== undefined;
+  if (hasESG) {
+    return checkRed(['E Score (35%)', 'S Score (25%)', 'G Score (40%)']);
+  }
+
+  // Non‑Fashion Environment (5 fields)
+  const hasNonFashionEnv = ratioCols['Plastic Intensity Score'] !== undefined ||
+                           ratioCols['Material Recycled %'] !== undefined ||
+                           ratioCols['EPR/VPN %'] !== undefined ||
+                           ratioCols['P&S Recycled/Pkg %'] !== undefined ||
+                           ratioCols['Recyclable %'] !== undefined;
+  if (hasNonFashionEnv) {
+    return checkRed([
+      'Plastic Intensity Score',
+      'Material Recycled %',
+      'EPR/VPN %',
+      'P&S Recycled/Pkg %',
+      'Recyclable %'
+    ]);
+  }
+
+  // Fashion Environment (2 fields)
+  const hasFashionEnv = ratioCols['Recyclable Materials %'] !== undefined ||
+                        ratioCols['Recyclable Packaging %'] !== undefined;
+  if (hasFashionEnv) {
+    return checkRed(['Recyclable Materials %', 'Recyclable Packaging %']);
+  }
+
+  // Social (4 fields)
+  const hasSocial = ratioCols['DEI Vendor % 10%'] !== undefined ||
+                    ratioCols['Gender Ratio 25%'] !== undefined;
+  if (hasSocial) {
+    return checkRed([
+      'DEI Vendor % 10%',
+      'Gender Ratio 25%',
+      'Women Leadership 25%',
+      'Pay Parity 20%'
+    ]);
+  }
+
+  // Governance (4 fields)
+  const hasGov = ratioCols['Policy Adoption %'] !== undefined ||
+                 ratioCols['Training Coverage %'] !== undefined ||
+                 ratioCols['High Impact Unresolved %'] !== undefined ||
+                 ratioCols['Governance Score'] !== undefined;
+  if (hasGov) {
+    return checkRed([
+      'Policy Adoption %',
+      'Training Coverage %',
+      'High Impact Unresolved %',
+      'Governance Score'
+    ]);
+  }
+
+  // ---- Title‑based fallback (if field detection fails) ----
+
+  if (titleLower.includes('esg composite')) {
+    return checkRed(['E Score (35%)', 'S Score (25%)', 'G Score (40%)']);
+  }
+
+  if (titleLower.includes('environment score') || titleLower.includes('circular economy')) {
+    const hasFashion = ratioCols['Recyclable Materials %'] !== undefined ||
+                       ratioCols['Recyclable Packaging %'] !== undefined;
+    if (hasFashion) {
+      return checkRed(['Recyclable Materials %', 'Recyclable Packaging %']);
+    } else {
+      return checkRed([
+        'Plastic Intensity Score',
+        'Material Recycled %',
+        'EPR/VPN %',
+        'P&S Recycled/Pkg %',
+        'Recyclable %'
+      ]);
+    }
+  }
+
+  if (titleLower.includes('social score')) {
+    return checkRed(['DEI Vendor % 10%', 'Gender Ratio 25%', 'Women Leadership 25%', 'Pay Parity 20%']);
+  }
+
+  if (titleLower.includes('governance score')) {
+    return checkRed([ 'High Impact Unresolved %']);
+  }
+
+  return false;
+};
 interface CompanyDataRow {
   brand: string;
   companyId?: string;
@@ -2114,11 +2263,13 @@ const AnalyticsDetail = () => {
                         </TableRow>
                       ) : (
                         tableData.map((row, i) => {
-                          const isLowCompleteness = state?.lowCompletenessBrands?.includes(row.brand);
+                          // const isLowCompleteness = state?.lowCompletenessBrands?.includes(row.brand);
+                          const isRedHighlight = shouldHighlightRed(row, title);
+                          console.log(`[${row.brand}] isRedHighlight: ${isRedHighlight}, title: "${title}"`);
                           return (
                             <TableRow key={`${row.brand}-${i}`} className={showMissing ? 'bg-destructive/5' : ''}>
                               <TableCell className="text-xs text-muted-foreground">{i + 1}</TableCell>
-                              <TableCell className={`text-xs font-medium ${isLowCompleteness ? 'text-red-600 dark:text-red-400' : ''}`}>
+                              <TableCell className={`text-xs font-medium ${isRedHighlight ? 'text-red-600 dark:text-red-400' : ''}`}>
                                 {row.brand}
                               </TableCell>
                               <TableCell className="text-xs">
