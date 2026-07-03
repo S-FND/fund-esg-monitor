@@ -136,7 +136,7 @@ const Portfolio = () => {
   const [companyProgress, setCompanyProgress] = useState<Record<string, CompanyProgress>>({});
   const [isLoadingProgress, setIsLoadingProgress] = useState(true);
   const [progressError, setProgressError] = useState<string | null>(null);
-  const [filterYear, setFilterYear] = useState<string>('2025'); // Default year filter
+  const [filterYear, setFilterYear] = useState<string>('2026'); // Default year filter
 
 
 
@@ -250,10 +250,10 @@ const Portfolio = () => {
           let periodsSubmitted = 0;
           let consideredPeriods = 0;
 
-          const periods = ['Q1', 'Q2', 'Q3', 'Q4', 'FY'] as const;
+          const periods =  filterYear == '2025'? ['Q1', 'Q2', 'Q3', 'Q4', 'FY'] as const : ['Q1'];
 
           for (const period of periods) {
-            if (isCompanyExcluded(company.id, period, 2025)) continue;
+            if (isCompanyExcluded(company.id, period, Number(filterYear))) continue;
 
             consideredPeriods++;
 
@@ -288,7 +288,7 @@ const Portfolio = () => {
               ? Math.round((totalFilled / totalAssigned) * 100)
               : 0,
             periodsSubmitted,
-            consideredPeriods,
+            consideredPeriods:filterYear == '2025' ? consideredPeriods : 1, // For 2026, consider Q1 as well
           };
         }
 
@@ -783,7 +783,7 @@ const Portfolio = () => {
                 filled: 0,
                 percentage: 0,
                 periodsSubmitted: 0,
-                consideredPeriods: 5,
+                consideredPeriods: filterYear == '2025' ? 5 : 1, //5,
               };
 
               return (

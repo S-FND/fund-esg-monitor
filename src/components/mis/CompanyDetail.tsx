@@ -40,7 +40,12 @@ import { QUARTERLY_FEATURES, ANNUAL_FEATURES } from '@/hooks/useCompanyFeatures'
 import { getFeatureKPIs, FeatureKPI } from '@/lib/featureKPITemplate';
 import { EDIT_RIGHTS_PAUSED } from '@/lib/companyAccessControl';
 import { http } from '@/utils/httpInterceptor';
-import { error } from 'console';
+
+type Fund = 'Fund I' | 'Fund II' | 'Fund III' | 'Fund IV';
+type QCategory = 'Q' | 'Q1' | 'Q2' | 'Q3' | 'Early';
+
+const funds: Fund[] = ['Fund I', 'Fund II', 'Fund III', 'Fund IV'];
+const qCategories: QCategory[] = ['Q', 'Q1', 'Q2', 'Q3', 'Early'];
 
 // Helper to convert database KPI to app KPI type
 interface DBKPIMaster {
@@ -203,7 +208,14 @@ const CompanyDetail = () => {
 
   // Data states
   const [allKPIs, setAllKPIs] = useState<KPI[]>([]);
-  const [companyProfile, setCompanyProfile] = useState<{ revenueStage: RevenueStage; industry: Industry; internalCategory?: InternalCategory } | null>(null);
+  const [companyProfile, setCompanyProfile] = useState<{
+    revenueStage: RevenueStage;
+    industry: Industry;
+    internalCategory?: InternalCategory;
+    spoc?: string;
+    qCategory?: QCategory;
+    fund?: Fund;
+  } | null>(null);
   const [kpiEntries, setKpiEntries] = useState<Record<string, KPIEntry>>({});
   const [kpiOverrides, setKpiOverrides] = useState<Record<string, KPIOverride>>({});
   const [featureSettings, setFeatureSettings] = useState<Record<string, { enabled: boolean; isOptional: boolean }>>({});
@@ -224,8 +236,8 @@ const CompanyDetail = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
   // Period selector states
-  const [selectedQuarter, setSelectedQuarter] = useState<string>('Q4');
-  const [selectedYear, setSelectedYear] = useState<number>(2025);
+  const [selectedQuarter, setSelectedQuarter] = useState<string>('Q1');
+  const [selectedYear, setSelectedYear] = useState<number>(2026);
 
   // Edit profile dialog states
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
@@ -233,6 +245,10 @@ const CompanyDetail = () => {
   const [editRevenueStage, setEditRevenueStage] = useState<RevenueStage>('0-50');
   const [editInternalCategory, setEditInternalCategory] = useState<InternalCategory>('BPC');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  const [editSpoc, setEditSpoc] = useState('');
+  const [editQCategory, setEditQCategory] = useState<QCategory>('Q');
+  const [editFund, setEditFund] = useState<Fund>('Fund I');
 
   const industries: Industry[] = [
     'Beauty & Personal Care',
@@ -304,17 +320,29 @@ const CompanyDetail = () => {
         //   .eq('company_id', companyId)
         //   .maybeSingle();
 
-        let companyProfileResponse = await http.get<{ revenue_stage: RevenueStage; industry: Industry; internal_category?: InternalCategory }>(`mis/company-profiles?companyId=${companyId}`);
+        // let companyProfileResponse = await http.get<{ revenue_stage: RevenueStage; industry: Industry; internal_category?: InternalCategory; spoc?: string; q_category?: string; fund?: string; }>(`mis/company-profiles?companyId=${companyId}`);
 
-        // if (error) throw error;
-        const data = companyProfileResponse.data;
+        const response = await http.get<{
+          revenue_stage: RevenueStage;
+          industry: Industry;
+          internal_category?: InternalCategory;
+          fl?: string;           // new
+          q_category?: QCategory;  // new
+          fund?: Fund;             // new
+        }>(`mis/company-profiles?companyId=${companyId}`);
+        
+        const data = response.data;
         if (data) {
+          const profile = data[0];
           setCompanyProfile({
-            revenueStage: data[0].revenue_stage as RevenueStage,
-            industry: data[0].industry as Industry,
-            internalCategory: data[0].internal_category as InternalCategory | undefined,
+            revenueStage: profile.revenue_stage,
+            industry: profile.industry,
+            internalCategory: profile.internal_category,
+            spoc: profile.fl,
+            qCategory: profile.q_category,
+            fund: profile.fund,
           });
-        } else if (company) {
+        }else if (company) {
           // Fallback to mock data if no profile in database
           setCompanyProfile({
             revenueStage: company.revenueStage as RevenueStage,
@@ -548,10 +576,16 @@ const CompanyDetail = () => {
       setEditIndustry(companyProfile.industry);
       setEditRevenueStage(companyProfile.revenueStage);
       setEditInternalCategory(companyProfile.internalCategory || company?.internalCategory || 'BPC');
+      setEditSpoc(companyProfile.spoc || company?.fl || '');
+      setEditQCategory(companyProfile.qCategory || company?.qCategory || 'Q');
+      setEditFund(companyProfile.fund || company?.fund || 'Fund I');
     } else if (company) {
       setEditIndustry(company.industry);
       setEditRevenueStage(company.revenueStage);
       setEditInternalCategory(company.internalCategory || 'BPC');
+      setEditSpoc(company.fl || '');
+      setEditQCategory(company.qCategory || 'Q');
+      setEditFund(company.fund || 'Fund I');
     }
     setIsEditProfileOpen(true);
   };
@@ -580,7 +614,10 @@ const CompanyDetail = () => {
       const { error: httpError } = await http.put(`mis/company-profiles?companyId=${companyId}`, {
         industry: editIndustry,
         revenue_stage: editRevenueStage,
-        internal_category: editInternalCategory
+        internal_category: editInternalCategory,
+        fl: editSpoc,
+        q_category: editQCategory,
+        fund: editFund,
       });
 
       if (httpError) throw httpError;
@@ -588,7 +625,10 @@ const CompanyDetail = () => {
       setCompanyProfile({
         industry: editIndustry,
         revenueStage: editRevenueStage,
-        internalCategory: editInternalCategory
+        internalCategory: editInternalCategory,
+        spoc: editSpoc,
+        qCategory: editQCategory,
+        fund: editFund,
       });
 
       toast.success('Company profile updated successfully');
@@ -946,6 +986,10 @@ const CompanyDetail = () => {
     });
   }, [allQuartersProgress]);
 
+  useEffect(()=>{
+    console.log('Quarterly progress updated:', allQuartersProgress);  
+  },[allQuartersProgress])
+
   // Filter and search feature KPIs
   const filteredFeatureKPIs = useMemo(() => {
     return featureKPIs.filter(f => {
@@ -1160,7 +1204,15 @@ const CompanyDetail = () => {
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Fund</p>
-                    <p className="font-medium">{company?.fund}</p>
+                    <p className="font-medium">{companyProfile?.fund || company?.fund || '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">SPOC</p>
+                    <p className="font-medium">{companyProfile?.spoc || company?.fl || '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Q Category</p>
+                    <p className="font-medium">{companyProfile?.qCategory || company?.qCategory || '—'}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Contact</p>
@@ -1217,6 +1269,43 @@ const CompanyDetail = () => {
                     <SelectContent>
                       {revenueStages.map(stage => (
                         <SelectItem key={stage} value={stage}>₹{stage} Cr</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-spoc">SPOC</Label>
+                  <Input
+                    id="edit-spoc"
+                    value={editSpoc}
+                    onChange={(e) => setEditSpoc(e.target.value)}
+                    placeholder=""
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-qcategory">Q Category</Label>
+                  <Select value={editQCategory} onValueChange={(v) => setEditQCategory(v as QCategory)}>
+                    <SelectTrigger id="edit-qcategory">
+                      <SelectValue placeholder="Select Q Category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {qCategories.map(cat => (
+                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-fund">Fund</Label>
+                  <Select value={editFund} onValueChange={(v) => setEditFund(v as Fund)}>
+                    <SelectTrigger id="edit-fund">
+                      <SelectValue placeholder="Select Fund" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {funds.map(f => (
+                        <SelectItem key={f} value={f}>{f}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>

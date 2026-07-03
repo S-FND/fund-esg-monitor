@@ -66,6 +66,9 @@ export const QUARTER_EXCLUSIONS: Record<string, string[]> = {
  *  - When `year` is omitted, callers are treated as legacy 2025 callers.
  */
 export const isCompanyExcluded = (companyId: string, quarter: string, year?: number): boolean => {
+  if(!year || year == 2026){
+    return false
+  }
   const effectiveYear = year ?? 2025;
 
   // JFM 2026 onboardees — invisible in 2025 analytics, visible from 2026.
