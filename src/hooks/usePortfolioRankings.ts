@@ -54,25 +54,25 @@ export interface FeatureSettingRaw {
 }
 
 // ─── Shared helpers (mirrors usePeerComparison) ───
-const ALL_QUARTERLY_FEATURES = [
+export const ALL_QUARTERLY_FEATURES = [
   'businessInformation', 'social', 'sourcingFulfillment',
   'primarySecondaryPackaging', 'fashionMaterials', 'incidentLog',
   'productServiceCertifications', 'healthCare',
 ];
-const ALL_ANNUAL_FEATURES = [
+export const ALL_ANNUAL_FEATURES = [
   'operations', 'governancePolicies', 'certifications', 'csr',
   'sri', 'externalReporting', 'energyManagement', 'waterManagement', 'wasteManagement',
 ];
 
 // ESG category mapping for features
-const ENV_QUARTERLY_FEATURES = ['primarySecondaryPackaging', 'fashionMaterials'];
-const ENV_ANNUAL_FEATURES = ['energyManagement', 'waterManagement', 'wasteManagement'];
-const SOCIAL_QUARTERLY_FEATURES = ['social', 'sourcingFulfillment', 'incidentLog', 'healthCare', 'productServiceCertifications'];
-const SOCIAL_ANNUAL_FEATURES = ['operations', 'csr'];
-const GOV_QUARTERLY_FEATURES: string[] = [];
-const GOV_ANNUAL_FEATURES = ['governancePolicies', 'certifications', 'sri', 'externalReporting'];
+export const ENV_QUARTERLY_FEATURES = ['primarySecondaryPackaging', 'fashionMaterials'];
+export const ENV_ANNUAL_FEATURES = ['energyManagement', 'waterManagement', 'wasteManagement'];
+export const SOCIAL_QUARTERLY_FEATURES = ['social', 'sourcingFulfillment', 'incidentLog', 'healthCare', 'productServiceCertifications'];
+export const SOCIAL_ANNUAL_FEATURES = ['operations', 'csr'];
+export const GOV_QUARTERLY_FEATURES: string[] = [];
+export const GOV_ANNUAL_FEATURES = ['governancePolicies', 'certifications', 'sri', 'externalReporting'];
 
-const getTotalKPICount = (featureKeys: string[]): number => {
+export const getTotalKPICount = (featureKeys: string[]): number => {
   let count = 0;
   for (const key of featureKeys) {
     const mapping = FEATURE_FIELD_MAPPINGS[key];
@@ -93,7 +93,7 @@ const GENERIC_FIELD_IDS = new Set([
   'last_update',
 ]);
 
-const isKPIGroupFilled = (
+export const isKPIGroupFilled = (
   kpi: { id: string; fields: { id: string }[] },
   entries: { kpi_id: string; value: string | null }[]
 ): boolean => {
@@ -118,7 +118,7 @@ const isKPIGroupFilled = (
   );
 };
 
-const countFilledKPIs = (featureKeys: string[], entries: { kpi_id: string; value: string | null }[]): number => {
+export const countFilledKPIs = (featureKeys: string[], entries: { kpi_id: string; value: string | null }[]): number => {
   let count = 0;
   for (const key of featureKeys) {
     const mapping = FEATURE_FIELD_MAPPINGS[key];
@@ -385,7 +385,7 @@ export const usePortfolioRankings = (
         console.log('Fetched data:', { profiles: profilesRes.data, entries: entriesRes.data, features: featuresRes.data });
         
         const profilesData = profilesRes.data;
-        const allEntries = entriesRes.data;
+        const allEntries = entriesRes.data.filter(e => e.quarter == 'Q1' && e.year == 2025);
         const allFeatures = featuresRes.data;
         
         // 2. Build profile lookup: companyId → { revenue_stage, industry }
@@ -620,3 +620,5 @@ export const usePortfolioRankings = (
   }, [year, quarter, cumulative]);
   return { rankings, isLoading };
 };
+
+

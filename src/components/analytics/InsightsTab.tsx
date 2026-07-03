@@ -17,6 +17,7 @@ import { useNavigate } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
 import CompanyDashboard from '../mis/CompanyDashboard';
 import { mockCompanies } from '@/data/mockData';
+import { usePortfolioRankingsV1 } from '@/hooks/usePortfolioRankingsV1';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -26,6 +27,7 @@ interface InsightTabProps {
   companyRawData: CompanyRawMetrics[];
   companyCount: number;
   filters: any;
+  newInsight:Boolean
 }
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -92,15 +94,33 @@ const InsightTabInner = ({
   companyRawData,
   companyCount,
   filters,
+  newInsight=false
 }: InsightTabProps) => {
   const navigate = useNavigate();
 
-  // ── Rankings ──
-  const { rankings: allRankings, isLoading: rankingsLoading } = usePortfolioRankings(
+  // // ── Rankings ──
+  // const { rankings: allRankings, isLoading: rankingsLoading } = usePortfolioRankings(
+  //   filters.year,
+  //   filters.quarter || 'Q4',
+  //   filters.cumulative,
+  // );
+
+  const rankingsV1 = usePortfolioRankings(
     filters.year,
-    filters.quarter || 'Q4',
-    filters.cumulative,
+    filters.quarter || "Q4",
+    filters.cumulative
   );
+  
+  const rankingsV2 = usePortfolioRankingsV1(
+    filters.year,
+    filters.quarter || "Q4",
+    filters.cumulative
+  );
+  
+  const {
+    rankings: allRankings,
+    isLoading: rankingsLoading,
+  } = newInsight ? rankingsV2 : rankingsV1;
   const filteredBrandSet = useMemo(
     () => new Set(companyRawData.map(c => c.brand)),
     [companyRawData],
@@ -518,6 +538,7 @@ const InsightTabInner = ({
                 onCategoryClick={(catKey, catLabel, brands) =>
                   handleDrillDown(`${config.title} — Grade ${catLabel}`, config.insightKey, brands)
                 }
+                
               />
             </div>
           );

@@ -186,11 +186,98 @@ export function computeCrossQuarterVirginReductions(
 
   return result;
 }
+// const QUARTER_ORDER = ['Q1', 'Q2', 'Q3', 'Q4']; // used only to sort/order quarter labels, not to hardcode which ones must exist
+
+/**
+ * Computes cross-quarter virgin plastic reduction for Environment Score.
+ * Uses the same methodology as the Packaging insight "% Reduction in Virgin Plastics":
+ * ((Base Quarter Intensity − Comparison Quarter Intensity) / Base Quarter Intensity) × 100
+ * where Intensity = Virgin Plastic MT / Net Revenue (₹ Cr).
+ *
+ * Base Quarter = earliest quarter present in the supplied data with plastic data.
+ * Comparison Quarter = latest quarter present in the supplied data.
+ * Both are derived dynamically from `quarterlyPerQuarterData`'s keys — no hardcoded quarter literals.
+ */
+// export function computeCrossQuarterVirginReductions(
+//   quarterlyPerQuarterData: Record<string, Array<{ companyId: string; kpis: Record<string, string> }>>
+// ): Map<string, number> {
+//   const result = new Map<string, number>();
+
+//   // Derive which quarters are actually present, sorted chronologically (Q1 < Q2 < Q3 < Q4).
+//   const presentQuarters = Object.keys(quarterlyPerQuarterData)
+//     .filter(q => q !== 'FY' && (quarterlyPerQuarterData[q]?.length ?? 0) > 0)
+//     .sort((a, b) => QUARTER_ORDER.indexOf(a) - QUARTER_ORDER.indexOf(b));
+
+//   if (presentQuarters.length === 0) return result;
+
+//   // Base candidates = every quarter except the last one present (mirrors original
+//   // "Q1 → Q2 → Q3" search order, but scoped to whatever quarters actually exist).
+//   const baseCandidateQuarters = presentQuarters.slice(0, -1);
+//   const comparisonQuarter = presentQuarters[presentQuarters.length - 1];
+
+//   const VIRGIN_PLASTIC_KEYS = [
+//     'food_pkg_basic_primary_breakup_primary_plastic_virgin',
+//     'food_pkg_detailed_secondary_breakup_secondary_plastic_virgin',
+//   ];
+
+//   const hasPlasticData = (kpis: Record<string, string>) =>
+//     VIRGIN_PLASTIC_KEYS.some(k => kpis[k] !== undefined && kpis[k] !== '' && kpis[k] !== null);
+
+//   const getVirginPlasticMT = (kpis: Record<string, string>) =>
+//     VIRGIN_PLASTIC_KEYS.reduce((sum, k) => sum + pv(kpis, k), 0);
+
+//   const getPlasticIntensity = (kpis: Record<string, string>) => {
+//     const virginMT = getVirginPlasticMT(kpis);
+//     const revenue = pv(kpis, 'net_revenue');
+//     return revenue > 0 ? virginMT / revenue : 0;
+//   };
+
+//   // Build base quarter data: earliest available quarter (with plastic data) among the base candidates.
+//   const baseQuarterData = new Map<string, { intensity: number }>();
+//   baseCandidateQuarters.forEach(q => {
+//     const qData = quarterlyPerQuarterData[q] || [];
+//     qData.forEach(c => {
+//       if (!baseQuarterData.has(c.companyId) && hasPlasticData(c.kpis)) {
+//         baseQuarterData.set(c.companyId, { intensity: getPlasticIntensity(c.kpis) });
+//       }
+//     });
+//   });
+
+//   // Comparison quarter data (previously hardcoded as 'Q4').
+//   const comparisonData = quarterlyPerQuarterData[comparisonQuarter] || [];
+//   const comparisonMap = new Map<string, { intensity: number }>();
+//   const comparisonHasData = new Map<string, boolean>();
+//   comparisonData.forEach(c => {
+//     comparisonHasData.set(c.companyId, hasPlasticData(c.kpis));
+//     if (hasPlasticData(c.kpis)) {
+//       comparisonMap.set(c.companyId, { intensity: getPlasticIntensity(c.kpis) });
+//     }
+//   });
+
+//   // Compute reduction for each company
+//   const allCompanyIds = new Set([...baseQuarterData.keys(), ...comparisonMap.keys()]);
+//   allCompanyIds.forEach(id => {
+//     const baseData = baseQuarterData.get(id);
+//     const baseInt = baseData?.intensity || 0;
+//     const baseFilled = !!baseData;
+//     const cmpInt = comparisonMap.get(id)?.intensity || 0;
+//     const cmpFilled = comparisonHasData.get(id) || false;
+
+//     if (!baseFilled && !cmpFilled) return;
+//     if (baseInt === 0 && cmpInt === 0 && !cmpFilled) return;
+//     if (baseInt > 0 && cmpInt === 0 && !cmpFilled) return;
+
+//     const reduction = baseInt > 0 ? ((baseInt - cmpInt) / baseInt) * 100 : 0;
+//     result.set(id, reduction);
+//   });
+
+//   return result;
+// }
 
 export interface EnvCompanyData {
   companyId: string;
   kpis: Record<string, string>;
-  insights: { circularEconomyIndex: number; esgCompositeScore: number; socialScore: number; governanceScore: number; [key: string]: any };
+  insights: { circularEconomyIndex: number; esgCompositeScore: number; socialScore: number; governanceScore: number;[key: string]: any };
   usesFashionPackaging?: boolean;
   hasWaterFeature?: boolean;
   hasEnvironmentFeature?: boolean;

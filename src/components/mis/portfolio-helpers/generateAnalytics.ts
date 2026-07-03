@@ -4,18 +4,28 @@ import { environmentalDerived } from './environmentalCalculations';
 import { socialDerived } from './socialCalculations';
 import { governanceDerived } from './governanceCalculations';
 import { computeScores } from './scoreCalculations';
-import type { AnalyticsContext, AnalyticsResult, CompanyAnalytics, KPIEntryInput } from './types';
+import type { AnalyticsContext, AnalyticsResult, CompanyAnalytics, KPIEntryInput, Period } from './types';
 
 const ENV_FEATURE_KEYS = ['primarySecondaryPackaging', 'waterManagement', 'wasteManagement', 'fashionMaterials', 'energyManagement'];
 
 /**
- * Pure entry point. Given KPI entries for a single reporting period and a company context,
- * returns a full analytics snapshot. No DB, no globals, no side effects.
+ * Pure entry point. Given KPI entries and a company context, returns an
+ * analytics snapshot. Caller pre-filters entries to the desired period.
+ * Optional `period` (unified `Period`) is stamped onto the result — if
+ * omitted, the period is inferred from the first entry (legacy behavior).
  */
-export function generateAnalytics(entries: KPIEntryInput[], ctx: AnalyticsContext): AnalyticsResult {
-  const period = entries.length > 0
-    ? { quarter: entries[0].quarter, year: entries[0].year }
-    : { quarter: '', year: 0 };
+export function generateAnalytics(
+  entries: KPIEntryInput[],
+  ctx: AnalyticsContext,
+  period?: Period,
+): AnalyticsResult {
+  const stampedPeriod = period
+    ? (period.mode === 'annual'     ? { quarter: 'FY',          year: period.year }
+    :  period.mode === 'quarterly'  ? { quarter: period.quarter, year: period.year }
+    :  /* cumulative */               { quarter: 'CUMULATIVE',  year: 0 })
+    : (entries.length > 0
+        ? { quarter: entries[0].quarter, year: entries[0].year }
+        : { quarter: '', year: 0 });
 
   const byCompany = groupByCompany(entries);
   const contextById = new Map(ctx.companies.map(c => [c.id, c]));
@@ -79,5 +89,5 @@ export function generateAnalytics(entries: KPIEntryInput[], ctx: AnalyticsContex
     wasteDiversionPct: r2(mean(companies.map(c => c.derived.wasteDiversionPct))),
   };
 
-  return { period, companies, totals, averages };
+  return { period: stampedPeriod, companies, totals, averages };
 }

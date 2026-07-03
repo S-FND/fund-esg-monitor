@@ -12,7 +12,7 @@
  *   const { result } = computePortfolioRankings({
  *     companies,           // [{ id, name, brand, industry, enabledFeatures }]
  *     entries,             // [{ companyId, kpiId, value, quarter, year, submittedAt }]
- *     featureMappings,     // { featureKey: { kpis: [{ id, fields: [{ id }], excludeFromProgress? }] } }
+ *     featureMappings,     // OPTIONAL — defaults to the bundled FEATURE_FIELD_MAPPINGS copy
  *     year: 2025,
  *     isExcluded: (cid, q, y) => boolean,   // optional
  *     asOf: { month: 12, year: 2025 },      // optional
@@ -28,6 +28,8 @@ import type {
   KPIDefinition,
   AsOfCutoff,
 } from './types';
+import { FEATURE_FIELD_MAPPINGS as DEFAULT_FEATURE_MAPPINGS } from './featureFieldMapping';
+import { getEnabledFeatureSet } from './types';
 
 // ─── Defaults (match Admin Dashboard's usePortfolioRankings) ───
 
@@ -171,12 +173,34 @@ export function computePortfolioRankings(
   const {
     companies,
     entries,
-    featureMappings,
+    featureMappings: featureMappingsArg,
     year,
+    period,
     isExcluded,
     asOf,
     categories,
   } = input;
+  const featureMappings: FeatureMappingsInput =
+    featureMappingsArg ?? (DEFAULT_FEATURE_MAPPINGS as unknown as FeatureMappingsInput);
+
+  // Resolve effective mode + year. `period` is the canonical input;
+  // `year` is kept for back-compat.
+  if (period && period.mode !== 'annual' && period.mode !== 'quarterly') {
+    throw new Error('computePortfolioRankings supports only annual|quarterly period modes.');
+  }
+  const mode: 'annual' | 'quarterly' = period?.mode ?? 'annual';
+  const effectiveYear = period?.year ?? year;
+  if (effectiveYear === undefined) {
+    throw new Error('computePortfolioRankings requires either `period.year` or `year`.');
+  }
+  const targetQuarter = mode === 'quarterly' ? (period as { quarter: string }).quarter : null;
+
+  // In annual mode we walk all five periods. In quarterly mode we score only
+  // the selected quarter for Completeness / Timeliness; Consistency still uses
+  // whichever Q1..Q4 entries are supplied.
+  const PERIODS_FOR_COMPLETENESS = mode === 'annual'
+    ? ['Q1', 'Q2', 'Q3', 'Q4', 'FY']
+    : [targetQuarter as string];
 
   const ALL_Q = categories?.allQuarterlyFeatures ?? DEFAULT_ALL_QUARTERLY_FEATURES;
   const ALL_A = categories?.allAnnualFeatures ?? DEFAULT_ALL_ANNUAL_FEATURES;
@@ -191,23 +215,27 @@ export function computePortfolioRankings(
 
   // Apply as-of filter up front
   const filteredEntries: KPIEntryInput[] = asOf
-    ? entries.filter(e => !isEntryAfterCutoff(e.quarter, year, asOf))
+    ? entries.filter(e => !isEntryAfterCutoff(e.quarter, effectiveYear, asOf))
     : entries.slice();
 
   // Index entries per company
   const entriesByCompany: Record<string, KPIEntryInput[]> = {};
   for (const e of filteredEntries) {
-    if (e.year !== year) continue;
+    if (e.year !== effectiveYear) continue;
     if (!entriesByCompany[e.companyId]) entriesByCompany[e.companyId] = [];
     entriesByCompany[e.companyId].push(e);
   }
 
   const raw = companies.map(company => {
     const cEntries = entriesByCompany[company.id] || [];
-    const enabled = new Set(company.enabledFeatures || []);
+    const enabled = getEnabledFeatureSet(company);
     const qFeats = enabled.size > 0 ? ALL_Q.filter(k => enabled.has(k)) : ALL_Q;
     const aFeats = enabled.size > 0 ? ALL_A.filter(k => enabled.has(k)) : ALL_A;
-    const totalKPIs = getTotalKPICount(qFeats, featureMappings) * 4 + getTotalKPICount(aFeats, featureMappings);
+
+    // Denominator: annual = 4×Q + A. Quarterly = 1×Q (or A if selected quarter is FY, not possible here).
+    let totalKPIs = mode === 'annual'
+      ? getTotalKPICount(qFeats, featureMappings) * 4 + getTotalKPICount(aFeats, featureMappings)
+      : getTotalKPICount(qFeats, featureMappings);
 
     let totalFilled = 0;
     let adjustedTotalKPIs = totalKPIs;
@@ -219,15 +247,21 @@ export function computePortfolioRankings(
     const govQFeats = qFeats.filter(k => GOV_Q.includes(k));
     const govAFeats = aFeats.filter(k => GOV_A.includes(k));
 
-    let envTotal = getTotalKPICount(envQFeats, featureMappings) * 4 + getTotalKPICount(envAFeats, featureMappings);
+    let envTotal = mode === 'annual'
+      ? getTotalKPICount(envQFeats, featureMappings) * 4 + getTotalKPICount(envAFeats, featureMappings)
+      : getTotalKPICount(envQFeats, featureMappings);
     let envFilled = 0;
-    let socTotal = getTotalKPICount(socQFeats, featureMappings) * 4 + getTotalKPICount(socAFeats, featureMappings);
+    let socTotal = mode === 'annual'
+      ? getTotalKPICount(socQFeats, featureMappings) * 4 + getTotalKPICount(socAFeats, featureMappings)
+      : getTotalKPICount(socQFeats, featureMappings);
     let socFilled = 0;
-    let govTotal = getTotalKPICount(govQFeats, featureMappings) * 4 + getTotalKPICount(govAFeats, featureMappings);
+    let govTotal = mode === 'annual'
+      ? getTotalKPICount(govQFeats, featureMappings) * 4 + getTotalKPICount(govAFeats, featureMappings)
+      : getTotalKPICount(govQFeats, featureMappings);
     let govFilled = 0;
 
-    for (const p of ['Q1', 'Q2', 'Q3', 'Q4', 'FY']) {
-      if (excludedFn(company.id, p, year)) {
+    for (const p of PERIODS_FOR_COMPLETENESS) {
+      if (excludedFn(company.id, p, effectiveYear)) {
         if (p !== 'FY') {
           adjustedTotalKPIs -= getTotalKPICount(qFeats, featureMappings);
           envTotal -= getTotalKPICount(envQFeats, featureMappings);
@@ -261,7 +295,12 @@ export function computePortfolioRankings(
         qKPIDefs.push({ kpiId: kpi.id, fieldIds: kpi.fields.map(f => f.id) });
       }
     }
-    const eligibleQuarters = ['Q1', 'Q2', 'Q3', 'Q4'].filter(q => !excludedFn(company.id, q, year));
+    // In quarterly mode, restrict consistency window to Q1..selected quarter
+    // (any prior quarters the caller included in `entries` are considered).
+    const CONSISTENCY_QUARTERS = mode === 'annual'
+      ? ['Q1', 'Q2', 'Q3', 'Q4']
+      : ['Q1', 'Q2', 'Q3', 'Q4'].slice(0, ['Q1', 'Q2', 'Q3', 'Q4'].indexOf(targetQuarter as string) + 1);
+    const eligibleQuarters = CONSISTENCY_QUARTERS.filter(q => !excludedFn(company.id, q, effectiveYear));
     const eligibleCount = eligibleQuarters.length || 1;
     let consistencyRatio = 0;
     for (const kpiDef of qKPIDefs) {
@@ -275,12 +314,15 @@ export function computePortfolioRankings(
     const consistencyPct = qKPIDefs.length > 0 ? r2((consistencyRatio / qKPIDefs.length) * 100) : 0;
 
     // ─── Timeliness ───
-    const deadlineYear = year + 1;
+    const deadlineYear = effectiveYear + 1;
     const TIMELINESS_CUTOFF = new Date(deadlineYear, 2, 3, 23, 59, 59).getTime();
-    const periods = ['Q1', 'Q2', 'Q3', 'Q4', 'FY'];
+    // Quarterly mode: only inspect submissions for that quarter.
+    const periods = mode === 'annual'
+      ? ['Q1', 'Q2', 'Q3', 'Q4', 'FY']
+      : [targetQuarter as string];
     const firstSubmissionPerPeriod: number[] = [];
     for (const p of periods) {
-      if (excludedFn(company.id, p, year)) continue;
+      if (excludedFn(company.id, p, effectiveYear)) continue;
       const periodSubs = cEntries
         .filter(e => e.quarter === p && e.submittedAt)
         .map(e => new Date(e.submittedAt as string).getTime())

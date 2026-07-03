@@ -23,12 +23,19 @@ import { useQuery } from '@tanstack/react-query';
 // import { supabase } from '@/integrations/supabase/client';
 import { http } from '@/utils/httpInterceptor';
 import { InsightTab } from '../analytics/InsightsTab';
+import { CompanyContext, compareAnalytics, computePortfolioRankings, computePortfolioScores, generateAnalytics, generateCumulativeAnalytics, KPIEntryInput, Period } from './portfolio-helpers';
+import { KpiEntry } from '@/hooks/useAnalyticsDashboardDataHelpers';
+import { computeAnalyticsDashboardData, FeatureRowLite } from './ComputeAnalyticsDashboardDataInput';
+import { TrendsTab } from '@/hooks/TrendsTab';
+import { TrendsComparisonPage } from '@/hooks/TrendsComparisionPage';
+
+
 
 const INDUSTRIES: Industry[] = ['Beauty & Personal Care', 'Fashion & Lifestyle', 'Health & Wellness', 'Food & Beverage', 'Home & Décor', 'Platform Enablers'];
 const FUNDS: Fund[] = ['Fund I', 'Fund II', 'Fund III', 'Fund IV'];
 const REVENUE_STAGES: RevenueStage[] = ['0-50', '50-100', '100-500', '500+'];
 const Q_CATEGORIES: QCategory[] = ['Q', 'Q1', 'Q2', 'Q3', 'Early'];
-const YEARS = [2023, 2024, 2025,2026];
+const YEARS = [2023, 2024, 2025, 2026];
 const QUARTERS = ['Q1', 'Q2', 'Q3', 'Q4'];
 
 /** Read dashboard filters from URL search params so navigate(-1) restores them */
@@ -108,7 +115,7 @@ const renderFeatureCard = (
   const rawDataSource = useQuarterlyCombined && data.quarterlyCombinedRawData
     ? data.quarterlyCombinedRawData
     : data.companyRawData;
-    // console.log(`[Feature Card] ${feature.label} - applicableCompanyCount: ${applicableCompanyCount}, rawDataSource length: ${rawDataSource.length}, dbPrefixes: ${dbPrefixes.join(', ')}`);
+  // console.log(`[Feature Card] ${feature.label} - applicableCompanyCount: ${applicableCompanyCount}, rawDataSource length: ${rawDataSource.length}, dbPrefixes: ${dbPrefixes.join(', ')}`);
   const companiesWithData = rawDataSource.filter((c: any) => {
     if (!mapping) return false;
     if (enabledForFeature && !enabledForFeature.has(c.companyId)) return false;
@@ -332,6 +339,9 @@ const AdminDashboard = () => {
   const initial = filtersFromParams(searchParams);
   const [filters, setFilters] = useState<AnalyticsFilters>({ ...initial.filters, cumulative: initial.filters.cumulative });
   const [selectedFeature, setSelectedFeature] = useState<string>("cumulative"); //initial.feature
+  const [kpiEntries, setKpiEntries] = useState<KPIEntryInput[]>([]);
+  const [companies, setCompanies] = useState<CompanyContext[]>([])
+  const [allCompanyFeature, setAllCompanyFeature] = useState<FeatureRowLite[]>([])
 
   // Sync state → URL search params (replace, not push, to avoid polluting history)
   const syncParams = useCallback((f: AnalyticsFilters, feat: string) => {
@@ -370,14 +380,14 @@ const AdminDashboard = () => {
     });
   };
 
-  useEffect(()=>{
-    handleSelectFeature('cumulative')
-  },[])
+  // useEffect(() => {
+  //   handleSelectFeature('cumulative')
+  // }, [])
 
   // const { data, isLoading, error } = useAnalyticsDataWithHelpers(filters);
   const isFeatureView = selectedFeature && selectedFeature !== 'cumulative';
-  
-const { data, isLoading, error } = useAnalyticsDashboardData(filters);
+
+  const { data, isLoading, error } = useAnalyticsDashboardData(filters);
   // ─── Build detail tables for PDF export (derived insights + aggregation per-company) ───
   const buildPDFDetailTables = (rawData: any[], featureKeys: { key: string; label: string }[]): import('@/lib/exportUtils').PDFDetailTable[] => {
     const tables: import('@/lib/exportUtils').PDFDetailTable[] = [];
@@ -448,6 +458,381 @@ const { data, isLoading, error } = useAnalyticsDashboardData(filters);
     }
   }, [data]);
 
+  const getInitialData = async () => {
+    let allEntries: { companyId: string; kpi_id: string; value: string | null; quarter: string; year: number }[] = [];
+
+    const res = await http.get<{ companyId: string; kpi_id: string; value: string | null; quarter: string; year: number }[]>(
+      `mis/kpi-entries`
+    );
+    if (res.error) throw res.error
+    setKpiEntries(res.data.map(d => ({
+      companyId: d.companyId,
+      kpiId: d.kpi_id,        // internal_id from kpi_master
+      value: d.value,
+      quarter: d.quarter,       // 'Q1' | 'Q2' | 'Q3' | 'Q4' | 'FY'
+      year: d.year
+    })))
+
+    const featuresRes = await http.get<{ companyId: string; feature_key: string, enabled: boolean }[]>(
+      'mis/company-feature-settings?enabled=true'
+    );
+    if (featuresRes.error) throw featuresRes.error
+    let featureCompanyGroping = {}
+    featuresRes.data.forEach(f => {
+      if (!featureCompanyGroping[f.companyId]) {
+        featureCompanyGroping[f.companyId] = {};
+      }
+      if (featureCompanyGroping[f.companyId][f.feature_key] === undefined) {
+        featureCompanyGroping[f.companyId][f.feature_key] = f.enabled;
+      }
+    });
+    let allCompanies = [
+      {
+        "companyId": "company-2",
+        "industry": "Food & Beverage",
+        "brand": "Vahdam"
+      },
+      {
+        "companyId": "company-3",
+        "industry": "Beauty & Personal Care",
+        "brand": "The Ayurveda Experience (TAE)"
+      },
+      {
+        "companyId": "company-4",
+        "industry": "Health & Wellness",
+        "brand": "Traya"
+      },
+      {
+        "companyId": "company-6",
+        "industry": "Food & Beverage",
+        "brand": "The Bakers Dozen (TBD)"
+      },
+      {
+        "companyId": "company-7",
+        "industry": "Health & Wellness",
+        "brand": "Gynoveda"
+      },
+      {
+        "companyId": "company-8",
+        "industry": "Fashion & Lifestyle",
+        "brand": "Supertails"
+      },
+      {
+        "companyId": "company-9",
+        "industry": "Beauty & Personal Care",
+        "brand": "Nathabit"
+      },
+      {
+        "companyId": "company-10",
+        "industry": "Beauty & Personal Care",
+        "brand": "Pilgrim"
+      },
+      {
+        "companyId": "company-11",
+        "industry": "Home & Décor",
+        "brand": "The Sleep Co"
+      },
+      {
+        "companyId": "company-12",
+        "industry": "Platform Enablers",
+        "brand": "Smytten"
+      },
+      {
+        "companyId": "company-13",
+        "industry": "Fashion & Lifestyle",
+        "brand": "FS Life"
+      },
+      {
+        "companyId": "company-14",
+        "industry": "Food & Beverage",
+        "brand": "Slurrp Farm"
+      },
+      {
+        "companyId": "company-16",
+        "industry": "Food & Beverage",
+        "brand": "Frubon"
+      },
+      {
+        "companyId": "company-17",
+        "industry": "Health & Wellness",
+        "brand": "The Good Bug (TGB)"
+      },
+      {
+        "companyId": "company-18",
+        "industry": "Platform Enablers",
+        "brand": "Ripplr"
+      },
+      {
+        "companyId": "company-19",
+        "industry": "Health & Wellness",
+        "brand": "Inito"
+      },
+      {
+        "companyId": "company-20",
+        "industry": "Fashion & Lifestyle",
+        "brand": "NewMe"
+      },
+      {
+        "companyId": "company-21",
+        "industry": "Food & Beverage",
+        "brand": "Sweet Karam Coffee (SKC)"
+      },
+      {
+        "companyId": "company-22",
+        "industry": "Home & Décor",
+        "brand": "Happi Planet"
+      },
+      {
+        "companyId": "company-23",
+        "industry": "Health & Wellness",
+        "brand": "Amaha"
+      },
+      {
+        "companyId": "company-24",
+        "industry": "Platform Enablers",
+        "brand": "Rozana"
+      },
+      {
+        "companyId": "company-25",
+        "industry": "Beauty & Personal Care",
+        "brand": "Iluvia"
+      },
+      {
+        "companyId": "company-27",
+        "industry": "Beauty & Personal Care",
+        "brand": "Moxie"
+      },
+      {
+        "companyId": "company-28",
+        "industry": "Beauty & Personal Care",
+        "brand": "Tuco"
+      },
+      {
+        "companyId": "company-29",
+        "industry": "Fashion & Lifestyle",
+        "brand": "Aukera"
+      },
+      {
+        "companyId": "company-30",
+        "industry": "Beauty & Personal Care",
+        "brand": "The Solved Skin (TSS)"
+      },
+      {
+        "companyId": "company-31",
+        "industry": "Health & Wellness",
+        "brand": "Raaz App"
+      },
+      {
+        "companyId": "company-32",
+        "industry": "Home & Décor",
+        "brand": "Beyond Appliances"
+      },
+      {
+        "companyId": "company-33",
+        "industry": "Fashion & Lifestyle",
+        "brand": "Terractive"
+      },
+      {
+        "companyId": "company-34",
+        "industry": "Fashion & Lifestyle",
+        "brand": "Enchanté Brands"
+      },
+      {
+        "companyId": "company-35",
+        "industry": "Beauty & Personal Care",
+        "brand": "Sammmm Beauty"
+      },
+      {
+        "companyId": "company-36",
+        "industry": "Fashion & Lifestyle",
+        "brand": "UnderNeat"
+      },
+      {
+        "companyId": "company-37",
+        "industry": "Food & Beverage",
+        "brand": "Troovy"
+      },
+      {
+        "companyId": "company-38",
+        "industry": "Food & Beverage",
+        "brand": "Aceblend"
+      },
+      {
+        "companyId": "company-39",
+        "industry": "Home & Décor",
+        "brand": "Cumin Co"
+      },
+      {
+        "companyId": "company-40",
+        "industry": "Health & Wellness",
+        "brand": "Wellopia"
+      },
+      {
+        "companyId": "company-41",
+        "industry": "Platform Enablers",
+        "brand": "Sports for Life (SFL)"
+      },
+      {
+        "companyId": "company-42",
+        "industry": "Health & Wellness",
+        "brand": "Earthful"
+      },
+      {
+        "companyId": "company-43",
+        "industry": "Beauty & Personal Care",
+        "brand": "Antinorm"
+      },
+      // {
+      //     "companyId": "company-44",
+      //     "industry": "Health & Wellness",
+      //     "brand": "DUSQ"
+      // },
+      // {
+      //     "companyId": "company-45",
+      //     "industry": "Fashion & Lifestyle",
+      //     "brand": "Kisah"
+      // }
+    ]
+    let companyFeature = allCompanies.map(m => ({
+      id: m.companyId,
+      name: m.brand,
+      brand: m.brand,
+      industry: m.industry,
+      features: featureCompanyGroping[m.companyId] ?? {}
+    }))
+    setCompanies(companyFeature)
+    console.log('featureCompanyGroping ==>', featureCompanyGroping)
+  }
+
+  const getFilteredCompanies = () => {
+    let filteredCompanies = mockCompanies.filter(c => c.investmentStatus === 'Invested');
+
+    // Special case: exclude 2 specific companies only when year is 2025
+    if (filters.year && filters.year == 2025) {
+      filteredCompanies = filteredCompanies.filter(c => !['company-44', 'company-45'].includes(c.id));
+    }
+
+    if (filters.industry) filteredCompanies = filteredCompanies.filter(c => c.industry === filters.industry);
+    if (filters.fund) filteredCompanies = filteredCompanies.filter(c => c.fund === filters.fund);
+    if (filters.revenueStage) filteredCompanies = filteredCompanies.filter(c => c.revenueStage === filters.revenueStage);
+    if (filters.qCategory) filteredCompanies = filteredCompanies.filter(c => c.qCategory === filters.qCategory);
+    if (filters.firesidePOC) filteredCompanies = filteredCompanies.filter(c => c.fl === filters.firesidePOC);
+    if (filters.companyId) filteredCompanies = filteredCompanies.filter(c => c.id === filters.companyId);
+
+    return filteredCompanies;
+  }
+
+
+  // const getFilteredKpis = (
+  //   kpiEntries: KPIEntryInput[],
+  //   filters: AnalyticsFilters
+  // ): KPIEntryInput[] => {
+  //   console.log('getFilteredKpis::',kpiEntries.length)
+  //   let filteredKpis=[]
+  //   if(filters.period == "quarterly"){
+  //     filteredKpis= kpiEntries.filter(k => k.quarter == filters.quarter && k.year == filters.year);
+  //   }
+  //   else if(filters.period == 'annual'){
+  //     filteredKpis= kpiEntries.filter(k =>  k.year == filters.year);
+  //   }
+  //   console.log('getFilteredKpis :: filtered ::: =' ,filteredKpis.length)
+  //   return filteredKpis
+
+  // };
+  const getFilteredKpis = (
+    kpiEntries: KPIEntryInput[],
+    filters: AnalyticsFilters
+  ): KPIEntryInput[] => {
+
+    console.log("Filters:", filters);
+    console.log("First KPI:", kpiEntries[0]);
+
+    const filtered = kpiEntries.filter(k => {
+      const quarterMatch = k.quarter === filters.quarter;
+      const yearMatch = Number(k.year) === Number(filters.year);
+
+      // if (!quarterMatch || !yearMatch) {
+      //   console.log({
+      //     kQuarter: k.quarter,
+      //     filterQuarter: filters.quarter,
+      //     quarterMatch,
+      //     kYear: k.year,
+      //     filterYear: filters.year,
+      //     yearMatch
+      //   });
+      // }
+
+      return quarterMatch && yearMatch;
+    });
+
+    console.log("Filtered:", filtered.length);
+    return filtered;
+  }
+
+
+  useEffect(() => {
+    getInitialData();
+    // generateAnalytics()
+  }, [])
+
+  const newData = useMemo(() => {
+    console.log("Calling memo")
+    let data = computeAnalyticsDashboardData({
+      kpiEntries: getFilteredKpis(kpiEntries, filters),
+      featureRows: allCompanyFeature,
+      filteredCompanies: getFilteredCompanies(),
+      allCompanies: mockCompanies, filters: {
+        period: filters.period,
+        quarter: filters.quarter,
+        year: filters.year
+      }
+    })
+    console.log('computeAnalyticsDashboardData ::: ', data)
+    return data;
+  }, [kpiEntries, companies, filters.period,
+    filters.quarter,
+    filters.year,])
+
+  useEffect(() => {
+    // let data=computeAnalyticsDashboardData({kpiEntries :getFilteredKpis(kpiEntries,{}),featureRows:allCompanyFeature,filteredCompanies:getFilteredCompanies(),allCompanies:mockCompanies,filters:{
+    //   period:'quarterly',
+    //   quarter:'Q1',
+    //   year:2025
+    // }})
+    // console.log('computeAnalyticsDashboardData ::: ',data)
+    // const allowed = new Set(companies.map(c => c.id));
+    // const scopedEntries = kpiEntries.filter(e => allowed.has(e.companyId));
+    // let result = generateAnalytics(scopedEntries, { companies })
+    // console.log('generateAnalytics ==> ', result)
+    // // For E/S/G/Composite scores + AA-C grades
+
+    // const period: Period = filters.period === 'quarterly'
+    //   ? { mode: 'quarterly', year: filters.year, quarter: filters.quarter }
+    //   : { mode: 'annual', year: filters.year };
+
+    // const simpleScores = computePortfolioScores({ entries: scopedEntries, companies, period });
+    // console.log('simpleScores', simpleScores)
+    // const rankings = computePortfolioRankings({ entries: scopedEntries, companies, period });
+    // console.log('rankings', rankings)
+    // const analytics = generateAnalytics(scopedEntries, { companies }, period);
+    // console.log('analytics', analytics)
+    // // or, across every year in scope:
+    // const combined = generateCumulativeAnalytics(scopedEntries, { companies });
+    // const { result: scores } = computePortfolioScores({
+    //   entries: scopedEntries,
+    //   companies,
+    //   period: { quarter: 'Q4', year: 2025 },
+    // });
+    // console.log("Q4 scores:", scores)
+
+    // For Overall / Completeness / Consistency / Timeliness ranks
+    // const { result: rankings } = computePortfolioRankings({
+    //   entries: scopedEntries,
+    //   companies,
+    //   year: 2025,
+    // });
+  }, [kpiEntries, companies])
+
   // Fetch per-feature enabled company counts
   const { data: featureSettings } = useQuery({
     queryKey: ['company-feature-settings-for-dashboard'],
@@ -461,6 +846,7 @@ const { data, isLoading, error } = useAnalyticsDashboardData(filters);
       const data = await http.get("mis/company-feature-settings?enabled=true");
       if (data.error) throw data.error;
       if (data.data) {
+        setAllCompanyFeature(data.data)
         return data.data;
       }
     },
@@ -489,7 +875,7 @@ const { data, isLoading, error } = useAnalyticsDashboardData(filters);
     return map;
   }, [featureSettings]);
 
-  
+
 
   const availableFeatures = filters.period === 'quarterly' ? QUARTERLY_FEATURES : [...QUARTERLY_FEATURES, ...ANNUAL_FEATURES];
 
@@ -684,7 +1070,7 @@ const { data, isLoading, error } = useAnalyticsDashboardData(filters);
                     const chartImages = await captureCharts();
 
                     // Build programmatic charts for all features
-                                      const isCumulativeMode = selectedFeature === 'cumulative';
+                    const isCumulativeMode = selectedFeature === 'cumulative';
                     const chartFeatures = (!selectedFeature || isCumulativeMode)
                       ? (filters.period === 'quarterly' ? QUARTERLY_FEATURES : [...QUARTERLY_FEATURES, ...ANNUAL_FEATURES])
                       : [{ key: selectedFeature, label: availableFeatures.find(f => f.key === selectedFeature)?.label || selectedFeature }];
@@ -818,15 +1204,20 @@ const { data, isLoading, error } = useAnalyticsDashboardData(filters);
           </div>
         ) : (
           /* Overview with tabs */
-          <Tabs value={searchParams.get('tab') || 'insight'} onValueChange={(v) => { const sp = new URLSearchParams(searchParams); sp.set('tab', v); setSearchParams(sp, { replace: true }); }} className="mt-4">
-            <TabsList className="grid w-full max-w-md grid-cols-2">
+          <Tabs value={searchParams.get('tab') || 'insight' || "insightNew" || "trends"} onValueChange={(v) => { const sp = new URLSearchParams(searchParams); sp.set('tab', v); setSearchParams(sp, { replace: true }); }} className="mt-4">
+            <TabsList className="grid w-full max-w-lg grid-cols-4">
               <TabsTrigger value="aggregation" className="flex items-center gap-1.5 text-xs">
                 <BarChart3 className="w-3.5 h-3.5" />
                 Aggregation
               </TabsTrigger>
+
               <TabsTrigger value="insight" className="flex items-center gap-1.5 text-xs">
                 <Lightbulb className="w-3.5 h-3.5" />
                 Insight
+              </TabsTrigger>
+              <TabsTrigger value="trends" className="flex items-center gap-1.5 text-xs">
+                <Lightbulb className="w-3.5 h-3.5" />
+                Trends
               </TabsTrigger>
             </TabsList>
 
@@ -903,8 +1294,27 @@ const { data, isLoading, error } = useAnalyticsDashboardData(filters);
                 }
                 companyCount={data.companyCount}
                 filters={filters}
+                newInsight={false}
               />
+
             </TabsContent>
+            
+            <TabsContent value="trends" className="mt-4">
+              {/* <TrendsComparisonPage /> */}
+              <TrendsTab
+                periodAFilters={{ period: 'quarterly', quarter: 'Q4', year: 2025, cumulative: false }}
+                periodBFilters={{ period: 'quarterly', quarter: 'Q1', year: 2026, cumulative: false }}
+                newInsight={true}
+              />
+
+// Annual 2025 → Quarter 2026
+              {/* <TrendsTab
+                periodAFilters={{ period: 'annual', year: 2025, cumulative: false }}
+                periodBFilters={{ period: 'quarterly', quarter: 'Q1', year: 2026, cumulative: false }}
+                newInsight={true}
+              /> */}
+            </TabsContent>
+
           </Tabs>
         )
       ) : null}
