@@ -29,23 +29,11 @@
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PUBLIC INPUT / OUTPUT TYPES
+// Shared types come from ./types so every helper uses one canonical shape.
 // ═══════════════════════════════════════════════════════════════════════════
 
-export interface KPIEntryInput {
-  companyId: string;
-  kpiId: string;
-  value: string | null;
-  quarter: string; // 'Q1' | 'Q2' | 'Q3' | 'Q4' | 'FY' | 'Annual'
-  year: number;
-}
-
-export interface CompanyContext {
-  id: string;
-  name: string;
-  industry?: string;
-  /** Feature flags keyed by feature_key from company_feature_settings */
-  features: Record<string, boolean>;
-}
+import type { KPIEntryInput, CompanyContext } from './types';
+export type { KPIEntryInput, CompanyContext } from './types';
 
 export type Grade = 'AA' | 'A' | 'BB' | 'B' | 'C';
 
@@ -96,8 +84,16 @@ export interface PortfolioScoreOutput {
 export interface ComputePortfolioScoresInput {
   entries: KPIEntryInput[];
   companies: CompanyContext[];
-  /** Target period. For 'FY'/'Annual' the helper merges Q1-Q4 + FY entries. */
-  period: { quarter: string; year: number };
+  /**
+   * Unified period selector. `annual` merges Q1-Q4 + FY of `year`; `quarterly`
+   * scores the single quarter of `year`. `cumulative` mode is NOT supported
+   * here — use `generateCumulativeAnalytics` for that.
+   *
+   * Legacy shape `{ quarter, year }` is also accepted for back-compat.
+   */
+  period:
+    | import('./types').Period
+    | { quarter: string; year: number };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1475,7 +1471,17 @@ function combineQuarterlyKpis(quarterData: Record<string, Record<string, string>
 export function computePortfolioScores(
   input: ComputePortfolioScoresInput,
 ): { result: PortfolioScoreOutput } {
-  const { entries, companies, period } = input;
+  const { entries, companies, period: rawPeriod } = input;
+
+  // Normalize period → legacy { quarter, year } shape used internally.
+  const period: { quarter: string; year: number } = (() => {
+    if ('mode' in rawPeriod) {
+      if (rawPeriod.mode === 'annual')    return { quarter: 'FY', year: rawPeriod.year };
+      if (rawPeriod.mode === 'quarterly') return { quarter: rawPeriod.quarter, year: rawPeriod.year };
+      throw new Error('computePortfolioScores does not support `cumulative` period — use generateCumulativeAnalytics.');
+    }
+    return rawPeriod;
+  })();
   const isAnnual = period.quarter === 'FY' || period.quarter === 'Annual';
 
   // Feature-flag helpers

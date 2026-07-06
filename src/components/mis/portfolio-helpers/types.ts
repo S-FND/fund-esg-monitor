@@ -31,14 +31,38 @@ export interface KPIEntryInput {
   submittedAt?: string | null; // ISO timestamp
 }
 
-export interface CompanyInput {
+// ─── Unified Company type ───
+/**
+ * Canonical company shape used by ALL four helpers.
+ * `features` (map) is the primary source of feature flags.
+ * `enabledFeatures` (array) is a legacy alternative — either one may be
+ * supplied; helpers normalize internally via `getEnabledFeatureSet`.
+ */
+export interface Company {
   id: string;
   name: string;
   brand?: string;
   industry?: string;
-  /** Set/array of enabled feature keys, e.g. ['social', 'primarySecondaryPackaging']. */
+  revenueStage?: string;
+  features?: Record<string, boolean>;
   enabledFeatures?: string[];
 }
+
+/** Back-compat aliases (deprecated — use `Company`). */
+export type CompanyInput = Company;
+export type CompanyContext = Company;
+
+export interface AnalyticsContext {
+  companies: Company[];
+}
+
+/** Returns the effective set of enabled feature keys for a company. */
+export const getEnabledFeatureSet = (c: Company): Set<string> => {
+  const out = new Set<string>();
+  if (c.enabledFeatures) for (const k of c.enabledFeatures) out.add(k);
+  if (c.features) for (const [k, v] of Object.entries(c.features)) if (v) out.add(k);
+  return out;
+};
 
 /**
  * Optional exclusion map for company/quarter pairs — caller supplies.
@@ -53,6 +77,27 @@ export interface AsOfCutoff {
   month: number; // 1-12
   year: number;
 }
+
+// ─── Unified Period type ───
+/**
+ * Canonical period shape used by ALL four helpers.
+ *   annual     → merges Q1-Q4 + FY of `year`
+ *   quarterly  → single quarter of `year`
+ *   cumulative → blends every entry passed in (any year, any quarter)
+ *
+ * Not every helper supports every mode:
+ *   - computePortfolioScores    → annual | quarterly
+ *   - computePortfolioRankings  → annual | quarterly
+ *   - generateAnalytics         → any (used only to stamp the result)
+ *   - generateCumulativeAnalytics → cumulative
+ */
+export type Period =
+  | { mode: 'annual'; year: number }
+  | { mode: 'quarterly'; year: number; quarter: 'Q1' | 'Q2' | 'Q3' | 'Q4' | string }
+  | { mode: 'cumulative' };
+
+/** @deprecated Use `Period`. */
+export type RankingPeriod = Extract<Period, { mode: 'annual' | 'quarterly' }>;
 
 // ─── Output types ───
 
@@ -82,13 +127,10 @@ export interface CompanyRankingOutput {
 
 export interface PortfolioRankingsSummary {
   totalCompanies: number;
-  // Raw score averages — these are the headline values shown on the
-  // Admin Dashboard's Company Rankings stat cards.
   avgCompletenessScore: number;
   avgConsistencyScore: number;
   avgTimelinessScore: number;
   avgOverallScore: number;
-  // Percentile averages (always ~50 in a full cohort — provided for reference)
   avgCompletenessPercentile: number;
   avgConsistencyPercentile: number;
   avgTimelinessPercentile: number;
@@ -102,13 +144,20 @@ export interface PortfolioRankingsResult {
 }
 
 export interface ComputePortfolioRankingsInput {
-  companies: CompanyInput[];
+  companies: Company[];
   entries: KPIEntryInput[];
-  featureMappings: FeatureMappingsInput;
-  year: number;
+  /** Optional. If omitted, the helper falls back to the bundled FEATURE_FIELD_MAPPINGS copy. */
+  featureMappings?: FeatureMappingsInput;
+  /**
+   * Unified period selector. Only `annual` and `quarterly` are supported here.
+   * For back-compat, if `period` is omitted the helper falls back to
+   * `{ mode: 'annual', year }`.
+   */
+  period?: Extract<Period, { mode: 'annual' | 'quarterly' }>;
+  /** @deprecated Use `period: { mode: 'annual', year }`. */
+  year?: number;
   isExcluded?: IsExcludedFn;
   asOf?: AsOfCutoff;
-  /** Override feature category lists if needed. Defaults are provided. */
   categories?: {
     allQuarterlyFeatures?: string[];
     allAnnualFeatures?: string[];
@@ -122,32 +171,7 @@ export interface ComputePortfolioRankingsInput {
 }
 
 // ===== Analytics engine types =====
-/**
- * Public types for the isolated Investor Comparison analytics engine.
- * These are independent from any existing hook/type in the app.
- */
-
-export interface KPIEntryInput {
-  companyId: string;
-  kpiId: string;         // internal_id from kpi_master
-  value: string | null;
-  quarter: string;       // 'Q1' | 'Q2' | 'Q3' | 'Q4' | 'FY'
-  year: number;
-}
-
-export interface CompanyContext {
-  id: string;
-  name: string;
-  brand?: string;
-  industry?: string;
-  revenueStage?: string;
-  /** Feature flags — key: feature_key, value: enabled */
-  features: Record<string, boolean>;
-}
-
-export interface AnalyticsContext {
-  companies: CompanyContext[];
-}
+// (Company, CompanyContext, AnalyticsContext are declared once above.)
 
 export interface CompanyAggregations {
   netRevenue: number;
