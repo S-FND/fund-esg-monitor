@@ -132,6 +132,7 @@ const SectionHeader = ({ title, n, icon: Icon }: { title: string; n?: number; ic
 export const FeatureAnalyticsView = ({
   featureKey, companyRawData, currentInsights, currentAggregation, filters, quarterlyPerQuarterRawData, allCompanyRawData
 }: FeatureAnalyticsViewProps) => {
+  debugger;
   const navigate = useNavigate();
   const mapping = FEATURE_FIELD_MAPPINGS[featureKey];
 

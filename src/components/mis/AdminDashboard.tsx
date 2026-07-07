@@ -337,8 +337,8 @@ const mergeRawDataSources = (annualData: any[], quarterlyCombinedData: any[]): a
 const AdminDashboard = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const initial = filtersFromParams(searchParams);
-  const [filters, setFilters] = useState<AnalyticsFilters>({ ...initial.filters, cumulative: initial.filters.cumulative });
-  const [selectedFeature, setSelectedFeature] = useState<string>("overview"); //initial.feature
+  const [filters, setFilters] = useState<AnalyticsFilters>({ ...initial.filters });
+  const [selectedFeature, setSelectedFeature] = useState<string>(initial.feature);
   const [kpiEntries, setKpiEntries] = useState<KPIEntryInput[]>([]);
   const [companies, setCompanies] = useState<CompanyContext[]>([])
   const [allCompanyFeature, setAllCompanyFeature] = useState<FeatureRowLite[]>([])
@@ -371,21 +371,25 @@ const AdminDashboard = () => {
     });
   };
 
+  // const handleSelectFeature = (feat: string) => {
+  //   setSelectedFeature(feat);
+  //   setFilters(prev => {
+  //     const next = { ...prev, cumulative: feat === 'cumulative' };
+  //     syncParams(next, feat);
+  //     return next;
+  //   });
+  // };
   const handleSelectFeature = (feat: string) => {
     setSelectedFeature(feat);
-    setFilters(prev => {
-      const next = { ...prev, cumulative: feat === 'cumulative' };
-      syncParams(next, feat);
-      return next;
-    });
+    syncParams(filters, feat);
   };
 
   // useEffect(() => {
-  //   handleSelectFeature('cumulative')
+  //   handleSelectFeature('overview')
   // }, [])
 
   // const { data, isLoading, error } = useAnalyticsDataWithHelpers(filters);
-  const isFeatureView = selectedFeature && selectedFeature !== 'cumulative';
+  // const isFeatureView = selectedFeature && selectedFeature !== 'cumulative';
 
   const { data, isLoading, error } = useAnalyticsDashboardData(filters);
   // ─── Build detail tables for PDF export (derived insights + aggregation per-company) ───
@@ -913,6 +917,8 @@ const AdminDashboard = () => {
     );
   }
 
+
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -1034,12 +1040,10 @@ const AdminDashboard = () => {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={() => {
-                    const featureLabel = selectedFeature === 'cumulative'
-                      ? 'Cumulative_Data'
-                      : selectedFeature
+                    const featureLabel =
+                      selectedFeature
                         ? (availableFeatures.find(f => f.key === selectedFeature)?.label || selectedFeature)
                         : 'Complete_Analytics';
-                    // Build comprehensive columns & row data covering all features + insights
                     const { cols, rawData } = buildComprehensiveExportData(data, filters, selectedFeature, availableFeatures);
                     const safeName = `${featureLabel}_${filters.period}_${filters.year}`.replace(/[^a-zA-Z0-9]/g, '_');
                     exportXLSX(safeName, cols, rawData, {
@@ -1066,10 +1070,8 @@ const AdminDashboard = () => {
                       { label: 'Companies', value: String(data.companyCount) },
                       { label: 'Net Revenue', value: `₹${Math.round(data.current.netRevenue).toLocaleString()} Cr` },
                     ];
-                    // Capture visible charts from DOM
                     const chartImages = await captureCharts();
 
-                    // Build programmatic charts for all features
                     const isCumulativeMode = selectedFeature === 'cumulative';
                     const chartFeatures = (!selectedFeature || isCumulativeMode)
                       ? (filters.period === 'quarterly' ? QUARTERLY_FEATURES : [...QUARTERLY_FEATURES, ...ANNUAL_FEATURES])
@@ -1080,8 +1082,6 @@ const AdminDashboard = () => {
                         ? data.quarterlyCombinedRawData
                         : data.companyRawData;
                     const featureChartSections = buildAllFeatureCharts(chartRawData, chartFeatures);
-
-                    // Build per-metric detail tables for PDF
                     const detailTables = buildPDFDetailTables(chartRawData, chartFeatures);
 
                     const safeName = `${featureLabel}_${filters.period}_${filters.year}`.replace(/[^a-zA-Z0-9]/g, '_');
@@ -1118,7 +1118,6 @@ const AdminDashboard = () => {
           <SelectTrigger className="w-64 h-8 text-xs"><SelectValue placeholder="Select Feature" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="overview">📊 Overview (All Features)</SelectItem>
-            <SelectItem value="cumulative">📈 Cumulative data</SelectItem>
             {filters.period === 'annual' && (
               <>
                 <SelectItem disabled value="__quarterly_header" className="text-xs font-semibold text-muted-foreground">— Quarterly KPIs (Q1-Q4 Combined) —</SelectItem>
@@ -1136,8 +1135,6 @@ const AdminDashboard = () => {
             ))}
           </SelectContent>
         </Select>
-
-        {/* Removed quarterly KPIs dropdown — now shown as cards in overview */}
 
         {selectedFeature && (
           <Badge variant="outline" className="text-xs">
@@ -1161,165 +1158,150 @@ const AdminDashboard = () => {
             </Card>
           ))}
         </div>
-      ) : data ? (
-        isFeatureView ? (
-          /* Feature-specific view */
-          <div className="mt-4">
-            <FeatureAnalyticsView
-              featureKey={selectedFeature}
+      ) : data && selectedFeature && selectedFeature !== 'cumulative' ? (
+        <div className="mt-4">
+          <FeatureAnalyticsView
+            featureKey={selectedFeature}
+            companyRawData={
+              filters.period === 'annual' && QUARTERLY_FEATURES.some(f => f.key === selectedFeature) && data.quarterlyCombinedRawData
+                ? data.quarterlyCombinedRawData
+                : data.companyRawData
+            }
+            currentInsights={
+              filters.period === 'annual' && QUARTERLY_FEATURES.some(f => f.key === selectedFeature) && data.quarterlyCombinedInsights
+                ? data.quarterlyCombinedInsights
+                : data.currentInsights
+            }
+            currentAggregation={
+              filters.period === 'annual' && QUARTERLY_FEATURES.some(f => f.key === selectedFeature) && data.quarterlyCombinedAggregation
+                ? data.quarterlyCombinedAggregation
+                : data.current
+            }
+            filters={{
+              ...filters,
+              ...(filters.period === 'annual' && QUARTERLY_FEATURES.some(f => f.key === selectedFeature)
+                ? { quarterlyKpiCombined: true }
+                : {}
+              ),
+            }}
+            quarterlyPerQuarterRawData={
+              (filters.period === 'annual' && (QUARTERLY_FEATURES.some(f => f.key === selectedFeature) || selectedFeature === 'csr'))
+                || (filters.period === 'quarterly' && selectedFeature === 'primarySecondaryPackaging')
+                ? data.quarterlyPerQuarterRawData
+                : undefined
+            }
+            allCompanyRawData={
+              filters.period === 'annual' && QUARTERLY_FEATURES.some(f => f.key === selectedFeature) && data.allQuarterlyCombinedRawData
+                ? data.allQuarterlyCombinedRawData
+                : data.allCompanyRawData
+            }
+          />
+        </div>
+      ) : data && selectedFeature === 'cumulative' ? (
+        <div className="mt-4 flex items-center justify-center p-12 rounded-lg border border-dashed border-border">
+          <p className="text-sm text-muted-foreground">
+            Cumulative data view coming soon.
+          </p>
+        </div>
+      ) : data && !selectedFeature ? (
+        <Tabs value={searchParams.get('tab') || 'insight'} onValueChange={(v) => { const sp = new URLSearchParams(searchParams); sp.set('tab', v); setSearchParams(sp, { replace: true }); }} className="mt-4">
+          <TabsList className="grid w-full max-w-lg grid-cols-4">
+            <TabsTrigger value="aggregation" className="flex items-center gap-1.5 text-xs">
+              <BarChart3 className="w-3.5 h-3.5" />
+              Aggregation
+            </TabsTrigger>
+            <TabsTrigger value="insight" className="flex items-center gap-1.5 text-xs">
+              <Lightbulb className="w-3.5 h-3.5" />
+              Insight
+            </TabsTrigger>
+            <TabsTrigger value="trends" className="flex items-center gap-1.5 text-xs">
+              <Lightbulb className="w-3.5 h-3.5" />
+              Trends
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="aggregation" className="mt-4">
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Select a feature from the dropdown above or click below to view detailed KPI analytics.
+              </p>
+              {filters.period === 'annual' && (
+                <>
+                  <div>
+                    <h3 className="text-sm font-semibold text-muted-foreground mb-2">Quarterly KPIs (Q1-Q4 Combined)</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                      {QUARTERLY_FEATURES.map(feature => renderFeatureCard(feature, data, featureEnabledMap, handleSelectFeature, true))}
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-muted-foreground mb-2">Annual KPIs</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {ANNUAL_FEATURES.map(feature => renderFeatureCard(feature, data, featureEnabledMap, handleSelectFeature))}
+                    </div>
+                  </div>
+                </>
+              )}
+              {filters.period === 'quarterly' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {availableFeatures.map(feature => renderFeatureCard(feature, data, featureEnabledMap, handleSelectFeature))}
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="insight" className="mt-4">
+            <InsightTab
+              insights={
+                filters.period === 'annual' && data.quarterlyCombinedInsights
+                  ? {
+                    ...data.currentInsights,
+                    deiCompositeScore: data.quarterlyCombinedInsights.deiCompositeScore,
+                    socialScore: data.quarterlyCombinedInsights.socialScore,
+                    esgCompositeScore: data.quarterlyCombinedInsights.esgCompositeScore,
+                    supplyChainSustainabilityScore: data.quarterlyCombinedInsights.supplyChainSustainabilityScore,
+                    circularEconomyIndex: data.quarterlyCombinedInsights.circularEconomyIndex,
+                    governanceScore: data.quarterlyCombinedInsights.governanceScore,
+                    genderDiversityRatio: data.quarterlyCombinedInsights.genderDiversityRatio,
+                    womenInLeadershipPct: data.quarterlyCombinedInsights.womenInLeadershipPct,
+                    pwdInclusionRate: data.quarterlyCombinedInsights.pwdInclusionRate,
+                    cxoPayRatio: data.quarterlyCombinedInsights.cxoPayRatio,
+                    jobsPerCrRevenue: data.quarterlyCombinedInsights.jobsPerCrRevenue,
+                    caseResolutionRate: data.quarterlyCombinedInsights.caseResolutionRate,
+                    highImpactIncidentRatio: data.quarterlyCombinedInsights.highImpactIncidentRatio,
+                    poshCaseIntensity: data.quarterlyCombinedInsights.poshCaseIntensity,
+                    csrSpendRatio: (() => {
+                      const annualCsrSpend = data.current?.csrSpendAmount ?? 0;
+                      const qRevenue = data.quarterlyCombinedAggregation?.netRevenue ?? 0;
+                      return qRevenue > 0 ? Math.round((annualCsrSpend / (qRevenue * 1e7)) * 100 * 10000) / 10000 : 0;
+                    })(),
+                  }
+                  : data.currentInsights
+              }
+              timeSeries={data.timeSeries}
               companyRawData={
-                filters.period === 'annual' && QUARTERLY_FEATURES.some(f => f.key === selectedFeature) && data.quarterlyCombinedRawData
+                filters.period === 'annual' && data.quarterlyCombinedRawData
                   ? data.quarterlyCombinedRawData
                   : data.companyRawData
               }
-              currentInsights={
-                filters.period === 'annual' && QUARTERLY_FEATURES.some(f => f.key === selectedFeature) && data.quarterlyCombinedInsights
-                  ? data.quarterlyCombinedInsights
-                  : data.currentInsights
-              }
-              currentAggregation={
-                filters.period === 'annual' && QUARTERLY_FEATURES.some(f => f.key === selectedFeature) && data.quarterlyCombinedAggregation
-                  ? data.quarterlyCombinedAggregation
-                  : data.current
-              }
-              filters={{
-                ...filters,
-                ...(filters.period === 'annual' && QUARTERLY_FEATURES.some(f => f.key === selectedFeature)
-                  ? { quarterlyKpiCombined: true }
-                  : {}
-                ),
-              }}
-              quarterlyPerQuarterRawData={
-                (filters.period === 'annual' && (QUARTERLY_FEATURES.some(f => f.key === selectedFeature) || selectedFeature === 'csr'))
-                  || (filters.period === 'quarterly' && selectedFeature === 'primarySecondaryPackaging')
-                  ? data.quarterlyPerQuarterRawData
-                  : undefined
-              }
-              allCompanyRawData={
-                filters.period === 'annual' && QUARTERLY_FEATURES.some(f => f.key === selectedFeature) && data.allQuarterlyCombinedRawData
-                  ? data.allQuarterlyCombinedRawData
-                  : data.allCompanyRawData
-              }
+              companyCount={data.companyCount}
+              filters={filters}
+              newInsight={false}
             />
-          </div>
-        ) : (
-          /* Overview with tabs */
-          <Tabs value={searchParams.get('tab') || 'insight' || "insightNew" || "trends"} onValueChange={(v) => { const sp = new URLSearchParams(searchParams); sp.set('tab', v); setSearchParams(sp, { replace: true }); }} className="mt-4">
-            <TabsList className="grid w-full max-w-lg grid-cols-4">
-              <TabsTrigger value="aggregation" className="flex items-center gap-1.5 text-xs">
-                <BarChart3 className="w-3.5 h-3.5" />
-                Aggregation
-              </TabsTrigger>
+          </TabsContent>
 
-              <TabsTrigger value="insight" className="flex items-center gap-1.5 text-xs">
-                <Lightbulb className="w-3.5 h-3.5" />
-                Insight
-              </TabsTrigger>
-              <TabsTrigger value="trends" className="flex items-center gap-1.5 text-xs">
-                <Lightbulb className="w-3.5 h-3.5" />
-                Trends
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="aggregation" className="mt-4">
-              {/* Feature overview cards - click to select feature */}
-              <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  Select a feature from the dropdown above or click below to view detailed KPI analytics.
-                </p>
-
-                {/* In annual view, show quarterly + annual sections separately */}
-                {filters.period === 'annual' && (
-                  <>
-                    <div>
-                      <h3 className="text-sm font-semibold text-muted-foreground mb-2">Quarterly KPIs (Q1-Q4 Combined)</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-                        {QUARTERLY_FEATURES.map(feature => renderFeatureCard(feature, data, featureEnabledMap, handleSelectFeature, true))}
-                      </div>
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-semibold text-muted-foreground mb-2">Annual KPIs</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {ANNUAL_FEATURES.map(feature => renderFeatureCard(feature, data, featureEnabledMap, handleSelectFeature))}
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                {/* In quarterly view, show all features in one grid */}
-                {filters.period === 'quarterly' && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {availableFeatures.map(feature => renderFeatureCard(feature, data, featureEnabledMap, handleSelectFeature))}
-                  </div>
-                )}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="insight" className="mt-4">
-              <InsightTab
-                insights={
-                  filters.period === 'annual' && data.quarterlyCombinedInsights
-                    ? {
-                      ...data.currentInsights,
-                      // Composite scores depend on quarterly employment data — overlay them
-                      deiCompositeScore: data.quarterlyCombinedInsights.deiCompositeScore,
-                      socialScore: data.quarterlyCombinedInsights.socialScore,
-                      esgCompositeScore: data.quarterlyCombinedInsights.esgCompositeScore,
-                      supplyChainSustainabilityScore: data.quarterlyCombinedInsights.supplyChainSustainabilityScore,
-                      circularEconomyIndex: data.quarterlyCombinedInsights.circularEconomyIndex,
-                      governanceScore: data.quarterlyCombinedInsights.governanceScore,
-                      // Employment-derived metrics
-                      genderDiversityRatio: data.quarterlyCombinedInsights.genderDiversityRatio,
-                      womenInLeadershipPct: data.quarterlyCombinedInsights.womenInLeadershipPct,
-                      pwdInclusionRate: data.quarterlyCombinedInsights.pwdInclusionRate,
-                      cxoPayRatio: data.quarterlyCombinedInsights.cxoPayRatio,
-                      jobsPerCrRevenue: data.quarterlyCombinedInsights.jobsPerCrRevenue,
-                      caseResolutionRate: data.quarterlyCombinedInsights.caseResolutionRate,
-                      highImpactIncidentRatio: data.quarterlyCombinedInsights.highImpactIncidentRatio,
-                      poshCaseIntensity: data.quarterlyCombinedInsights.poshCaseIntensity,
-                      // CSR ratio needs annual spend + quarterly revenue
-                      csrSpendRatio: (() => {
-                        const annualCsrSpend = data.current?.csrSpendAmount ?? 0;
-                        const qRevenue = data.quarterlyCombinedAggregation?.netRevenue ?? 0;
-                        return qRevenue > 0 ? Math.round((annualCsrSpend / (qRevenue * 1e7)) * 100 * 10000) / 10000 : 0;
-                      })(),
-                    }
-                    : data.currentInsights
-                }
-                timeSeries={data.timeSeries}
-                companyRawData={
-                  filters.period === 'annual' && data.quarterlyCombinedRawData
-                    ? data.quarterlyCombinedRawData
-                    : data.companyRawData
-                }
-                companyCount={data.companyCount}
-                filters={filters}
-                newInsight={false}
-              />
-
-            </TabsContent>
-            
-            <TabsContent value="trends" className="mt-4">
-              {/* <TrendsComparisonPage /> */}
-              <TrendsTab
-                periodAFilters={{ period: 'quarterly', quarter: 'Q4', year: 2025, cumulative: false }}
-                periodBFilters={{ period: 'quarterly', quarter: 'Q1', year: 2026, cumulative: false }}
-                newInsight={true}
-              />
-
-// Annual 2025 → Quarter 2026
-              {/* <TrendsTab
-                periodAFilters={{ period: 'annual', year: 2025, cumulative: false }}
-                periodBFilters={{ period: 'quarterly', quarter: 'Q1', year: 2026, cumulative: false }}
-                newInsight={true}
-              /> */}
-            </TabsContent>
-
-          </Tabs>
-        )
+          <TabsContent value="trends" className="mt-4">
+            <TrendsTab
+              periodAFilters={{ period: 'quarterly', quarter: 'Q4', year: 2025, cumulative: false }}
+              periodBFilters={{ period: 'quarterly', quarter: 'Q1', year: 2026, cumulative: false }}
+              newInsight={true}
+            />
+          </TabsContent>
+        </Tabs>
       ) : null}
     </div>
-  );
+  )
 };
 
 export default AdminDashboard;
+
+

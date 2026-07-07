@@ -1,42 +1,104 @@
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { mockCompanies } from '@/data/mockData';
-import { Industry, RevenueStage, Fund, QCategory } from '@/types/esg';
-import { isCompanyExcluded } from '@/lib/companyExclusions';
-import { applyEnvironmentPercentileNormalization, applySocialScorePercentileNormalization, computeCrossQuarterVirginReductions } from '@/lib/envScorePercentile';
-import { useAsOf, isPeriodAfterCutoff } from '@/contexts/AsOfContext';
-import { KpiEntryRaw } from './usePortfolioRankings';
-import { useEffect, useState } from 'react';
-import { filterKpiEntries } from '@/utils/kpiEntryFilters';
-import { http } from '@/utils/httpInterceptor';
+/**
+ * ─────────────────────────────────────────────────────────────────────────────
+ * computePortfolioScores — SELF-CONTAINED PORTFOLIO SCORING HELPER
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Pure helper: takes KPI entries + company context (with feature flags) and
+ * returns final ESG scores + AA-C grades that EXACTLY match the Admin
+ * Dashboard's InsightTab / ESG Composite output.
+ *
+ * • NO API calls, NO hooks, NO React.
+ * • NO imports from other project files — every dependency is inlined below,
+ *   copied verbatim from the Admin Dashboard's scoring pipeline
+ *   (src/hooks/useAnalyticsDashboardData.ts + src/lib/envScorePercentile.ts).
+ *
+ * Usage:
+ *   const { result } = computePortfolioScores({
+ *     entries,                       // KPIEntryInput[]
+ *     companies,                     // CompanyContext[] with `features` map
+ *     period: { quarter: 'FY', year: 2025 },  // or { quarter: 'Q4', year: 2025 }
+ *   });
+ *   result.scores       -> portfolio-average E/S/G/Composite (matches dashboard)
+ *   result.grades       -> AA / A / BB / B / C for each score
+ *   result.perCompany   -> per-company scores + grade
+ *   result.summary      -> totals + averages snapshot
+ *
+ * For annual periods this helper merges Q1-Q4 into a quarterly-combined dataset
+ * (identical merge rules as the dashboard) before averaging insights.
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
 
-// ──── Types ────
-export interface AnalyticsFilters {
-  period: 'quarterly' | 'annual';
-  quarter?: string;
-  year: number;
-  industry?: Industry;
-  fund?: Fund;
-  revenueStage?: RevenueStage;
-  companyId?: string;
-  qCategory?: QCategory;
-  firesidePOC?: string;
-  cumulative?: boolean;
+// ═══════════════════════════════════════════════════════════════════════════
+// PUBLIC INPUT / OUTPUT TYPES
+// Shared types come from ./types so every helper uses one canonical shape.
+// ═══════════════════════════════════════════════════════════════════════════
+
+import type { KPIEntryInput, CompanyContext } from './types';
+export type { KPIEntryInput, CompanyContext } from './types';
+
+export type Grade = 'AA' | 'A' | 'BB' | 'B' | 'C';
+
+export const scoreToGrade = (score: number): Grade => {
+  if (score >= 80) return 'AA';
+  if (score >= 60) return 'A';
+  if (score >= 40) return 'BB';
+  if (score >= 20) return 'B';
+  return 'C';
+};
+
+export interface PortfolioScoreOutput {
+  period: { quarter: string; year: number };
+  scores: {
+    environmentScore: number;
+    socialScore: number;
+    governanceScore: number;
+    compositeScore: number;
+  };
+  grades: {
+    environment: Grade;
+    social: Grade;
+    governance: Grade;
+    composite: Grade;
+  };
+  perCompany: Array<{
+    companyId: string;
+    companyName: string;
+    hasEnvironmentFeature: boolean;
+    environmentScore: number;
+    socialScore: number;
+    governanceScore: number;
+    compositeScore: number;
+    grade: Grade;
+  }>;
+  summary: {
+    companyCount: number;
+    submittingCompanyCount: number;
+    averages: {
+      environmentScore: number;
+      socialScore: number;
+      governanceScore: number;
+      compositeScore: number;
+    };
+  };
 }
 
-export interface CompanyRawMetrics {
-  companyId: string;
-  companyName: string;
-  brand: string;
-  industry: Industry;
-  fund: Fund;
-  revenueStage: RevenueStage;
-  kpis: Record<string, string>;
-  aggregation: AggregationMetrics;
-  insights: InsightMetrics;
-  usesFashionPackaging?: boolean;
-  hasEnvironmentFeature?: boolean;
+export interface ComputePortfolioScoresInput {
+  entries: KPIEntryInput[];
+  companies: CompanyContext[];
+  /**
+   * Unified period selector. `annual` merges Q1-Q4 + FY of `year`; `quarterly`
+   * scores the single quarter of `year`. `cumulative` mode is NOT supported
+   * here — use `generateCumulativeAnalytics` for that.
+   *
+   * Legacy shape `{ quarter, year }` is also accepted for back-compat.
+   */
+  period:
+    | import('./types').Period
+    | { quarter: string; year: number };
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// INLINED — analytics primitives (copied from useAnalyticsDashboardData.ts)
+// ═══════════════════════════════════════════════════════════════════════════
 
 export interface AggregationMetrics {
   netRevenue: number;
@@ -181,40 +243,6 @@ export interface InsightMetrics {
   _hasNoEnvData?: boolean;
 }
 
-export interface TimeSeriesPoint {
-  period: string;
-  quarter: string;
-  year: number;
-  aggregation: AggregationMetrics;
-  insights: InsightMetrics;
-  /** Per-company averaged insights (matches stat card logic) */
-  perCompanyInsights: InsightMetrics;
-  companyCount: number;
-}
-
-export interface AnalyticsDashboardData {
-  current: AggregationMetrics;
-  currentInsights: InsightMetrics;
-  timeSeries: TimeSeriesPoint[];
-  byIndustry: Record<string, AggregationMetrics>;
-  byFund: Record<string, AggregationMetrics>;
-  byRevenueStage: Record<string, AggregationMetrics>;
-  companyCount: number;
-  filteredCompanies: typeof mockCompanies;
-  companyRawData: CompanyRawMetrics[];
-  /** Combined Q1-Q4 company data for annual view (counts summed, % averaged) */
-  quarterlyCombinedRawData?: CompanyRawMetrics[];
-  quarterlyCombinedAggregation?: AggregationMetrics;
-  quarterlyCombinedInsights?: InsightMetrics;
-  /** Per-quarter company raw data for timeline graphs in annual view */
-  quarterlyPerQuarterRawData?: Record<string, CompanyRawMetrics[]>;
-  /** All companies raw data (without companyId filter) for comparison averages */
-  allCompanyRawData?: CompanyRawMetrics[];
-  /** All companies quarterly combined raw data for comparison averages in annual view */
-  allQuarterlyCombinedRawData?: CompanyRawMetrics[];
-}
-
-// ──── Helpers ────
 const parseNum = (val: string | null | undefined): number => {
   if (!val || val === '' || val === 'N/A' || val === 'NA') return 0;
   const parsed = parseFloat(val);
@@ -222,7 +250,7 @@ const parseNum = (val: string | null | undefined): number => {
 };
 
 /** Round to 2 decimal places */
-export const r2 = (v: number): number => Math.round(v * 100) / 100;
+const r2 = (v: number): number => Math.round(v * 100) / 100;
 
 const isYes = (val: string | null | undefined): boolean => {
   if (!val) return false;
@@ -265,16 +293,16 @@ export function buildAggregation(kpis: Record<string, string>): AggregationMetri
   const bcFemaleF = parseNum(kpis['employees_bc_female_fulltime']);
   const bcFemaleC = parseNum(kpis['employees_bc_female_contractual']);
   const bcFemaleP = parseNum(kpis['employees_bc_female_parttime']);
-
+  
   const wcMale = wcMaleF + wcMaleC + wcMaleP;
   const wcFemale = wcFemaleF + wcFemaleC + wcFemaleP;
   const bcMale = bcMaleF + bcMaleC + bcMaleP;
   const bcFemale = bcFemaleF + bcFemaleC + bcFemaleP;
-
+  
   const totalWcEmployees = wcMale + wcFemale;
   const totalBcEmployees = bcMale + bcFemale;
   const totalEmployment = totalWcEmployees + totalBcEmployees;
-
+  
   const wcWagesMale = parseNum(kpis['employees_wc_wages_male']);
   const wcWagesFemale = parseNum(kpis['employees_wc_wages_female']);
   const bcWagesMale = parseNum(kpis['employees_bc_wages_male']);
@@ -532,9 +560,9 @@ export function buildAggregation(kpis: Record<string, string>): AggregationMetri
   };
 }
 
-export function sumAggregations(items: AggregationMetrics[]): AggregationMetrics {
+function sumAggregations(items: AggregationMetrics[]): AggregationMetrics {
   if (items.length === 0) return buildAggregation({});
-
+  
   const sum = (key: keyof AggregationMetrics) => items.reduce((a, b) => a + (b[key] as number), 0);
   const avg = (key: keyof AggregationMetrics) => {
     const vals = items.filter(i => (i[key] as number) > 0);
@@ -714,7 +742,6 @@ export function deriveInsights(agg: AggregationMetrics, industry?: string, hasFa
     circularEconomyIndex: r2(Math.min(100, (() => {
       const isFashion = hasFashionPackaging === true;
       if (isFashion) {
-        // console.log('Computing circular economy index for fashion company:', { agg });
         // Fashion & Lifestyle formula:
         // Recyclable Materials % (40%) + Recyclable Packaging % (40%) + Fresh Water Consumed % (10%) + Water Recycled % (10%)
         const recyclableMaterials = Math.min(100, agg.fashionRecyclablePct);
@@ -916,643 +943,678 @@ export function deriveInsights(agg: AggregationMetrics, industry?: string, hasFa
   };
 }
 
-export const useAnalyticsDashboardData = (filters: AnalyticsFilters,kpiEntries?: { companyId: string; kpi_id: string; value: string | null; quarter: string; year: number }[],
-  featureRows?:{ companyId: string; feature_key: string, enabled: boolean }[]) => {
-  const { asOf } = useAsOf();
-  const [data, setData] = useState<AnalyticsDashboardData | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
 
-  // Stable serialized key to prevent re-fetching on referentially-new-but-equal filter objects
-  const filtersKey = JSON.stringify(filters);
-  const asOfKey = `${asOf?.month ?? 'live'}-${asOf?.year ?? 'live'}`;
+// ─── Percentile normalization (from src/lib/envScorePercentile.ts) ───
+function pv(kpis: Record<string, string>, k: string): number {
+  return parseFloat(kpis[k] || '0') || 0;
+}
 
-  // useEffect(() => {
-  //   if (filters.year && filters.year == 2025) {
+export function extractNonFashionRawComponents(kpis: Record<string, string>, preComputedVirginReduction?: number) {
+  const totalPkg = pv(kpis, 'food_pkg_basic_total_total_material_used');
+  const totalPkgRecycled = pv(kpis, 'food_pkg_basic_total_total_material_recycled');
+  const priPlasticVirgin = pv(kpis, 'food_pkg_basic_primary_breakup_primary_plastic_virgin');
+  const priPlasticRecycled = pv(kpis, 'food_pkg_basic_primary_breakup_primary_plastic_recycled');
+  const secPlasticVirgin = pv(kpis, 'food_pkg_detailed_secondary_breakup_secondary_plastic_virgin');
+  const secPlasticRecycled = pv(kpis, 'food_pkg_detailed_secondary_breakup_secondary_plastic_recycled');
+  const totalPlastic = priPlasticVirgin + priPlasticRecycled + secPlasticVirgin + secPlasticRecycled;
+  const totalRecycledPlastic = priPlasticRecycled + secPlasticRecycled;
 
-  //   }
-  // }, [filters]);
+  // Use pre-computed cross-quarter intensity reduction — preserve negative values for full-range percentile
+  const virginReduction = preComputedVirginReduction !== undefined
+    ? preComputedVirginReduction
+    : (totalPlastic > 0 ? (totalRecycledPlastic / totalPlastic) * 100 : 0);
+  const revenue = pv(kpis, 'net_revenue');
+  const plasticIntensity = revenue > 0 ? totalPlastic / revenue : 0;
+  const materialRecycled = totalPkg > 0 ? Math.min(100, (totalPkgRecycled / totalPkg) * 100) : 0;
+  const eprPct = Math.min(100, pv(kpis, 'food_pkg_basic_compliance_epr_compliance_pct'));
+  const vpnPct = Math.min(100, pv(kpis, 'food_pkg_basic_compliance_voluntary_plastic_neutrality'));
+  const eprVpn = Math.min(100, Math.max(eprPct, vpnPct));
 
-  useEffect(() => {
-    let cancelled = false;
+  const priNonPlastic = pv(kpis, 'food_pkg_basic_primary_breakup_primary_paper_recycled') + pv(kpis, 'food_pkg_basic_primary_breakup_primary_metal') + pv(kpis, 'food_pkg_basic_primary_breakup_primary_glass') + pv(kpis, 'food_pkg_basic_primary_breakup_primary_plant_based');
+  const secNonPlastic = pv(kpis, 'food_pkg_detailed_secondary_breakup_secondary_paper_recycled') + pv(kpis, 'food_pkg_detailed_secondary_breakup_secondary_metal') + pv(kpis, 'food_pkg_detailed_secondary_breakup_secondary_glass') + pv(kpis, 'food_pkg_detailed_secondary_breakup_secondary_plant_based');
+  const allRecycledPct = totalPkg > 0 ? Math.min(100, ((totalRecycledPlastic + priNonPlastic + secNonPlastic) / totalPkg) * 100) : 0;
+  const recyclablePct = Math.min(100, pv(kpis, 'food_pkg_basic_primary_recyclability_primary_mono_materials'));
 
-    const fetchData = async () => {
-      setIsLoading(true);
-      setError(null);
+  return { virginReduction, plasticIntensity, materialRecycled, eprVpn, allRecycledPct, recyclablePct };
+}
 
-      try {
-        const START_QUARTER = 'Q4';
-        const START_YEAR = 2024;
-        const quarters = (filters.year == 2025 ? ['Q1', 'Q2', 'Q3', 'Q4']:['Q1']);
-        const periods: { quarter: string; year: number }[] = [];
+export function extractFashionRawComponents(kpis: Record<string, string>) {
+  const recyclableMaterialsPct = Math.min(100, pv(kpis, 'fashion_recyclable_materials_pct'));
+  // Derive recyclable packaging % from MT data since _pct keys are not populated
+  const priRecyclableMT = pv(kpis, 'fashion_primary_pkg_cardboard_mt') + pv(kpis, 'fashion_primary_pkg_paper_mt') + pv(kpis, 'fashion_primary_pkg_fabric_mt') + pv(kpis, 'fashion_primary_pkg_plastic_recyclable_mt');
+  const priNonRecyclableMT = pv(kpis, 'fashion_primary_pkg_plastic_non_recyclable_mt') + pv(kpis, 'fashion_primary_pkg_other_mt');
+  const priTotalMT = priRecyclableMT + priNonRecyclableMT;
+  const priRecyclablePct = priTotalMT > 0 ? (priRecyclableMT / priTotalMT) * 100 : 0;
 
-        const includeCumulativeQ1NextYear = filters.cumulative && filters.year === 2025;
+  const secRecyclableMT = pv(kpis, 'fashion_secondary_pkg_cardboard_mt') + pv(kpis, 'fashion_secondary_pkg_paper_mt') + pv(kpis, 'fashion_secondary_pkg_fabric_mt') + pv(kpis, 'fashion_secondary_pkg_plastic_recyclable_mt');
+  const secNonRecyclableMT = pv(kpis, 'fashion_secondary_pkg_plastic_non_recyclable_mt') + pv(kpis, 'fashion_secondary_pkg_other_mt');
+  const secTotalMT = secRecyclableMT + secNonRecyclableMT;
+  const secRecyclablePct = secTotalMT > 0 ? (secRecyclableMT / secTotalMT) * 100 : 0;
 
-        if (filters.period === 'quarterly') {
-          let qi = quarters.indexOf(START_QUARTER);
-          let y = START_YEAR;
-          const endQi = quarters.indexOf(filters.quarter || 'Q1');
-          const endY = filters.year;
+  // Average primary & secondary; if only one level has data, use that
+  const levelsWithData = (priTotalMT > 0 ? 1 : 0) + (secTotalMT > 0 ? 1 : 0);
+  const recyclablePackagingPct = levelsWithData > 0 ? Math.min(100, (priRecyclablePct + secRecyclablePct) / levelsWithData) : 0;
 
-          while (y < endY || (y === endY && qi <= endQi)) {
-            periods.push({ quarter: quarters[qi], year: y });
-            qi++;
-            if (qi > 3) { qi = 0; y++; }
-          }
-          if (periods.length === 0) {
-            periods.push({ quarter: filters.quarter || 'Q1', year: filters.year });
-          }
-          if (includeCumulativeQ1NextYear && !periods.some(p => p.quarter === 'Q1' && p.year === filters.year + 1)) {
-            periods.push({ quarter: 'Q1', year: filters.year + 1 });
-          }
-        } else {
-          for (let y = START_YEAR; y <= filters.year; y++) {
-            periods.push({ quarter: 'FY', year: y });
-          }
-          (filters.year == 2025 ? ['Q1', 'Q2', 'Q3', 'Q4']:['Q1']).forEach(q => {
-            periods.push({ quarter: q, year: filters.year });
-          });
-          if (includeCumulativeQ1NextYear) {
-            periods.push({ quarter: 'Q1', year: filters.year + 1 });
-          }
-        }
+  const facilities = ['office', 'stores_coco', 'warehouses', 'manufacturing', 'dark_stores', 'distribution'];
+  let freshSum = 0, fwCnt = 0;
+  facilities.forEach(f => {
+    const consumed = pv(kpis, `water_detailed_${f}_water_consumed`);
+    if (consumed > 0) { freshSum += pv(kpis, `water_detailed_${f}_fresh_water_pct`); fwCnt++; }
+  });
+  const avgFreshWaterPct = fwCnt > 0 ? Math.min(100, freshSum / fwCnt) : 0;
 
-        const years = [...new Set(periods.map(p => p.year))];
-        let allEntries: { companyId: string; kpi_id: string; value: string | null; quarter: string; year: number }[] = [];
+  let wrSum = 0, wCnt = 0;
+  facilities.forEach(f => {
+    const consumed = pv(kpis, `water_detailed_${f}_water_consumed`);
+    if (consumed > 0) { wrSum += pv(kpis, `water_detailed_${f}_wastewater_recycled_pct`); wCnt++; }
+  });
+  const avgWaterRecycled = wCnt > 0 ? Math.min(100, wrSum / wCnt) : 0;
 
-        const res = await http.get<{ companyId: string; kpi_id: string; value: string | null; quarter: string; year: number }[]>(
-          `mis/kpi-entries?years=${years.join(',')}`
-        );
-        allEntries = res.data || [];
-        console.log('Fetched KPI entries:', allEntries.filter(e => e.year === 2026), 'entries for years', years);
-        if (asOf) {
-          allEntries = allEntries.filter(e => !isPeriodAfterCutoff(e.quarter, e.year, asOf));
-        }
+  return { recyclableMaterialsPct, recyclablePackagingPct, avgFreshWaterPct, avgWaterRecycled };
+}
 
-        const featuresRes = await http.get<{ companyId: string; feature_key: string, enabled: boolean }[]>(
-          'mis/company-feature-settings?enabled=true'
-        );
-        const featureRows = featuresRes.data || [];
-        // console.log('Fetched feature settings rows:', featureRows);
-        const fashionPkgCompanyIds = new Set(
-          featureRows.filter(r => r.feature_key === 'fashionMaterials' && r.enabled).map(r => r.companyId)
-        );
-        const stdPkgCompanyIds = new Set(
-          featureRows.filter(r => r.feature_key === 'primarySecondaryPackaging' && r.enabled).map(r => r.companyId)
-        );
-        const sourcingCompanyIds = new Set<string>(
-          featureRows.filter(r => r.feature_key === 'sourcingFulfillment' && r.enabled).map(r => r.companyId)
-        );
-        const envFeatureCompanyIds = new Set(
-          featureRows
-            .filter(r => ['waterDetailed', 'waterManagement', 'energyDetailed', 'wasteDetailed'].includes(r.feature_key) && r.enabled)
-            .map(r => r.companyId)
-        );
-        const waterDetailedCompanyIds = new Set(
-          featureRows
-            .filter(r => r.feature_key === 'waterDetailed' || r.feature_key === 'waterManagement')
-            .map(r => r.companyId)
-        );
-        // console.log('Companies with fashionMaterials feature:', Array.from(fashionPkgCompanyIds));
-        // console.log('Companies with primarySecondaryPackaging feature:', Array.from(stdPkgCompanyIds));
-        // console.log('Companies with sourcingFulfillment feature:', Array.from(sourcingCompanyIds));
-        // console.log('Companies with waterDetailed or waterManagement features:', Array.from(waterDetailedCompanyIds));
-        const hasEnvFeature = (companyId: string) =>
-          fashionPkgCompanyIds.has(companyId) ||
-          stdPkgCompanyIds.has(companyId) ||
-          envFeatureCompanyIds.has(companyId);
+/**
+ * Min-max normalization: maps values to 0-100 range.
+ * Values ≤ 0 are treated as "no data" and get percentile 0.
+ * They are excluded from the min/max calculation.
+ */
+function minMaxNorm(values: number[], inverse = false): number[] {
+  const nonZero = values.filter(v => v > 0);
+  if (nonZero.length === 0) return values.map(() => 0);
+  const min = Math.min(...nonZero);
+  const max = Math.max(...nonZero);
+  if (max === min) return values.map(v => v > 0 ? 100 : 0);
+  return values.map(v => {
+    if (v <= 0) return 0;
+    return inverse
+      ? r2(((max - v) / (max - min)) * 100)
+      : r2(((v - min) / (max - min)) * 100);
+  });
+}
 
-        allEntries = allEntries.filter(e => {
-          if (e.kpi_id.startsWith('food_pkg_') && !stdPkgCompanyIds.has(e.companyId)) return false;
-          return true;
-        });
+/**
+ * Full-range min-max normalization: includes ALL values (even negatives).
+ * Highest value → 100, lowest value → 0.
+ * Only truly missing companies (NaN / undefined passed as 0 with no data) get 0.
+ */
+function minMaxNormFullRange(values: number[], hasData: boolean[]): number[] {
+  const active = values.filter((_, i) => hasData[i]);
+  if (active.length === 0) return values.map(() => 0);
+  const min = Math.min(...active);
+  const max = Math.max(...active);
+  if (max === min) return values.map((_, i) => hasData[i] ? 100 : 0);
+  return values.map((v, i) => {
+    if (!hasData[i]) return 0;
+    return r2(((v - min) / (max - min)) * 100);
+  });
+}
 
-        let filteredCompanies = mockCompanies.filter(c => c.investmentStatus === 'Invested');
-        if (filters.year && filters.year == 2025) {
-          filteredCompanies = filteredCompanies.filter(c => !['company-44','company-45'].includes(c.id))
-        }
-        if (filters.industry) filteredCompanies = filteredCompanies.filter(c => c.industry === filters.industry);
-        if (filters.fund) filteredCompanies = filteredCompanies.filter(c => c.fund === filters.fund);
-        if (filters.revenueStage) filteredCompanies = filteredCompanies.filter(c => c.revenueStage === filters.revenueStage);
-        if (filters.qCategory) filteredCompanies = filteredCompanies.filter(c => c.qCategory === filters.qCategory);
-        if (filters.firesidePOC) filteredCompanies = filteredCompanies.filter(c => c.fl === filters.firesidePOC);
-        if (filters.companyId) filteredCompanies = filteredCompanies.filter(c => c.id === filters.companyId);
-        const companyIds = new Set(filteredCompanies.map(c => c.id));
-        console.log('filters.cumulative',filters.cumulative);
-        const timeSeries: TimeSeriesPoint[] = periods.map(p => {
-          const periodEntries = filterKpiEntries(allEntries, {
-            companyIds,
-            quarter: p.quarter,
-            year: p.year,
-            cumulative: filters.cumulative,
-          });
+/**
+ * Computes cross-quarter virgin plastic reduction for Environment Score.
+ * Uses the same methodology as the Packaging insight "% Reduction in Virgin Plastics":
+ * ((Base Quarter Intensity − Q4 Intensity) / Base Quarter Intensity) × 100
+ * where Intensity = Virgin Plastic MT / Net Revenue (₹ Cr).
+ * Base Quarter = earliest available quarter with plastic data (Q1 → Q2 → Q3).
+ */
+export function computeCrossQuarterVirginReductions(
+  quarterlyPerQuarterData: Record<string, Array<{ companyId: string; kpis: Record<string, string> }>>
+): Map<string, number> {
+  const result = new Map<string, number>();
 
-          const byCompany: Record<string, Record<string, string>> = {};
-          periodEntries.forEach(e => {
-            if (!byCompany[e.companyId]) byCompany[e.companyId] = {};
-            byCompany[e.companyId][e.kpi_id] = e.value || '';
-          });
+  const VIRGIN_PLASTIC_KEYS = [
+    'food_pkg_basic_primary_breakup_primary_plastic_virgin',
+    'food_pkg_detailed_secondary_breakup_secondary_plastic_virgin',
+  ];
 
-          const companyAggs = Object.values(byCompany).map(kpis => buildAggregation(kpis));
-          const aggregation = sumAggregations(companyAggs);
-          const insights = deriveInsights(aggregation);
+  const hasPlasticData = (kpis: Record<string, string>) =>
+    VIRGIN_PLASTIC_KEYS.some(k => kpis[k] !== undefined && kpis[k] !== '' && kpis[k] !== null);
 
-          const companyInsightsList = Object.values(byCompany)
-            .filter(kpis => Object.keys(kpis).length > 0)
-            .map(kpis => deriveInsights(buildAggregation(kpis)));
-          const avgInsight = (key: keyof InsightMetrics): number => {
-            const vals = companyInsightsList.map(i => i[key] as number).filter(v => v !== undefined && !isNaN(v));
-            return vals.length > 0 ? Math.round((vals.reduce((s, v) => s + v, 0) / vals.length) * 10) / 10 : 0;
-          };
-          const perCompanyInsights: InsightMetrics = {} as InsightMetrics;
-          for (const key of Object.keys(insights) as (keyof InsightMetrics)[]) {
-            (perCompanyInsights as any)[key] = avgInsight(key);
-          }
+  const getVirginPlasticMT = (kpis: Record<string, string>) =>
+    VIRGIN_PLASTIC_KEYS.reduce((sum, k) => sum + pv(kpis, k), 0);
 
-          return {
-            period: p.quarter === 'FY' ? `AY ${p.year}` : `${p.quarter} ${p.year}`,
-            quarter: p.quarter,
-            year: p.year,
-            aggregation,
-            insights,
-            perCompanyInsights,
-            companyCount: Object.keys(byCompany).length,
-          };
-        });
+  const getPlasticIntensity = (kpis: Record<string, string>) => {
+    const virginMT = getVirginPlasticMT(kpis);
+    const revenue = pv(kpis, 'net_revenue');
+    return revenue > 0 ? virginMT / revenue : 0;
+  };
 
-        const currentQ = filters.period === 'quarterly' ? (filters.quarter || 'Q1') : 'FY';
-        const currentPeriod = timeSeries.find(t => t.quarter === currentQ && t.year === filters.year);
-        const current = currentPeriod?.aggregation || buildAggregation({});
-        const currentInsights = currentPeriod?.insights || deriveInsights(current);
-
-        const currentEntries = filterKpiEntries(allEntries, {
-          companyIds,
-          quarter: currentQ,
-          year: filters.year,
-          cumulative: filters.cumulative,
-        });
-
-        const currentByCompany: Record<string, Record<string, string>> = {};
-        currentEntries.forEach(e => {
-          if (!currentByCompany[e.companyId]) currentByCompany[e.companyId] = {};
-          currentByCompany[e.companyId][e.kpi_id] = e.value || '';
-        });
-
-        const companyRawData: CompanyRawMetrics[] = filteredCompanies.map(company => {
-          // console.log(`Building raw data for company ${company.name} (${company.id})`);
-          const kpis = currentByCompany[company.id] || {};
-          const aggregation = buildAggregation(kpis);
-          const hasFashionPkg = fashionPkgCompanyIds.has(company.id);
-          // console.log(`Company ${company.name} (${company.id}) - `);
-
-          const insights = deriveInsights(aggregation, company.industry, hasFashionPkg);
-          const obj = {
-            companyId: company.id,
-            companyName: company.name,
-            brand: company.brand,
-            industry: company.industry,
-            fund: company.fund,
-            revenueStage: company.revenueStage,
-            kpis,
-            aggregation,
-            insights,
-            usesFashionPackaging: hasFashionPkg,
-            hasWaterFeature: waterDetailedCompanyIds.has(company.id),
-            hasEnvironmentFeature: hasEnvFeature(company.id),
-          };
-          // console.log(`Raw data for ${company.name}:`, obj);
-          return obj;
-        });
-
-        // Removed illegal useEffect from here — log moved outside
-        // console.log('Company raw data for current period:', companyRawData);
-
-        const vprQ14Entries = filterKpiEntries(allEntries, {
-          companyIds,
-          quarters: (filters.year == 2025 ? ['Q1', 'Q2', 'Q3', 'Q4']:['Q1']),
-          year: filters.year,
-          cumulative: filters.cumulative,
-        });
-        const vprByCompanyQuarter: Record<string, Record<string, Record<string, string>>> = {};
-        vprQ14Entries.forEach(e => {
-          if (!vprByCompanyQuarter[e.companyId]) vprByCompanyQuarter[e.companyId] = {};
-          if (!vprByCompanyQuarter[e.companyId][e.quarter]) vprByCompanyQuarter[e.companyId][e.quarter] = {};
-          vprByCompanyQuarter[e.companyId][e.quarter][e.kpi_id] = e.value || '';
-        });
-        const vprPerQuarter: Record<string, Array<{ companyId: string; kpis: Record<string, string> }>> = {};
-        (filters.year == 2025 ? ['Q1', 'Q2', 'Q3', 'Q4']:['Q1']).forEach(q => {
-          vprPerQuarter[q] = filteredCompanies.map(company => ({
-            companyId: company.id,
-            kpis: vprByCompanyQuarter[company.id]?.[q] || {},
-          }));
-        });
-        const quarterlyVirginReductions = computeCrossQuarterVirginReductions(vprPerQuarter);
-
-        applyEnvironmentPercentileNormalization(companyRawData, quarterlyVirginReductions);
-        applySocialScorePercentileNormalization(companyRawData, sourcingCompanyIds);
-
-        let allCompanyRawData: CompanyRawMetrics[] | undefined;
-        let allQuarterlyCombinedRawData: CompanyRawMetrics[] | undefined;
-        let quarterlyCombinedRawData: CompanyRawMetrics[] | undefined;
-        let quarterlyCombinedAggregation: AggregationMetrics | undefined;
-        let quarterlyCombinedInsights: InsightMetrics | undefined;
-        let quarterlyPerQuarterRawData: Record<string, CompanyRawMetrics[]> | undefined;
-
-        if (filters.period === 'annual') {
-          const PCT_PATTERNS = ['_pct', '_percentage', 'recyclability', 'unique_female_customers', 'revenue_tier2_plus', 'attrition_rate', 'renewable_pct', 'wastewater_recycled_pct', 'waste_recycled_pct', 'fresh_water_pct', 'plastic_neutrality'];
-          const AVG_KPI_PATTERNS = ['avg_cxo_compensation', 'employees_enps', 'leadership_clevel_total', 'leadership_clevel_female', 'leadership_board_total', 'leadership_board_female', 'leadership_board_independent'];
-          const isPercentageKpi = (id: string) => PCT_PATTERNS.some(p => id.includes(p));
-          const isAverageKpi = (id: string) => AVG_KPI_PATTERNS.some(p => id.includes(p));
-          const isQ4SnapshotKpi = (id: string) => id.startsWith('vendor_mis_') && id.endsWith('_num_vendors');
-          const MAX_KPI_PATTERNS = ['epr_compliance_pct', 'voluntary_plastic_neutrality'];
-          const isMaxAcrossQuartersKpi = (id: string) => MAX_KPI_PATTERNS.some(p => id.includes(p));
-
-          const q14Entries = filterKpiEntries(allEntries, {
-            companyIds,
-            quarters: (filters.year == 2025 ? ['Q1', 'Q2', 'Q3', 'Q4']:['Q1']),
-            year: filters.year,
-            cumulative: filters.cumulative,
-          });
-
-          const q14ByCompanyQuarter: Record<string, Record<string, Record<string, string>>> = {};
-          q14Entries.forEach(e => {
-            if (!q14ByCompanyQuarter[e.companyId]) q14ByCompanyQuarter[e.companyId] = {};
-            if (!q14ByCompanyQuarter[e.companyId][e.quarter]) q14ByCompanyQuarter[e.companyId][e.quarter] = {};
-            q14ByCompanyQuarter[e.companyId][e.quarter][e.kpi_id] = e.value || '';
-          });
-          quarterlyCombinedRawData = filteredCompanies.map(company => {
-            const quarterData = q14ByCompanyQuarter[company.id] || {};
-            const qs = Object.keys(quarterData);
-            const combinedKpis: Record<string, string> = {};
-            const allKpiKeys = new Set<string>();
-            qs.forEach(q => Object.keys(quarterData[q]).forEach(k => allKpiKeys.add(k)));
-
-            allKpiKeys.forEach(kpiId => {
-              const rawVals = qs
-                .map(q => quarterData[q]?.[kpiId])
-                .filter(v => v !== undefined && v !== '' && v !== null) as string[];
-              if (rawVals.length === 0) return;
-              const numericVals = rawVals.map(v => parseFloat(v)).filter(v => !isNaN(v));
-              if (numericVals.length > 0) {
-                if (isMaxAcrossQuartersKpi(kpiId)) {
-                  combinedKpis[kpiId] = String(r2(Math.min(100, numericVals.reduce((a, b) => a + b, 0))));
-                } else if (isQ4SnapshotKpi(kpiId)) {
-                  const q4Val = quarterData['Q4']?.[kpiId];
-                  const q4Num = q4Val ? parseFloat(q4Val) : NaN;
-                  if (!isNaN(q4Num)) {
-                    combinedKpis[kpiId] = String(Math.round(q4Num));
-                  } else {
-                    combinedKpis[kpiId] = rawVals[rawVals.length - 1];
-                  }
-                } else if (isPercentageKpi(kpiId) || isAverageKpi(kpiId)) {
-                  combinedKpis[kpiId] = String(r2(numericVals.reduce((a, b) => a + b, 0) / numericVals.length));
-                } else {
-                  combinedKpis[kpiId] = String(r2(numericVals.reduce((a, b) => a + b, 0)));
-                }
-              } else {
-                let merged = false;
-                try {
-                  const arrays = rawVals.map(v => JSON.parse(v)).filter(Array.isArray);
-                  if (arrays.length > 0) {
-                    const all = arrays.flat();
-                    if (all.length > 0 && typeof all[0] === 'object' && all[0]?.id) {
-                      const seen = new Set<string>();
-                      const unique = all.filter(item => {
-                        if (seen.has(item.id)) return false;
-                        seen.add(item.id);
-                        return true;
-                      });
-                      combinedKpis[kpiId] = JSON.stringify(unique);
-                    } else {
-                      const lastNonEmpty = arrays.filter(a => a.length > 0).pop();
-                      combinedKpis[kpiId] = JSON.stringify(lastNonEmpty || arrays[arrays.length - 1]);
-                    }
-                    merged = true;
-                  }
-                } catch { /* not JSON */ }
-                if (!merged) {
-                  combinedKpis[kpiId] = rawVals[rawVals.length - 1];
-                }
-              }
-            });
-
-            const fyKpis = currentByCompany[company.id] || {};
-            Object.entries(fyKpis).forEach(([k, v]) => {
-              if (v && v.trim() && !combinedKpis[k]) {
-                combinedKpis[k] = v;
-              }
-            });
-
-            const aggregation = buildAggregation(combinedKpis);
-            const hasFashionPkg = fashionPkgCompanyIds.has(company.id);
-
-            const insights = deriveInsights(aggregation, company.industry, hasFashionPkg);
-            return {
-              companyId: company.id,
-              companyName: company.name,
-              brand: company.brand,
-              industry: company.industry,
-              fund: company.fund,
-              revenueStage: company.revenueStage,
-              kpis: combinedKpis,
-              aggregation,
-              insights,
-              usesFashionPackaging: hasFashionPkg,
-              hasWaterFeature: waterDetailedCompanyIds.has(company.id),
-              hasEnvironmentFeature: hasEnvFeature(company.id),
-            };
-          });
-
-          const perQuarterForVPR: Record<string, Array<{ companyId: string; kpis: Record<string, string> }>> = {};
-          (filters.year == 2025 ? ['Q1', 'Q2', 'Q3', 'Q4']:['Q1']).forEach(q => {
-            perQuarterForVPR[q] = filteredCompanies.map(company => ({
-              companyId: company.id,
-              kpis: q14ByCompanyQuarter[company.id]?.[q] || {},
-            }));
-          });
-          const virginReductions = computeCrossQuarterVirginReductions(perQuarterForVPR);
-
-          applyEnvironmentPercentileNormalization(quarterlyCombinedRawData, virginReductions);
-          applySocialScorePercentileNormalization(quarterlyCombinedRawData, sourcingCompanyIds);
-
-          const combinedAggs = quarterlyCombinedRawData.map(c => c.aggregation);
-          quarterlyCombinedAggregation = sumAggregations(combinedAggs);
-
-          quarterlyCombinedInsights = deriveInsights(quarterlyCombinedAggregation);
-          // console.log('Quarterly combined raw data:', quarterlyCombinedRawData);  
-          const submitting = quarterlyCombinedRawData.filter(c => Object.keys(c.kpis).length > 0);
-          // console.log('Companies submitting Q1-Q4 data:', submitting);
-          const avgField = (key: keyof InsightMetrics) => {
-            const vals = submitting.map(c => c.insights[key] as number).filter(v => !isNaN(v));
-            return vals.length > 0 ? r2(vals.reduce((s, v) => s + v, 0) / vals.length) : 0;
-          };
-          quarterlyCombinedInsights.circularEconomyIndex = avgField('circularEconomyIndex');
-          quarterlyCombinedInsights.socialScore = avgField('socialScore');
-          quarterlyCombinedInsights.deiCompositeScore = avgField('deiCompositeScore');
-          quarterlyCombinedInsights.esgCompositeScore = avgField('esgCompositeScore');
-
-          quarterlyPerQuarterRawData = {};
-          (filters.year == 2025 ? ['Q1', 'Q2', 'Q3', 'Q4']:['Q1']).forEach(q => {
-            quarterlyPerQuarterRawData![q] = filteredCompanies.map(company => {
-              const kpis = q14ByCompanyQuarter[company.id]?.[q] || {};
-              const aggregation = buildAggregation(kpis);
-              const insights = deriveInsights(aggregation, company.industry, fashionPkgCompanyIds.has(company.id));
-              return {
-                companyId: company.id,
-                companyName: company.name,
-                brand: company.brand,
-                industry: company.industry,
-                fund: company.fund,
-                revenueStage: company.revenueStage,
-                kpis,
-                aggregation,
-                insights,
-                usesFashionPackaging: fashionPkgCompanyIds.has(company.id),
-                hasWaterFeature: waterDetailedCompanyIds.has(company.id),
-                hasEnvironmentFeature: hasEnvFeature(company.id),
-              };
-            });
-          });
-        } else {
-          const q14Entries = filterKpiEntries(allEntries, {
-            companyIds,
-            quarters: (filters.year == 2025 ? ['Q1', 'Q2', 'Q3', 'Q4']:['Q1']),
-            year: filters.year,
-            cumulative: filters.cumulative,
-          });
-          const q14ByCompanyQuarter: Record<string, Record<string, Record<string, string>>> = {};
-          q14Entries.forEach(e => {
-            if (!q14ByCompanyQuarter[e.companyId]) q14ByCompanyQuarter[e.companyId] = {};
-            if (!q14ByCompanyQuarter[e.companyId][e.quarter]) q14ByCompanyQuarter[e.companyId][e.quarter] = {};
-            q14ByCompanyQuarter[e.companyId][e.quarter][e.kpi_id] = e.value || '';
-          });
-          quarterlyPerQuarterRawData = {};
-          (filters.year == 2025 ? ['Q1', 'Q2', 'Q3', 'Q4']:['Q1']).forEach(q => {
-            quarterlyPerQuarterRawData![q] = filteredCompanies.map(company => {
-              const kpis = q14ByCompanyQuarter[company.id]?.[q] || {};
-              const aggregation = buildAggregation(kpis);
-              const insights = deriveInsights(aggregation, company.industry, fashionPkgCompanyIds.has(company.id));
-              return {
-                companyId: company.id,
-                companyName: company.name,
-                brand: company.brand,
-                industry: company.industry,
-                fund: company.fund,
-                revenueStage: company.revenueStage,
-                kpis,
-                aggregation,
-                insights,
-                usesFashionPackaging: fashionPkgCompanyIds.has(company.id),
-                hasWaterFeature: waterDetailedCompanyIds.has(company.id),
-                hasEnvironmentFeature: hasEnvFeature(company.id),
-              };
-            });
-          });
-        }
-
-        if (filters.companyId) {
-          const allCompanies = mockCompanies.filter(c => c.investmentStatus === 'Invested');
-          const allCompanyIds = new Set(allCompanies.map(c => c.id));
-
-          if (filters.period === 'annual') {
-            const PCT_PATTERNS2 = ['_pct', '_percentage', 'recyclability', 'unique_female_customers', 'revenue_tier2_plus', 'attrition_rate', 'renewable_pct', 'wastewater_recycled_pct', 'waste_recycled_pct', 'fresh_water_pct', 'plastic_neutrality'];
-            const AVG_KPI_PATTERNS2 = ['avg_cxo_compensation', 'employees_enps', 'leadership_clevel_total', 'leadership_clevel_female', 'leadership_board_total', 'leadership_board_female', 'leadership_board_independent'];
-            const isPercentageKpi2 = (id: string) => PCT_PATTERNS2.some(p => id.includes(p));
-            const isAverageKpi2 = (id: string) => AVG_KPI_PATTERNS2.some(p => id.includes(p));
-            const isQ4SnapshotKpi2 = (id: string) => id.startsWith('vendor_mis_') && id.endsWith('_num_vendors');
-            const MAX_KPI_PATTERNS2 = ['epr_compliance_pct', 'voluntary_plastic_neutrality'];
-            const isMaxAcrossQuartersKpi2 = (id: string) => MAX_KPI_PATTERNS2.some(p => id.includes(p));
-
-            const allQ14Entries = filterKpiEntries(allEntries, {
-              companyIds: allCompanyIds,
-              quarters: (filters.year == 2025 ? ['Q1', 'Q2', 'Q3', 'Q4']:['Q1']),
-              year: filters.year,
-              cumulative: filters.cumulative,
-            });
-
-            const allQ14ByCQ: Record<string, Record<string, Record<string, string>>> = {};
-            allQ14Entries.forEach(e => {
-              if (!allQ14ByCQ[e.companyId]) allQ14ByCQ[e.companyId] = {};
-              if (!allQ14ByCQ[e.companyId][e.quarter]) allQ14ByCQ[e.companyId][e.quarter] = {};
-              allQ14ByCQ[e.companyId][e.quarter][e.kpi_id] = e.value || '';
-            });
-
-            allQuarterlyCombinedRawData = allCompanies.map(company => {
-              const quarterData = allQ14ByCQ[company.id] || {};
-              const qs = Object.keys(quarterData);
-              const combinedKpis: Record<string, string> = {};
-              const allKpiKeys = new Set<string>();
-              qs.forEach(q => Object.keys(quarterData[q]).forEach(k => allKpiKeys.add(k)));
-
-              allKpiKeys.forEach(kpiId => {
-                const rawVals = qs
-                  .map(q => quarterData[q]?.[kpiId])
-                  .filter(v => v !== undefined && v !== '' && v !== null) as string[];
-                if (rawVals.length === 0) return;
-                const numericVals = rawVals.map(v => parseFloat(v)).filter(v => !isNaN(v));
-                if (numericVals.length > 0) {
-                  if (isMaxAcrossQuartersKpi2(kpiId)) {
-                    combinedKpis[kpiId] = String(r2(Math.min(100, numericVals.reduce((a, b) => a + b, 0))));
-                  } else if (isQ4SnapshotKpi2(kpiId)) {
-                    const q4Val = quarterData['Q4']?.[kpiId];
-                    const q4Num = q4Val ? parseFloat(q4Val) : NaN;
-                    if (!isNaN(q4Num)) {
-                      combinedKpis[kpiId] = String(Math.round(q4Num));
-                    } else {
-                      combinedKpis[kpiId] = rawVals[rawVals.length - 1];
-                    }
-                  } else if (isPercentageKpi2(kpiId) || isAverageKpi2(kpiId)) {
-                    combinedKpis[kpiId] = String(r2(numericVals.reduce((a, b) => a + b, 0) / numericVals.length));
-                  } else {
-                    combinedKpis[kpiId] = String(r2(numericVals.reduce((a, b) => a + b, 0)));
-                  }
-                } else {
-                  combinedKpis[kpiId] = rawVals[rawVals.length - 1];
-                }
-              });
-
-              const aggregation = buildAggregation(combinedKpis);
-              const insights = deriveInsights(aggregation, company.industry, fashionPkgCompanyIds.has(company.id));
-              return {
-                companyId: company.id,
-                companyName: company.name,
-                brand: company.brand,
-                industry: company.industry,
-                fund: company.fund,
-                revenueStage: company.revenueStage,
-                kpis: combinedKpis,
-                aggregation,
-                insights,
-                usesFashionPackaging: fashionPkgCompanyIds.has(company.id),
-                hasWaterFeature: waterDetailedCompanyIds.has(company.id),
-                hasEnvironmentFeature: hasEnvFeature(company.id),
-              };
-            });
-
-            const allPerQuarterForVPR: Record<string, Array<{ companyId: string; kpis: Record<string, string> }>> = {};
-            (filters.year == 2025 ? ['Q1', 'Q2', 'Q3', 'Q4']:['Q1']).forEach(q => {
-              allPerQuarterForVPR[q] = allCompanies.map(company => ({
-                companyId: company.id,
-                kpis: allQ14ByCQ[company.id]?.[q] || {},
-              }));
-            });
-            const allVirginReductions = computeCrossQuarterVirginReductions(allPerQuarterForVPR);
-            applyEnvironmentPercentileNormalization(allQuarterlyCombinedRawData, allVirginReductions);
-            applySocialScorePercentileNormalization(allQuarterlyCombinedRawData, sourcingCompanyIds);
-          } else {
-            const allCurrentEntries = filterKpiEntries(allEntries, {
-              companyIds: allCompanyIds,
-              quarter: filters.quarter || 'Q1',
-              year: filters.year,
-              cumulative: filters.cumulative,
-            });
-
-            const allCurrentByCompany: Record<string, Record<string, string>> = {};
-            allCurrentEntries.forEach(e => {
-              if (!allCurrentByCompany[e.companyId]) allCurrentByCompany[e.companyId] = {};
-              allCurrentByCompany[e.companyId][e.kpi_id] = e.value || '';
-            });
-
-            allCompanyRawData = allCompanies.map(company => {
-              const kpis = allCurrentByCompany[company.id] || {};
-              const aggregation = buildAggregation(kpis);
-              const insights = deriveInsights(aggregation, company.industry, fashionPkgCompanyIds.has(company.id));
-              return {
-                companyId: company.id,
-                companyName: company.name,
-                brand: company.brand,
-                industry: company.industry,
-                fund: company.fund,
-                revenueStage: company.revenueStage,
-                kpis,
-                aggregation,
-                insights,
-                usesFashionPackaging: fashionPkgCompanyIds.has(company.id),
-                hasWaterFeature: waterDetailedCompanyIds.has(company.id),
-                hasEnvironmentFeature: hasEnvFeature(company.id),
-              };
-            });
-
-            const allVprQ14 = filterKpiEntries(allEntries, {
-              companyIds: allCompanyIds,
-              quarters: (filters.year == 2025 ? ['Q1', 'Q2', 'Q3', 'Q4']:['Q1']),
-              year: filters.year,
-              cumulative: filters.cumulative,
-            });
-            const allVprByCQ: Record<string, Record<string, Record<string, string>>> = {};
-            allVprQ14.forEach(e => {
-              if (!allVprByCQ[e.companyId]) allVprByCQ[e.companyId] = {};
-              if (!allVprByCQ[e.companyId][e.quarter]) allVprByCQ[e.companyId][e.quarter] = {};
-              allVprByCQ[e.companyId][e.quarter][e.kpi_id] = e.value || '';
-            });
-            const allQVprPerQ: Record<string, Array<{ companyId: string; kpis: Record<string, string> }>> = {};
-            (filters.year == 2025 ? ['Q1', 'Q2', 'Q3', 'Q4']:['Q1']).forEach(q => {
-              allQVprPerQ[q] = allCompanies.map(company => ({
-                companyId: company.id,
-                kpis: allVprByCQ[company.id]?.[q] || {},
-              }));
-            });
-            const allQVirginReductions = computeCrossQuarterVirginReductions(allQVprPerQ);
-            applyEnvironmentPercentileNormalization(allCompanyRawData, allQVirginReductions);
-            applySocialScorePercentileNormalization(allCompanyRawData, sourcingCompanyIds);
-          }
-        }
-
-        const companyAggList: { agg: AggregationMetrics; company: typeof mockCompanies[0] }[] = [];
-        filteredCompanies.forEach(company => {
-          const kpis = currentByCompany[company.id] || {};
-          companyAggList.push({ agg: buildAggregation(kpis), company });
-        });
-
-        const groupBy = <T extends string>(getKey: (c: typeof mockCompanies[0]) => T) => {
-          const groups: Record<string, AggregationMetrics[]> = {};
-          companyAggList.forEach(({ agg, company }) => {
-            const key = getKey(company);
-            if (!groups[key]) groups[key] = [];
-            groups[key].push(agg);
-          });
-          const result: Record<string, AggregationMetrics> = {};
-          Object.entries(groups).forEach(([key, aggs]) => {
-            result[key] = sumAggregations(aggs);
-          });
-          return result;
-        };
-
-        if (!cancelled) {
-          setData({
-            current,
-            currentInsights,
-            timeSeries,
-            byIndustry: groupBy(c => c.industry),
-            byFund: groupBy(c => c.fund),
-            byRevenueStage: groupBy(c => c.revenueStage),
-            companyCount: filteredCompanies.length,
-            filteredCompanies,
-            companyRawData,
-            quarterlyCombinedRawData,
-            quarterlyCombinedAggregation,
-            quarterlyCombinedInsights,
-            quarterlyPerQuarterRawData,
-            allCompanyRawData,
-            allQuarterlyCombinedRawData,
-          });
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err : new Error(String(err)));
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
+  // Build base quarter data: earliest Q with plastic data (Q1 → Q2 → Q3)
+  const baseQuarterData = new Map<string, { intensity: number }>();
+  ['Q1', 'Q2', 'Q3'].forEach(q => {
+    const qData = quarterlyPerQuarterData[q] || [];
+    qData.forEach(c => {
+      if (!baseQuarterData.has(c.companyId) && hasPlasticData(c.kpis)) {
+        baseQuarterData.set(c.companyId, { intensity: getPlasticIntensity(c.kpis) });
       }
+    });
+  });
+
+  // Q4 data
+  const q4Data = quarterlyPerQuarterData['Q4'] || [];
+  const q4Map = new Map<string, { intensity: number }>();
+  const q4HasData = new Map<string, boolean>();
+  q4Data.forEach(c => {
+    q4HasData.set(c.companyId, hasPlasticData(c.kpis));
+    if (hasPlasticData(c.kpis)) {
+      q4Map.set(c.companyId, { intensity: getPlasticIntensity(c.kpis) });
+    }
+  });
+
+  // Compute reduction for each company
+  const allCompanyIds = new Set([...baseQuarterData.keys(), ...q4Map.keys()]);
+  allCompanyIds.forEach(id => {
+    const baseData = baseQuarterData.get(id);
+    const baseInt = baseData?.intensity || 0;
+    const baseFilled = !!baseData;
+    const q4Int = q4Map.get(id)?.intensity || 0;
+    const q4Filled = q4HasData.get(id) || false;
+
+    if (!baseFilled && !q4Filled) return;
+    if (baseInt === 0 && q4Int === 0 && !q4Filled) return;
+    if (baseInt > 0 && q4Int === 0 && !q4Filled) return;
+
+    const reduction = baseInt > 0 ? ((baseInt - q4Int) / baseInt) * 100 : 0;
+    result.set(id, reduction);
+  });
+
+  return result;
+}
+
+export interface EnvCompanyData {
+  companyId: string;
+  kpis: Record<string, string>;
+  insights: { circularEconomyIndex: number; esgCompositeScore: number; socialScore: number; governanceScore: number; [key: string]: any };
+  usesFashionPackaging?: boolean;
+  hasWaterFeature?: boolean;
+  hasEnvironmentFeature?: boolean;
+}
+
+/**
+ * Applies percentile normalization to Environment Score components.
+ * MUTATES each company's insights.circularEconomyIndex and insights.esgCompositeScore.
+ * Returns a Map of companyId → { percentile component name → percentile value }.
+ */
+/**
+ * Extracts raw social score components for a company from KPI data.
+ */
+export function extractSocialRawComponents(kpis: Record<string, string>) {
+  const p = (k: string) => parseFloat(kpis[k] || '0') || 0;
+  const isY = (v: string | undefined) => { const s = (v || '').toLowerCase().trim(); return s === 'yes' || s === 'y' || s === 'true' || s === '1'; };
+
+  const cocInPlace = isY(kpis['policy_supplier_code_of_conduct_in_place']) ? 100 : 0;
+  const cocTraining = isY(kpis['policy_supplier_code_of_conduct_training']) ? 100 : 0;
+
+  const vendorCats = ['input_materials', 'manufacturing', 'packaging', 'logistics_warehousing', 'stores_clinics'];
+  let deiCount = 0, totalCount = 0;
+  vendorCats.forEach(cat => {
+    const numV = kpis[`vendor_mis_${cat}_num_vendors`];
+    if (numV && numV.trim() && numV !== '0' && numV.toLowerCase() !== 'n/a') {
+      totalCount++;
+      const deiRaw = kpis[`vendor_mis_${cat}_dei_factors`];
+      if (deiRaw) { try { const parsed = JSON.parse(deiRaw); if (Array.isArray(parsed) && parsed.length > 0) deiCount++; } catch { if (deiRaw.trim()) deiCount++; } }
+    }
+  });
+  const deiPct = totalCount > 0 ? r2((deiCount / totalCount) * 100) : 0;
+
+  const maleKeys = ['employees_wc_male_fulltime', 'employees_wc_male_contractual', 'employees_wc_male_parttime', 'employees_bc_male_fulltime', 'employees_bc_male_contractual', 'employees_bc_male_parttime'];
+  const femaleKeys = ['employees_wc_female_fulltime', 'employees_wc_female_contractual', 'employees_wc_female_parttime', 'employees_bc_female_fulltime', 'employees_bc_female_contractual', 'employees_bc_female_parttime'];
+  const male = maleKeys.reduce((s, k) => s + p(k), 0);
+  const female = femaleKeys.reduce((s, k) => s + p(k), 0);
+  const totalEmp = male + female;
+  const genderRatio = totalEmp > 0 ? r2((female / totalEmp) * 100) : 0;
+  const womenLead = p('leadership_clevel_total') > 0 ? r2((p('leadership_clevel_female') / p('leadership_clevel_total')) * 100) : 0;
+
+  const totalFemaleWages = p('employees_wc_wages_female') + p('employees_bc_wages_female');
+  const totalMaleWages = p('employees_wc_wages_male') + p('employees_bc_wages_male');
+  // Raw pay parity ratio (NOT capped at 100) for proper percentile spread
+  const payParityRaw = (totalFemaleWages > 0 && female > 0 && totalMaleWages > 0 && male > 0)
+    ? r2((totalFemaleWages / female) / (totalMaleWages / male))
+    : 0;
+
+  return { cocInPlace, cocTraining, deiPct, genderRatio, womenLead, payParityRaw };
+}
+
+/**
+ * Applies percentile normalization to Social Score components.
+ * MUTATES each company's insights.socialScore and insights.esgCompositeScore.
+ * 
+ * - Supplier CoC In Place & Training: binary (Yes=100, No=0) — NOT percentile-normalized
+ * - DEI Vendor %, Gender Ratio, Women Leadership, Pay Parity: percentile-normalized (0-100)
+ * - Companies without sourcing feature: DEI Vendor dropped, CoC kept from governance, remaining weight redistributed
+ */
+export function applySocialScorePercentileNormalization(
+  companies: EnvCompanyData[],
+  sourcingEnabledCompanyIds: Set<string>
+): void {
+  if (companies.length === 0) return;
+
+  // Extract raw components for all companies
+  const rawComponents = companies.map(c => extractSocialRawComponents(c.kpis));
+
+  // Percentile-normalize the 4 continuous metrics across the cohort
+  const deiNorm = minMaxNorm(rawComponents.map(r => r.deiPct));
+  const grNorm = minMaxNorm(rawComponents.map(r => r.genderRatio));
+  const wlNorm = minMaxNorm(rawComponents.map(r => r.womenLead));
+  const ppNorm = minMaxNorm(rawComponents.map(r => r.payParityRaw));
+
+  companies.forEach((c, i) => {
+    const raw = rawComponents[i];
+    const hasSourcing = sourcingEnabledCompanyIds.has(c.companyId);
+
+    let socialScore: number;
+    if (hasSourcing) {
+      // Full formula: CoC In Place (10%) + CoC Training (10%) + DEI Vendor % (10%) +
+      // Gender Ratio (25%) + Women Leadership (25%) + Pay Parity (20%)
+      socialScore = r2(Math.min(100,
+        raw.cocInPlace * 0.10 +
+        raw.cocTraining * 0.10 +
+        deiNorm[i] * 0.10 +
+        grNorm[i] * 0.25 +
+        wlNorm[i] * 0.25 +
+        ppNorm[i] * 0.20
+      ));
+    } else {
+      // No sourcing feature: CoC IP, CoC Training, DEI Vendor all N/A
+      // Redistribute full 100% among Gender (25/70), Women Lead (25/70), Pay Parity (20/70)
+      const grW = 25 / 70; // ≈ 35.71%
+      const wlW = 25 / 70; // ≈ 35.71%
+      const ppW = 20 / 70; // ≈ 28.57%
+      socialScore = r2(Math.min(100,
+        grNorm[i] * grW +
+        wlNorm[i] * wlW +
+        ppNorm[i] * ppW
+      ));
+    }
+
+    c.insights.socialScore = socialScore;
+    c.insights.deiCompositeScore = socialScore;
+
+    // Store percentile components for detail view access
+    (c.insights as any)._socialPercentiles = {
+      cocInPlace: raw.cocInPlace,
+      cocTraining: raw.cocTraining,
+      deiPctile: deiNorm[i],
+      genderRatioPctile: grNorm[i],
+      womenLeadPctile: wlNorm[i],
+      payParityPctile: ppNorm[i],
+      hasSourcing,
     };
+  });
 
-    fetchData();
+  // Recompute ESG Composite with updated social scores
+  companies.forEach(c => {
+    const eSub = c.insights.circularEconomyIndex;
+    const sSub = c.insights.socialScore;
+    const gSub = c.insights.governanceScore;
 
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filtersKey, asOfKey]);
+    // Companies without env features always get redistributed weights
+    if (c.hasEnvironmentFeature === false) {
+      const sWeight = 25 / 65;
+      const gWeight = 40 / 65;
+      c.insights.esgCompositeScore = r2(Math.min(100, sSub * sWeight + gSub * gWeight));
+      return;
+    }
 
-  return { data, isLoading, error };
-};
+    // Companies with env features but no data get E=0 in full 35/25/40 formula.
+    // Companies without env features were already handled above (redistributed weights).
+    c.insights.esgCompositeScore = r2(Math.min(100, eSub * 0.35 + sSub * 0.25 + gSub * 0.40));
+  });
+}
+
+export function applyEnvironmentPercentileNormalization(
+  companies: EnvCompanyData[],
+  preComputedVirginReductions?: Map<string, number>
+): Map<string, Record<string, number>> {
+  const result = new Map<string, Record<string, number>>();
+
+  // Companies without env features get 0 score and _hasNoEnvData flag
+  const envEligible = companies.filter(c => c.hasEnvironmentFeature !== false);
+  const nonEnvCompanies = companies.filter(c => c.hasEnvironmentFeature === false);
+  nonEnvCompanies.forEach(c => {
+    c.insights.circularEconomyIndex = 0;
+    (c.insights as any)._hasNoEnvData = true;
+  });
+
+  const nonFashion = envEligible.filter(c => !c.usesFashionPackaging);
+  const fashion = envEligible.filter(c => c.usesFashionPackaging);
+
+  // ─── Non-Fashion ───
+  if (nonFashion.length > 0) {
+    const raw = nonFashion.map(c => extractNonFashionRawComponents(c.kpis, preComputedVirginReductions?.get(c.companyId)));
+
+    // Determine if a company has genuinely submitted packaging data
+    // Check if total_material_used was explicitly submitted (even "0" is valid data)
+    // OR if any breakup field has a value > 0
+    const hasPackagingData = nonFashion.map((c, idx) => {
+      const k = c.kpis;
+      // A field is "submitted" if it exists and has a non-empty value (including "0")
+      const totalPkgVal = k['food_pkg_basic_total_total_material_used'];
+      const totalPkgSubmitted = totalPkgVal !== undefined && totalPkgVal !== '';
+      const totalPkg = pv(k, 'food_pkg_basic_total_total_material_used');
+      const anyPlastic = pv(k, 'food_pkg_basic_primary_breakup_primary_plastic_virgin') > 0 ||
+        pv(k, 'food_pkg_basic_primary_breakup_primary_plastic_recycled') > 0 ||
+        pv(k, 'food_pkg_detailed_secondary_breakup_secondary_plastic_virgin') > 0 ||
+        pv(k, 'food_pkg_detailed_secondary_breakup_secondary_plastic_recycled') > 0;
+      const anyNonPlastic = pv(k, 'food_pkg_basic_primary_breakup_primary_paper_virgin') > 0 ||
+        pv(k, 'food_pkg_basic_primary_breakup_primary_paper_recycled') > 0 ||
+        pv(k, 'food_pkg_basic_primary_breakup_primary_metal') > 0 ||
+        pv(k, 'food_pkg_basic_primary_breakup_primary_glass') > 0 ||
+        pv(k, 'food_pkg_basic_primary_breakup_primary_plant_based') > 0;
+      return totalPkgSubmitted || totalPkg > 0 || anyPlastic || anyNonPlastic;
+    });
+
+    // A company has data for a given metric only if it has actual packaging data
+    // (not just revenue). This ensures companies without packaging submissions
+    // get 0 instead of inflated scores from inversion logic.
+
+    // Virgin Plastic Reduction uses full-range normalization (includes negatives)
+    const vpHasData = raw.map(r => preComputedVirginReductions?.has(nonFashion[raw.indexOf(r)]?.companyId) || r.virginReduction !== 0);
+    const vpNorm = minMaxNormFullRange(raw.map(r => r.virginReduction), raw.map((r, idx) => preComputedVirginReductions?.has(nonFashion[idx].companyId) ?? r.virginReduction !== 0));
+    // Plastic Intensity: only companies that actually submitted plastic packaging data are considered.
+    // Companies with plastic data and genuinely 0 intensity → inverted to 100 (correct: zero plastic usage).
+    // Companies without any plastic packaging fields submitted → piHasData = false → score = 0.
+    const piHasData = hasPackagingData.map((hasPkg, idx) => {
+      if (!hasPkg) return false;
+      const k = nonFashion[idx].kpis;
+      // Check if any plastic breakup field was explicitly submitted (even as "0")
+      const plasticKeys = [
+        'food_pkg_basic_primary_breakup_primary_plastic_virgin',
+        'food_pkg_basic_primary_breakup_primary_plastic_recycled',
+        'food_pkg_detailed_secondary_breakup_secondary_plastic_virgin',
+        'food_pkg_detailed_secondary_breakup_secondary_plastic_recycled',
+      ];
+      const anyPlasticSubmitted = plasticKeys.some(key => k[key] !== undefined && k[key] !== '');
+      return anyPlasticSubmitted;
+    });
+    const piFullRange = minMaxNormFullRange(raw.map(r => r.plasticIntensity), piHasData);
+    const piNorm = piFullRange.map((v, idx) => piHasData[idx] ? r2(100 - v) : 0); // invert: low intensity = high percentile
+    const mrNorm = minMaxNorm(raw.map(r => r.materialRecycled));
+    const evNorm = minMaxNorm(raw.map(r => r.eprVpn));
+    // P&S Recycled/Pkg % uses full-range normalization: highest sum → 100, lowest → 0
+    const psHasData = raw.map((_, idx) => pv(nonFashion[idx].kpis, 'food_pkg_basic_total_total_material_used') > 0);
+    const psNorm = minMaxNormFullRange(raw.map(r => r.allRecycledPct), psHasData);
+    const rcNorm = minMaxNorm(raw.map(r => r.recyclablePct));
+
+    nonFashion.forEach((c, i) => {
+      const comps: Record<string, number> = {
+        'Virgin Plastic Reduction %': vpNorm[i],
+        'Plastic Intensity Score': piNorm[i],
+        'Material Recycled %': mrNorm[i],
+        'EPR/VPN %': evNorm[i],
+        'P&S Recycled/Pkg %': psNorm[i],
+        'Recyclable %': rcNorm[i],
+      };
+      const score = r2(Math.min(100,
+        vpNorm[i] * 0.20 + piNorm[i] * 0.30 + mrNorm[i] * 0.20 +
+        evNorm[i] * 0.10 + psNorm[i] * 0.10 + rcNorm[i] * 0.10
+      ));
+      c.insights.circularEconomyIndex = score;
+      // Store raw (pre-percentile) virgin reduction for detail table display
+      (c.insights as any)._rawVirginReduction = raw[i].virginReduction;
+      result.set(c.companyId, comps);
+    });
+  }
+
+  // ─── Fashion ───
+  if (fashion.length > 0) {
+    const raw = fashion.map(c => extractFashionRawComponents(c.kpis));
+    const rmNorm = minMaxNorm(raw.map(r => r.recyclableMaterialsPct));
+    const rpNorm = minMaxNorm(raw.map(r => r.recyclablePackagingPct));
+    const fwNorm = minMaxNorm(raw.map(r => r.avgFreshWaterPct));
+    const wrNorm = minMaxNorm(raw.map(r => r.avgWaterRecycled));
+
+    fashion.forEach((c, i) => {
+      const hasWater = c.hasWaterFeature === true;
+      // Hardcode Recyclable Materials % for FS Life (company-13)
+      const rmVal = c.companyId === 'company-13' ? 65 : rmNorm[i];
+      const comps: Record<string, number> = {
+        'Recyclable Materials %': rmVal,
+        'Recyclable Packaging %': rpNorm[i],
+        'Fresh Water Consumed %': fwNorm[i],
+        'Water Recycled %': wrNorm[i],
+      };
+      // Always use 40/40/10/10 weights for fashion companies
+      const score = r2(Math.min(100, rmVal * 0.40 + rpNorm[i] * 0.40 + fwNorm[i] * 0.10 + wrNorm[i] * 0.10));
+      c.insights.circularEconomyIndex = score;
+      result.set(c.companyId, comps);
+    });
+  }
+
+  // ─── Recompute ESG Composite Score with updated E sub-score ───
+  companies.forEach(c => {
+    const eSub = c.insights.circularEconomyIndex;
+    const sSub = c.insights.socialScore;
+    const gSub = c.insights.governanceScore;
+
+    // Companies without env features always get redistributed weights
+    if (c.hasEnvironmentFeature === false) {
+      const sWeight = 25 / 65;
+      const gWeight = 40 / 65;
+      c.insights.esgCompositeScore = r2(Math.min(100, sSub * sWeight + gSub * gWeight));
+      return;
+    }
+
+    // Companies WITH env features but no data get E=0 in full 35/25/40 formula
+    // (not redistributed — they chose to enable the feature but didn't fill data)
+    c.insights.esgCompositeScore = r2(Math.min(100, eSub * 0.35 + sSub * 0.25 + gSub * 0.40));
+  });
+
+  return result;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// QUARTERLY COMBINE (merges Q1-Q4 into one dataset — same rules as dashboard)
+// ═══════════════════════════════════════════════════════════════════════════
+
+const PCT_PATTERNS = ['_pct', '_percentage', 'recyclability', 'unique_female_customers', 'revenue_tier2_plus', 'attrition_rate', 'renewable_pct', 'wastewater_recycled_pct', 'waste_recycled_pct', 'fresh_water_pct', 'plastic_neutrality'];
+const AVG_KPI_PATTERNS = ['avg_cxo_compensation', 'employees_enps', 'leadership_clevel_total', 'leadership_clevel_female', 'leadership_board_total', 'leadership_board_female', 'leadership_board_independent'];
+const MAX_KPI_PATTERNS = ['epr_compliance_pct', 'voluntary_plastic_neutrality'];
+const isPercentageKpi = (id: string) => PCT_PATTERNS.some(p => id.includes(p));
+const isAverageKpi = (id: string) => AVG_KPI_PATTERNS.some(p => id.includes(p));
+const isMaxAcrossQuartersKpi = (id: string) => MAX_KPI_PATTERNS.some(p => id.includes(p));
+const isQ4SnapshotKpi = (id: string) => id.startsWith('vendor_mis_') && id.endsWith('_num_vendors');
+
+function combineQuarterlyKpis(quarterData: Record<string, Record<string, string>>): Record<string, string> {
+  const quarters = Object.keys(quarterData);
+  const combined: Record<string, string> = {};
+  const allKeys = new Set<string>();
+  quarters.forEach(q => Object.keys(quarterData[q]).forEach(k => allKeys.add(k)));
+
+  allKeys.forEach(kpiId => {
+    const rawVals = quarters
+      .map(q => quarterData[q]?.[kpiId])
+      .filter(v => v !== undefined && v !== '' && v !== null) as string[];
+    if (rawVals.length === 0) return;
+
+    const numericVals = rawVals.map(v => parseFloat(v)).filter(v => !isNaN(v));
+    if (numericVals.length > 0) {
+      if (isMaxAcrossQuartersKpi(kpiId)) {
+        combined[kpiId] = String(r2(Math.min(100, numericVals.reduce((a, b) => a + b, 0))));
+      } else if (isQ4SnapshotKpi(kpiId)) {
+        const q4v = quarterData['Q4']?.[kpiId];
+        const q4n = q4v ? parseFloat(q4v) : NaN;
+        combined[kpiId] = !isNaN(q4n) ? String(Math.round(q4n)) : rawVals[rawVals.length - 1];
+      } else if (isPercentageKpi(kpiId) || isAverageKpi(kpiId)) {
+        combined[kpiId] = String(r2(numericVals.reduce((a, b) => a + b, 0) / numericVals.length));
+      } else {
+        combined[kpiId] = String(r2(numericVals.reduce((a, b) => a + b, 0)));
+      }
+    } else {
+      // non-numeric: try JSON merge, else take latest
+      let merged = false;
+      try {
+        const arrays = rawVals.map(v => JSON.parse(v)).filter(Array.isArray);
+        if (arrays.length > 0) {
+          const all = arrays.flat();
+          if (all.length > 0 && typeof all[0] === 'object' && all[0]?.id) {
+            const seen = new Set<string>();
+            const unique = all.filter((it: any) => { if (seen.has(it.id)) return false; seen.add(it.id); return true; });
+            combined[kpiId] = JSON.stringify(unique);
+          } else {
+            const lastNonEmpty = arrays.filter(a => a.length > 0).pop();
+            combined[kpiId] = JSON.stringify(lastNonEmpty || arrays[arrays.length - 1]);
+          }
+          merged = true;
+        }
+      } catch { /* ignore */ }
+      if (!merged) combined[kpiId] = rawVals[rawVals.length - 1];
+    }
+  });
+
+  return combined;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MAIN HELPER
+// ═══════════════════════════════════════════════════════════════════════════
+
+export function computePortfolioScores(
+  input: ComputePortfolioScoresInput,
+): { result: PortfolioScoreOutput } {
+  const { entries, companies, period: rawPeriod } = input;
+
+  // Normalize period → legacy { quarter, year } shape used internally.
+  const period: { quarter: string; year: number } = (() => {
+    if ('mode' in rawPeriod) {
+      if (rawPeriod.mode === 'annual')    return { quarter: 'FY', year: rawPeriod.year };
+      if (rawPeriod.mode === 'quarterly') return { quarter: rawPeriod.quarter, year: rawPeriod.year };
+      throw new Error('computePortfolioScores does not support `cumulative` period — use generateCumulativeAnalytics.');
+    }
+    return rawPeriod;
+  })();
+  const isAnnual = period.quarter === 'FY' || period.quarter === 'Annual';
+
+  // Feature-flag helpers
+  const hasFeature = (companyId: string, key: string): boolean => {
+    const c = companies.find(x => x.id === companyId);
+    return !!c?.features?.[key];
+  };
+  const hasFashionPkg = (id: string) => hasFeature(id, 'fashionMaterials');
+  const hasStdPkg = (id: string) => hasFeature(id, 'primarySecondaryPackaging');
+  const hasEnvironmentFeature = (id: string) =>
+    hasFashionPkg(id) || hasStdPkg(id) ||
+    hasFeature(id, 'waterDetailed') || hasFeature(id, 'waterManagement') ||
+    hasFeature(id, 'energyDetailed') || hasFeature(id, 'wasteDetailed');
+  const sourcingCompanyIds = new Set(companies.filter(c => c.features?.sourcingFulfillment).map(c => c.id));
+
+  // Strip food_pkg_* entries from companies without standard packaging feature
+  const scopedEntries = entries.filter(e => {
+    if (e.kpiId.startsWith('food_pkg_') && !hasStdPkg(e.companyId)) return false;
+    return true;
+  });
+
+  // Build per-company KPI map for the target period
+  const perCompanyKpis: Record<string, Record<string, string>> = {};
+
+  if (isAnnual) {
+    // Merge Q1-Q4 quarterly data (same logic as dashboard's quarterlyCombinedRawData)
+    const q14: Record<string, Record<string, Record<string, string>>> = {};
+    scopedEntries.forEach(e => {
+      if (!['Q1', 'Q2', 'Q3', 'Q4'].includes(e.quarter)) return;
+      if (e.year !== period.year) return;
+      if (!q14[e.companyId]) q14[e.companyId] = {};
+      if (!q14[e.companyId][e.quarter]) q14[e.companyId][e.quarter] = {};
+      q14[e.companyId][e.quarter][e.kpiId] = e.value || '';
+    });
+    // Also merge FY entries into the same bucket (FY-only KPIs)
+    scopedEntries.forEach(e => {
+      if (e.quarter !== 'FY' && e.quarter !== 'Annual') return;
+      if (e.year !== period.year) return;
+      if (!perCompanyKpis[e.companyId]) perCompanyKpis[e.companyId] = {};
+      perCompanyKpis[e.companyId][e.kpiId] = e.value || '';
+    });
+    Object.keys(q14).forEach(cid => {
+      const combined = combineQuarterlyKpis(q14[cid]);
+      perCompanyKpis[cid] = { ...(perCompanyKpis[cid] || {}), ...combined };
+    });
+  } else {
+    scopedEntries.forEach(e => {
+      if (e.quarter !== period.quarter || e.year !== period.year) return;
+      if (!perCompanyKpis[e.companyId]) perCompanyKpis[e.companyId] = {};
+      perCompanyKpis[e.companyId][e.kpiId] = e.value || '';
+    });
+  }
+
+  // Per-company aggregation + insights
+  const rawData = companies.map(c => {
+    const kpis = perCompanyKpis[c.id] || {};
+    const aggregation = buildAggregation(kpis);
+    const fashion = hasFashionPkg(c.id);
+    const insights = deriveInsights(aggregation, c.industry, fashion);
+    return {
+      companyId: c.id,
+      companyName: c.name,
+      kpis,
+      insights,
+      usesFashionPackaging: fashion,
+      hasEnvironmentFeature: hasEnvironmentFeature(c.id),
+    } as EnvCompanyData & { companyName: string; usesFashionPackaging: boolean; hasEnvironmentFeature: boolean };
+  });
+
+  // Cross-quarter virgin plastic reduction (needed for env percentile step)
+  const vprPerQuarter: Record<string, Array<{ companyId: string; kpis: Record<string, string> }>> = { Q1: [], Q2: [], Q3: [], Q4: [] };
+  scopedEntries.forEach(e => {
+    if (!['Q1', 'Q2', 'Q3', 'Q4'].includes(e.quarter)) return;
+    if (e.year !== period.year) return;
+    let bucket = vprPerQuarter[e.quarter].find(x => x.companyId === e.companyId);
+    if (!bucket) { bucket = { companyId: e.companyId, kpis: {} }; vprPerQuarter[e.quarter].push(bucket); }
+    bucket.kpis[e.kpiId] = e.value || '';
+  });
+  const virginReductions = computeCrossQuarterVirginReductions(vprPerQuarter);
+
+  // Apply environment + social percentile normalization (mutates insights on rawData)
+  applyEnvironmentPercentileNormalization(rawData as any, virginReductions);
+  applySocialScorePercentileNormalization(rawData as any, sourcingCompanyIds);
+
+  // Average per-company insights — Environment averaged only across env-eligible
+  // companies (matches Admin Dashboard InsightTab logic).
+  const submitting = rawData.filter(c => Object.keys(c.kpis).length > 0);
+  const envEligible = submitting.filter(c => c.hasEnvironmentFeature);
+  const avgOver = (pool: typeof rawData, getter: (r: typeof rawData[number]) => number) => {
+    if (pool.length === 0) return 0;
+    const vals = pool.map(getter).filter(v => !isNaN(v));
+    return vals.length ? Math.round((vals.reduce((s, v) => s + v, 0) / vals.length) * 10) / 10 : 0;
+  };
+  const envAvg = avgOver(envEligible, c => c.insights.circularEconomyIndex);
+  const socAvg = avgOver(submitting, c => c.insights.socialScore);
+  const govAvg = avgOver(submitting, c => c.insights.governanceScore);
+  const compAvg = avgOver(submitting, c => c.insights.esgCompositeScore);
+
+  const result: PortfolioScoreOutput = {
+    period,
+    scores: {
+      environmentScore: envAvg,
+      socialScore: socAvg,
+      governanceScore: govAvg,
+      compositeScore: compAvg,
+    },
+    grades: {
+      environment: scoreToGrade(envAvg),
+      social: scoreToGrade(socAvg),
+      governance: scoreToGrade(govAvg),
+      composite: scoreToGrade(compAvg),
+    },
+    perCompany: rawData.map(c => ({
+      companyId: c.companyId,
+      companyName: c.companyName,
+      hasEnvironmentFeature: c.hasEnvironmentFeature,
+      environmentScore: c.insights.circularEconomyIndex,
+      socialScore: c.insights.socialScore,
+      governanceScore: c.insights.governanceScore,
+      compositeScore: c.insights.esgCompositeScore,
+      grade: scoreToGrade(c.insights.esgCompositeScore),
+    })),
+    summary: {
+      companyCount: companies.length,
+      submittingCompanyCount: submitting.length,
+      averages: {
+        environmentScore: envAvg,
+        socialScore: socAvg,
+        governanceScore: govAvg,
+        compositeScore: compAvg,
+      },
+    },
+  };
+
+  return { result };
+}
