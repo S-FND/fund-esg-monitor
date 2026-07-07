@@ -28,6 +28,7 @@ import { KpiEntry } from '@/hooks/useAnalyticsDashboardDataHelpers';
 import { computeAnalyticsDashboardData, FeatureRowLite } from './ComputeAnalyticsDashboardDataInput';
 import { TrendsTab } from '@/hooks/TrendsTab';
 import { TrendsComparisonPage } from '@/hooks/TrendsComparisionPage';
+import CumulativeAnalytics from './cumulative-analytics/pages/CumulativeAnalytics';
 
 
 
@@ -1118,6 +1119,7 @@ const AdminDashboard = () => {
           <SelectTrigger className="w-64 h-8 text-xs"><SelectValue placeholder="Select Feature" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="overview">📊 Overview (All Features)</SelectItem>
+            <SelectItem value="cumulative">📊 Cumulative Data</SelectItem>
             {filters.period === 'annual' && (
               <>
                 <SelectItem disabled value="__quarterly_header" className="text-xs font-semibold text-muted-foreground">— Quarterly KPIs (Q1-Q4 Combined) —</SelectItem>
@@ -1198,10 +1200,11 @@ const AdminDashboard = () => {
           />
         </div>
       ) : data && selectedFeature === 'cumulative' ? (
-        <div className="mt-4 flex items-center justify-center p-12 rounded-lg border border-dashed border-border">
-          <p className="text-sm text-muted-foreground">
+        <div className="mt-4 flex items-center justify-center p-4 rounded-lg border border-dashed border-border">
+          {/* <p className="text-sm text-muted-foreground">
             Cumulative data view coming soon.
-          </p>
+          </p> */}
+          <CumulativeAnalytics />
         </div>
       ) : data && !selectedFeature ? (
         <Tabs value={searchParams.get('tab') || 'insight'} onValueChange={(v) => { const sp = new URLSearchParams(searchParams); sp.set('tab', v); setSearchParams(sp, { replace: true }); }} className="mt-4">
