@@ -1,4 +1,17 @@
-import { Loader2, Building2, Mail, CheckCircle, XCircle, Clock, AlertCircle, FileText, AlertTriangle } from "lucide-react";
+import { Loader2, Building2, Mail, CheckCircle, XCircle, Clock, AlertCircle, FileText, AlertTriangle, Eye } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 
 // Match the Company interface from the main page
 interface Company {
@@ -24,74 +37,34 @@ interface CompanyCardFilterProps {
     showESGStatus?: boolean;
 }
 
-const colorPalette = [
-    {
-        name: "emerald",
-        border: "border-emerald-200",
-        hoverBorder: "hover:border-emerald-400",
-        selectedBorder: "border-emerald-500",
-        selectedBg: "bg-emerald-50",
-        selectedRing: "ring-emerald-200",
-        iconDefault: "text-gray-400",
-        iconSelected: "text-emerald-600",
-        hoverShadow: "hover:shadow-emerald-100",
-    },
-    {
-        name: "teal",
-        border: "border-teal-200",
-        hoverBorder: "hover:border-teal-400",
-        selectedBorder: "border-teal-500",
-        selectedBg: "bg-teal-50",
-        selectedRing: "ring-teal-200",
-        iconDefault: "text-gray-400",
-        iconSelected: "text-teal-600",
-        hoverShadow: "hover:shadow-teal-100",
-    },
-    {
-        name: "amber",
-        border: "border-amber-200",
-        hoverBorder: "hover:border-amber-400",
-        selectedBorder: "border-amber-500",
-        selectedBg: "bg-amber-50",
-        selectedRing: "ring-amber-200",
-        iconDefault: "text-gray-400",
-        iconSelected: "text-amber-600",
-        hoverShadow: "hover:shadow-amber-100",
-    },
-    {
-        name: "purple",
-        border: "border-purple-200",
-        hoverBorder: "hover:border-purple-400",
-        selectedBorder: "border-purple-500",
-        selectedBg: "bg-purple-50",
-        selectedRing: "ring-purple-200",
-        iconDefault: "text-gray-400",
-        iconSelected: "text-purple-600",
-        hoverShadow: "hover:shadow-purple-100",
-    },
-    {
-        name: "rose",
-        border: "border-rose-200",
-        hoverBorder: "hover:border-rose-400",
-        selectedBorder: "border-rose-500",
-        selectedBg: "bg-rose-50",
-        selectedRing: "ring-rose-200",
-        iconDefault: "text-gray-400",
-        iconSelected: "text-rose-600",
-        hoverShadow: "hover:shadow-rose-100",
-    },
-    {
-        name: "indigo",
-        border: "border-indigo-200",
-        hoverBorder: "hover:border-indigo-400",
-        selectedBorder: "border-indigo-500",
-        selectedBg: "bg-indigo-50",
-        selectedRing: "ring-indigo-200",
-        iconDefault: "text-gray-400",
-        iconSelected: "text-indigo-600",
-        hoverShadow: "hover:shadow-indigo-100",
-    },
-];
+// Helper: initials
+const getInitials = (name: string) => {
+    if (!name) return 'NA';
+    return name
+        .split(/\s+/)
+        .slice(0, 2)
+        .map(s => s[0])
+        .join('')
+        .toUpperCase();
+};
+
+// Circular progress (reused from the main page)
+const CircularProgress = ({ value, size = 44, stroke = 4 }: { value: number; size?: number; stroke?: number }) => {
+    const pct = Math.max(0, Math.min(100, value));
+    const radius = (size - stroke) / 2;
+    const circ = 2 * Math.PI * radius;
+    const offset = circ - (pct / 100) * circ;
+    const color = pct >= 75 ? "text-emerald-500" : pct >= 40 ? "text-amber-500" : "text-red-500";
+    return (
+        <div className="relative inline-flex items-center justify-center" style={{ width: size, height: size }}>
+            <svg width={size} height={size} className="-rotate-90">
+                <circle cx={size/2} cy={size/2} r={radius} strokeWidth={stroke} className="stroke-muted" fill="none" />
+                <circle cx={size/2} cy={size/2} r={radius} strokeWidth={stroke} strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round" className={cn("transition-all", color)} fill="none" stroke="currentColor" />
+            </svg>
+            <span className="absolute text-[10px] font-semibold tabular-nums">{pct}%</span>
+        </div>
+    );
+};
 
 export function CompanyCardFilter({
     companies,
@@ -100,88 +73,6 @@ export function CompanyCardFilter({
     loading = false,
     showESGStatus = false,
 }: CompanyCardFilterProps) {
-    const getStatusIcon = (status?: string) => {
-        if (!status) return <AlertCircle className="h-4 w-4 text-blue-400" />;
-        
-        // Map all possible statuses to icons
-        const statusMap: Record<string, React.ReactNode> = {
-            'closed': <CheckCircle className="h-4 w-4 text-emerald-500" />,
-            'pending': <Clock className="h-4 w-4 text-yellow-500" />,
-            'open': <AlertCircle className="h-4 w-4 text-orange-400" />,
-            'not_started': <AlertCircle className="h-4 w-4 text-blue-400" />,
-            'submitted': <CheckCircle className="h-4 w-4 text-emerald-400" />,
-            'overdue': <AlertTriangle className="h-4 w-4 text-red-500" />,
-            'upcoming': <Clock className="h-4 w-4 text-blue-400" />,
-            'under_review': <Clock className="h-4 w-4 text-yellow-500" />,
-        };
-        
-        return statusMap[status] || <AlertCircle className="h-4 w-4 text-gray-400" />;
-    };
-
-    const getStatusLabel = (status?: string) => {
-        if (!status) return 'Not Started';
-        
-        const labelMap: Record<string, string> = {
-            'closed': 'Closed',
-            'pending': 'Pending',
-            'open': 'Open',
-            'not_started': 'Not Started',
-            'submitted': 'Submitted',
-            'overdue': 'Overdue',
-            'upcoming': 'Upcoming',
-            'under_review': 'Under Review',
-        };
-        
-        return labelMap[status] || status.charAt(0).toUpperCase() + status.slice(1);
-    };
-
-    const getStatusColor = (status?: string) => {
-        if (!status) return 'text-blue-400';
-        
-        const colorMap: Record<string, string> = {
-            'closed': 'text-emerald-600',
-            'pending': 'text-yellow-600',
-            'open': 'text-orange-500',
-            'not_started': 'text-blue-400',
-            'submitted': 'text-emerald-400',
-            'overdue': 'text-red-500',
-            'upcoming': 'text-blue-400',
-            'under_review': 'text-yellow-500',
-        };
-        
-        return colorMap[status] || 'text-gray-400';
-    };
-
-    const getStatusBgColor = (status?: string) => {
-        if (!status) return 'bg-blue-50';
-        
-        const bgMap: Record<string, string> = {
-            'closed': 'bg-emerald-50',
-            'pending': 'bg-yellow-50',
-            'open': 'bg-orange-50',
-            'not_started': 'bg-blue-50',
-            'submitted': 'bg-emerald-50',
-            'overdue': 'bg-red-50',
-            'upcoming': 'bg-blue-50',
-            'under_review': 'bg-yellow-50',
-        };
-        
-        return bgMap[status] || 'bg-gray-50';
-    };
-
-    // Determine if status should be shown as a simplified version
-    const getDisplayStatus = (status?: string): 'closed' | 'pending' | 'open' | 'not_started' => {
-        if (!status) return 'not_started';
-        
-        // Map detailed statuses to simplified ones for display
-        if (status === 'submitted' || status === 'closed') return 'closed';
-        if (status === 'under_review' || status === 'pending') return 'pending';
-        if (status === 'overdue' || status === 'open') return 'open';
-        if (status === 'upcoming') return 'pending';
-        
-        return status as 'closed' | 'pending' | 'open' | 'not_started';
-    };
-
     return (
         <div className="space-y-4">
             {loading ? (
@@ -194,96 +85,94 @@ export function CompanyCardFilter({
                     No companies found matching your filters
                 </div>
             ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-                    {companies.map((company, index) => {
-                        const isSelected = selectedCompany === company.email;
-                        const colorScheme = colorPalette[index % colorPalette.length];
-                        const displayStatus = getDisplayStatus(company.esgStatus);
-                        
-                        return (
-                            <button
-                                key={company.email}
-                                type="button"
-                                onClick={() => onCompanyChange(company.email)}
-                                className={`
-                                    group relative flex flex-col items-start p-5 rounded-2xl border-2 
-                                    transition-all duration-200 ease-out text-left
-                                    bg-white
-                                    ${colorScheme.border}
-                                    ${!isSelected && colorScheme.hoverBorder}
-                                    ${!isSelected && "hover:shadow-lg hover:-translate-y-0.5"}
-                                    ${isSelected ? colorScheme.selectedBorder : ""}
-                                    ${isSelected ? colorScheme.selectedBg : ""}
-                                    ${isSelected ? `ring-2 ${colorScheme.selectedRing}` : ""}
-                                    dark:bg-gray-900 dark:border-gray-700
-                                `}
-                            >
-                                <div className="absolute inset-0 rounded-2xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-white/50 to-transparent dark:from-white/5" />
+                <div className="rounded-md border">
+                        <Table>
+                            <TableHeader className="sticky top-0 bg-background z-10">
+                                <TableRow>
+                                    <TableHead>Company</TableHead>
+                                    <TableHead>Fund</TableHead>
+                                    <TableHead>Industry</TableHead>
+                                    <TableHead>Progress</TableHead>
+                                    <TableHead>Items Filled</TableHead>
+                                    <TableHead className="text-right">Open</TableHead>
+                                    <TableHead className="text-right">Pending</TableHead>
+                                    <TableHead className="text-right">Overdue</TableHead>
+                                    <TableHead className="text-right">Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {companies.map((company) => {
+                                    const isSelected = selectedCompany === company.email;
+                                    const total = company.esgPlanCount || 0;
+                                    const closed = company.esgCompletedCount || 0;
+                                    const progress = total ? Math.round((closed / total) * 100) : 0;
+                                    const fundName = company.fundCompany?.[0]?.fundName || '—';
+                                    const industry = company.sector || '—';
+                                    const open = company.esgOpenCount || 0;
+                                    const pending = company.esgPendingCount || 0;
+                                    const overdue = company.esgOverdueCount || 0;
 
-                                <div className="relative z-10 w-full">
-                                    <div className="flex items-start justify-between gap-2">
-                                        <Building2
-                                            className={`h-5 w-5 flex-shrink-0 transition-colors ${
-                                                isSelected ? colorScheme.iconSelected : colorScheme.iconDefault
-                                            }`}
-                                        />
-                                        <div className="flex-1 min-w-0">
-                                            <h3 className="font-semibold text-gray-900 truncate dark:text-gray-100">
-                                                {company.companyName}
-                                            </h3>
-                                        </div>
-                                    </div>
-
-                                    <div className="mt-3 flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-                                        <Mail className="h-3.5 w-3.5 flex-shrink-0" />
-                                        <span className="truncate">{company.email}</span>
-                                    </div>
-
-                                    {company.sector && (
-                                        <div className="mt-2 text-xs text-gray-400 truncate">
-                                            {company.sector}
-                                        </div>
-                                    )}
-
-                                    {company.fundCompany && company.fundCompany.length > 0 && (
-                                        <div className="mt-1 text-xs text-gray-400 truncate">
-                                            Fund: {company.fundCompany.map(f => f.fundName).join(', ')}
-                                        </div>
-                                    )}
-                                    {showESGStatus && (
-                                        <div className="mt-3 w-full">
-                                            <div className="flex items-center gap-2 flex-wrap">
-                                                {/* Item counts */}
-                                                {company.esgPlanCount !== undefined && company.esgPlanCount > 0 && (
-                                                    <div className="flex items-center gap-1 text-xs text-gray-500">
-                                                        <span>{company.esgPlanCount} items</span>
-
-                                                        {company.esgCompletedCount !== undefined && company.esgCompletedCount > 0 && (
-                                                            <span className="text-emerald-600">{company.esgCompletedCount} closed</span>
-                                                        )}
-
-                                                        {company.esgOpenCount !== undefined && company.esgOpenCount > 0 && (
-                                                            <span className="text-orange-500">{company.esgOpenCount} open</span>
-                                                        )}
-
-                                                        {company.esgPendingCount !== undefined && company.esgPendingCount > 0 && (
-                                                            <span className="text-yellow-500">{company.esgPendingCount} pending</span>
-                                                        )}
-
-                                                        {company.esgOverdueCount > 0 && (
-                                                            <span className="text-red-500 flex items-center gap-1">
-                                                                {company.esgOverdueCount} overdue
-                                                            </span>
-                                                            )}
+                                    return (
+                                        <TableRow
+                                            key={company.email}
+                                            className={cn(
+                                                "hover:bg-muted/50 cursor-pointer",
+                                                isSelected && "bg-muted/30"
+                                            )}
+                                            onClick={() => onCompanyChange(company.email)}
+                                        >
+                                            <TableCell>
+                                                <div className="flex items-center gap-3">
+                                                    <Avatar className="h-9 w-9">
+                                                        <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">
+                                                            {getInitials(company.companyName)}
+                                                        </AvatarFallback>
+                                                    </Avatar>
+                                                    <div className="min-w-0">
+                                                        <div className="font-medium truncate">{company.companyName}</div>
+                                                        <div className="text-xs text-muted-foreground truncate">
+                                                            {company.email}
+                                                        </div>
                                                     </div>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge variant="secondary" className="font-normal">
+                                                    {fundName}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell className="text-muted-foreground">{industry}</TableCell>
+                                            <TableCell><CircularProgress value={progress} /></TableCell>
+                                            <TableCell className="tabular-nums">
+                                                <span className="font-medium">{closed}</span>
+                                                <span className="text-muted-foreground"> / {total}</span>
+                                            </TableCell>
+                                            <TableCell className="text-right tabular-nums">{open}</TableCell>
+                                            <TableCell className="text-right tabular-nums">{pending}</TableCell>
+                                            <TableCell className="text-right tabular-nums">
+                                                {overdue > 0 ? (
+                                                    <Badge variant="destructive" className="font-normal">{overdue}</Badge>
+                                                ) : (
+                                                    <span className="text-muted-foreground">0</span>
                                                 )}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            </button>
-                        );
-                    })}
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        onCompanyChange(company.email);
+                                                    }}
+                                                >
+                                                    <Eye className="h-4 w-4 mr-1" />
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    );
+                                })}
+                            </TableBody>
+                        </Table>
                 </div>
             )}
         </div>

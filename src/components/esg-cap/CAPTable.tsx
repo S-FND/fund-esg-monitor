@@ -173,6 +173,7 @@ export interface ESGCapItem {
   sections?: string[];
   sourceType?: string;
   aiResponseRaw?: AiResponse;
+  companyId?: string;
   fileUploadedData?: {
     filename: string;
     mimetype: string;
