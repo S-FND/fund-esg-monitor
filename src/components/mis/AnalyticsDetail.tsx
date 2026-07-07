@@ -536,6 +536,7 @@ const AnalyticsDetail = () => {
       period: 'annual' as const,
       quarter: state?.filters?.quarter,
       year: parseInt(filterYear),
+      years: [parseInt(filterYear)],
       industry: state?.filters?.industry,
       fund: state?.filters?.fund,
       revenueStage: state?.filters?.revenueStage,
@@ -2263,8 +2264,11 @@ const AnalyticsDetail = () => {
                         </TableRow>
                       ) : (
                         tableData.map((row, i) => {
-                          // const isLowCompleteness = state?.lowCompletenessBrands?.includes(row.brand);
-                          const isRedHighlight = shouldHighlightRed(row, title);
+                          // const isLowCompleteness = state?.lowCompletenessBrands?.includes(row.brand); ///
+                          const isRedHighlight = isQuarterlyView
+                          ? shouldHighlightRed(row, title)
+                          : (state?.lowCompletenessBrands?.includes(row.brand) ?? false);
+                          // const isRedHighlight = shouldHighlightRed(row, title);
                           console.log(`[${row.brand}] isRedHighlight: ${isRedHighlight}, title: "${title}"`);
                           return (
                             <TableRow key={`${row.brand}-${i}`} className={showMissing ? 'bg-destructive/5' : ''}>

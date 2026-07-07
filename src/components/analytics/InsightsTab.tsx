@@ -18,7 +18,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import CompanyDashboard from '../mis/CompanyDashboard';
 import { mockCompanies } from '@/data/mockData';
 import { usePortfolioRankingsV1 } from '@/hooks/usePortfolioRankingsV1';
-
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface InsightTabProps {
@@ -121,6 +120,7 @@ const InsightTabInner = ({
     rankings: allRankings,
     isLoading: rankingsLoading,
   } = newInsight ? rankingsV2 : rankingsV1;
+  
   const filteredBrandSet = useMemo(
     () => new Set(companyRawData.map(c => c.brand)),
     [companyRawData],
