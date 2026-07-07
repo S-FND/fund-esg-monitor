@@ -15,6 +15,7 @@ export interface AnalyticsFilters {
   period: 'quarterly' | 'annual';
   quarter?: string;
   year: number;
+  years?: number[];
   industry?: Industry;
   fund?: Fund;
   revenueStage?: RevenueStage;
@@ -977,7 +978,10 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters,kpiEntries?:
           }
         }
 
-        const years = [...new Set(periods.map(p => p.year))];
+        // const years = [...new Set(periods.map(p => p.year))];
+          const years = filters.years && filters.years.length > 0
+          ? filters.years
+          : [...new Set(periods.map(p => p.year))];
         let allEntries: { companyId: string; kpi_id: string; value: string | null; quarter: string; year: number }[] = [];
 
         const res = await http.get<{ companyId: string; kpi_id: string; value: string | null; quarter: string; year: number }[]>(

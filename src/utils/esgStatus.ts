@@ -5,7 +5,7 @@ import { ESGCapItem, CAPStatus } from "@/components/esg-cap/CAPTable";
 const normalize = (s?: string) => (s ?? "").trim().toLowerCase();
 
 export const getEffectiveStatus = (item: ESGCapItem): CAPStatus => {
-  const companyStatus = normalize(item.companyStatus);
+  const companyStatus = normalize(item.companyStatus || item.status);
   const investorStatus = normalize(item.investorStatus);
 
   

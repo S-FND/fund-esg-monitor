@@ -68,13 +68,13 @@ export const ESGCapScoring: React.FC<ESGCapScoringProps> = ({ items, onFilterCha
 
   const submittedPendingReviewCount = filteredItems.filter(
     item => {
-      const companyStatus = (item.companyStatus || '').toLowerCase().trim();
+      const companyStatus = (item.companyStatus || item.status || '').toLowerCase().trim();
       const investorStatus = (item.investorStatus || '').toLowerCase().trim();
       const effectiveStatus = getEffectiveStatus(item);
       
       // Company has submitted AND investor hasn't closed it yet
       return (companyStatus === 'submitted') && 
-            investorStatus === 'under-review' 
+            investorStatus === 'under-review' || investorStatus === 'under review'
     }
   ).length;
 
