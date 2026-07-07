@@ -1,3 +1,5 @@
+
+
 /**
  * CumulativeAnalytics — top-level page for the cumulative analytics feature.
  * ─────────────────────────────────────────────────────────────────────────────
@@ -9,8 +11,7 @@
  * by `useQuarterConfig`. When the admin toggles a quarter in Settings, the
  * cumulative view updates automatically.
  */
-import { useMemo, useState } from 'react';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { useEffect, useMemo, useState } from 'react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -19,23 +20,76 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { BarChart3, Lightbulb, Building2, Layers } from 'lucide-react';
 import { mockCompanies } from '@/data/mockData';
+import { supabase } from '@/integrations/supabase/client';
 
 import { PortfolioStatCards } from '../components/PortfolioStatCards';
 import { ESGCompositePanel } from '../components/ESGCompositePanel';
 import { CompanyRankingsPanel } from '../components/CompanyRankingsPanel';
 import { EnabledSlicesBadge } from '../components/EnabledSlicesBadge';
-import { useCumulativeAnalytics, type CumulativeFilters } from '../hooks/useCumulativeAnalytics';
+import {
+  useCumulativeAnalytics,
+  type CumulativeFilters,
+  type FeatureFlagsMap,
+} from '../hooks/useCumulativeAnalytics';
+import type { KPIEntryInput } from '../lib/portfolio-helpers';
+import { http } from '@/utils/httpInterceptor';
 
 const INDUSTRIES = ['Beauty & Personal Care', 'Fashion & Lifestyle', 'Health & Wellness', 'Food & Beverage', 'Home & Décor', 'Platform Enablers'] as const;
 const FUNDS = ['Fund I', 'Fund II', 'Fund III', 'Fund IV'] as const;
 const REVENUE_STAGES = ['0-50', '50-100', '100-500', '500+'] as const;
 const Q_CATEGORIES = ['Q', 'Q1', 'Q2', 'Q3', 'Early'] as const;
 
+const PAGE = 1000;
+async function fetchAllEntries(): Promise<KPIEntryInput[]> {
+  const out: KPIEntryInput[] = [];
+  let from = 0;
+  let data=await http.get(`mis/kpi-entries`);
+  if(data.error) throw data.error;
+  for (const r of data.data ?? []) {
+      out.push({
+        companyId: r.companyId,
+        kpiId: r.kpi_id,
+        value: r.value,
+        quarter: r.quarter,
+        year: r.year,
+        submittedAt: (r as any).submitted_at ?? null,
+      });
+    }
+  return out;
+}
+async function fetchAllFeatures(): Promise<FeatureFlagsMap> {
+  const data=await http.get(`mis/company-feature-settings`);
+  if (data.error) throw data.error;
+  if (!data.data) return {};
+  const map: FeatureFlagsMap = {};
+  for (const r of data.data ?? []) {
+    if (!map[r.companyId]) map[r.companyId] = {};
+    map[r.companyId][r.feature_key] = !!r.enabled;
+  }
+  return map;
+}
+
 const CumulativeAnalytics = () => {
   const [filters, setFilters] = useState<CumulativeFilters>({});
   const [tab, setTab] = useState<'aggregation' | 'insight'>('aggregation');
+  const [allEntries, setAllEntries] = useState<KPIEntryInput[]>([]);
+  const [allFeatures, setAllFeatures] = useState<FeatureFlagsMap>({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const { data, loading, error, enabledSlices, companyCount } = useCumulativeAnalytics(filters);
+  useEffect(() => {
+    setLoading(true);
+    Promise.all([fetchAllEntries(), fetchAllFeatures()])
+      .then(([e, f]) => { setAllEntries(e); setAllFeatures(f); })
+      .catch(err => setError(String(err)))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const { data, enabledSlices, companyCount } = useCumulativeAnalytics({
+    allEntries,
+    allFeatures,
+    filters,
+  });
 
   const update = <K extends keyof CumulativeFilters>(k: K, v: CumulativeFilters[K]) =>
     setFilters(prev => ({ ...prev, [k]: v }));
@@ -67,79 +121,11 @@ const CumulativeAnalytics = () => {
   }, [enabledSlices]);
 
   return (
-    <DashboardLayout>
-      <PageHeader
-        title="Cumulative Analytics"
-        subtitle="Portfolio performance aggregated across all enabled reporting quarters"
-      />
+    <div >
 
       {error && <div className="text-sm text-rose-600 mb-3">{error}</div>}
 
-      {/* ─── Filter Row (mirrors /admin/dashboard) ─── */}
-      <div className="flex flex-wrap items-center gap-2 mt-2 mb-3">
-        <Select value={filters.industry ?? 'all'} onValueChange={v => update('industry', v === 'all' ? undefined : v)}>
-          <SelectTrigger className="w-40 h-8 text-xs"><SelectValue placeholder="All Industries" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Industries</SelectItem>
-            {INDUSTRIES.map(i => <SelectItem key={i} value={i}>{i}</SelectItem>)}
-          </SelectContent>
-        </Select>
-
-        <Select value={filters.fund ?? 'all'} onValueChange={v => update('fund', v === 'all' ? undefined : v)}>
-          <SelectTrigger className="w-28 h-8 text-xs"><SelectValue placeholder="All Funds" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Funds</SelectItem>
-            {FUNDS.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
-          </SelectContent>
-        </Select>
-
-        <Select value={filters.revenueStage ?? 'all'} onValueChange={v => update('revenueStage', v === 'all' ? undefined : v)}>
-          <SelectTrigger className="w-28 h-8 text-xs"><SelectValue placeholder="All Revenue" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Revenue</SelectItem>
-            {REVENUE_STAGES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-          </SelectContent>
-        </Select>
-
-        <Select value={filters.qCategory ?? 'all'} onValueChange={v => update('qCategory', v === 'all' ? undefined : v)}>
-          <SelectTrigger className="w-28 h-8 text-xs"><SelectValue placeholder="All Q Cat" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Q Cat</SelectItem>
-            {Q_CATEGORIES.map(q => <SelectItem key={q} value={q}>{q}</SelectItem>)}
-          </SelectContent>
-        </Select>
-
-        <Select value={filters.firesidePOC ?? 'all'} onValueChange={v => update('firesidePOC', v === 'all' ? undefined : v)}>
-          <SelectTrigger className="w-40 h-8 text-xs"><SelectValue placeholder="All Fireside POCs" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Fireside POCs</SelectItem>
-            {firesidePOCOptions.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-          </SelectContent>
-        </Select>
-
-        <div className="h-4 w-px bg-border" />
-
-        <Select value={filters.companyId ?? 'all'} onValueChange={v => update('companyId', v === 'all' ? undefined : v)}>
-          <SelectTrigger className="w-40 h-8 text-xs"><SelectValue placeholder="All Companies" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Companies</SelectItem>
-            {companyOptions.map(c => <SelectItem key={c.id} value={c.id}>{c.brand}</SelectItem>)}
-          </SelectContent>
-        </Select>
-
-        <div className="ml-auto flex items-center gap-2">
-          <Badge variant="secondary" className="text-xs">
-            <Building2 className="w-3 h-3 mr-1" />
-            {companyCount} companies
-          </Badge>
-        </div>
-      </div>
-
-      {/* ─── Configuration banner ─── */}
-      <div className="flex items-center gap-3 mt-2 p-3 rounded-lg bg-muted/30 border border-border">
-        <Layers className="w-4 h-4 text-muted-foreground" />
-        <EnabledSlicesBadge slices={enabledSlices} />
-      </div>
+      
 
       {/* ─── Tabs ─── */}
       {loading ? (
@@ -191,8 +177,10 @@ const CumulativeAnalytics = () => {
           </TabsContent>
         </Tabs>
       )}
-    </DashboardLayout>
+    </div>
   );
 };
+
+
 
 export default CumulativeAnalytics;
