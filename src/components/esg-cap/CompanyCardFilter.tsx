@@ -13,12 +13,19 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
-// Match the Company interface from the main page
+// Updated Company interface to match the API response
 interface Company {
+    _id?: string;
     email: string;
     companyName: string;
     esgStatus?: 'open' | 'closed' | 'pending' | 'not_started' | 'submitted' | 'overdue' | 'upcoming' | 'under_review';
     sector?: string;
+    // New fields from API
+    fund?: string;
+    category?: string;
+    industry?: string;
+    fireside_category?: string;
+    internal_category?: string;
     fundCompany?: Array<{ fundName: string; stageOfInvestment?: string }>;
     assignedTeamMembers?: Array<{ teamMemberName: string; teamMemberEmail: string; designation?: string }>;
     entityId?: string;
@@ -26,7 +33,10 @@ interface Company {
     esgCompletedCount?: number;
     esgOverdueCount?: number;
     esgOpenCount?: number;
-    esgPendingCount?: number; 
+    esgPendingCount?: number;
+    // Display fields
+    displayFund?: string;
+    displayCategory?: string;
 }
 
 interface CompanyCardFilterProps {
@@ -86,93 +96,110 @@ export function CompanyCardFilter({
                 </div>
             ) : (
                 <div className="rounded-md border">
-                        <Table>
-                            <TableHeader className="sticky top-0 bg-background z-10">
-                                <TableRow>
-                                    <TableHead>Company</TableHead>
-                                    <TableHead>Fund</TableHead>
-                                    <TableHead>Industry</TableHead>
-                                    <TableHead>Progress</TableHead>
-                                    <TableHead>Items Filled</TableHead>
-                                    <TableHead className="text-right">Open</TableHead>
-                                    <TableHead className="text-right">Pending</TableHead>
-                                    <TableHead className="text-right">Overdue</TableHead>
-                                    <TableHead className="text-right">Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {companies.map((company) => {
-                                    const isSelected = selectedCompany === company.email;
-                                    const total = company.esgPlanCount || 0;
-                                    const closed = company.esgCompletedCount || 0;
-                                    const progress = total ? Math.round((closed / total) * 100) : 0;
-                                    const fundName = company.fundCompany?.[0]?.fundName || '—';
-                                    const industry = company.sector || '—';
-                                    const open = company.esgOpenCount || 0;
-                                    const pending = company.esgPendingCount || 0;
-                                    const overdue = company.esgOverdueCount || 0;
+                    <Table>
+                        <TableHeader className="sticky top-0 bg-background z-10">
+                            <TableRow>
+                                <TableHead>Company</TableHead>
+                                <TableHead>Fund</TableHead>
+                                <TableHead>Industry</TableHead>
+                                <TableHead>Progress</TableHead>
+                                <TableHead>Items Filled</TableHead>
+                                <TableHead className="text-right">Open</TableHead>
+                                <TableHead className="text-right">Pending</TableHead>
+                                <TableHead className="text-right">Overdue</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {companies.map((company) => {
+                                const isSelected = selectedCompany === company.email;
+                                const total = company.esgPlanCount || 0;
+                                const closed = company.esgCompletedCount || 0;
+                                const progress = total ? Math.round((closed / total) * 100) : 0;
+                                
+                                // Get fund name - try multiple sources
+                                const fundName = company.displayFund || 
+                                                company.fund || 
+                                                company.fundCompany?.[0]?.fundName || 
+                                                company.companyDetails?.fund ||
+                                                '—';
+                                
+                                // Get industry/category - try multiple sources
+                                const industry = company.displayCategory ||
+                                                company.category || 
+                                                company.industry || 
+                                                company.sector || 
+                                                company.fireside_category ||
+                                                company.internal_category ||
+                                                company.companyDetails?.industry ||
+                                                company.companyDetails?.fireside_category ||
+                                                '—';
+                                
+                                const open = company.esgOpenCount || 0;
+                                const pending = company.esgPendingCount || 0;
+                                const overdue = company.esgOverdueCount || 0;
 
-                                    return (
-                                        <TableRow
-                                            key={company.email}
-                                            className={cn(
-                                                "hover:bg-muted/50 cursor-pointer",
-                                                isSelected && "bg-muted/30"
-                                            )}
-                                            onClick={() => onCompanyChange(company.email)}
-                                        >
-                                            <TableCell>
-                                                <div className="flex items-center gap-3">
-                                                    <Avatar className="h-9 w-9">
-                                                        <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">
-                                                            {getInitials(company.companyName)}
-                                                        </AvatarFallback>
-                                                    </Avatar>
-                                                    <div className="min-w-0">
-                                                        <div className="font-medium truncate">{company.companyName}</div>
-                                                        <div className="text-xs text-muted-foreground truncate">
-                                                            {company.email}
-                                                        </div>
+                                return (
+                                    <TableRow
+                                        key={company.email || company._id}
+                                        className={cn(
+                                            "hover:bg-muted/50 cursor-pointer",
+                                            isSelected && "bg-muted/30"
+                                        )}
+                                        onClick={() => onCompanyChange(company.email)}
+                                    >
+                                        <TableCell>
+                                            <div className="flex items-center gap-3">
+                                                <Avatar className="h-9 w-9">
+                                                    <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">
+                                                        {getInitials(company.companyName)}
+                                                    </AvatarFallback>
+                                                </Avatar>
+                                                <div className="min-w-0">
+                                                    <div className="font-medium truncate">{company.companyName}</div>
+                                                    <div className="text-xs text-muted-foreground truncate">
+                                                        {company.email}
                                                     </div>
                                                 </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge variant="secondary" className="font-normal">
-                                                    {fundName}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell className="text-muted-foreground">{industry}</TableCell>
-                                            <TableCell><CircularProgress value={progress} /></TableCell>
-                                            <TableCell className="tabular-nums">
-                                                <span className="font-medium">{closed}</span>
-                                                <span className="text-muted-foreground"> / {total}</span>
-                                            </TableCell>
-                                            <TableCell className="text-right tabular-nums">{open}</TableCell>
-                                            <TableCell className="text-right tabular-nums">{pending}</TableCell>
-                                            <TableCell className="text-right tabular-nums">
-                                                {overdue > 0 ? (
-                                                    <Badge variant="destructive" className="font-normal">{overdue}</Badge>
-                                                ) : (
-                                                    <span className="text-muted-foreground">0</span>
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        onCompanyChange(company.email);
-                                                    }}
-                                                >
-                                                    <Eye className="h-4 w-4 mr-1" />
-                                                </Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    );
-                                })}
-                            </TableBody>
-                        </Table>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge variant="secondary" className="font-normal">
+                                                {fundName}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell className="text-muted-foreground">{industry}</TableCell>
+                                        <TableCell><CircularProgress value={progress} /></TableCell>
+                                        <TableCell className="tabular-nums">
+                                            <span className="font-medium">{closed}</span>
+                                            <span className="text-muted-foreground"> / {total}</span>
+                                        </TableCell>
+                                        <TableCell className="text-right tabular-nums">{open}</TableCell>
+                                        <TableCell className="text-right tabular-nums">{pending}</TableCell>
+                                        <TableCell className="text-right tabular-nums">
+                                            {overdue > 0 ? (
+                                                <Badge variant="destructive" className="font-normal">{overdue}</Badge>
+                                            ) : (
+                                                <span className="text-muted-foreground">0</span>
+                                            )}
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onCompanyChange(company.email);
+                                                }}
+                                            >
+                                                <Eye className="h-4 w-4 mr-1" />
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                );
+                            })}
+                        </TableBody>
+                    </Table>
                 </div>
             )}
         </div>
