@@ -44,6 +44,11 @@ export const esgDDNavItem: NavItemWithSubItems = {
   href: "/esg-dd",
   icon: ListChecks,
   subItems: [
+     {
+      title: "ESG CAP Dashboard",
+      href: "/esg-dd/cap/dashboard",
+      icon: FileCheck,
+    },
     {
       title: "ESG DD Report",
       href: "/esg-dd/report",
@@ -54,6 +59,12 @@ export const esgDDNavItem: NavItemWithSubItems = {
       href: "/esg-dd/cap",
       icon: FileCheck,
     },
+     {
+      title: "Portfolio ESG CAP",
+      href: "/esg-dd/cap/portfolio",
+      icon: FileCheck,
+    },
+    
   ]
 };
 

@@ -46,6 +46,8 @@ import PreScreening from "./pages/PreScreening";
 import Categorization from "./pages/Categorization";
 import { http } from "@/utils/httpInterceptor";
 import Login from "./pages/Login";
+import ESGCAPPortfolio from "./pages/ESGCAPPortfolio";
+import ESGCAPDashboard from "./pages/ESGCAPDashboard";
 
 function App() {
   const { toast } = useToast();
@@ -129,6 +131,8 @@ function App() {
           <Route path="/team" element={<Team />} />
           <Route path="/esg-dd/report" element={<ESGDDReport />} />
           <Route path="/esg-dd/cap" element={<ESGCAP />} />
+          <Route path="/esg-dd/cap/portfolio" element={<ESGCAPPortfolio />} />
+            <Route path="/esg-dd/cap/dashboard" element={<ESGCAPDashboard />} />
           <Route path="/valuation" element={<Valuation />} />
           <Route path="/esg-dd/risk-matrix" element={<ESGRiskMatrix />} />
           {/* Team Routes */}
