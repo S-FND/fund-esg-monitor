@@ -338,7 +338,7 @@ const AdminDashboard = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const initial = filtersFromParams(searchParams);
   const [filters, setFilters] = useState<AnalyticsFilters>({ ...initial.filters, cumulative: initial.filters.cumulative });
-  const [selectedFeature, setSelectedFeature] = useState<string>("cumulative"); //initial.feature
+  const [selectedFeature, setSelectedFeature] = useState<string>("overview"); //initial.feature
   const [kpiEntries, setKpiEntries] = useState<KPIEntryInput[]>([]);
   const [companies, setCompanies] = useState<CompanyContext[]>([])
   const [allCompanyFeature, setAllCompanyFeature] = useState<FeatureRowLite[]>([])

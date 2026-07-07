@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { RATIO_COMPONENT_COLUMNS } from '@/lib/ratioComponentColumns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -97,30 +97,30 @@ const InsightTabInner = ({
 }: InsightTabProps) => {
   const navigate = useNavigate();
 
-  // // ── Rankings ──
-  // const { rankings: allRankings, isLoading: rankingsLoading } = usePortfolioRankings(
-  //   filters.year,
-  //   filters.quarter || 'Q4',
-  //   filters.cumulative,
-  // );
+  // ── Rankings ──
+  const { rankings: allRankings, isLoading: rankingsLoading } = usePortfolioRankings(
+    filters.year,
+    filters.quarter || 'Q4',
+    filters.cumulative,
+  );
+  console.log('InsightTabInner rankings:', { allRankings, rankingsLoading });
 
-  const rankingsV1 = usePortfolioRankings(
-    filters.year,
-    filters.quarter || "Q4",
-    filters.cumulative
-  );
+  // const rankingsV1 = usePortfolioRankings(
+  //   filters.year,
+  //   filters.quarter || "Q4",
+  //   filters.cumulative
+  // );
   
-  const rankingsV2 = usePortfolioRankingsV1(
-    filters.year,
-    filters.quarter || "Q4",
-    filters.cumulative
-  );
+  // const rankingsV2 = usePortfolioRankingsV1(
+  //   filters.year,
+  //   filters.quarter || "Q4",
+  //   filters.cumulative
+  // );
   
-  const {
-    rankings: allRankings,
-    isLoading: rankingsLoading,
-  } = newInsight ? rankingsV2 : rankingsV1;
-  
+  // const {
+  //   rankings: allRankings,
+  //   isLoading: rankingsLoading,
+  // } = newInsight ? rankingsV2 : rankingsV1;
   const filteredBrandSet = useMemo(
     () => new Set(companyRawData.map(c => c.brand)),
     [companyRawData],
