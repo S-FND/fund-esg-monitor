@@ -1,5 +1,8 @@
+import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { Trophy, CheckCircle2, RefreshCw, Clock } from 'lucide-react';
 import type { CompanyRanking } from './panelTypes';
 
@@ -52,6 +55,7 @@ interface Props {
 }
 
 export const CompanyRankingsPanel = ({ rankings, metric = 'average' }: Props) => {
+  const [showScores, setShowScores] = useState(false);
   const n = rankings.length;
 
   const avgCompleteness = r1(avgNum(rankings.map(r => r.completionPct)));
@@ -66,10 +70,10 @@ export const CompanyRankingsPanel = ({ rankings, metric = 'average' }: Props) =>
   };
 
   // Match Admin Dashboard's breakdown: bucket raw scores by percentile within the filtered cohort.
-  const grouped: Record<BucketKey, { name: string; score: number }[]> = { AA: [], A: [], BB: [], B: [], C: [] };
+  const grouped: Record<BucketKey, { name: string; score: number; percentile: number }[]> = { AA: [], A: [], BB: [], B: [], C: [] };
   const rawScores = rankings.map(r => ({ name: r.brand || r.companyName, score: METRIC_META[metric].getScore(r) }));
   assignPercentiles(rawScores).forEach(r => {
-    grouped[gradeOf(r.percentile)].push({ name: r.name, score: r.score });
+    grouped[gradeOf(r.percentile)].push({ name: r.name, score: r.score, percentile: r.percentile });
   });
   for (const k of Object.keys(grouped) as BucketKey[]) {
     grouped[k].sort((a, b) => b.score - a.score);
@@ -112,10 +116,14 @@ export const CompanyRankingsPanel = ({ rankings, metric = 'average' }: Props) =>
 
       <Card>
         <CardContent className="pt-4">
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center justify-between mb-2 gap-2">
             <div className="flex items-center gap-2">
               <h3 className="text-sm font-semibold">{METRIC_META[metric].label} — Category Breakdown</h3>
               <Badge variant="secondary" className="text-[10px]">n={n}</Badge>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch id="cum-rank-show-scores" checked={showScores} onCheckedChange={setShowScores} />
+              <Label htmlFor="cum-rank-show-scores" className="text-xs cursor-pointer">Show Scores</Label>
             </div>
           </div>
 
@@ -130,8 +138,17 @@ export const CompanyRankingsPanel = ({ rankings, metric = 'average' }: Props) =>
                       <div className="text-[11px] text-muted-foreground text-center py-4">—</div>
                     )}
                     {items.map(it => (
-                      <div key={it.name} className={`px-2.5 py-1.5 text-xs ${b.row}`}>
-                        <div className="truncate" title={it.name}>{it.name}</div>
+                      <div
+                        key={it.name}
+                        className={`flex items-center justify-between gap-2 px-2.5 py-1.5 text-xs ${b.row}`}
+                        title={`${it.name} · ${it.score.toFixed(1)} · P${it.percentile}`}
+                      >
+                        <span className="truncate font-medium">{it.name}</span>
+                        {showScores && (
+                          <span className="ml-1 text-[10px] font-semibold text-foreground/80 tabular-nums shrink-0">
+                            {it.score.toFixed(1)} <span className="opacity-70">P{it.percentile}</span>
+                          </span>
+                        )}
                       </div>
                     ))}
                   </div>

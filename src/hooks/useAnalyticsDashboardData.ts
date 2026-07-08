@@ -916,8 +916,8 @@ export function deriveInsights(agg: AggregationMetrics, industry?: string, hasFa
   };
 }
 
-export const useAnalyticsDashboardData = (filters: AnalyticsFilters,kpiEntries?: { companyId: string; kpi_id: string; value: string | null; quarter: string; year: number }[],
-  featureRows?:{ companyId: string; feature_key: string, enabled: boolean }[]) => {
+export const useAnalyticsDashboardData = (filters: AnalyticsFilters, kpiEntries?: { companyId: string; kpi_id: string; value: string | null; quarter: string; year: number }[],
+  featureRows?: { companyId: string; feature_key: string, enabled: boolean }[]) => {
   const { asOf } = useAsOf();
   const [data, setData] = useState<AnalyticsDashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -943,7 +943,9 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters,kpiEntries?:
       try {
         const START_QUARTER = 'Q4';
         const START_YEAR = 2024;
-        const quarters = (filters.year == 2025 ? ['Q1', 'Q2', 'Q3', 'Q4']:['Q1']);
+        // const quarters = (filters.year == 2025 ? ['Q1', 'Q2', 'Q3', 'Q4']:['Q1']);
+        const quarters = ['Q1', 'Q2', 'Q3', 'Q4'];
+
         const periods: { quarter: string; year: number }[] = [];
 
         const includeCumulativeQ1NextYear = filters.cumulative && filters.year === 2025;
@@ -969,7 +971,7 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters,kpiEntries?:
           for (let y = START_YEAR; y <= filters.year; y++) {
             periods.push({ quarter: 'FY', year: y });
           }
-          (filters.year == 2025 ? ['Q1', 'Q2', 'Q3', 'Q4']:['Q1']).forEach(q => {
+          (filters.year == 2025 ? ['Q1', 'Q2', 'Q3', 'Q4'] : ['Q1']).forEach(q => {
             periods.push({ quarter: q, year: filters.year });
           });
           if (includeCumulativeQ1NextYear) {
@@ -1029,7 +1031,7 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters,kpiEntries?:
 
         let filteredCompanies = mockCompanies.filter(c => c.investmentStatus === 'Invested');
         if (filters.year && filters.year == 2025) {
-          filteredCompanies = filteredCompanies.filter(c => !['company-44','company-45'].includes(c.id))
+          filteredCompanies = filteredCompanies.filter(c => !['company-44', 'company-45'].includes(c.id))
         }
         if (filters.industry) filteredCompanies = filteredCompanies.filter(c => c.industry === filters.industry);
         if (filters.fund) filteredCompanies = filteredCompanies.filter(c => c.fund === filters.fund);
@@ -1038,7 +1040,8 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters,kpiEntries?:
         if (filters.firesidePOC) filteredCompanies = filteredCompanies.filter(c => c.fl === filters.firesidePOC);
         if (filters.companyId) filteredCompanies = filteredCompanies.filter(c => c.id === filters.companyId);
         const companyIds = new Set(filteredCompanies.map(c => c.id));
-        console.log('filters.cumulative',filters.cumulative);
+        console.log('filters.cumulative', filters.cumulative);
+        console.log("periods :: timeSeries => ", periods);
         const timeSeries: TimeSeriesPoint[] = periods.map(p => {
           const periodEntries = filterKpiEntries(allEntries, {
             companyIds,
@@ -1129,7 +1132,7 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters,kpiEntries?:
 
         const vprQ14Entries = filterKpiEntries(allEntries, {
           companyIds,
-          quarters: (filters.year == 2025 ? ['Q1', 'Q2', 'Q3', 'Q4']:['Q1']),
+          quarters: (filters.year == 2025 ? ['Q1', 'Q2', 'Q3', 'Q4'] : ['Q1']),
           year: filters.year,
           cumulative: filters.cumulative,
         });
@@ -1140,7 +1143,7 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters,kpiEntries?:
           vprByCompanyQuarter[e.companyId][e.quarter][e.kpi_id] = e.value || '';
         });
         const vprPerQuarter: Record<string, Array<{ companyId: string; kpis: Record<string, string> }>> = {};
-        (filters.year == 2025 ? ['Q1', 'Q2', 'Q3', 'Q4']:['Q1']).forEach(q => {
+        (filters.year == 2025 ? ['Q1', 'Q2', 'Q3', 'Q4'] : ['Q1']).forEach(q => {
           vprPerQuarter[q] = filteredCompanies.map(company => ({
             companyId: company.id,
             kpis: vprByCompanyQuarter[company.id]?.[q] || {},
@@ -1169,7 +1172,7 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters,kpiEntries?:
 
           const q14Entries = filterKpiEntries(allEntries, {
             companyIds,
-            quarters: (filters.year == 2025 ? ['Q1', 'Q2', 'Q3', 'Q4']:['Q1']),
+            quarters: (filters.year == 2025 ? ['Q1', 'Q2', 'Q3', 'Q4'] : ['Q1']),
             year: filters.year,
             cumulative: filters.cumulative,
           });
@@ -1264,7 +1267,7 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters,kpiEntries?:
           });
 
           const perQuarterForVPR: Record<string, Array<{ companyId: string; kpis: Record<string, string> }>> = {};
-          (filters.year == 2025 ? ['Q1', 'Q2', 'Q3', 'Q4']:['Q1']).forEach(q => {
+          (filters.year == 2025 ? ['Q1', 'Q2', 'Q3', 'Q4'] : ['Q1']).forEach(q => {
             perQuarterForVPR[q] = filteredCompanies.map(company => ({
               companyId: company.id,
               kpis: q14ByCompanyQuarter[company.id]?.[q] || {},
@@ -1292,7 +1295,7 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters,kpiEntries?:
           quarterlyCombinedInsights.esgCompositeScore = avgField('esgCompositeScore');
 
           quarterlyPerQuarterRawData = {};
-          (filters.year == 2025 ? ['Q1', 'Q2', 'Q3', 'Q4']:['Q1']).forEach(q => {
+          (filters.year == 2025 ? ['Q1', 'Q2', 'Q3', 'Q4'] : ['Q1']).forEach(q => {
             quarterlyPerQuarterRawData![q] = filteredCompanies.map(company => {
               const kpis = q14ByCompanyQuarter[company.id]?.[q] || {};
               const aggregation = buildAggregation(kpis);
@@ -1316,7 +1319,7 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters,kpiEntries?:
         } else {
           const q14Entries = filterKpiEntries(allEntries, {
             companyIds,
-            quarters: (filters.year == 2025 ? ['Q1', 'Q2', 'Q3', 'Q4']:['Q1']),
+            quarters: (filters.year == 2025 ? ['Q1', 'Q2', 'Q3', 'Q4'] : ['Q1']),
             year: filters.year,
             cumulative: filters.cumulative,
           });
@@ -1327,7 +1330,7 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters,kpiEntries?:
             q14ByCompanyQuarter[e.companyId][e.quarter][e.kpi_id] = e.value || '';
           });
           quarterlyPerQuarterRawData = {};
-          (filters.year == 2025 ? ['Q1', 'Q2', 'Q3', 'Q4']:['Q1']).forEach(q => {
+          (filters.year == 2025 ? ['Q1', 'Q2', 'Q3', 'Q4'] : ['Q1']).forEach(q => {
             quarterlyPerQuarterRawData![q] = filteredCompanies.map(company => {
               const kpis = q14ByCompanyQuarter[company.id]?.[q] || {};
               const aggregation = buildAggregation(kpis);
@@ -1365,7 +1368,7 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters,kpiEntries?:
 
             const allQ14Entries = filterKpiEntries(allEntries, {
               companyIds: allCompanyIds,
-              quarters: (filters.year == 2025 ? ['Q1', 'Q2', 'Q3', 'Q4']:['Q1']),
+              quarters: (filters.year == 2025 ? ['Q1', 'Q2', 'Q3', 'Q4'] : ['Q1']),
               year: filters.year,
               cumulative: filters.cumulative,
             });
@@ -1430,7 +1433,7 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters,kpiEntries?:
             });
 
             const allPerQuarterForVPR: Record<string, Array<{ companyId: string; kpis: Record<string, string> }>> = {};
-            (filters.year == 2025 ? ['Q1', 'Q2', 'Q3', 'Q4']:['Q1']).forEach(q => {
+            (filters.year == 2025 ? ['Q1', 'Q2', 'Q3', 'Q4'] : ['Q1']).forEach(q => {
               allPerQuarterForVPR[q] = allCompanies.map(company => ({
                 companyId: company.id,
                 kpis: allQ14ByCQ[company.id]?.[q] || {},
@@ -1475,7 +1478,7 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters,kpiEntries?:
 
             const allVprQ14 = filterKpiEntries(allEntries, {
               companyIds: allCompanyIds,
-              quarters: (filters.year == 2025 ? ['Q1', 'Q2', 'Q3', 'Q4']:['Q1']),
+              quarters: (filters.year == 2025 ? ['Q1', 'Q2', 'Q3', 'Q4'] : ['Q1']),
               year: filters.year,
               cumulative: filters.cumulative,
             });
@@ -1486,7 +1489,7 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters,kpiEntries?:
               allVprByCQ[e.companyId][e.quarter][e.kpi_id] = e.value || '';
             });
             const allQVprPerQ: Record<string, Array<{ companyId: string; kpis: Record<string, string> }>> = {};
-            (filters.year == 2025 ? ['Q1', 'Q2', 'Q3', 'Q4']:['Q1']).forEach(q => {
+            (filters.year == 2025 ? ['Q1', 'Q2', 'Q3', 'Q4'] : ['Q1']).forEach(q => {
               allQVprPerQ[q] = allCompanies.map(company => ({
                 companyId: company.id,
                 kpis: allVprByCQ[company.id]?.[q] || {},

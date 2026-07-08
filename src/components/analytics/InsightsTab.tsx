@@ -103,6 +103,7 @@ const InsightTabInner = ({
     filters.year,
     filters.quarter || 'Q4',
     filters.cumulative,
+    filters.period
   );
   // console.log('InsightTabInner rankings:', { allRankings, rankingsLoading });
 
