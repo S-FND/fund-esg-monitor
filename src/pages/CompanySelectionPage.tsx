@@ -34,6 +34,8 @@ const isInCurrentMonth = (targetDate?: string): boolean => {
 
 // Get effective status (matches ESGCapScoring logic)
 const getEffectiveCompanyStatus = (item: any): string => {
+    if (!item) return '';
+
     const companyStatus = normalize(item.companyStatus ?? item.status);
     const investorStatus = normalize(item.investorStatus);
 
@@ -87,6 +89,7 @@ const getEffectiveCompanyStatus = (item: any): string => {
 
 // Get investor status
 const getInvestorStatus = (item: any): string => {
+    if (!item) return '';
     const investorStatus = normalize(item.investorStatus);
     const companyStatus = normalize(item.companyStatus ?? item.status);
 
@@ -122,6 +125,7 @@ const getInvestorStatus = (item: any): string => {
 
 // Check if item is closed
 const isClosed = (item: any): boolean => {
+    if (!item) return false;
     return getInvestorStatus(item) === 'closed';
 };
 
@@ -483,25 +487,40 @@ export default function CompanySelectionPage() {
         return filteredCompanies.map(company => {
             const plans = company._planItems || [];
             const totalItems = plans.length;
-            const completedItems = plans.filter(p => isClosed(p)).length;
-            const overdueItems = plans.filter(p => p.status === 'overdue').length;
-
+            
+            let completedItems = 0;
+            let overdueItems = 0;
             let openItems = 0;
             let pendingItems = 0;
+            
             plans.forEach(p => {
-                if (isClosed(p)) return;
-                const eff = getEffectiveCompanyStatus(p);
-                const inv = getInvestorStatus(p);
-                if (inv === 'partly-submitted' || inv === 'submitted-pending-review' ||
-                    inv === 're-submit-requested' || inv === 'high-priority-overdue') {
-                    pendingItems++;
-                } else if (eff === 'overdue' || eff === 'due-in-this-month' || eff === 'upcoming' || eff === '' || eff === 'submitted') {
-                    openItems++;
+                try {
+                    if (!p) return;
+                    if (isClosed(p)) {
+                        completedItems++;
+                        return;
+                    }
+                    if (p.status === 'overdue') {
+                        overdueItems++;
+                    }
+                    const eff = getEffectiveCompanyStatus(p);
+                    const inv = getInvestorStatus(p);
+                    if (inv === 'partly-submitted' || inv === 'submitted-pending-review' ||
+                        inv === 're-submit-requested' || inv === 'high-priority-overdue') {
+                        pendingItems++;
+                    } else if (eff === 'overdue' || eff === 'due-in-this-month' || eff === 'upcoming' || eff === '' || eff === 'submitted') {
+                        openItems++;
+                    }
+                } catch (e) {
+                    // Skip this item if there's an error
                 }
             });
-
+    
             return {
                 ...company,
+                displayFund: company.fund || company.companyDetails?.fund || 'N/A',
+                displayCategory: company.category || company.industry || company.sector || 
+                               company.companyDetails?.industry || company.companyDetails?.fireside_category || 'N/A',
                 esgPlanCount: totalItems,
                 esgCompletedCount: completedItems,
                 esgOverdueCount: overdueItems,
@@ -517,12 +536,16 @@ export default function CompanySelectionPage() {
             c => c._planItems && c._planItems.length > 0
         );
         if (companiesWithPlan.length === 0) return 0;
-
+    
         const scores = companiesWithPlan.map(c => {
-            const result = calculateComplianceScore(mapESGCapItems(c._planItems));
-            return result?.overallScore ?? 0;
+            try {
+                const result = calculateComplianceScore(mapESGCapItems(c._planItems));
+                return result?.overallScore ?? 0;
+            } catch (e) {
+                return 0;
+            }
         });
-
+    
         const sum = scores.reduce((a, b) => a + b, 0);
         return Math.round(sum / scores.length);
     }, [companies]);
