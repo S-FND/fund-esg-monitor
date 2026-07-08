@@ -1,5 +1,8 @@
+import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { BarChart3, Leaf, Users, ShieldCheck } from 'lucide-react';
 import type { AnalyticsResult } from '../lib/portfolio-helpers';
 import type { CompanyRawMetrics } from './panelTypes';
@@ -41,6 +44,12 @@ const gradeOfPercentile = (p: number): BucketKey => {
 
 interface Props {
   result: AnalyticsResult;
+  scoreAverages?: {
+    compositeScore: number;
+    environmentScore: number;
+    socialScore: number;
+    governanceScore: number;
+  };
   /**
    * When provided, sources ESG composite/E/S/G values from the Admin Dashboard's
    * pipeline (useAnalyticsDashboardData → per-company insights), so the snapshot
@@ -50,7 +59,7 @@ interface Props {
   companyRawData?: CompanyRawMetrics[];
 }
 
-export const ESGCompositePanel = ({ result, companyRawData }: Props) => {
+export const ESGCompositePanel = ({ result, scoreAverages, companyRawData }: Props) => {
   // ── Path A: reuse Admin Dashboard's data (preferred) ─────────────────────
   if (companyRawData && companyRawData.length > 0) {
     const submitting = companyRawData.filter(c => Object.keys(c.kpis).length > 0);
@@ -89,11 +98,11 @@ export const ESGCompositePanel = ({ result, companyRawData }: Props) => {
   // ── Path B: fallback to independent engine ───────────────────────────────
   const companies = result.companies;
   const n = companies.length;
-  const composite = r1(mean(companies.map(c => c.scores.compositeScore)));
-  const social = r1(mean(companies.map(c => c.scores.socialScore)));
-  const governance = r1(mean(companies.map(c => c.scores.governanceScore)));
   const envCompanies = companies.filter(c => c.hasEnvironmentFeature);
-  const environment = r1(mean(envCompanies.map(c => c.scores.environmentScore)));
+  const composite = scoreAverages ? r1(scoreAverages.compositeScore) : r1(mean(companies.map(c => c.scores.compositeScore)));
+  const environment = scoreAverages ? r1(scoreAverages.environmentScore) : r1(mean(envCompanies.map(c => c.scores.environmentScore)));
+  const social = scoreAverages ? r1(scoreAverages.socialScore) : r1(mean(companies.map(c => c.scores.socialScore)));
+  const governance = scoreAverages ? r1(scoreAverages.governanceScore) : r1(mean(companies.map(c => c.scores.governanceScore)));
 
   const headers = [
     { key: 'composite', label: 'ESG Composite Score', value: composite, n, icon: BarChart3,   card: 'border-emerald-200 bg-emerald-50/60 dark:bg-emerald-950/20', iconColor: 'text-emerald-500' },
@@ -151,41 +160,69 @@ function renderPanel({
         })}
       </div>
 
-      <Card>
-        <CardContent className="pt-4">
-          <div className="flex items-center gap-2 mb-2">
+      <CategoryBreakdownCard grouped={grouped} n={n} footnote={footnote} />
+    </section>
+  );
+}
+
+function CategoryBreakdownCard({
+  grouped,
+  n,
+  footnote,
+}: {
+  grouped: Record<BucketKey, { name: string; score: number; percentile: number }[]>;
+  n: number;
+  footnote?: string;
+}) {
+  const [showScores, setShowScores] = useState(false);
+  return (
+    <Card>
+      <CardContent className="pt-4">
+        <div className="flex items-center justify-between mb-2 gap-2">
+          <div className="flex items-center gap-2">
             <h3 className="text-sm font-semibold">ESG Composite Score — Category Breakdown</h3>
             <Badge variant="secondary" className="text-[10px]">n={n}</Badge>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-            {BUCKETS.map(b => {
-              const items = grouped[b.key];
-              return (
-                <div key={b.key} className={`rounded-md border ${b.card} overflow-hidden`}>
-                  <div className={`text-center py-1.5 font-semibold text-sm ${b.header}`}>{b.key}</div>
-                  <div className="divide-y divide-border/50">
-                    {items.length === 0 && (
-                      <div className="text-[11px] text-muted-foreground text-center py-4">—</div>
-                    )}
-                    {items.map(it => (
-                      <div key={it.name} className={`px-2.5 py-1.5 text-xs ${b.row}`}>
-                        <div className={`truncate ${b.nameTone ?? ''}`} title={`${it.name} · ${it.score.toFixed(1)} · P${it.percentile}`}>
-                          {it.name}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="text-center py-1.5 text-[10px] text-muted-foreground bg-background/60">
-                    {items.length} {items.length === 1 ? 'company' : 'companies'}
-                  </div>
-                </div>
-              );
-            })}
+          <div className="flex items-center gap-2">
+            <Switch id="cum-show-scores" checked={showScores} onCheckedChange={setShowScores} />
+            <Label htmlFor="cum-show-scores" className="text-xs cursor-pointer">Show Scores</Label>
           </div>
-          {footnote && <p className="text-[10px] text-muted-foreground mt-2">{footnote}</p>}
-        </CardContent>
-      </Card>
-    </section>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+          {BUCKETS.map(b => {
+            const items = grouped[b.key];
+            return (
+              <div key={b.key} className={`rounded-md border ${b.card} overflow-hidden`}>
+                <div className={`text-center py-1.5 font-semibold text-sm ${b.header}`}>{b.key}</div>
+                <div className="divide-y divide-border/50">
+                  {items.length === 0 && (
+                    <div className="text-[11px] text-muted-foreground text-center py-4">—</div>
+                  )}
+                  {items.map(it => (
+                    <div
+                      key={it.name}
+                      className={`flex items-center justify-between gap-2 px-2.5 py-1.5 text-xs ${b.row}`}
+                      title={`${it.name} · ${it.score.toFixed(1)} · P${it.percentile}`}
+                    >
+                      <span className={`truncate font-medium ${b.nameTone ?? ''}`}>{it.name}</span>
+                      {showScores && (
+                        <span className="ml-1 text-[10px] font-semibold text-foreground/80 tabular-nums shrink-0">
+                          {it.score.toFixed(1)} <span className="opacity-70">P{it.percentile}</span>
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <div className="text-center py-1.5 text-[10px] text-muted-foreground bg-background/60">
+                  {items.length} {items.length === 1 ? 'company' : 'companies'}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        {footnote && <p className="text-[10px] text-muted-foreground mt-2">{footnote}</p>}
+      </CardContent>
+    </Card>
   );
 }

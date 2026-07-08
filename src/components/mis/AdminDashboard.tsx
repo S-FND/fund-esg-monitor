@@ -706,7 +706,7 @@ const AdminDashboard = () => {
       features: featureCompanyGroping[m.companyId] ?? {}
     }))
     setCompanies(companyFeature)
-    console.log('featureCompanyGroping ==>', featureCompanyGroping)
+    // console.log('featureCompanyGroping ==>', featureCompanyGroping)
   }
 
   const getFilteredCompanies = () => {
@@ -1200,7 +1200,7 @@ const AdminDashboard = () => {
           />
         </div>
       ) : data && selectedFeature === 'cumulative' ? (
-        <div className="mt-4 flex items-center justify-center p-4 rounded-lg border border-dashed border-border">
+        <div className="mt-4 flex items-center justify-center  rounded-lg border border-dashed border-border">
           {/* <p className="text-sm text-muted-foreground">
             Cumulative data view coming soon.
           </p> */}

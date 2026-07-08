@@ -72,21 +72,31 @@ export function generateAnalytics(
     csrSpendINR: r2(sum(companies.map(c => c.aggregations.csrSpendINR))),
   };
 
+  // Match Admin Dashboard (computePortfolioScores):
+  // - Restrict averages to companies that submitted at least one KPI.
+  // - Environment average uses env-eligible submitters only (companies with an
+  //   env feature); no-feature companies would otherwise contribute 0 and drag
+  //   the portfolio env score down artificially.
+  const submitting = companies.filter(c => Object.keys(c.aggregations).length > 0 && Object.values(c.aggregations).some(v => (typeof v === 'number' ? v !== 0 : !!v)));
+  const submittingPool = submitting.length > 0 ? submitting : companies;
+  const envEligible = submittingPool.filter(c => c.hasEnvironmentFeature);
+  const envPool = envEligible.length > 0 ? envEligible : submittingPool;
+
   const averages = {
-    environmentScore: r2(mean(companies.map(c => c.scores.environmentScore))),
-    socialScore: r2(mean(companies.map(c => c.scores.socialScore))),
-    governanceScore: r2(mean(companies.map(c => c.scores.governanceScore))),
-    compositeScore: r2(mean(companies.map(c => c.scores.compositeScore))),
-    circularEconomyIndex: r2(mean(companies.map(c => c.scores.circularEconomyIndex))),
-    deiScore: r2(mean(companies.map(c => c.scores.deiScore))),
-    genderDiversityPct: r2(mean(companies.map(c => c.derived.genderDiversityPct))),
-    womenInLeadershipPct: r2(mean(companies.map(c => c.derived.womenInLeadershipPct))),
-    policyAdoptionPct: r2(mean(companies.map(c => c.derived.policyAdoptionPct))),
-    trainingCoveragePct: r2(mean(companies.map(c => c.derived.trainingCoveragePct))),
-    recycledContentPct: r2(mean(companies.map(c => c.derived.recycledContentPct))),
-    waterRecyclingPct: r2(mean(companies.map(c => c.derived.waterRecyclingPct))),
-    renewableEnergyPct: r2(mean(companies.map(c => c.derived.renewableEnergyPct))),
-    wasteDiversionPct: r2(mean(companies.map(c => c.derived.wasteDiversionPct))),
+    environmentScore: r2(mean(envPool.map(c => c.scores.environmentScore))),
+    socialScore: r2(mean(submittingPool.map(c => c.scores.socialScore))),
+    governanceScore: r2(mean(submittingPool.map(c => c.scores.governanceScore))),
+    compositeScore: r2(mean(submittingPool.map(c => c.scores.compositeScore))),
+    circularEconomyIndex: r2(mean(envPool.map(c => c.scores.circularEconomyIndex))),
+    deiScore: r2(mean(submittingPool.map(c => c.scores.deiScore))),
+    genderDiversityPct: r2(mean(submittingPool.map(c => c.derived.genderDiversityPct))),
+    womenInLeadershipPct: r2(mean(submittingPool.map(c => c.derived.womenInLeadershipPct))),
+    policyAdoptionPct: r2(mean(submittingPool.map(c => c.derived.policyAdoptionPct))),
+    trainingCoveragePct: r2(mean(submittingPool.map(c => c.derived.trainingCoveragePct))),
+    recycledContentPct: r2(mean(envPool.map(c => c.derived.recycledContentPct))),
+    waterRecyclingPct: r2(mean(envPool.map(c => c.derived.waterRecyclingPct))),
+    renewableEnergyPct: r2(mean(envPool.map(c => c.derived.renewableEnergyPct))),
+    wasteDiversionPct: r2(mean(envPool.map(c => c.derived.wasteDiversionPct))),
   };
 
   return { period: stampedPeriod, companies, totals, averages };

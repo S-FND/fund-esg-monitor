@@ -69,9 +69,11 @@ async function fetchAllFeatures(): Promise<FeatureFlagsMap> {
   return map;
 }
 
+
+
 const CumulativeAnalytics = () => {
   const [filters, setFilters] = useState<CumulativeFilters>({});
-  const [tab, setTab] = useState<'aggregation' | 'insight'>('aggregation');
+  const [tab, setTab] = useState<'aggregation' | 'insight'>('insight');
   const [allEntries, setAllEntries] = useState<KPIEntryInput[]>([]);
   const [allFeatures, setAllFeatures] = useState<FeatureFlagsMap>({});
   const [loading, setLoading] = useState(true);
@@ -121,11 +123,17 @@ const CumulativeAnalytics = () => {
   }, [enabledSlices]);
 
   return (
-    <div >
+    <div>
 
       {error && <div className="text-sm text-rose-600 mb-3">{error}</div>}
 
       
+
+      {/* ─── Configuration banner ─── */}
+      {/* <div className="flex items-center gap-3 mt-2 p-3 rounded-lg bg-muted/30 border border-border">
+        <Layers className="w-4 h-4 text-muted-foreground" />
+        <EnabledSlicesBadge slices={enabledSlices} />
+      </div> */}
 
       {/* ─── Tabs ─── */}
       {loading ? (
@@ -145,18 +153,18 @@ const CumulativeAnalytics = () => {
         </div>
       ) : (
         <Tabs value={tab} onValueChange={(v) => setTab(v as 'aggregation' | 'insight')} className="mt-4">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
-            <TabsTrigger value="aggregation" className="flex items-center gap-1.5 text-xs">
+          {/* <TabsList className="grid w-full max-w-md grid-cols-2"> */}
+            {/* <TabsTrigger value="aggregation" className="flex items-center gap-1.5 text-xs">
               <BarChart3 className="w-3.5 h-3.5" />
               Aggregation
-            </TabsTrigger>
-            <TabsTrigger value="insight" className="flex items-center gap-1.5 text-xs">
+            </TabsTrigger> */}
+            {/* <TabsTrigger value="insight" className="flex items-center gap-1.5 text-xs">
               <Lightbulb className="w-3.5 h-3.5" />
               Insight
-            </TabsTrigger>
-          </TabsList>
+            </TabsTrigger> */}
+          {/* </TabsList> */}
 
-          <TabsContent value="aggregation" className="mt-4 space-y-6">
+          {/* <TabsContent value="aggregation" className="mt-4 space-y-6">
             <PortfolioStatCards
               result={data.analytics}
               label={cumulativeLabel}
@@ -168,12 +176,29 @@ const CumulativeAnalytics = () => {
               }}
             />
 
-            <ESGCompositePanel result={data.analytics} />
-          </TabsContent>
+            <ESGCompositePanel
+              result={data.analytics}
+              scoreAverages={{
+                compositeScore: data.scores.summary.averages.compositeScore ?? 0,
+                environmentScore: data.scores.summary.averages.environmentScore ?? 0,
+                socialScore: data.scores.summary.averages.socialScore ?? 0,
+                governanceScore: data.scores.summary.averages.governanceScore ?? 0,
+              }}
+            />
+          </TabsContent> */}
 
           <TabsContent value="insight" className="mt-4 space-y-6">
-            <ESGCompositePanel result={data.analytics} />
             <CompanyRankingsPanel rankings={data.rankings.perCompany} />
+            <ESGCompositePanel
+              result={data.analytics}
+              scoreAverages={{
+                compositeScore: data.scores.summary.averages.compositeScore ?? 0,
+                environmentScore: data.scores.summary.averages.environmentScore ?? 0,
+                socialScore: data.scores.summary.averages.socialScore ?? 0,
+                governanceScore: data.scores.summary.averages.governanceScore ?? 0,
+              }}
+            />
+            
           </TabsContent>
         </Tabs>
       )}
@@ -181,6 +206,8 @@ const CumulativeAnalytics = () => {
   );
 };
 
-
-
 export default CumulativeAnalytics;
+
+
+
+
