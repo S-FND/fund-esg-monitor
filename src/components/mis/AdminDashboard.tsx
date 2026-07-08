@@ -32,10 +32,10 @@ import CumulativeAnalytics from './cumulative-analytics/pages/CumulativeAnalytic
 
 
 
-const INDUSTRIES: Industry[] = ['Beauty & Personal Care', 'Fashion & Lifestyle', 'Health & Wellness', 'Food & Beverage', 'Home & Décor', 'Platform Enablers'];
-const FUNDS: Fund[] = ['Fund I', 'Fund II', 'Fund III', 'Fund IV'];
-const REVENUE_STAGES: RevenueStage[] = ['0-50', '50-100', '100-500', '500+'];
-const Q_CATEGORIES: QCategory[] = ['Q', 'Q1', 'Q2', 'Q3', 'Early'];
+// const INDUSTRIES: Industry[] = ['Beauty & Personal Care', 'Fashion & Lifestyle', 'Health & Wellness', 'Food & Beverage', 'Home & Décor', 'Platform Enablers'];
+// const FUNDS: Fund[] = ['Fund I', 'Fund II', 'Fund III', 'Fund IV'];
+// const REVENUE_STAGES: RevenueStage[] = ['0-50', '50-100', '100-500', '500+'];
+// const Q_CATEGORIES: QCategory[] = ['Q', 'Q1', 'Q2', 'Q3', 'Early'];
 const YEARS = [2023, 2024, 2025, 2026];
 const QUARTERS = ['Q1', 'Q2', 'Q3', 'Q4'];
 
@@ -343,6 +343,39 @@ const AdminDashboard = () => {
   const [kpiEntries, setKpiEntries] = useState<KPIEntryInput[]>([]);
   const [companies, setCompanies] = useState<CompanyContext[]>([])
   const [allCompanyFeature, setAllCompanyFeature] = useState<FeatureRowLite[]>([])
+
+  // Dynamic filter options based on actual data
+  const dynamicIndustries = useMemo(() => {
+    const industries = new Set<string>();
+    mockCompanies.forEach(c => {
+      if (c.industry) industries.add(c.industry);
+    });
+    return Array.from(industries).sort();
+  }, [mockCompanies]);
+
+  const dynamicFunds = useMemo(() => {
+    const funds = new Set<string>();
+    mockCompanies.forEach(c => {
+      if (c.fund) funds.add(c.fund);
+    });
+    return Array.from(funds).sort();
+  }, [mockCompanies]);
+
+  const dynamicRevenueStages = useMemo(() => {
+    const stages = new Set<string>();
+    mockCompanies.forEach(c => {
+      if (c.revenueStage) stages.add(c.revenueStage);
+    });
+    return Array.from(stages).sort();
+  }, [mockCompanies]);
+
+  const dynamicQCategories = useMemo(() => {
+    const categories = new Set<string>();
+    mockCompanies.forEach(c => {
+      if (c.qCategory) categories.add(c.qCategory);
+    });
+    return Array.from(categories).sort();
+  }, [mockCompanies]);
 
   // Sync state → URL search params (replace, not push, to avoid polluting history)
   const syncParams = useCallback((f: AnalyticsFilters, feat: string) => {
@@ -974,7 +1007,7 @@ const AdminDashboard = () => {
           <SelectTrigger className="w-40 h-8 text-xs"><SelectValue placeholder="All Industries" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Industries</SelectItem>
-            {INDUSTRIES.map(i => <SelectItem key={i} value={i}>{i}</SelectItem>)}
+            {dynamicIndustries.map(i => <SelectItem key={i} value={i}>{i}</SelectItem>)}
           </SelectContent>
         </Select>
 
@@ -983,7 +1016,7 @@ const AdminDashboard = () => {
           <SelectTrigger className="w-28 h-8 text-xs"><SelectValue placeholder="All Funds" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Funds</SelectItem>
-            {FUNDS.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+            {dynamicFunds.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
           </SelectContent>
         </Select>
 
@@ -992,7 +1025,7 @@ const AdminDashboard = () => {
           <SelectTrigger className="w-28 h-8 text-xs"><SelectValue placeholder="All Revenue" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Revenue</SelectItem>
-            {REVENUE_STAGES.map(r => <SelectItem key={r} value={r}>₹{r} Cr</SelectItem>)}
+            {dynamicRevenueStages.map(r => <SelectItem key={r} value={r}>₹{r} Cr</SelectItem>)}
           </SelectContent>
         </Select>
 
@@ -1001,7 +1034,7 @@ const AdminDashboard = () => {
           <SelectTrigger className="w-28 h-8 text-xs"><SelectValue placeholder="All Q Cat" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Q Cat</SelectItem>
-            {Q_CATEGORIES.map(q => <SelectItem key={q} value={q}>{q}</SelectItem>)}
+            {dynamicQCategories.map(q => <SelectItem key={q} value={q}>{q}</SelectItem>)}
           </SelectContent>
         </Select>
 

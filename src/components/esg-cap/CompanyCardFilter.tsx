@@ -1,11 +1,11 @@
 import { Loader2, Building2, Mail, CheckCircle, XCircle, Clock, AlertCircle, FileText, AlertTriangle, Eye } from "lucide-react";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
 } from "@/components/ui/table";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -68,8 +68,8 @@ const CircularProgress = ({ value, size = 44, stroke = 4 }: { value: number; siz
     return (
         <div className="relative inline-flex items-center justify-center" style={{ width: size, height: size }}>
             <svg width={size} height={size} className="-rotate-90">
-                <circle cx={size/2} cy={size/2} r={radius} strokeWidth={stroke} className="stroke-muted" fill="none" />
-                <circle cx={size/2} cy={size/2} r={radius} strokeWidth={stroke} strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round" className={cn("transition-all", color)} fill="none" stroke="currentColor" />
+                <circle cx={size / 2} cy={size / 2} r={radius} strokeWidth={stroke} className="stroke-muted" fill="none" />
+                <circle cx={size / 2} cy={size / 2} r={radius} strokeWidth={stroke} strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round" className={cn("transition-all", color)} fill="none" stroke="currentColor" />
             </svg>
             <span className="absolute text-[10px] font-semibold tabular-nums">{pct}%</span>
         </div>
@@ -99,6 +99,7 @@ export function CompanyCardFilter({
                     <Table>
                         <TableHeader className="sticky top-0 bg-background z-10">
                             <TableRow>
+                                <TableHead className="w-12 text-center">No.</TableHead>
                                 <TableHead>Company</TableHead>
                                 <TableHead>Fund</TableHead>
                                 <TableHead>Industry</TableHead>
@@ -111,30 +112,30 @@ export function CompanyCardFilter({
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {companies.map((company) => {
+                            {companies.map((company,index) => {
                                 const isSelected = selectedCompany === company.email;
                                 const total = company.esgPlanCount || 0;
                                 const closed = company.esgCompletedCount || 0;
                                 const progress = total ? Math.round((closed / total) * 100) : 0;
-                                
+
                                 // Get fund name - try multiple sources
-                                const fundName = company.displayFund || 
-                                                company.fund || 
-                                                company.fundCompany?.[0]?.fundName || 
-                                                company.companyDetails?.fund ||
-                                                '—';
-                                
+                                const fundName = company.displayFund ||
+                                    company.fund ||
+                                    company.fundCompany?.[0]?.fundName ||
+                                    company.companyDetails?.fund ||
+                                    '—';
+
                                 // Get industry/category - try multiple sources
                                 const industry = company.displayCategory ||
-                                                company.category || 
-                                                company.industry || 
-                                                company.sector || 
-                                                company.fireside_category ||
-                                                company.internal_category ||
-                                                company.companyDetails?.industry ||
-                                                company.companyDetails?.fireside_category ||
-                                                '—';
-                                
+                                    company.category ||
+                                    company.industry ||
+                                    company.sector ||
+                                    company.fireside_category ||
+                                    company.internal_category ||
+                                    company.companyDetails?.industry ||
+                                    company.companyDetails?.fireside_category ||
+                                    '—';
+
                                 const open = company.esgOpenCount || 0;
                                 const pending = company.esgPendingCount || 0;
                                 const overdue = company.esgOverdueCount || 0;
@@ -148,6 +149,9 @@ export function CompanyCardFilter({
                                         )}
                                         onClick={() => onCompanyChange(company.email)}
                                     >
+                                        <TableCell className="text-center text-muted-foreground">
+                                            {index + 1}
+                                        </TableCell>
                                         <TableCell>
                                             <div className="flex items-center gap-3">
                                                 <Avatar className="h-9 w-9">

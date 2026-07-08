@@ -51,7 +51,7 @@ const getEffectiveCompanyStatus = (item: any): string => {
         return 'submitted-pending-review';
     }
     if (investorStatus === 'under-review' || investorStatus === 'under review') {
-        if (companyStatus === 'submitted' || companyStatus === 'submitted-pending-review') {
+        if (companyStatus === 'submitted' || companyStatus === 'partly-submitted') {
             return 'submitted-pending-review';
         }
     }
@@ -199,7 +199,7 @@ export default function CompanySelectionPage() {
       "Health & Wellness",
       "Food & Beverage",
       "Home & Décor",
-      "Platform Enablers "
+      "Platform Enablers"
   ];
     
     const fundOptions = ["All Funds", "Fund I", "Fund II", "Fund III", "Fund IV"];
@@ -500,15 +500,20 @@ export default function CompanySelectionPage() {
                         completedItems++;
                         return;
                     }
-                    if (p.status === 'overdue') {
-                        overdueItems++;
-                    }
+                    // if (p.companyStatus || p.status === 'overdue') {
+                    //     overdueItems++;
+                    // }
                     const eff = getEffectiveCompanyStatus(p);
                     const inv = getInvestorStatus(p);
-                    if (inv === 'partly-submitted' || inv === 'submitted-pending-review' ||
-                        inv === 're-submit-requested' || inv === 'high-priority-overdue') {
+
+                    if (eff === 'overdue') {
+                        overdueItems++;
+                    }
+                    // if (inv === 'partly-submitted' || inv === 'submitted-pending-review' ||
+                    //     inv === 're-submit-requested' || inv === 'high-priority-overdue') {
+                    if (eff === 'upcoming' || eff === 'due-in-this-month'){
                         pendingItems++;
-                    } else if (eff === 'overdue' || eff === 'due-in-this-month' || eff === 'upcoming' || eff === '' || eff === 'submitted') {
+                    } else if (eff === 'submitted-pending-review') {
                         openItems++;
                     }
                 } catch (e) {
@@ -657,13 +662,14 @@ export default function CompanySelectionPage() {
                 </div>
 
                  {/* Filters Row */}
-                 <div className="flex flex-wrap items-center gap-3 mb-6">
+                 <div className="flex flex-col gap-4 mb-6 md:flex-row md:items-center md:justify-between">
                     <Input
                         placeholder="Search company by name or email..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-96"
+                        className="md:w-[789px]"
                     />
+                    <div className="flex flex-wrap items-center gap-5">
                     <Select
                         value={filters.industry}
                         onValueChange={(val) => setFilters((prev) => ({ ...prev, industry: val }))}
@@ -695,8 +701,8 @@ export default function CompanySelectionPage() {
                             ))}
                         </SelectContent>
                     </Select>
-
-                    <Select
+                    </div>
+                    {/* <Select
                         value={filters.revenue}
                         onValueChange={(val) => setFilters((prev) => ({ ...prev, revenue: val }))}
                     >
@@ -710,7 +716,7 @@ export default function CompanySelectionPage() {
                                 </SelectItem>
                             ))}
                         </SelectContent>
-                    </Select>
+                    </Select> */}
                 </div>
 
                 {/* Company List - all companies, no pagination */}
