@@ -244,101 +244,142 @@ const Portfolio = () => {
         setIsLoadingProgress(false);
         return;
       }
-
+    
       setIsLoadingProgress(true);
       setProgressError(null);
-
+    
       try {
-        const companyIds = companies.map(c => c.id);
-
-        // Fetch feature settings and KPI entries
+        // Get all entries for the year
         const [featureResult, entriesResult] = await Promise.all([
           http.get('mis/company-feature-settings?enabled=true'),
           http.get(`mis/kpi-entries?year=${filterYear}`)
         ]);
-
-        if (featureResult.error) throw new Error(`Failed to load feature settings: ${featureResult.error.message}`);
-        if (entriesResult.error) throw new Error(`Failed to load KPI entries: ${entriesResult.error.message}`);
-
-        // ✅ Group fetched data by company_id using snake_case field names
+    
+        console.log('📊 Total entries:', entriesResult.data?.length || 0);
+        console.log('📊 Total companies:', companies.length);
+    
+        // Group features by company_id (from feature settings)
         const featuresByCompany = new Map<string, Set<string>>();
         for (const row of featureResult.data ?? []) {
-          const companyId = row.company_id || row.companyId; // Support both field names
-          if (!featuresByCompany.has(companyId)) {
-            featuresByCompany.set(companyId, new Set());
+          const companyId = row.company_id || row.companyId;
+          if (companyId) {
+            if (!featuresByCompany.has(companyId)) {
+              featuresByCompany.set(companyId, new Set());
+            }
+            featuresByCompany.get(companyId)!.add(row.feature_key);
           }
-          featuresByCompany.get(companyId)!.add(row.feature_key);
         }
-
+    
+        // ✅ FIX: Group entries by companyId (e.g., "company-1", "company-2")
         const entriesByCompany = new Map<string, any[]>();
         for (const row of entriesResult.data ?? []) {
-          const companyId = row.company_id || row.companyId; // Support both field names
-          if (!entriesByCompany.has(companyId)) {
-            entriesByCompany.set(companyId, []);
+          const companyId = row.companyId; // ✅ Use companyId from entry
+          if (companyId) {
+            if (!entriesByCompany.has(companyId)) {
+              entriesByCompany.set(companyId, []);
+            }
+            entriesByCompany.get(companyId)!.push(row);
           }
-          entriesByCompany.get(companyId)!.push(row);
         }
-
+    
+        console.log('📊 Company IDs in entries:', Array.from(entriesByCompany.keys()));
+    
         const progressMap: Record<string, CompanyProgress> = {};
-
+    
+        // Determine periods based on year
+        const getPeriodsForYear = (year: string): string[] => {
+          const yearNum = parseInt(year);
+          if (yearNum <= 2024) {
+            return ['Q1', 'Q2', 'Q3', 'Q4'];
+          } else if (yearNum === 2025) {
+            return ['Q1', 'Q2', 'Q3', 'Q4', 'FY'];
+          } else {
+            // For 2026+, get unique quarters from entries
+            const quarters = new Set<string>();
+            for (const entries of entriesByCompany.values()) {
+              for (const entry of entries) {
+                if (entry.quarter && entry.quarter !== 'FY') {
+                  quarters.add(entry.quarter);
+                }
+              }
+            }
+            // return quarters.size > 0 ? Array.from(quarters).sort() : ['Q1', 'Q2', 'Q3', 'Q4']; // stattic for 2026 Q1
+            return ['Q1'];
+          }
+        };
+    
+        const periods = getPeriodsForYear(filterYear);
+        console.log(`📊 Periods for ${filterYear}:`, periods);
+    
         for (const company of companies) {
-          const enabledKeys = featuresByCompany.get(company.id);
-
-          // If no features configured, treat as no features
+          // ✅ FIX: Use company.company_id to match with entry.companyId
+          const companyId = company.company_id; // e.g., "company-2"
+          
+          // Log for debugging
+          console.log(`🔍 Company: ${company.brand}, company_id: ${companyId}`);
+    
+          const enabledKeys = featuresByCompany.get(companyId);
           const hasFeatureData = enabledKeys !== undefined;
-
+    
           const quarterlyFeatures = hasFeatureData
             ? ALL_QUARTERLY_FEATURES.filter(k => enabledKeys!.has(k))
             : [];
           const annualFeatures = hasFeatureData
             ? ALL_ANNUAL_FEATURES.filter(k => enabledKeys!.has(k))
             : [];
-
+    
           const quarterlyTotal = quarterlyFeatures.reduce((sum, k) => {
             const m = FEATURE_FIELD_MAPPINGS[k];
             return sum + (m ? m.kpis.filter(kpi => !kpi.excludeFromProgress).length : 0);
           }, 0);
-
+    
           const annualTotal = annualFeatures.reduce((sum, k) => {
             const m = FEATURE_FIELD_MAPPINGS[k];
             return sum + (m ? m.kpis.filter(kpi => !kpi.excludeFromProgress).length : 0);
           }, 0);
-
-          const allEntries = entriesByCompany.get(company.id) ?? [];
-
+    
+          // ✅ Get entries for this company using the company_id
+          const allEntries = entriesByCompany.get(companyId) ?? [];
+          
+          console.log(`📊 ${company.brand}: ${allEntries.length} entries found`);
+    
           let totalFilled = 0;
           let totalAssigned = 0;
           let periodsSubmitted = 0;
           let consideredPeriods = 0;
-
-          const periods = filterYear == '2025' ? ['Q1', 'Q2', 'Q3', 'Q4', 'FY'] as const : ['Q1'];
-
+    
           for (const period of periods) {
-            if (isCompanyExcluded(company.id, period, Number(filterYear))) continue;
-
+            if (isCompanyExcluded(companyId, period, Number(filterYear))) {
+              continue;
+            }
+    
             consideredPeriods++;
-
+    
             const periodEntries = allEntries.filter(e => e.quarter === period);
-
+    
             const hasSubmitted = periodEntries.some(e => e.submitted_at !== null);
             if (hasSubmitted) periodsSubmitted++;
-
+    
             const isAnnual = period === 'FY';
             const features = isAnnual ? annualFeatures : quarterlyFeatures;
             const expected = isAnnual ? annualTotal : quarterlyTotal;
-
+    
             const filled = countFilledKPIs(features, periodEntries);
-
+    
             if (filled > expected) {
               console.warn(
-                `[progress] countFilledKPIs overcounted for company=${company.id} period=${period}: filled=${filled} > expected=${expected}`
+                `[progress] Overcount for company=${companyId} period=${period}: filled=${filled} > expected=${expected}`
               );
             }
-
+    
             totalFilled += filled;
             totalAssigned += expected;
           }
-
+    
+          if (consideredPeriods === 0) {
+            consideredPeriods = periods.length;
+          }
+    
           progressMap[company.id] = {
             total: totalAssigned,
             filled: totalFilled,
@@ -346,12 +387,13 @@ const Portfolio = () => {
               ? Math.round((totalFilled / totalAssigned) * 100)
               : 0,
             periodsSubmitted,
-            consideredPeriods: filterYear == '2025' ? consideredPeriods : 1,
+            consideredPeriods: consideredPeriods,
           };
         }
-
+    
         if (!cancelled) {
           setCompanyProgress(progressMap);
+          console.log('✅ Progress updated:', progressMap);
         }
       } catch (error) {
         console.error('Error loading progress:', error);
