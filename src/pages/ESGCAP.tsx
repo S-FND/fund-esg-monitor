@@ -737,7 +737,7 @@ export default function ESGCAP() {
       items = items.filter(item => {
         const investorStatus = getDerivedInvestorStatus(item);
         const effectiveStatus = getEffectiveStatus(item);
-        const companyStatus = (item.companyStatus || '').toLowerCase();
+        const companyStatus = (item.companyStatus || item.status || '').toLowerCase().trim();
         const priority = (item.priority || '').toLowerCase();
         const rawInvestorStatus = (item.investorStatus || '').toLowerCase().trim();
         // ✅ FILTER: high-priority-overdue - Use INVESTOR STATUS

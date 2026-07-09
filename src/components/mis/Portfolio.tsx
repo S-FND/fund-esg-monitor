@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-// import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -121,6 +120,39 @@ interface CompanyProgress {
   consideredPeriods: number; // denominator after quarter exclusions
 }
 
+// Helper to map snake_case from API to camelCase for Company type
+const mapApiCompanyToCompany = (apiCompany: any): Company => {
+  return {
+    id: apiCompany.companyId || apiCompany.id,
+    companyCode: apiCompany.companyCode || apiCompany.company_code || '',
+    brand: apiCompany.brand || '',
+    name: apiCompany.legal_name || apiCompany.name || '',
+    fund: apiCompany.fund || 'Fund I',
+    fundCategory: apiCompany.fund_category || '',
+    firesideCategory: apiCompany.fireside_category || '',
+    internalCategory: apiCompany.internal_category || '',
+    investmentStatus: apiCompany.investment_status || 'Invested',
+    industry: apiCompany.industry || '',
+    revenueStage: apiCompany.revenue_stage || '0-50',
+    contactEmail: apiCompany.contact_email || '',
+    company_id: apiCompany.company_id || '',
+    loginPassword: apiCompany.login_password || '',
+    createdAt: apiCompany.created_at || new Date().toISOString().split('T')[0],
+    revenueFY2425: apiCompany.revenue_fy24_25_cr ? parseFloat(apiCompany.revenue_fy24_25_cr) : undefined,
+    arrJAS2025: apiCompany.arr_jas_2025_cr ? parseFloat(apiCompany.arr_jas_2025_cr) : undefined,
+    qCategory: apiCompany.q_category || '',
+    fl: apiCompany.fl || '',
+    founder: {
+      name: apiCompany.founder || '',
+      email: apiCompany.founder_email || '',
+    },
+    esgConnect: {
+      name: apiCompany.esg_connect || '',
+      email: apiCompany.esg_connect_email || '',
+    },
+  };
+};
+
 const Portfolio = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
@@ -132,13 +164,13 @@ const Portfolio = () => {
   const [credentialsDialogOpen, setCredentialsDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [companyToDelete, setCompanyToDelete] = useState<Company | null>(null);
-  const [companies, setCompanies] = useState<Company[]>(mockCompanies.filter(c => c.investmentStatus === 'Invested'));
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [isLoadingCompanies, setIsLoadingCompanies] = useState(true);
+  const [companiesError, setCompaniesError] = useState<string | null>(null);
   const [companyProgress, setCompanyProgress] = useState<Record<string, CompanyProgress>>({});
   const [isLoadingProgress, setIsLoadingProgress] = useState(true);
   const [progressError, setProgressError] = useState<string | null>(null);
   const [filterYear, setFilterYear] = useState<string>('2026'); // Default year filter
-
-
 
   const funds: Fund[] = ['Fund I', 'Fund II', 'Fund III', 'Fund IV'];
   const qCategories: QCategory[] = ['Q', 'Q1', 'Q2', 'Q3', 'Early'];
@@ -152,14 +184,43 @@ const Portfolio = () => {
     'Platform Enablers',
   ];
 
-  // Helper to get KPI count for a feature from FEATURE_FIELD_MAPPINGS (same source as Feature Management)
+  // Fetch companies from API
+  useEffect(() => {
+    const fetchCompanies = async () => {
+      setIsLoadingCompanies(true);
+      setCompaniesError(null);
+      try {
+        const response = await http.get('mis/companies?investmentStatus=Invested');
+        console.log('Companies API response:', response);
+        
+        if (response.data && Array.isArray(response.data)) {
+          // Map snake_case to camelCase
+          const mappedCompanies = response.data.map(mapApiCompanyToCompany);
+          setCompanies(mappedCompanies);
+        } else {
+          setCompanies([]);
+          setCompaniesError('No companies found');
+        }
+      } catch (err) {
+        console.error('Failed to load companies:', err);
+        setCompaniesError(err instanceof Error ? err.message : 'Failed to load companies');
+        toast.error('Could not load portfolio companies.');
+      } finally {
+        setIsLoadingCompanies(false);
+      }
+    };
+
+    fetchCompanies();
+  }, []);
+
+  // Helper to get KPI count for a feature from FEATURE_FIELD_MAPPINGS
   const getFeatureKPICount = (featureKey: string): number => {
     const mapping = FEATURE_FIELD_MAPPINGS[featureKey];
     if (!mapping) return 0;
     return mapping.kpis.filter(kpi => !kpi.excludeFromProgress).length;
   };
 
-  // Calculate total KPIs from FEATURE_FIELD_MAPPINGS (same source as Feature Management)
+  // Calculate total KPIs from FEATURE_FIELD_MAPPINGS
   const totalKPIs = useMemo(() => {
     let total = 0;
 
@@ -174,133 +235,171 @@ const Portfolio = () => {
     return total;
   }, []);
 
+  // Load progress data
   useEffect(() => {
     let cancelled = false;
 
     const loadProgressData = async () => {
+      if (companies.length === 0) {
+        setIsLoadingProgress(false);
+        return;
+      }
+    
       setIsLoadingProgress(true);
-      setProgressError(null); // assumes you have an error state
-
+      setProgressError(null);
+    
       try {
-        // ✅ Single batched query for all companies — no N+1
-        const companyIds = companies.map(c => c.id);
-
+        // Get all entries for the year
         const [featureResult, entriesResult] = await Promise.all([
           http.get('mis/company-feature-settings?enabled=true'),
           http.get(`mis/kpi-entries?year=${filterYear}`)
-          // supabase
-          //   .from('kpi_entries')
-          //   .select('company_id, kpi_id, quarter, value, submitted_at')
-          //   .in('company_id', companyIds)
-          //   .eq('year', 2025),
         ]);
-
-        // ✅ Explicit error handling — distinguish DB failure from empty data
-        if (featureResult.error) throw new Error(`Failed to load feature settings: ${featureResult.error.message}`);
-        if (entriesResult.error) throw new Error(`Failed to load KPI entries: ${entriesResult.error.message}`);
-
-        // ✅ Group fetched data by company_id in JS instead of per-company queries
+    
+        console.log('📊 Total entries:', entriesResult.data?.length || 0);
+        console.log('📊 Total companies:', companies.length);
+    
+        // Group features by company_id (from feature settings)
         const featuresByCompany = new Map<string, Set<string>>();
         for (const row of featureResult.data ?? []) {
-          if (!featuresByCompany.has(row.companyId)) {
-            featuresByCompany.set(row.companyId, new Set());
+          const companyId = row.company_id || row.companyId;
+          if (companyId) {
+            if (!featuresByCompany.has(companyId)) {
+              featuresByCompany.set(companyId, new Set());
+            }
+            featuresByCompany.get(companyId)!.add(row.feature_key);
           }
-          featuresByCompany.get(row.companyId)!.add(row.feature_key);
         }
-
-        const entriesByCompany = new Map<string, typeof entriesResult.data>();
+    
+        // ✅ FIX: Group entries by companyId (e.g., "company-1", "company-2")
+        const entriesByCompany = new Map<string, any[]>();
         for (const row of entriesResult.data ?? []) {
-          if (!entriesByCompany.has(row.companyId)) {
-            entriesByCompany.set(row.companyId, []);
+          const companyId = row.companyId; // ✅ Use companyId from entry
+          if (companyId) {
+            if (!entriesByCompany.has(companyId)) {
+              entriesByCompany.set(companyId, []);
+            }
+            entriesByCompany.get(companyId)!.push(row);
           }
-          entriesByCompany.get(row.companyId)!.push(row);
         }
-
+    
+        console.log('📊 Company IDs in entries:', Array.from(entriesByCompany.keys()));
+    
         const progressMap: Record<string, CompanyProgress> = {};
-
+    
+        // Determine periods based on year
+        const getPeriodsForYear = (year: string): string[] => {
+          const yearNum = parseInt(year);
+          if (yearNum <= 2024) {
+            return ['Q1', 'Q2', 'Q3', 'Q4'];
+          } else if (yearNum === 2025) {
+            return ['Q1', 'Q2', 'Q3', 'Q4', 'FY'];
+          } else {
+            // For 2026+, get unique quarters from entries
+            const quarters = new Set<string>();
+            for (const entries of entriesByCompany.values()) {
+              for (const entry of entries) {
+                if (entry.quarter && entry.quarter !== 'FY') {
+                  quarters.add(entry.quarter);
+                }
+              }
+            }
+            // return quarters.size > 0 ? Array.from(quarters).sort() : ['Q1', 'Q2', 'Q3', 'Q4']; // stattic for 2026 Q1
+            return ['Q1'];
+          }
+        };
+    
+        const periods = getPeriodsForYear(filterYear);
+        console.log(`📊 Periods for ${filterYear}:`, periods);
+    
         for (const company of companies) {
-          const enabledKeys = featuresByCompany.get(company.id);
-
-          // ✅ Distinguish "no features configured" from "query failed"
-          // If enabledKeys is undefined, the company truly had no rows returned;
-          // treat as no features rather than silently falling back to ALL features.
+          // ✅ FIX: Use company.company_id to match with entry.companyId
+          const companyId = company.company_id; // e.g., "company-2"
+          
+          // Log for debugging
+          console.log(`🔍 Company: ${company.brand}, company_id: ${companyId}`);
+    
+          const enabledKeys = featuresByCompany.get(companyId);
           const hasFeatureData = enabledKeys !== undefined;
-
+    
           const quarterlyFeatures = hasFeatureData
             ? ALL_QUARTERLY_FEATURES.filter(k => enabledKeys!.has(k))
             : [];
           const annualFeatures = hasFeatureData
             ? ALL_ANNUAL_FEATURES.filter(k => enabledKeys!.has(k))
             : [];
-
+    
           const quarterlyTotal = quarterlyFeatures.reduce((sum, k) => {
             const m = FEATURE_FIELD_MAPPINGS[k];
             return sum + (m ? m.kpis.filter(kpi => !kpi.excludeFromProgress).length : 0);
           }, 0);
-
+    
           const annualTotal = annualFeatures.reduce((sum, k) => {
             const m = FEATURE_FIELD_MAPPINGS[k];
             return sum + (m ? m.kpis.filter(kpi => !kpi.excludeFromProgress).length : 0);
           }, 0);
-
-          const allEntries = entriesByCompany.get(company.id) ?? [];
-
+    
+          // ✅ Get entries for this company using the company_id
+          const allEntries = entriesByCompany.get(companyId) ?? [];
+          
+          console.log(`📊 ${company.brand}: ${allEntries.length} entries found`);
+    
           let totalFilled = 0;
           let totalAssigned = 0;
           let periodsSubmitted = 0;
           let consideredPeriods = 0;
-
-          const periods =  filterYear == '2025'? ['Q1', 'Q2', 'Q3', 'Q4', 'FY'] as const : ['Q1'];
-
+    
           for (const period of periods) {
-            if (isCompanyExcluded(company.id, period, Number(filterYear))) continue;
-
+            if (isCompanyExcluded(companyId, period, Number(filterYear))) {
+              continue;
+            }
+    
             consideredPeriods++;
-
+    
             const periodEntries = allEntries.filter(e => e.quarter === period);
-
-            // ✅ Comment explains intentional "any submitted entry = period submitted" logic
+    
             const hasSubmitted = periodEntries.some(e => e.submitted_at !== null);
             if (hasSubmitted) periodsSubmitted++;
-
+    
             const isAnnual = period === 'FY';
             const features = isAnnual ? annualFeatures : quarterlyFeatures;
             const expected = isAnnual ? annualTotal : quarterlyTotal;
-
+    
             const filled = countFilledKPIs(features, periodEntries);
-
-            // ✅ Assert filled never exceeds expected — surface overcounting bugs
+    
             if (filled > expected) {
               console.warn(
-                `[progress] countFilledKPIs overcounted for company=${company.id} period=${period}: filled=${filled} > expected=${expected}`
+                `[progress] Overcount for company=${companyId} period=${period}: filled=${filled} > expected=${expected}`
               );
             }
-
+    
             totalFilled += filled;
             totalAssigned += expected;
           }
-
+    
+          if (consideredPeriods === 0) {
+            consideredPeriods = periods.length;
+          }
+    
           progressMap[company.id] = {
             total: totalAssigned,
             filled: totalFilled,
-            // ✅ No Math.min clamp — warn above surfaces the real bug instead of hiding it
             percentage: totalAssigned > 0
               ? Math.round((totalFilled / totalAssigned) * 100)
               : 0,
             periodsSubmitted,
-            consideredPeriods:filterYear == '2025' ? consideredPeriods : 1, // For 2026, consider Q1 as well
+            consideredPeriods: consideredPeriods,
           };
         }
-
-        // ✅ Stale/unmounted guard — don't set state if effect was cleaned up
+    
         if (!cancelled) {
           setCompanyProgress(progressMap);
+          console.log('✅ Progress updated:', progressMap);
         }
       } catch (error) {
         console.error('Error loading progress:', error);
         if (!cancelled) {
-          // ✅ Surface error to UI — users see something instead of silent failure
           setProgressError(error instanceof Error ? error.message : 'Failed to load progress data');
+          toast.error('Failed to load progress data');
         }
       } finally {
         if (!cancelled) {
@@ -311,11 +410,10 @@ const Portfolio = () => {
 
     loadProgressData();
 
-    // ✅ Cleanup cancels in-flight state updates if companies changes mid-fetch
     return () => {
       cancelled = true;
     };
-  }, [companies,filterYear]); // isCompanyExcluded and countFilledKPIs assumed stable (module-level or useCallback)
+  }, [companies, filterYear]);
 
   const filteredCompanies = companies.filter((company) => {
     const matchesSearch = company.brand.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -341,6 +439,7 @@ const Portfolio = () => {
     industry: Industry;
     revenueStage: RevenueStage;
     contactEmail: string;
+    company_id: string;
     loginEmail: string;
     password: string;
   }) => {
@@ -349,7 +448,7 @@ const Portfolio = () => {
       id: `company-${Date.now()}`,
       companyCode: newCompanyCode,
       name: newCompanyData.name,
-      brand: newCompanyData.name, // Use name as brand for new companies
+      brand: newCompanyData.name,
       fund: 'Fund IV',
       fundCategory: 'CAT II',
       firesideCategory: 'Beauty & Personal Care',
@@ -358,6 +457,7 @@ const Portfolio = () => {
       industry: newCompanyData.industry,
       revenueStage: newCompanyData.revenueStage,
       contactEmail: newCompanyData.contactEmail,
+      company_id: newCompanyData.company_id,
       loginPassword: generateUniquePassword(newCompanyCode, companies.length),
       createdAt: new Date().toISOString().split('T')[0],
     };
@@ -376,7 +476,6 @@ const Portfolio = () => {
   const handleResetPassword = (companyId: string) => {
     const company = companies.find(c => c.id === companyId);
     if (company) {
-      // Reset to the original unique password from static mapping
       const originalPassword = generateUniquePassword(company.companyCode);
       setCompanies(prev => prev.map(c =>
         c.id === companyId
@@ -418,12 +517,6 @@ const Portfolio = () => {
     const targets = filteredCompanies;
     const ids = targets.map(c => c.id);
 
-    // const [entriesRes, featuresRes, profilesRes, kpiRes] = await Promise.all([
-    //   supabase.from('kpi_entries').select('company_id, kpi_id, quarter, year, value, submitted_at').in('company_id', ids),
-    //   supabase.from('company_feature_settings').select('company_id, feature_key, enabled, is_optional').in('company_id', ids),
-    //   supabase.from('company_profiles').select('company_id, industry, revenue_stage, internal_category').in('company_id', ids),
-    //   supabase.from('kpi_master').select('id, name, esg, category, sub_category, period, feature_module'),
-    // ]);
     const [entriesRes, featuresRes, profilesRes, kpiRes] = await Promise.all([
       http.get(`mis/kpi-entries?companyIds=${ids.join(',')}`),
       http.get(`mis/company-feature-settings?companyIds=${ids.join(',')}`),
@@ -440,15 +533,17 @@ const Portfolio = () => {
     const profileByCompany = new Map((profilesRes.data || []).map((p: any) => [p.company_id, p]));
     const entriesByCompany = new Map<string, any[]>();
     (entriesRes.data || []).forEach((e: any) => {
-      const arr = entriesByCompany.get(e.company_id) || [];
+      const companyId = e.company_id || e.companyId;
+      const arr = entriesByCompany.get(companyId) || [];
       arr.push(e);
-      entriesByCompany.set(e.company_id, arr);
+      entriesByCompany.set(companyId, arr);
     });
     const featuresByCompany = new Map<string, any[]>();
     (featuresRes.data || []).forEach((f: any) => {
-      const arr = featuresByCompany.get(f.company_id) || [];
+      const companyId = f.company_id || f.companyId;
+      const arr = featuresByCompany.get(companyId) || [];
       arr.push(f);
-      featuresByCompany.set(f.company_id, arr);
+      featuresByCompany.set(companyId, arr);
     });
 
     // Flat rows: one per KPI entry
@@ -464,9 +559,9 @@ const Portfolio = () => {
           'Legal Name': c.name,
           'Fund': c.fund,
           'Fireside Category': c.firesideCategory,
-          'Internal Category': profile['internal_category'] ?? c.internalCategory ?? '',
-          'Industry': profile['industry'] ?? c.industry,
-          'Revenue Stage': profile['revenue_stage'] ?? c.revenueStage,
+          'Internal Category': profile?.['internal_category'] ?? c.internalCategory ?? '',
+          'Industry': profile?.['industry'] ?? c.industry,
+          'Revenue Stage': profile?.['revenue_stage'] ?? c.revenueStage,
           'Q Category': c.qCategory ?? '',
           'Investment Status': c.investmentStatus,
           'Revenue FY24-25 (Cr)': c.revenueFY2425 ?? '',
@@ -488,7 +583,7 @@ const Portfolio = () => {
       });
     });
 
-    // Company-level summary rows (one per company, no KPIs)
+    // Company-level summary rows
     const companyRows = targets.map(c => {
       const profile = profileByCompany.get(c.id);
       const progress = companyProgress[c.id];
@@ -499,9 +594,9 @@ const Portfolio = () => {
         'Legal Name': c.name,
         'Fund': c.fund,
         'Fireside Category': c.firesideCategory,
-        'Internal Category': profile['internal_category'] ?? c.internalCategory ?? '',
-        'Industry': profile['industry'] ?? c.industry,
-        'Revenue Stage': profile['revenue_stage'] ?? c.revenueStage,
+        'Internal Category': profile?.['internal_category'] ?? c.internalCategory ?? '',
+        'Industry': profile?.['industry'] ?? c.industry,
+        'Revenue Stage': profile?.['revenue_stage'] ?? c.revenueStage,
         'Q Category': c.qCategory ?? '',
         'Investment Status': c.investmentStatus,
         'Founder': c.founder?.name ?? '',
@@ -594,6 +689,52 @@ const Portfolio = () => {
       setIsExporting(false);
     }
   };
+
+  // Loading state
+  if (isLoadingCompanies) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title="Portfolio Companies"
+          subtitle="Manage and track ESG data across your portfolio"
+          actions={
+            <div className="flex gap-2">
+              <Button variant="outline" disabled>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Loading...
+              </Button>
+            </div>
+          }
+        />
+        <div className="flex justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        </div>
+      </div>
+    );
+  }
+
+  if (companiesError) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title="Portfolio Companies"
+          subtitle="Manage and track ESG data across your portfolio"
+        />
+        <div className="flex justify-center py-12">
+          <div className="text-center">
+            <p className="text-red-500">Error loading companies: {companiesError}</p>
+            <Button 
+              variant="outline" 
+              className="mt-4"
+              onClick={() => window.location.reload()}
+            >
+              Retry
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -783,7 +924,7 @@ const Portfolio = () => {
                 filled: 0,
                 percentage: 0,
                 periodsSubmitted: 0,
-                consideredPeriods: filterYear == '2025' ? 5 : 1, //5,
+                consideredPeriods: filterYear == '2025' ? 5 : 1,
               };
 
               return (
@@ -819,23 +960,6 @@ const Portfolio = () => {
                   <TableCell className="text-right font-medium">
                     {formatRevenue(company.revenueFY2425)}
                   </TableCell>
-                  {/* <TableCell className="text-center">
-                    <div className="flex justify-center">
-                      {isLoadingProgress ? (
-                        <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-                      ) : (
-                        <CompletionRing percentage={completion.percentage} size="sm" />
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Badge
-                      variant={completion.periodsSubmitted === completion.consideredPeriods ? 'default' : completion.periodsSubmitted > 0 ? 'destructive' : 'outline'}
-                      className="text-xs font-medium"
-                    >
-                      {completion.periodsSubmitted}/{completion.consideredPeriods}
-                    </Badge>
-                  </TableCell> */}
                   <TableCell className="text-center">
                     <div className="flex justify-center">
                       {isLoadingProgress ? (
@@ -868,7 +992,7 @@ const Portfolio = () => {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => navigate(`/mis/portfolio/${company.id}`)}
+                        onClick={() => navigate(`/mis/portfolio/${company.company_id}`)}
                       >
                         <Eye className="w-4 h-4" />
                       </Button>

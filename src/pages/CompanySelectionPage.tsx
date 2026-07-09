@@ -16,6 +16,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
+// NEW IMPORTS: scoring utilities
+import { calculateComplianceScore } from "./useComplianceScore";
+import { mapESGCapItems } from "./mapESGCapItem";
+
 // Helper: Normalize status
 const normalize = (s?: string) => (s ?? '').trim().toLowerCase();
 
@@ -30,6 +34,8 @@ const isInCurrentMonth = (targetDate?: string): boolean => {
 
 // Get effective status (matches ESGCapScoring logic)
 const getEffectiveCompanyStatus = (item: any): string => {
+    if (!item) return '';
+
     const companyStatus = normalize(item.companyStatus ?? item.status);
     const investorStatus = normalize(item.investorStatus);
 
@@ -45,7 +51,7 @@ const getEffectiveCompanyStatus = (item: any): string => {
         return 'submitted-pending-review';
     }
     if (investorStatus === 'under-review' || investorStatus === 'under review') {
-        if (companyStatus === 'submitted' || companyStatus === 'submitted-pending-review') {
+        if (companyStatus === 'submitted' || companyStatus === 'partly-submitted') {
             return 'submitted-pending-review';
         }
     }
@@ -83,6 +89,7 @@ const getEffectiveCompanyStatus = (item: any): string => {
 
 // Get investor status
 const getInvestorStatus = (item: any): string => {
+    if (!item) return '';
     const investorStatus = normalize(item.investorStatus);
     const companyStatus = normalize(item.companyStatus ?? item.status);
 
@@ -118,10 +125,15 @@ const getInvestorStatus = (item: any): string => {
 
 // Check if item is closed
 const isClosed = (item: any): boolean => {
+    if (!item) return false;
     return getInvestorStatus(item) === 'closed';
 };
 
 interface Company {
+    firesidePoc: any;
+    fund: string;
+    category: any;
+    industry: any;
     _id: string;
     email: string;
     companyName: string;
@@ -184,10 +196,6 @@ export default function CompanySelectionPage() {
     const [summary, setSummary] = useState<DashboardResponse['summary'] | null>(null);
     const [scoringFilter, setScoringFilter] = useState<ScoringFilterType>('all');
     
-    // Pagination state
-    const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage, setItemsPerPage] = useState(8);
-    
     const industryOptions = [
       "All Industries",
       "Beauty & Personal Care",
@@ -195,7 +203,7 @@ export default function CompanySelectionPage() {
       "Health & Wellness",
       "Food & Beverage",
       "Home & Décor",
-      "Platform Enablers "
+      "Platform Enablers"
   ];
     
     const fundOptions = ["All Funds", "Fund I", "Fund II", "Fund III", "Fund IV"];
@@ -240,8 +248,6 @@ export default function CompanySelectionPage() {
         "₹100–500 Cr": "100-500",
         "₹500+ Cr": "500+",
     };
-
-  
 
     // Fetch dashboard data
     useEffect(() => {
@@ -456,48 +462,18 @@ export default function CompanySelectionPage() {
         });
     }, [companies, searchTerm, filters, scoringFilter]);
 
-    // Get current page companies
-    // const getCurrentPageCompanies = () => {
-    //     const startIndex = (currentPage - 1) * itemsPerPage;
-    //     const endIndex = startIndex + itemsPerPage;
-    //     return filteredCompanies.slice(startIndex, endIndex);
-    // };
-    // const currentPageCompanies = getCurrentPageCompanies();
-
-    const totalItems = filteredCompanies.length;
-    const totalPages = Math.ceil(totalItems / itemsPerPage);
-
-    // Pagination handlers
-    const handlePageChange = (page: number) => {
-        setCurrentPage(Math.max(1, Math.min(page, totalPages)));
-    };
-
-    const handleItemsPerPageChange = (value: string) => {
-        const newItemsPerPage = Number(value);
-        setItemsPerPage(newItemsPerPage);
-        setCurrentPage(1);
-    };
-
-      useEffect(() => {
-        //console.log("Filters updated:", filterCounts);
+    useEffect(() => {
+        console.log("Filters updated:", filterCounts);
     }, [filterCounts]);
 
     const handleCompanySelect = (companyEmail: string) => {
         navigate(`/esg-dd/cap/${encodeURIComponent(companyEmail)}`);
     };
 
-    // Reset to page 1 when filters change
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [searchTerm, filters, scoringFilter]);
-
-    // Click handler for scoring cards
     const handleScoringClick = (filter: ScoringFilterType) => {
         setScoringFilter(scoringFilter === filter ? 'all' : filter);
-        setCurrentPage(1);
     };
 
-    // Get card style based on active filter
     const getCardClass = (filterKey: string, defaultBg: string, isStatic: boolean = false, count: number = 0) => {
         const baseClass = "text-center p-2 rounded-lg transition-all";
         if (isStatic) {
@@ -511,142 +487,92 @@ export default function CompanySelectionPage() {
         return `${baseClass} ${clickableClass} ${disabledClass} ${defaultBg}`;
     };
 
-    const enrichedCurrentPageCompanies = useMemo(() => {
-      const startIndex = (currentPage - 1) * itemsPerPage;
-      const endIndex = startIndex + itemsPerPage;
-      const pageCompanies = filteredCompanies.slice(startIndex, endIndex);
-  
-      return pageCompanies.map(company => {
-          const plans = company._planItems || [];
-          const totalItems = plans.length;
-          const completedItems = plans.filter(p => isClosed(p)).length;
-          const overdueItems = plans.filter(p => p.status === 'overdue').length;
-  
-          // Count open and pending items
-          let openItems = 0;
-          let pendingItems = 0;
-          plans.forEach(p => {
-              if (isClosed(p)) return;
-              const eff = getEffectiveCompanyStatus(p);
-              const inv = getInvestorStatus(p);
-              if (inv === 'partly-submitted' || inv === 'submitted-pending-review' ||
-                  inv === 're-submit-requested' || inv === 'high-priority-overdue') {
-                  pendingItems++;
-              } else if (eff === 'overdue' || eff === 'due-in-this-month' || eff === 'upcoming' || eff === '' || eff === 'submitted') {
-                  openItems++;
-              }
-          });
-  
-          return {
-              ...company,
-              esgPlanCount: totalItems,
-              esgCompletedCount: completedItems,
-              esgOverdueCount: overdueItems,
-              esgOpenCount: openItems,
-              esgPendingCount: pendingItems,
-          };
-      });
-  }, [filteredCompanies, currentPage, itemsPerPage]);
+    const enrichedCompanies = useMemo(() => {
+        return filteredCompanies.map(company => {
+            const plans = company._planItems || [];
+            const totalItems = plans.length;
+            
+            let completedItems = 0;
+            let overdueItems = 0;
+            let openItems = 0;
+            let pendingItems = 0;
+            
+            plans.forEach(p => {
+                try {
+                    if (!p) return;
+                    if (isClosed(p)) {
+                        completedItems++;
+                        return;
+                    }
+                    // if (p.companyStatus || p.status === 'overdue') {
+                    //     overdueItems++;
+                    // }
+                    const eff = getEffectiveCompanyStatus(p);
+                    const inv = getInvestorStatus(p);
+
+                    if (eff === 'overdue') {
+                        overdueItems++;
+                    }
+                    // if (inv === 'partly-submitted' || inv === 'submitted-pending-review' ||
+                    //     inv === 're-submit-requested' || inv === 'high-priority-overdue') {
+                    if (eff === 'upcoming' || eff === 'due-in-this-month'){
+                        pendingItems++;
+                    } else if (eff === 'submitted-pending-review') {
+                        openItems++;
+                    }
+                } catch (e) {
+                    // Skip this item if there's an error
+                }
+            });
+    
+            return {
+                ...company,
+                displayFund: company.fund || company.companyDetails?.fund || 'N/A',
+                displayCategory: company.category || company.industry || company.sector || 
+                               company.companyDetails?.industry || company.companyDetails?.fireside_category || 'N/A',
+                esgPlanCount: totalItems,
+                esgCompletedCount: completedItems,
+                esgOverdueCount: overdueItems,
+                esgOpenCount: openItems,
+                esgPendingCount: pendingItems,
+            };
+        });
+    }, [filteredCompanies]);
+
+    // NEW: Compute average compliance score across all companies with a plan
+    const averageComplianceScore = useMemo(() => {
+        const companiesWithPlan = companies.filter(
+            c => c._planItems && c._planItems.length > 0
+        );
+        if (companiesWithPlan.length === 0) return 0;
+    
+        const scores = companiesWithPlan.map(c => {
+            try {
+                const result = calculateComplianceScore(mapESGCapItems(c._planItems));
+                return result?.overallScore ?? 0;
+            } catch (e) {
+                return 0;
+            }
+        });
+    
+        const sum = scores.reduce((a, b) => a + b, 0);
+        return Math.round(sum / scores.length);
+    }, [companies]);
+
     return (
         <div className="min-h-screen bg-gradient-to-b from-emerald-50/40 to-white">
             <div className="container mx-auto py-8 px-4">
-                {/* Filters Row */}
-                <div className="flex flex-wrap items-center gap-3 mb-6">
-                    <Input
-                        placeholder="Search company by name or email..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-96"
-                    />
-                    <Select
-                        value={filters.industry}
-                        onValueChange={(val) => setFilters((prev) => ({ ...prev, industry: val }))}
-                    >
-                        <SelectTrigger className="w-[128px]">
-                            <SelectValue placeholder="All Industries" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {industryOptions.map((opt) => (
-                                <SelectItem key={opt} value={opt}>
-                                    {opt}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-
-                    <Select
-                        value={filters.fund}
-                        onValueChange={(val) => setFilters((prev) => ({ ...prev, fund: val }))}
-                    >
-                        <SelectTrigger className="w-[128px]">
-                            <SelectValue placeholder="All Funds" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {fundOptions.map((opt) => (
-                                <SelectItem key={opt} value={opt}>
-                                    {opt}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-
-                    <Select
-                        value={filters.revenue}
-                        onValueChange={(val) => setFilters((prev) => ({ ...prev, revenue: val }))}
-                    >
-                        <SelectTrigger className="w-[128px]">
-                            <SelectValue placeholder="All Revenue" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {revenueOptions.map((opt) => (
-                                <SelectItem key={opt} value={opt}>
-                                    {opt}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-
-                    <Select
-                        value={filters.qCat}
-                        onValueChange={(val) => setFilters((prev) => ({ ...prev, qCat: val }))}
-                    >
-                        <SelectTrigger className="w-[128px]">
-                            <SelectValue placeholder="All Q Cat" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {qCatOptions.map((opt) => (
-                                <SelectItem key={opt} value={opt}>
-                                    {opt}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-
-                    <Select
-                        value={filters.firesidePoc}
-                        onValueChange={(val) => setFilters((prev) => ({ ...prev, firesidePoc: val }))}
-                    >
-                        <SelectTrigger className="w-[128px]">
-                            <SelectValue placeholder="All POCs" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {firesideOptions.map((opt) => (
-                                <SelectItem key={opt} value={opt}>
-                                    {opt}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-
                 {/* ESG Scoring Cards */}
                 <div className="mb-6">
                     <div className="flex flex-wrap items-center gap-2 mb-3">
-                        <Building2 className="h-4 w-4 text-emerald-600" />
-                        <h2 className="text-sm font-semibold text-gray-700">ESG Dashboard</h2>
-                        <span className="text-xs text-gray-400 ml-2">
-                            Click on any card to filter companies
-                        </span>
+                        <div>
+                            <h1 className="text-2xl font-bold tracking-tight">
+                                Portfolio Companies
+                            </h1>
+                            <p className="text-muted-foreground">
+                                Manage and track ESG data across your portfolio.
+                            </p>
+                        </div>
                         {scoringFilter !== 'all' && (
                             <Button
                                 variant="ghost"
@@ -662,12 +588,14 @@ export default function CompanySelectionPage() {
                     <Card>
                         <CardContent className="py-3">
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-2">
-                                {/* 1. Compliance Score - STATIC */}
+                                {/* 1. Average Compliance Score - computed */}
                                 <div className="text-center p-2 rounded-lg bg-green-50 cursor-default">
                                     <div className="text-lg font-bold text-green-600">
-                                        {summary?.complianceScore ?? 0}%
+                                        {averageComplianceScore}%
                                     </div>
-                                    <div className="text-[10px] text-muted-foreground leading-tight">Compliance Score</div>
+                                    <div className="text-[10px] text-muted-foreground leading-tight">
+                                        Compliance Score
+                                    </div>
                                 </div>
 
                                 {/* 2. Due This Month - Shows company count */}
@@ -733,118 +661,76 @@ export default function CompanySelectionPage() {
                                     <div className="text-[10px] text-gray-600 font-medium leading-tight">Total Companies</div>
                                 </div>
                             </div>
-
-                            {/* Progress Bar */}
-                            {/* {(summary?.totalItems ?? 0) > 0 && (
-                                <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-gray-500 bg-gray-50 px-4 py-2 rounded-lg border">
-                                    <span>📊 Total Items: <strong>{summary?.totalItems ?? 0}</strong></span>
-                                    <span>✅ Completed: <strong className="text-emerald-600">{summary?.completedItems ?? 0}</strong></span>
-                                    <span>📈 Progress: <strong className="text-emerald-600">{summary?.progressPercentage ?? 0}%</strong></span>
-                                    <div className="flex-1 min-w-[100px]">
-                                        <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                                            <div 
-                                                className="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                                                style={{ width: `${summary?.progressPercentage ?? 0}%` }}
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            )} */}
                         </CardContent>
                     </Card>
                 </div>
 
-                {/* Company List */}
+                 {/* Filters Row */}
+                 <div className="flex flex-col gap-4 mb-6 md:flex-row md:items-center md:justify-between">
+                    <Input
+                        placeholder="Search company by name or email..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="md:w-[789px]"
+                    />
+                    <div className="flex flex-wrap items-center gap-5">
+                    <Select
+                        value={filters.industry}
+                        onValueChange={(val) => setFilters((prev) => ({ ...prev, industry: val }))}
+                    >
+                        <SelectTrigger className="w-[128px]">
+                            <SelectValue placeholder="All Industries" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {industryOptions.map((opt) => (
+                                <SelectItem key={opt} value={opt}>
+                                    {opt}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+
+                    <Select
+                        value={filters.fund}
+                        onValueChange={(val) => setFilters((prev) => ({ ...prev, fund: val }))}
+                    >
+                        <SelectTrigger className="w-[128px]">
+                            <SelectValue placeholder="All Funds" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {fundOptions.map((opt) => (
+                                <SelectItem key={opt} value={opt}>
+                                    {opt}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    </div>
+                    {/* <Select
+                        value={filters.revenue}
+                        onValueChange={(val) => setFilters((prev) => ({ ...prev, revenue: val }))}
+                    >
+                        <SelectTrigger className="w-[128px]">
+                            <SelectValue placeholder="All Revenue" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {revenueOptions.map((opt) => (
+                                <SelectItem key={opt} value={opt}>
+                                    {opt}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select> */}
+                </div>
+
+                {/* Company List - all companies, no pagination */}
                 <CompanyCardFilter
-                    companies={enrichedCurrentPageCompanies}
+                    companies={enrichedCompanies}
                     selectedCompany=""
                     onCompanyChange={handleCompanySelect}
                     loading={loading}
                     showESGStatus={true}
                 />
-
-                {/* Pagination Controls */}
-                {filteredCompanies.length > 0 && (
-                    <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t pt-6">
-                        <div className="flex items-center gap-3 text-sm text-gray-600">
-                            <span>Rows per page:</span>
-                            <Select
-                                value={String(itemsPerPage)}
-                                onValueChange={handleItemsPerPageChange}
-                            >
-                                <SelectTrigger className="w-[70px] h-8">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {[4, 8, 12, 16, 24].map((num) => (
-                                        <SelectItem key={num} value={String(num)}>
-                                            {num}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <span className="ml-2">
-                                {filteredCompanies.length > 0 ? 
-                                    `${((currentPage - 1) * itemsPerPage) + 1}-${Math.min(currentPage * itemsPerPage, filteredCompanies.length)} of ${filteredCompanies.length}` :
-                                    '0 of 0'
-                                }
-                            </span>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handlePageChange(currentPage - 1)}
-                                disabled={currentPage === 1}
-                                className="h-8 w-8 p-0"
-                            >
-                                <ChevronLeft className="h-4 w-4" />
-                            </Button>
-                            
-                            <div className="flex items-center gap-1">
-                                {totalPages > 0 && Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                                    let pageNum;
-                                    if (totalPages <= 5) {
-                                        pageNum = i + 1;
-                                    } else if (currentPage <= 3) {
-                                        pageNum = i + 1;
-                                    } else if (currentPage >= totalPages - 2) {
-                                        pageNum = totalPages - 4 + i;
-                                    } else {
-                                        pageNum = currentPage - 2 + i;
-                                    }
-                                    
-                                    return (
-                                        <Button
-                                            key={pageNum}
-                                            variant={currentPage === pageNum ? "default" : "outline"}
-                                            size="sm"
-                                            onClick={() => handlePageChange(pageNum)}
-                                            className={`h-8 w-8 p-0 ${
-                                                currentPage === pageNum 
-                                                    ? "bg-emerald-600 hover:bg-emerald-700" 
-                                                    : ""
-                                            }`}
-                                        >
-                                            {pageNum}
-                                        </Button>
-                                    );
-                                })}
-                            </div>
-
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handlePageChange(currentPage + 1)}
-                                disabled={currentPage === totalPages || totalPages === 0}
-                                className="h-8 w-8 p-0"
-                            >
-                                <ChevronRight className="h-4 w-4" />
-                            </Button>
-                        </div>
-                    </div>
-                )}
             </div>
         </div>
     );

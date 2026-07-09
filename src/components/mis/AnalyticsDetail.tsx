@@ -536,6 +536,7 @@ const AnalyticsDetail = () => {
       period: 'annual' as const,
       quarter: state?.filters?.quarter,
       year: parseInt(filterYear),
+      years: [parseInt(filterYear)],
       industry: state?.filters?.industry,
       fund: state?.filters?.fund,
       revenueStage: state?.filters?.revenueStage,

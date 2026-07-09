@@ -173,6 +173,7 @@ export interface ESGCapItem {
   sections?: string[];
   sourceType?: string;
   aiResponseRaw?: AiResponse;
+  companyId?: string;
   fileUploadedData?: {
     filename: string;
     mimetype: string;
@@ -630,7 +631,12 @@ export function CAPTable({
         label: "Deferred",
         className: "bg-gray-100 text-gray-600 border-gray-300 px-2.5 py-1 whitespace-nowrap",
         icon: null
-      }
+      },
+      "under review": {
+        label: "Under Review",
+        className: "bg-blue-100 text-blue-800 border-blue-300 px-2.5 py-1 whitespace-nowrap",
+        icon: <Clock className="h-3 w-3 mr-1" />
+      },
     };
 
     // Additional statuses that might come from company status mapping
