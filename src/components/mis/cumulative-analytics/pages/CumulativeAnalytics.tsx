@@ -71,8 +71,8 @@ async function fetchAllFeatures(): Promise<FeatureFlagsMap> {
 
 
 
-const CumulativeAnalytics = () => {
-  const [filters, setFilters] = useState<CumulativeFilters>({});
+const CumulativeAnalytics = ({adminfilters}) => {
+  const [filters, setFilters] = useState<CumulativeFilters>(adminfilters || {});
   const [tab, setTab] = useState<'aggregation' | 'insight'>('insight');
   const [allEntries, setAllEntries] = useState<KPIEntryInput[]>([]);
   const [allFeatures, setAllFeatures] = useState<FeatureFlagsMap>({});
@@ -187,7 +187,7 @@ const CumulativeAnalytics = () => {
             />
           </TabsContent> */}
 
-          <TabsContent value="insight" className="mt-4 space-y-6">
+          <TabsContent value="insight">
             <CompanyRankingsPanel rankings={data.rankings.perCompany} />
             <ESGCompositePanel
               result={data.analytics}

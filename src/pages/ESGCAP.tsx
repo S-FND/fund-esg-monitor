@@ -313,7 +313,7 @@ export default function ESGCAP() {
 
   const handleSubmitAllCap = async () => {
     try {
-      // console.log('planData planData', planData);
+      // //console.log('planData planData', planData);
       const payload = {
         changeRequest: { plan: capItems },
         comment: 'Change Request',
@@ -591,7 +591,7 @@ export default function ESGCAP() {
     const parse =  parseInput(JSON.stringify({ plan: planData.plan }));
     const r = engine.calculateComplianceScore(parse.parsed);
     return r;
-    // console.log("retur result => ",r);
+    // //console.log("retur result => ",r);
     // return calculateComplianceScore(mapESGCapItems(planData.plan));
   }, [planData]);
 

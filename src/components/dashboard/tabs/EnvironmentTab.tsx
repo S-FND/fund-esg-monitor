@@ -43,8 +43,8 @@ export function EnvironmentTab({
     const activeEnvironmentTopics = environmentTopics.filter(topic => dashboardTopics.includes(topic));
     setSelectedTopics(activeEnvironmentTopics);
     
-    console.log('Active environment topics:', activeEnvironmentTopics);
-    console.log('Original dashboardTopics:', dashboardTopics);
+    //console.log('Active environment topics:', activeEnvironmentTopics);
+    //console.log('Original dashboardTopics:', dashboardTopics);
   }, [dashboardTopics]);
 
   const formatPieData = (pieData: any) => {

@@ -48,7 +48,7 @@ export function usePreScreeningResponses(initialQuestions: Question[], companyIn
               question:response.question
             }
           })
-          console.log("parsedResponse",parsedResponse)
+          //console.log("parsedResponse",parsedResponse)
           setResponses(parsedResponse)
         }
 
@@ -63,7 +63,7 @@ export function usePreScreeningResponses(initialQuestions: Question[], companyIn
   };
 
   useEffect(() => {
-    console.log("Inside useEffect companyInfoId", companyInfoId)
+    //console.log("Inside useEffect companyInfoId", companyInfoId)
     getPrescreeningData(companyInfoId)
     // setResponses({
     //   "B.1": {
@@ -127,7 +127,7 @@ export function usePreScreeningResponses(initialQuestions: Question[], companyIn
   const updateResponsesForQuestions = (questions: Question[]) => {
     // This function ensures that all questions have a response entry
     // And keeps existing responses for questions that are still present
-    console.log("updateResponsesForQuestions :: called")
+    //console.log("updateResponsesForQuestions :: called")
     setResponses(prev => {
       const newResponses = { ...prev };
       const currentQuestionIds = questions.map(q => q.id);
@@ -138,9 +138,9 @@ export function usePreScreeningResponses(initialQuestions: Question[], companyIn
           newResponses[q.id] = { response: "No", score: 0, remarks: "",question:q.question };
         }
         else{
-          console.log("yes inside it ")
+          //console.log("yes inside it ")
           if(responses[q.id] && responses[q.id]['question'] && responses[q.id]['question'] == q.question){
-            console.log(`updateResponsesForQuestions :: called => else if`)
+            //console.log(`updateResponsesForQuestions :: called => else if`)
             newResponses[q.id] = { ...responses[q.id] };
           }
           

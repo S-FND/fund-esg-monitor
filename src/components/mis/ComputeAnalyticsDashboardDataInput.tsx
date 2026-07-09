@@ -53,7 +53,7 @@ export function computeAnalyticsDashboardData(
     input: ComputeAnalyticsDashboardDataInput
 ): AnalyticsDashboardData {
     const { filteredCompanies, allCompanies, filters } = input;
-    console.log('computeAnalyticsDashboardData ==> ',input.kpiEntries.length)
+    //console.log('computeAnalyticsDashboardData ==> ',input.kpiEntries.length)
     // Quarters actually present per year, derived from the entries you sent in.
     const quartersByYear = deriveQuartersByYear(input.kpiEntries);
     const quartersForYear = (year: number): string[] => quartersByYear[year] || ['Q1'];

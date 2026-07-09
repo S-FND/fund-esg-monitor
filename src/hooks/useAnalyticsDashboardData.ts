@@ -714,7 +714,7 @@ export function deriveInsights(agg: AggregationMetrics, industry?: string, hasFa
     circularEconomyIndex: r2(Math.min(100, (() => {
       const isFashion = hasFashionPackaging === true;
       if (isFashion) {
-        // console.log('Computing circular economy index for fashion company:', { agg });
+        // //console.log('Computing circular economy index for fashion company:', { agg });
         // Fashion & Lifestyle formula:
         // Recyclable Materials % (40%) + Recyclable Packaging % (40%) + Fresh Water Consumed % (10%) + Water Recycled % (10%)
         const recyclableMaterials = Math.min(100, agg.fashionRecyclablePct);
@@ -986,7 +986,7 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters, kpiEntries?
           `mis/kpi-entries?years=${years.join(',')}`
         );
         allEntries = res.data || [];
-        console.log('Fetched KPI entries:', allEntries.filter(e => e.year === 2026), 'entries for years', years);
+        //console.log('Fetched KPI entries:', allEntries.filter(e => e.year === 2026), 'entries for years', years);
         if (asOf) {
           allEntries = allEntries.filter(e => !isPeriodAfterCutoff(e.quarter, e.year, asOf));
         }
@@ -995,7 +995,7 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters, kpiEntries?
           'mis/company-feature-settings?enabled=true'
         );
         const featureRows = featuresRes.data || [];
-        // console.log('Fetched feature settings rows:', featureRows);
+        // //console.log('Fetched feature settings rows:', featureRows);
         const fashionPkgCompanyIds = new Set(
           featureRows.filter(r => r.feature_key === 'fashionMaterials' && r.enabled).map(r => r.companyId)
         );
@@ -1015,10 +1015,10 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters, kpiEntries?
             .filter(r => r.feature_key === 'waterDetailed' || r.feature_key === 'waterManagement')
             .map(r => r.companyId)
         );
-        // console.log('Companies with fashionMaterials feature:', Array.from(fashionPkgCompanyIds));
-        // console.log('Companies with primarySecondaryPackaging feature:', Array.from(stdPkgCompanyIds));
-        // console.log('Companies with sourcingFulfillment feature:', Array.from(sourcingCompanyIds));
-        // console.log('Companies with waterDetailed or waterManagement features:', Array.from(waterDetailedCompanyIds));
+        // //console.log('Companies with fashionMaterials feature:', Array.from(fashionPkgCompanyIds));
+        // //console.log('Companies with primarySecondaryPackaging feature:', Array.from(stdPkgCompanyIds));
+        // //console.log('Companies with sourcingFulfillment feature:', Array.from(sourcingCompanyIds));
+        // //console.log('Companies with waterDetailed or waterManagement features:', Array.from(waterDetailedCompanyIds));
         const hasEnvFeature = (companyId: string) =>
           fashionPkgCompanyIds.has(companyId) ||
           stdPkgCompanyIds.has(companyId) ||
@@ -1040,8 +1040,8 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters, kpiEntries?
         if (filters.firesidePOC) filteredCompanies = filteredCompanies.filter(c => c.fl === filters.firesidePOC);
         if (filters.companyId) filteredCompanies = filteredCompanies.filter(c => c.id === filters.companyId);
         const companyIds = new Set(filteredCompanies.map(c => c.id));
-        console.log('filters.cumulative', filters.cumulative);
-        console.log("periods :: timeSeries => ", periods);
+        //console.log('filters.cumulative', filters.cumulative);
+        //console.log("periods :: timeSeries => ", periods);
         const timeSeries: TimeSeriesPoint[] = periods.map(p => {
           const periodEntries = filterKpiEntries(allEntries, {
             companyIds,
@@ -1102,11 +1102,11 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters, kpiEntries?
         });
 
         const companyRawData: CompanyRawMetrics[] = filteredCompanies.map(company => {
-          // console.log(`Building raw data for company ${company.name} (${company.id})`);
+          // //console.log(`Building raw data for company ${company.name} (${company.id})`);
           const kpis = currentByCompany[company.id] || {};
           const aggregation = buildAggregation(kpis);
           const hasFashionPkg = fashionPkgCompanyIds.has(company.id);
-          // console.log(`Company ${company.name} (${company.id}) - `);
+          // //console.log(`Company ${company.name} (${company.id}) - `);
 
           const insights = deriveInsights(aggregation, company.industry, hasFashionPkg);
           const obj = {
@@ -1123,12 +1123,12 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters, kpiEntries?
             hasWaterFeature: waterDetailedCompanyIds.has(company.id),
             hasEnvironmentFeature: hasEnvFeature(company.id),
           };
-          // console.log(`Raw data for ${company.name}:`, obj);
+          // //console.log(`Raw data for ${company.name}:`, obj);
           return obj;
         });
 
         // Removed illegal useEffect from here — log moved outside
-        // console.log('Company raw data for current period:', companyRawData);
+        // //console.log('Company raw data for current period:', companyRawData);
 
         const vprQ14Entries = filterKpiEntries(allEntries, {
           companyIds,
@@ -1282,9 +1282,9 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters, kpiEntries?
           quarterlyCombinedAggregation = sumAggregations(combinedAggs);
 
           quarterlyCombinedInsights = deriveInsights(quarterlyCombinedAggregation);
-          // console.log('Quarterly combined raw data:', quarterlyCombinedRawData);  
+          // //console.log('Quarterly combined raw data:', quarterlyCombinedRawData);  
           const submitting = quarterlyCombinedRawData.filter(c => Object.keys(c.kpis).length > 0);
-          // console.log('Companies submitting Q1-Q4 data:', submitting);
+          // //console.log('Companies submitting Q1-Q4 data:', submitting);
           const avgField = (key: keyof InsightMetrics) => {
             const vals = submitting.map(c => c.insights[key] as number).filter(v => !isNaN(v));
             return vals.length > 0 ? r2(vals.reduce((s, v) => s + v, 0) / vals.length) : 0;

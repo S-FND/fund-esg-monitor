@@ -128,7 +128,7 @@ export const useAllQuartersProgress = (companyId: string, year: number = 2025, r
 
   // Load entries and company feature settings
   useEffect(() => {
-    console.log('Loading data for companyId in useAllQuartersProgress:', companyId, 'year:', year);
+    //console.log('Loading data for companyId in useAllQuartersProgress:', companyId, 'year:', year);
     const loadData = async () => {
       setIsLoading(true);
       try {
@@ -153,10 +153,10 @@ export const useAllQuartersProgress = (companyId: string, year: number = 2025, r
         let featuresResult=featuresData.data ? { data: featuresData.data.filter(f => f.enabled), error: null } : { data: null, error: new Error('Failed to load features') };
         if (entriesResult.error) throw entriesResult.error;
         if (featuresResult.error) throw featuresResult.error;
-        // console.log('Loaded entries:', entriesResult.data);
-        // console.log('Loaded features:', featuresResult.data);
-        console.log('Loaded entries:', entriesResult.data);
-        console.log('Loaded features:', featuresResult.data);
+        // //console.log('Loaded entries:', entriesResult.data);
+        // //console.log('Loaded features:', featuresResult.data);
+        //console.log('Loaded entries:', entriesResult.data);
+        //console.log('Loaded features:', featuresResult.data);
 
         setAllEntries(entriesResult.data || []);
         setEnabledFeatures(featuresResult.data || []);
@@ -196,10 +196,10 @@ export const useAllQuartersProgress = (companyId: string, year: number = 2025, r
 
     const quarterlyTotal = getFeatureKPICount(effectiveQuarterly);
     const annualTotal = getFeatureKPICount(effectiveAnnual);
-    console.log('Effective quarterly features:', effectiveQuarterly);
-    console.log('Effective annual features:', effectiveAnnual);
-    console.log('Quarterly total KPIs:', quarterlyTotal);
-    console.log('Annual total KPIs:', annualTotal);
+    //console.log('Effective quarterly features:', effectiveQuarterly);
+    //console.log('Effective annual features:', effectiveAnnual);
+    //console.log('Quarterly total KPIs:', quarterlyTotal);
+    //console.log('Annual total KPIs:', annualTotal);
     PERIODS.forEach(period => {
       // Skip excluded quarters for this company
       // Skip periods past the "As of" cutoff so the snapshot reflects what was available then.
@@ -213,9 +213,9 @@ export const useAllQuartersProgress = (companyId: string, year: number = 2025, r
         };
         return;
       }
-      console.log("allEntries length:", allEntries.length, "for period:", period, "year:", year);
+      //console.log("allEntries length:", allEntries.length, "for period:", period, "year:", year);
       const periodEntries = allEntries.filter(entry => entry.quarter === period);
-      console.log(`Entries for ${period} ${year}:`, periodEntries.length, periodEntries);
+      //console.log(`Entries for ${period} ${year}:`, periodEntries.length, periodEntries);
       
       const featuresToCount = period === 'FY' ? effectiveAnnual : effectiveQuarterly;
       const expectedTotal = period === 'FY' ? annualTotal : quarterlyTotal;

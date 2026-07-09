@@ -151,7 +151,7 @@ export const FeatureAnalyticsView = ({
         );
 
       if (data) {
-        console.log('getting company profile data data',data);
+        //console.log('getting company profile data data',data);
         // setFeatureEnabledCompanyIds(new Set(data.map((d) => d.company_id)));
       }
     };

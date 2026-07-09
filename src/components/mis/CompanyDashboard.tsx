@@ -312,9 +312,9 @@ const CompanyDashboard = ({ companyId, companyName,filters }: { companyId: strin
     const companyData = allRawData.find((c: any) => c.companyId === companyId);
 
     // debug — remove once confirmed working
-    // console.log('[ESGCards] companyId:', companyId);
-    // console.log('[ESGCards] matched companyData:', companyData);
-    // console.log('[ESGCards] allRawData ids:', allRawData.map((c: any) => c.companyId));
+    // //console.log('[ESGCards] companyId:', companyId);
+    // //console.log('[ESGCards] matched companyData:', companyData);
+    // //console.log('[ESGCards] allRawData ids:', allRawData.map((c: any) => c.companyId));
 
     if (!companyData) return;
 
@@ -326,8 +326,8 @@ const CompanyDashboard = ({ companyId, companyName,filters }: { companyId: strin
     const companyBrand = companyData.brand || companyName || '';
 
     // debug — remove once confirmed working
-    // console.log('[ESGCards] companyBrand:', companyBrand);
-    // console.log('[ESGCards] esgPctileMap keys:', [...assignPercentiles(submitting, 'esgCompositeScore').keys()]);
+    // //console.log('[ESGCards] companyBrand:', companyBrand);
+    // //console.log('[ESGCards] esgPctileMap keys:', [...assignPercentiles(submitting, 'esgCompositeScore').keys()]);
 
     const esgPctile = assignPercentiles(submitting, 'esgCompositeScore').get(companyBrand) ?? 1;
     const envPctile = assignPercentiles(envEligible, 'circularEconomyIndex').get(companyBrand) ?? 1;
@@ -335,7 +335,7 @@ const CompanyDashboard = ({ companyId, companyName,filters }: { companyId: strin
     const govPctile = assignPercentiles(submitting, 'governanceScore').get(companyBrand) ?? 1;
 
     // debug — remove once confirmed working
-    // console.log('[ESGCards] percentiles:', { esgPctile, envPctile, socPctile, govPctile });
+    // //console.log('[ESGCards] percentiles:', { esgPctile, envPctile, socPctile, govPctile });
 
     setEsgCards([
       {

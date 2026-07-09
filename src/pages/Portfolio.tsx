@@ -58,7 +58,7 @@ export default function Portfolio() {
   const [deletingCompanyId, setDeletingCompanyId] = useState<string | null>(null);
 
   const handleInvite = (email: string) => {
-    console.log("Inviting company with email:", email);
+    //console.log("Inviting company with email:", email);
   };
 
   const clearFilters = () => {

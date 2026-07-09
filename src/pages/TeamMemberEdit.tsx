@@ -103,7 +103,7 @@ export default function TeamMemberEdit() {
     e.preventDefault();
     setSubmitting(true);
 
-    console.log('formData',formData)
+    //console.log('formData',formData)
     try {
       // Insert team member
       const res = await fetch(`${import.meta.env.VITE_API_URL}` + `/subuser`, {

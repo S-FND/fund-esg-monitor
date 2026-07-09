@@ -50,7 +50,7 @@ interface Company {
 export default function EditPortfolioCompany() {
   const { id } = useParams();
 
-  console.log('id', id)
+  //console.log('id', id)
 
   // if (!company) {
   //   return <CompanyNotFound />;
@@ -60,7 +60,7 @@ export default function EditPortfolioCompany() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 
     const { name, value } = e.target;
-    console.log(name, value)
+    //console.log(name, value)
     setEditData((prev: any) => ({
       ...prev,
       [name]: value,
@@ -90,7 +90,7 @@ export default function EditPortfolioCompany() {
 
     editData['companyInfoId'] = editData['_id']
     delete editData['_id'];
-    console.log('editform', editData)
+    //console.log('editform', editData)
     // Here, you would update the backend!
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}` + `/investor/companyInfo/update`, {
@@ -135,7 +135,7 @@ export default function EditPortfolioCompany() {
       }
       else {
         const jsondata: Company = await res.json();
-        console.log('jsondata', jsondata)
+        //console.log('jsondata', jsondata)
         // company=jsondata;
         setEditData(jsondata)
         // return <EditCompanyForm company={jsondata} />;

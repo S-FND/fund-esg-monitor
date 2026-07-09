@@ -28,7 +28,7 @@ export function InviteCompanyDialog({ onInvite }: InviteCompanyDialogProps) {
       }
       else {
         const jsondata = await res.json();
-        console.log('jsondata', jsondata)
+        //console.log('jsondata', jsondata)
       }
     } catch (error) {
       console.error("Api call:", error);

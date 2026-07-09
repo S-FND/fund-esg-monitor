@@ -291,7 +291,7 @@
 //   );
 
 //   const handleSave = async () =>{
-//     console.log("Editable ai",editableAi)
+//     //console.log("Editable ai",editableAi)
 //     if (!companyEntityId) {
 //       alert("Entity Id is required")
 //     }
@@ -304,9 +304,9 @@
 //       capItemId: item._id,
 //       item:item.item
 //     });
-//     console.log('approveItemRes', approveItemRes)
+//     //console.log('approveItemRes', approveItemRes)
 //     if (approveItemRes.data.status) {
-//       console.log("APPROVED DATA:", editableAi);
+//       //console.log("APPROVED DATA:", editableAi);
 //       toast.success("Item insights updated");
 //       setReloadData(true)
 //       onOpenChange(false);

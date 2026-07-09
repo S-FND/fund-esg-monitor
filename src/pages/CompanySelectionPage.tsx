@@ -261,7 +261,7 @@ export default function CompanySelectionPage() {
                 }
                 
                 const json: DashboardResponse = await res.json();
-                console.log('Dashboard response:', json);
+                //console.log('Dashboard response:', json);
                 
                 if (json.status) {
                     setCompanies(json.data || []);
@@ -279,7 +279,7 @@ export default function CompanySelectionPage() {
     }, []);
 
     useEffect(() => {
-        console.log("Summary updated:", summary);
+        //console.log("Summary updated:", summary);
     },[summary])
 
     // Calculate filter counts for each scoring category
@@ -479,7 +479,7 @@ export default function CompanySelectionPage() {
     };
 
       useEffect(() => {
-        console.log("Filters updated:", filterCounts);
+        //console.log("Filters updated:", filterCounts);
     }, [filterCounts]);
 
     const handleCompanySelect = (companyEmail: string) => {

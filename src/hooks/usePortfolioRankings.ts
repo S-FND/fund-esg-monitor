@@ -157,7 +157,7 @@ export const usePortfolioRankings = (
   const [isLoading, setIsLoading] = useState(true);
   const { asOf } = useAsOf();
   let selectedPeriod = period == 'annual' ? ['Q1', 'Q2', 'Q3', 'Q4', 'FY'] : [quarter];
-  console.log('usePortfolioRankings - asOf:', asOf, 'year:', year, 'quarter:', quarter, 'cumulative:', cumulative, 'period:', period);
+  //console.log('usePortfolioRankings - asOf:', asOf, 'year:', year, 'quarter:', quarter, 'cumulative:', cumulative, 'period:', period);
   // useEffect(() => {
   //   const fetch = async () => {
   //     setIsLoading(true);
@@ -386,7 +386,7 @@ export const usePortfolioRankings = (
   //       let profilesRes = await http.get<CompanyProfileRaw[]>('mis/company-profiles');
   //       let entriesRes = await http.get<KpiEntryRaw[]>(`mis/kpi-entries?years=${yearsQuery}`);
   //       let featuresRes = await http.get<FeatureSettingRaw[]>('mis/company-feature-settings?enabled=true');
-  //       console.log('Fetched data:', { profiles: profilesRes.data, entries: entriesRes.data, features: featuresRes.data });
+  //       //console.log('Fetched data:', { profiles: profilesRes.data, entries: entriesRes.data, features: featuresRes.data });
 
   //       const profilesData = profilesRes.data;
   //       const allEntries = entriesRes.data.filter(e => e.quarter == 'Q1' && e.year == 2025);
@@ -422,7 +422,7 @@ export const usePortfolioRankings = (
   //         featureMap[f.companyId].add(f.feature_key);
   //       }
 
-  //       console.log('Processed data:', { companies, typedEntries, featureMap }); 
+  //       //console.log('Processed data:', { companies, typedEntries, featureMap }); 
   //       // 6. Compute raw scores per company (completeness, consistency, timeliness)
   //       const raw = companies.map(company => {
   //         const cEntries = typedEntries.filter(e =>
@@ -633,7 +633,7 @@ export const usePortfolioRankings = (
         let profilesRes = await http.get<CompanyProfileRaw[]>('mis/company-profiles');
         let entriesRes = await http.get<KpiEntryRaw[]>(`mis/kpi-entries?year=${year}`);
         let featuresRes = await http.get<FeatureSettingRaw[]>('mis/company-feature-settings?enabled=true');
-        console.log('Fetched data:', { profiles: profilesRes.data, entries: entriesRes.data, features: featuresRes.data });
+        //console.log('Fetched data:', { profiles: profilesRes.data, entries: entriesRes.data, features: featuresRes.data });
 
         const profilesData = profilesRes.data;
         const allEntries = entriesRes.data;
@@ -669,7 +669,7 @@ export const usePortfolioRankings = (
           featureMap[f.companyId].add(f.feature_key);
         }
 
-        console.log('Processed data:', { companies, typedEntries, featureMap });
+        //console.log('Processed data:', { companies, typedEntries, featureMap });
         // 6. Compute raw scores per company (completeness, consistency, timeliness)
         const raw = companies.map(company => {
           const cEntries = typedEntries.filter(e => e.companyId === company.companyId);

@@ -19,7 +19,7 @@ export function SidebarContent() {
 
   useEffect(() => {
     // In a real app, this would come from the backend based on user roles
-    console.log("Change in user Data happened")
+    //console.log("Change in user Data happened")
     if (user) {
       // Get the unique module names user has access to
       const accessList = user.assignedPages

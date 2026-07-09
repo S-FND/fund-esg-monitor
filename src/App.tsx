@@ -86,12 +86,12 @@ function App() {
       // This is just a placeholder to show how the interceptor would be used
       // In a real app, you would make actual API calls where needed
       try {
-        console.log("HTTP interceptor is ready to use for API calls");
+        //console.log("HTTP interceptor is ready to use for API calls");
 
         // Example usage (commented out as it's not real)
         // const response = await http.get('/api/some-endpoint');
         // if (response.data) {
-        //   console.log("Data received:", response.data);
+        //   //console.log("Data received:", response.data);
         // }
       } catch (error) {
         console.error("Error in API call:", error);

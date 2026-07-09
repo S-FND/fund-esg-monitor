@@ -63,7 +63,7 @@ const PercentileBadge = ({ value, type }: { value: number; type: 'completeness' 
 };
 
 export const InsightTabv1 = ({ insights, timeSeries, companyRawData, companyCount, filters }: InsightTabProps) => {
-  console.log('InsightTab props:', { insights, timeSeries, companyRawData, companyCount, filters });
+  //console.log('InsightTab props:', { insights, timeSeries, companyRawData, companyCount, filters });
   const navigate = useNavigate();
   if (filters?.companyId) {
     return (
@@ -454,7 +454,7 @@ export const InsightTabv1 = ({ insights, timeSeries, companyRawData, companyCoun
             socialScore: { title: 'Social Score', insightKey: 'socialScore' },
             governanceScore: { title: 'Governance Score', insightKey: 'governanceScore' },
           };
-          console.log('Expanded Score:', expandedScore);
+          //console.log('Expanded Score:', expandedScore);
           const config = scoreMap[expandedScore];
           if (!config) return null;
           const pool = expandedScore === 'circularEconomyIndex' ? envEligibleCompanies : submittingCompanies;

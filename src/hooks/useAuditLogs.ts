@@ -28,7 +28,7 @@ export function useAuditLogs() {
 
   const getAuditLogs=async ()=>{
     let logs= await http.get('audit');
-    console.log('Fetched logs:', logs);
+    //console.log('Fetched logs:', logs);
   }
 
   useEffect(() => {
