@@ -20,6 +20,9 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import type { CAPPriority, ESGCapItem } from "@/components/esg-cap/CAPTable";
+import { ComplianceScoreEngine, PlanItem, PlanJson } from "@/pages/compliance-score-engine";
+// import { ComplianceScoreEngine, PlanItem, PlanJson } from "./compliance-score-engine";
+
 
 /* ==================================================================
  * Grade configuration — single source of truth for colors + ranges
@@ -81,7 +84,8 @@ export const GRADE_CONFIG: GradeConfig[] = [
 ];
 
 export function gradeFor(score: number): GradeConfig {
-  return GRADE_CONFIG.find((g) => score >= g.min && score <= g.max) ?? GRADE_CONFIG[GRADE_CONFIG.length - 1];
+  let grade = GRADE_CONFIG.find((g) => score >= g.min && score <= g.max) ?? GRADE_CONFIG[GRADE_CONFIG.length - 1];
+  return grade;
 }
 
 /* ==================================================================
@@ -104,9 +108,9 @@ function daysBetween(a: Date, b: Date) {
 /** Item score: 100 if completed, otherwise 0 */
 export function calcItemScore(item: ESGCapItem): number {
   // Check if item is completed based on status
-  const isComplete = item.status === "completed" || 
-                     item.investorStatus === "closed" ||
-                     item.companyStatus === "closed";
+  const isComplete = item.status === "completed" ||
+    item.investorStatus === "closed" ||
+    item.companyStatus === "closed";
   return isComplete ? 100 : 0;
 }
 
@@ -114,21 +118,21 @@ export function calcItemScore(item: ESGCapItem): number {
 export function calcComplianceScore(items: ESGCapItem[]): { score: number; applicable: number } {
   // Filter only CS items
   const applicable = items.filter((i) => i.dealCondition === "CS" || i.CS === "CS");
-  
+
   if (applicable.length === 0) {
     return { score: 0, applicable: 0 };
   }
 
   let weighted = 0;
   let weightSum = 0;
-  
+
   for (const item of applicable) {
     const w = PRIORITY_WEIGHT[item.priority] ?? 30;
     const score = calcItemScore(item);
     weighted += score * w;
     weightSum += w;
   }
-  
+
   return {
     score: weightSum > 0 ? Math.round(weighted / weightSum) : 0,
     applicable: applicable.length,
@@ -142,6 +146,19 @@ export function calcComplianceScore(items: ESGCapItem[]): { score: number; appli
 export interface ComplianceCompany {
   id: number | string;
   name: string;
+}
+
+export interface ParseStats {
+  csItems: number;
+  cpItems: number;
+  roadmapItems: number;
+  applicableItems: number | null;
+}
+
+interface ParseState {
+  parsed: PlanJson | null;
+  error: string | null;
+  stats: ParseStats;
 }
 
 export interface ComplianceScoreOverviewProps {
@@ -275,7 +292,7 @@ function MethodologyContent() {
         </h3>
         <div className="rounded-md border-l-4 border-primary bg-muted/40 p-4">
           <pre className="text-sm font-mono leading-relaxed whitespace-pre-wrap">
-{`Overall Compliance Score =
+            {`Overall Compliance Score =
     Σ(Item Score × Priority Weight)
   ÷
     Σ(Priority Weight of applicable CS items)`}
@@ -309,6 +326,7 @@ export default function ComplianceScoreOverview({
   const [apiCompanies, setApiCompanies] = useState<ComplianceCompany[]>([]);
   const [apiCapItems, setApiCapItems] = useState<ESGCapItem[]>([]);
   const [apiError, setApiError] = useState<string | null>(null);
+  const engine = new ComplianceScoreEngine();
 
   const hasExternalData = propCompanies !== undefined && propCapItems !== undefined;
 
@@ -361,17 +379,46 @@ export default function ComplianceScoreOverview({
     fetchData();
   }, [hasExternalData]);
 
+  function parseInput(text: string): ParseState {
+    const empty: ParseStats = { csItems: 0, cpItems: 0, roadmapItems: 0, applicableItems: null };
+    if (!text.trim()) return { parsed: null, error: null, stats: empty };
+    try {
+      const raw = JSON.parse(text);
+      const plan: PlanItem[] = Array.isArray(raw) ? raw : Array.isArray(raw?.plan) ? raw.plan : [];
+      let cs = 0,
+        cp = 0,
+        rm = 0;
+      for (const p of plan) {
+        if (p?.dealCondition === "CS") cs++;
+        else if (p?.dealCondition === "CP") cp++;
+        else if (p?.dealCondition === "Roadmap") rm++;
+      }
+      return {
+        parsed: Array.isArray(raw) ? { plan } : (raw as PlanJson),
+        error: null,
+        stats: { csItems: cs, cpItems: cp, roadmapItems: rm, applicableItems: null },
+      };
+    } catch (e) {
+      return { parsed: null, error: (e as Error).message, stats: empty };
+    }
+  }
+
   const companies = hasExternalData ? propCompanies! : apiCompanies;
   const capItems = hasExternalData ? propCapItems! : apiCapItems;
   const scores = propScores || {};
 
   const graded = useMemo(() => {
     if (companies.length === 0) return [];
-
-    return companies.map((c) => {
+    let capEnabledCompanies=companies.filter((c) => capItems.some((i) => i.companyId === c.id));
+    // console.log("capEnabledCompanies", capEnabledCompanies);
+    return capEnabledCompanies.map((c) => {
       const companyItems = capItems.filter((i) => i.companyId === c.id);
-      const result = calcComplianceScore(companyItems);
-      const score = scores?.[c.id] ?? result.score;
+      // const result = calcComplianceScore(companyItems);
+
+      const parse = parseInput(JSON.stringify({ plan: companyItems }));
+      const r = engine.calculateComplianceScore(parse.parsed);
+      // const score = scores?.[c.id] ?? result.score;
+      const score=parseInt(r.overallComplianceScore.toFixed(2)) || 0;
       return { id: c.id, name: c.name, score, grade: gradeFor(score) };
     });
   }, [companies, capItems, scores]);

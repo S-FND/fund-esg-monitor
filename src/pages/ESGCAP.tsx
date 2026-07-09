@@ -562,28 +562,28 @@ export default function ESGCAP() {
   }
 
   function parseInput(text: string): ParseState {
-  const empty: ParseStats = { csItems: 0, cpItems: 0, roadmapItems: 0, applicableItems: null };
-  if (!text.trim()) return { parsed: null, error: null, stats: empty };
-  try {
-    const raw = JSON.parse(text);
-    const plan: PlanItem[] = Array.isArray(raw) ? raw : Array.isArray(raw?.plan) ? raw.plan : [];
-    let cs = 0,
-      cp = 0,
-      rm = 0;
-    for (const p of plan) {
-      if (p?.dealCondition === "CS") cs++;
-      else if (p?.dealCondition === "CP") cp++;
-      else if (p?.dealCondition === "Roadmap") rm++;
+    const empty: ParseStats = { csItems: 0, cpItems: 0, roadmapItems: 0, applicableItems: null };
+    if (!text.trim()) return { parsed: null, error: null, stats: empty };
+    try {
+      const raw = JSON.parse(text);
+      const plan: PlanItem[] = Array.isArray(raw) ? raw : Array.isArray(raw?.plan) ? raw.plan : [];
+      let cs = 0,
+        cp = 0,
+        rm = 0;
+      for (const p of plan) {
+        if (p?.dealCondition === "CS") cs++;
+        else if (p?.dealCondition === "CP") cp++;
+        else if (p?.dealCondition === "Roadmap") rm++;
+      }
+      return {
+        parsed: Array.isArray(raw) ? { plan } : (raw as PlanJson),
+        error: null,
+        stats: { csItems: cs, cpItems: cp, roadmapItems: rm, applicableItems: null },
+      };
+    } catch (e) {
+      return { parsed: null, error: (e as Error).message, stats: empty };
     }
-    return {
-      parsed: Array.isArray(raw) ? { plan } : (raw as PlanJson),
-      error: null,
-      stats: { csItems: cs, cpItems: cp, roadmapItems: rm, applicableItems: null },
-    };
-  } catch (e) {
-    return { parsed: null, error: (e as Error).message, stats: empty };
   }
-}
 
   const result = useMemo(() => {
     if (!planData?.plan) return null;
