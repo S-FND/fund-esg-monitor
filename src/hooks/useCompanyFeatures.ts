@@ -65,7 +65,7 @@ export const useCompanyFeatures = (companyId?: string) => {
       const data = await http.get(`mis/company-feature-settings?companyId=${companyId}`) as { data: CompanyFeatureSetting[]; error?: any };
 
       if (data.error) throw data.error;
-      console.log('Fetched company features:', data.data);
+      //console.log('Fetched company features:', data.data);
       // Get the set of current feature keys
       const currentFeatureKeys = new Set(ALL_FEATURES.map(f => f.key));
 
@@ -174,12 +174,12 @@ export const useCompanyFeatures = (companyId?: string) => {
 
     try {
       setSaving(true);
-      console.log('pendingChanges.entries()', pendingChanges.entries())
-      console.log('pendingChanges', pendingChanges)
+      //console.log('pendingChanges.entries()', pendingChanges.entries())
+      //console.log('pendingChanges', pendingChanges)
       // Process each pending change
       let featureToUpdate = [];
       for (const [featureKey, changes] of pendingChanges.entries()) {
-        console.log(`Saving changes for feature ${featureKey}:`, changes);
+        //console.log(`Saving changes for feature ${featureKey}:`, changes);
         featureToUpdate.push({ featureKey, ...(changes.is_optional ? { is_optional: changes.is_optional } : {}), ...(changes.enabled !== null ? { enabled: changes.enabled } : {}) })
         // const { error: updateError } = await supabase
         //   .from('company_feature_settings')
@@ -191,7 +191,7 @@ export const useCompanyFeatures = (companyId?: string) => {
       }
 
 
-      console.log('featureToUpdate', featureToUpdate)
+      //console.log('featureToUpdate', featureToUpdate)
 
       const featuresUpdate = await http.post("mis/company-feature-settings/update",
         {

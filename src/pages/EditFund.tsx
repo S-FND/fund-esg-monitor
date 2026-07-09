@@ -244,7 +244,7 @@ export default function EditFund() {
       );
 
       const data = await res.json();
-      console.log('data', data);
+      //console.log('data', data);
       if (!res.ok) {
         toast({
           title: "❌ Update Failed",
@@ -348,7 +348,7 @@ export default function EditFund() {
       }
       else {
         const jsondata = await res.json();
-        console.log('jsondata', jsondata);
+        //console.log('jsondata', jsondata);
         setPortfolioCompanies(jsondata?.data || jsondata || []);
       }
     } catch (error) {
@@ -386,7 +386,7 @@ export default function EditFund() {
       );
 
       const data = await res.json();
-      console.log("AI Topics:", data);
+      //console.log("AI Topics:", data);
 
       if (data?.status && data?.data) {
         // Store AI suggestions separately

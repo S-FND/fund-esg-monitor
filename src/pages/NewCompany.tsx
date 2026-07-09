@@ -113,7 +113,7 @@ export default function NewCompany() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Submitting company data:", formData);
+    //console.log("Submitting company data:", formData);
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}` + `/investor/companyInfo/update`, {
         method: "POST",
@@ -125,7 +125,7 @@ export default function NewCompany() {
       }
       else {
         const jsondata = await res.json();
-        console.log('jsondata', jsondata)
+        //console.log('jsondata', jsondata)
         if(jsondata['companyInfoId']){
           navigate("/portfolio/pre-screening?companyInfoId="+jsondata['companyInfoId']);
         }

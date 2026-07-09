@@ -132,7 +132,7 @@ const FeatureManagement = () => {
         const kpisData=await http.get<{ id: string; name: string; category: string; sub_category: string; feature_module: string; period: string }[]>(
           'mis/kpi-masters'
         );
-        console.log('kpisData',kpisData);
+        //console.log('kpisData',kpisData);
         const kpis=kpisData.data; 
       // if (kpisError) throw kpisError;
 
@@ -145,7 +145,7 @@ const FeatureManagement = () => {
         const entriesData=await http.get<{ kpi_id: string; value: string; quarter: string; year: number }[]>(
           `mis/kpi-entries?companyId=${selectedCompanyId}`
         );
-        console.log('entriesData',entriesData);
+        //console.log('entriesData',entriesData);
 
         let entries=entriesData.data;
 
@@ -359,7 +359,7 @@ const FeatureManagement = () => {
       const entriesData=await http.get<{ kpi_id: string; value: string; quarter: string; year: number }[]>(
         `mis/kpi-entries?companyId=${selectedCompanyId}`
       );
-        console.log('entriesData',entriesData);
+        //console.log('entriesData',entriesData);
         let entries=entriesData.data;
 
       // if (entriesError) throw entriesError;

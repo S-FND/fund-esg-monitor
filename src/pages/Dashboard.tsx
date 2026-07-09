@@ -158,15 +158,15 @@ export default function Dashboard() {
       const selectedFundData = funds.find(fund => fund._id === selectedFund);
 
       if (selectedFundData) {
-        console.log('🔍 Fundwise - Selected Fund:', selectedFundData.name);
-        console.log('🔍 Fundwise - Dashboard Topics:', selectedFundData.dashboardTopics);
+        //console.log('🔍 Fundwise - Selected Fund:', selectedFundData.name);
+        //console.log('🔍 Fundwise - Dashboard Topics:', selectedFundData.dashboardTopics);
         setSelectedFundTopics(selectedFundData.dashboardTopics || []);
       } else {
         setSelectedFundTopics([]);
       }
     } else {
       // For individual company or "all funds", show all topics
-      console.log('🔍 Individual Company or All Funds - Showing all topics');
+      //console.log('🔍 Individual Company or All Funds - Showing all topics');
       setSelectedFundTopics([]);
     }
   }, [selectedFund, selectedPortfolio, funds]);

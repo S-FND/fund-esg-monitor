@@ -486,7 +486,7 @@ const deriveUnitOnly = (t: string, isPct?: boolean): string => {
 };
 
 const AnalyticsDetail = () => {
-  console.log("Entering AnalyticsDetail component");
+  //console.log("Entering AnalyticsDetail component");
   const location = useLocation();
   const navigate = useNavigate();
   const [showMissing, setShowMissing] = useState(false);
@@ -617,7 +617,7 @@ const AnalyticsDetail = () => {
     if (!featureKey) { setFeatureEnabledCompanyIds(null); return; }
 
     let cancelled = false;
-    console.log(`[featureIds] EFFECT START at ${Date.now()} for feature:`, featureKey);
+    //console.log(`[featureIds] EFFECT START at ${Date.now()} for feature:`, featureKey);
 
     const fetchIds = async () => {
       const featureKeys = featureKey === 'primarySecondaryPackaging'
@@ -629,13 +629,13 @@ const AnalyticsDetail = () => {
       );
 
       if (cancelled) {
-        console.log(`[featureIds] DISCARDED stale response at ${Date.now()}`);
+        //console.log(`[featureIds] DISCARDED stale response at ${Date.now()}`);
         return;
       }
 
       const rows = data?.data ?? [];
       const filtered = rows.filter(d => d.enabled && featureKeys.includes(d.feature_key));
-      console.log(`[featureIds] RESOLVED at ${Date.now()}`, 'total rows:', rows.length, 'filtered:', filtered.length);
+      //console.log(`[featureIds] RESOLVED at ${Date.now()}`, 'total rows:', rows.length, 'filtered:', filtered.length);
 
       setFeatureEnabledCompanyIds(filtered.length > 0 ? new Set(filtered.map(d => d.company_id)) : null);
     };
@@ -643,7 +643,7 @@ const AnalyticsDetail = () => {
     fetchIds();
     return () => {
       cancelled = true;
-      console.log(`[featureIds] EFFECT CLEANUP (cancelled) at ${Date.now()}`);
+      //console.log(`[featureIds] EFFECT CLEANUP (cancelled) at ${Date.now()}`);
     };
   }, [state?.filters?.feature]);
 
@@ -772,13 +772,13 @@ const AnalyticsDetail = () => {
   // Rebuild company data from fresh data with quarterly breakdowns
   const rebuiltCompanyData = useMemo(() => {
     if (!freshData || !state || !canRefetch) return null;
-    console.log(`[rebuild] RUNNING at ${Date.now()}`, {
-      hasFreshData: !!freshData,
-      featureIdsSize: featureEnabledCompanyIds?.size ?? 'null',
-      sourceKpiKey: state.sourceKpiKey,
-      sourceInsightKey: state.sourceInsightKey,
-      sourceCalcId: state.sourceCalcId,
-    });
+    //console.log(`[rebuild] RUNNING at ${Date.now()}`, {
+    //   hasFreshData: !!freshData,
+    //   featureIdsSize: featureEnabledCompanyIds?.size ?? 'null',
+    //   sourceKpiKey: state.sourceKpiKey,
+    //   sourceInsightKey: state.sourceInsightKey,
+    //   sourceCalcId: state.sourceCalcId,
+    // });
 
     const sourceKpiKey = state.sourceKpiKey;
     const sourceInsightKey = state.sourceInsightKey as keyof InsightMetrics | undefined;
@@ -860,7 +860,7 @@ const AnalyticsDetail = () => {
 
       const valueSource = q4HasMeaningfulData ? q4Source! : rawData;
 
-      console.log('[Q4 fallback check]', { q4FilledCount, annualFilledCount, q4HasMeaningfulData, valueSourceLength: valueSource.length });
+      //console.log('[Q4 fallback check]', { q4FilledCount, annualFilledCount, q4HasMeaningfulData, valueSourceLength: valueSource.length });
 
       // KPI keys where annual Value = SUM of quarterly values (not the averaged combined value)
       const sumNotAvgKeys = new Set(['leadership_avg_cxo_compensation']);
@@ -910,7 +910,7 @@ const AnalyticsDetail = () => {
           }
           return row;
         });
-      console.log(`[rebuild] sourceKpiKey DONE`, rows.length, 'rows, vs state.companyData:', state.companyData?.length);
+      //console.log(`[rebuild] sourceKpiKey DONE`, rows.length, 'rows, vs state.companyData:', state.companyData?.length);
 
       return rows;
     }
@@ -1081,7 +1081,7 @@ const AnalyticsDetail = () => {
             },
           });
         });
-        console.log(`[rebuild] plasticReductionPct DONE`, plasticRows.length, 'rows');
+        //console.log(`[rebuild] plasticReductionPct DONE`, plasticRows.length, 'rows');
 
         return plasticRows;
       }
@@ -1754,7 +1754,7 @@ const AnalyticsDetail = () => {
     ? rebuiltCompanyData
     : (state?.companyData || []);
 
-  console.log(`[activeCompanyData] at ${Date.now()}`, 'using:', (rebuiltCompanyData && rebuiltCompanyData.length > 0) ? 'REBUILT' : 'STATE.companyData', 'length:', activeCompanyData.length);
+  //console.log(`[activeCompanyData] at ${Date.now()}`, 'using:', (rebuiltCompanyData && rebuiltCompanyData.length > 0) ? 'REBUILT' : 'STATE.companyData', 'length:', activeCompanyData.length);
 
 
   // Auto-detect quarterly data from both state and rebuilt data
@@ -2264,12 +2264,9 @@ const AnalyticsDetail = () => {
                         </TableRow>
                       ) : (
                         tableData.map((row, i) => {
-                          // const isLowCompleteness = state?.lowCompletenessBrands?.includes(row.brand); ///
-                          const isRedHighlight = isQuarterlyView
-                          ? shouldHighlightRed(row, title)
-                          : (state?.lowCompletenessBrands?.includes(row.brand) ?? false);
-                          // const isRedHighlight = shouldHighlightRed(row, title);
-                          console.log(`[${row.brand}] isRedHighlight: ${isRedHighlight}, title: "${title}"`);
+                          // const isLowCompleteness = state?.lowCompletenessBrands?.includes(row.brand);
+                          const isRedHighlight = shouldHighlightRed(row, title);
+                          //console.log(`[${row.brand}] isRedHighlight: ${isRedHighlight}, title: "${title}"`);
                           return (
                             <TableRow key={`${row.brand}-${i}`} className={showMissing ? 'bg-destructive/5' : ''}>
                               <TableCell className="text-xs text-muted-foreground">{i + 1}</TableCell>

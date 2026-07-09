@@ -130,6 +130,10 @@ const isClosed = (item: any): boolean => {
 };
 
 interface Company {
+    firesidePoc: any;
+    fund: string;
+    category: any;
+    industry: any;
     _id: string;
     email: string;
     companyName: string;
@@ -263,7 +267,7 @@ export default function CompanySelectionPage() {
                 }
                 
                 const json: DashboardResponse = await res.json();
-                console.log('Dashboard response:', json);
+                //console.log('Dashboard response:', json);
                 
                 if (json.status) {
                     setCompanies(json.data || []);
@@ -281,7 +285,7 @@ export default function CompanySelectionPage() {
     }, []);
 
     useEffect(() => {
-        console.log("Summary updated:", summary);
+        //console.log("Summary updated:", summary);
     },[summary])
 
     // Calculate filter counts for each scoring category

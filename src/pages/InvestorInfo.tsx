@@ -98,7 +98,7 @@ export default function InvestorInfo() {
         return;
       } else {
         const jsondata = await res.json();
-        console.log('jsondata', jsondata);
+        //console.log('jsondata', jsondata);
         if (jsondata['data']) {
           let investorInfo = {
             investorName: jsondata['data']['investorName'],

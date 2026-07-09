@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API_URL = import.meta.env.VITE_API_URL;
-console.log('API_URL', API_URL);
+//console.log('API_URL', API_URL);
 
 // Create an axios instance with the base URL
 const api = axios.create({
@@ -11,7 +11,7 @@ const api = axios.create({
 const getAuthToken = () => {
   return localStorage.getItem("auth_token");
 };
-console.log('getAuthToken',getAuthToken);
+//console.log('getAuthToken',getAuthToken);
 // Add request interceptor to include auth headers
 api.interceptors.request.use(
   (config) => {
@@ -48,7 +48,7 @@ export const getEsgDDReport = async (params: any) => {
     const response = await api.get(`company/entity/esdd-report/${params.entityId}`);
     return [response.data, null];
   } catch (error: any) {
-    console.log("error message: ", error.message);
+    //console.log("error message: ", error.message);
     return [null, error.message || "An unexpected error occurred"];
   }
 };
@@ -62,7 +62,7 @@ export const getReportlists = async (params: any) => {
     });
     return [response.data, null];
   } catch (error: any) {
-    console.log("error message: ", error.message);
+    //console.log("error message: ", error.message);
     return [null, error.message || "An unexpected error occurred"];
   }
 };
@@ -72,7 +72,7 @@ export const getEsgDDReports = async (params: any) => {
     const response = await api.get(`investor/esdd-reports/${params.email}`);
     return [response.data, null];
   } catch (error: any) {
-    console.log("error message: ", error.message);
+    //console.log("error message: ", error.message);
     return [null, error.message || "An unexpected error occurred"];
   }
 };
@@ -85,7 +85,7 @@ export const getEsgCapPlan = async (params: any) => {
     if (error?.response?.data?.message) {
       return [null, error.response.data.message];
     }
-    console.log("error message: ", error.message);
+    //console.log("error message: ", error.message);
     return [null, error.message || "An unexpected error occurred"];
   }
 };
@@ -95,7 +95,7 @@ export const saveEscap = async (postData: any) => {
     const response = await api.post(`investor/esgdd/escap/create`, postData);
     return [response, null];
   } catch (error: any) {
-    console.log("error message: ", error.message);
+    //console.log("error message: ", error.message);
     return [null, error.message || "ERROR : An unexpected error occurred"];
   }
 };
@@ -105,7 +105,7 @@ export const updatePlan = async (postData: any) => {
     const response = await api.post(`esgdd/escap/update-plan-details`, postData);
     return [response, null];
   } catch (error: any) {
-    console.log("error message: ", error.message);
+    //console.log("error message: ", error.message);
     return [null, error.message || "ERROR : An unexpected error occurred"];
   }
 };
@@ -115,7 +115,7 @@ export const getCompanyList = async () => {
     const response = await api.get(`investor/companyInfo`);
     return [response.data, null];
   } catch (error: any) {
-    console.log("error message: ", error.message);
+    //console.log("error message: ", error.message);
     return [null, error.message || "An unexpected error occurred"];
   }
 };
@@ -125,7 +125,7 @@ export const getEsgCap = async (params: any) => {
     const response = await api.get(`esgdd/escap/${params.entityId}`);
     return [response.data, null];
   } catch (error: any) {
-    console.log("error message: ", error.message);
+    //console.log("error message: ", error.message);
     return [null, error.message || "An unexpected error occurred"];
   }
 };
@@ -135,7 +135,7 @@ export const getEsgCaps = async (params: any) => {
     const response = await api.get(`investor/esgdd/escap/${params.email}`);
     return [response.data, null];
   } catch (error: any) {
-    console.log("error message: ", error.message);
+    //console.log("error message: ", error.message);
     return [null, error.message || "An unexpected error occurred"];
   }
 };
@@ -145,7 +145,7 @@ export const esgddAcceptPlan = async (postData: any) => {
     const response = await api.post(`esgdd/escap/accept-plan`, postData);
     return [response, null];
   } catch (error: any) {
-    console.log("error message: ", error.message);
+    //console.log("error message: ", error.message);
     return [null, error.message || "ERROR : An unexpected error occurred"];
   }
 };
@@ -155,7 +155,7 @@ export const esgddChangePlan = async (postData: any) => {
     const response = await api.post(`esgdd/escap/change-request`, postData);
     return [response, null];
   } catch (error: any) {
-    console.log("error message: ", error.message);
+    //console.log("error message: ", error.message);
     return [null, error.message || "ERROR : An unexpected error occurred"];
   }
 };
@@ -165,7 +165,7 @@ export const sendReminder = async (postData: any) => {
     const response = await api.post(`investor/esgdd/escap/send-reminder`, postData);
     return [response.data, null];
   } catch (error: any) {
-    console.log("error message: ", error.message);
+    //console.log("error message: ", error.message);
     return [null, error.message || "ERROR : Failed to send reminder"];
   }
 };

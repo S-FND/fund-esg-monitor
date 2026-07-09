@@ -409,7 +409,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                             const measures = getField(row, ["Measures & Corrective Actions", "measures&correctiveactions", "measures"]);
     
                             if (!item || !measures) {
-                                console.log(`[CSV] Skipping row - missing item or measures`);
+                                //console.log(`[CSV] Skipping row - missing item or measures`);
                                 continue;
                             }
     
@@ -449,7 +449,7 @@ export function AddCAPDialog({ onAddItem, onAddMultipleItems, existingPlan = [],
                                     return `${year}-${months[mon.toLowerCase()]}-${day.padStart(2, "0")}`;
                                 }
                             
-                                console.log("Invalid date:", value);
+                                //console.log("Invalid date:", value);
                                 return "";
                             };
     

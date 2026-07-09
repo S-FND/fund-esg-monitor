@@ -52,7 +52,7 @@ export function GovernanceTab({
     const activeGovernanceTopics = governanceTopics.filter(topic => dashboardTopics.includes(topic));
     setSelectedTopics(activeGovernanceTopics);
     
-    console.log('Active governance topics:', activeGovernanceTopics);
+    //console.log('Active governance topics:', activeGovernanceTopics);
   }, [dashboardTopics]);
 
   const formatPieData = (item: any, topicId: string) => {

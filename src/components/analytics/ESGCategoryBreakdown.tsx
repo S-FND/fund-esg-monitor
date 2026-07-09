@@ -58,7 +58,7 @@ const getCategoryForPercentile = (percentile: number): string => {
 
 export const ESGCategoryBreakdown = ({ title, companies, onClose, onCategoryClick, lowCompletenessBrands }: ESGCategoryBreakdownProps) => {
   const [showScores, setShowScores] = useState(false);
-console.log("ESGCategoryBreakdown - companies:", companies);
+//console.log("ESGCategoryBreakdown - companies:", companies);
   const withPercentiles = assignPercentiles(companies);
 
   const categorized = CATEGORIES.map(cat => ({

@@ -54,8 +54,14 @@ interface Props {
   showScores?: boolean;
 }
 
-export const CompanyRankingsPanel = ({ rankings, metric = 'average' }: Props) => {
+export const CompanyRankingsPanel = ({ rankings, metric: metricProp = 'average', onMetricChange }: Props) => {
   const [showScores, setShowScores] = useState(false);
+  const [internalMetric, setInternalMetric] = useState<Metric>(metricProp);
+  const metric = onMetricChange ? metricProp : internalMetric;
+  const selectMetric = (m: Metric) => {
+    if (onMetricChange) onMetricChange(m);
+    else setInternalMetric(m);
+  };
   const n = rankings.length;
 
   const avgCompleteness = r1(avgNum(rankings.map(r => r.completionPct)));
@@ -97,7 +103,14 @@ export const CompanyRankingsPanel = ({ rankings, metric = 'average' }: Props) =>
           const value = headerValues[k];
           const active = k === metric;
           return (
-            <Card key={k} className={`${meta.card} ${active ? 'ring-2 ring-primary/40' : ''}`}>
+            <Card
+              key={k}
+              role="button"
+              tabIndex={0}
+              onClick={() => selectMetric(k)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectMetric(k); } }}
+              className={`${meta.card} cursor-pointer transition-all hover:shadow-md ${active ? 'ring-2 ring-primary/40' : ''}`}
+            >
               <CardContent className="pt-4 pb-3">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-xs font-medium">{meta.label}</span>

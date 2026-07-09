@@ -51,7 +51,7 @@ export default function AuditDrawer({ open, onClose, logs }: {
     if (logs?.length > 0) {
       logs.forEach(log => {
         if (log.oldData && log.newData) {
-          console.log(`Diff for log ${log._id}:`, analyzeEscapChanges(log.oldData, log.newData));
+          //console.log(`Diff for log ${log._id}:`, analyzeEscapChanges(log.oldData, log.newData));
         }
       });
 

@@ -45,7 +45,7 @@ export default function Funds() {
         return;
       } else {
         const jsondata = await res.json();
-        console.log('funds data:', jsondata);
+        //console.log('funds data:', jsondata);
         setFunds(jsondata['data']);
       }
     } catch (error) {

@@ -29,8 +29,8 @@ export function QuestionsTable({
   onResponseChange,
   onRemarksChange
 }: QuestionsTableProps) {
-  console.log("QuestionsTable :: questions => ",questions)
-  console.log("QuestionsTable :: responses => ",responses)
+  //console.log("QuestionsTable :: questions => ",questions)
+  //console.log("QuestionsTable :: responses => ",responses)
   return (
     <Table>
       <TableHeader>
