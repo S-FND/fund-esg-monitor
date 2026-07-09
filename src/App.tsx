@@ -62,6 +62,7 @@ import AnalyticsDetail from "./components/mis/AnalyticsDetail";
 import CompanyRankings from "./components/mis/CompanyRankings";
 import CompanySelectionPage from "./pages/CompanySelectionPage";
 import ProtectedRoute from "./contexts/ProtectedRoute";
+import ESGCAPDashboard from "./pages/ESGCAPDashboard";
 
 function App() {
   const { toast } = useToast();
@@ -86,12 +87,12 @@ function App() {
       // This is just a placeholder to show how the interceptor would be used
       // In a real app, you would make actual API calls where needed
       try {
-        console.log("HTTP interceptor is ready to use for API calls");
+        //console.log("HTTP interceptor is ready to use for API calls");
 
         // Example usage (commented out as it's not real)
         // const response = await http.get('/api/some-endpoint');
         // if (response.data) {
-        //   console.log("Data received:", response.data);
+        //   //console.log("Data received:", response.data);
         // }
       } catch (error) {
         console.error("Error in API call:", error);
@@ -155,6 +156,7 @@ function App() {
                 <Route path="team/edit/:id" element={<TeamMemberEdit />} />
                 <Route path="esg-dd/report" element={<ESGDDReport />} />
                 <Route path="esg-dd/cap" element={<CompanySelectionPage />} />
+                <Route path="esg-dd/cap/dashboard" element={<ESGCAPDashboard />} />
                 <Route path="esg-dd/cap/:companyEmail" element={<ESGCAP />} />
                 <Route path="esg-cap/review/:id" element={<ESGCapDetailsPage />} />
                 <Route path="valuation" element={<Valuation />} />

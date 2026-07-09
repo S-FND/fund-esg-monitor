@@ -184,7 +184,7 @@ export default function EditCompanyForm({ company }: { company: Company }) {
       sourceofInformation: editData.sourceofInformation,
     };
 
-    console.log("Payload sent:", payload);
+    //console.log("Payload sent:", payload);
 
     try {
       const res = await fetch(
@@ -200,7 +200,7 @@ export default function EditCompanyForm({ company }: { company: Company }) {
       );
 
       const data = await res.json();
-      console.log("API Response:", data);
+      //console.log("API Response:", data);
 
       if (!res.ok) {
         throw new Error(data?.message || "Update failed");

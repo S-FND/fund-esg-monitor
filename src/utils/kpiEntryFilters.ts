@@ -62,6 +62,6 @@ export const filterKpiEntries = <T extends { companyId: string; quarter: string;
 
     return year ? entry.year === year : true;
   });
-  console.log(filteredEntries.length, 'entries after filtering for', filteredEntries.filter(e => e.year === 2025).length, 'entries for 2025',filteredEntries.filter(e => e.year === 2026).length, 'entries for 2026', filteredEntries.filter(e => e.quarter === 'Q1' && e.year === 2026).length, 'entries for Q1 2026');
+  //console.log(filteredEntries.length, 'entries after filtering for', filteredEntries.filter(e => e.year === 2025).length, 'entries for 2025',filteredEntries.filter(e => e.year === 2026).length, 'entries for 2026', filteredEntries.filter(e => e.quarter === 'Q1' && e.year === 2026).length, 'entries for Q1 2026');
   return filteredEntries;
 };

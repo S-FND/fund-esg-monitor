@@ -14,8 +14,12 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { getDerivedInvestorStatus } from '@/utils/investorStatusUtils';
 import { getEffectiveStatus } from "@/utils/esgStatus";
-import { calculateComplianceScore } from "./useComplianceScore";
+// import { calculateComplianceScore } from "./useComplianceScore";
 import { mapESGCapItems } from "./mapESGCapItem";
+import { ComplianceScoreEngine, PlanItem, PlanJson } from "./compliance-score-engine";
+import { parse } from "node_modules/date-fns/parse";
+// import { calculateComplianceScore } from "./compliance-score-engine";
+
 interface PlanHistory {
   updateByUserId: string;
   status: string;
@@ -25,6 +29,19 @@ interface PlanHistory {
     name: string;
     email: string;
   };
+}
+
+export interface ParseStats {
+  csItems: number;
+  cpItems: number;
+  roadmapItems: number;
+  applicableItems: number | null;
+}
+
+interface ParseState {
+  parsed: PlanJson | null;
+  error: string | null;
+  stats: ParseStats;
 }
 
 interface finalAcceptance {
@@ -296,7 +313,7 @@ export default function ESGCAP() {
 
   const handleSubmitAllCap = async () => {
     try {
-      // console.log('planData planData', planData);
+      // //console.log('planData planData', planData);
       const payload = {
         changeRequest: { plan: capItems },
         comment: 'Change Request',
@@ -453,12 +470,131 @@ export default function ESGCAP() {
 
   const progressPercentage = calculateProgress();
 
+  const mapPlanItems = (plan: any[]): PlanItem[] => {
+    return plan.map((item) => ({
+      // Basic
+      id: item.id ?? item._id,
+      name: item.item,
+      dealCondition: item.dealCondition,
+      priority: item.priority,
+      status: item.status,
+      investorStatus: item.investorStatus,
+
+      // Dates
+      csStartDate: null, // Backend doesn't provide yet
+      startDate: null, // Backend doesn't provide yet
+
+      originalDueDate: null, // Backend doesn't provide yet
+
+      currentDueDate: item.targetDate ?? null,
+
+      revisedDueDate: null, // Backend doesn't provide yet
+
+      targetDate: item.targetDate ?? null,
+
+      actualDate: item.actualDate ?? null,
+
+      actualSubmissionDate: item.actualDate ?? null,
+
+      finalSubmissionDate: item.actualDate ?? null,
+
+      uploadDate:
+        item.fileUploadedData?.length > 0
+          ? item.fileUploadedData[0]?.uploadedAt ?? null
+          : null,
+
+      reviewDate: item.lastReviewDate ?? null,
+
+      lastReviewDate: item.lastReviewDate ?? null,
+
+      closedDate:
+        item.investorStatus?.toLowerCase() === 'closed'
+          ? item.lastReviewDate
+          : null,
+
+      reSubmitDueDate: null,
+
+      // Timeline
+      timelineMonth: item.timelineMonth ?? 0,
+
+      // Flags
+      reSubmitRequired:
+        item.investorStatus?.toLowerCase() === 're-submit required',
+
+      dropped: item.investorStatus?.toLowerCase() === 'dropped',
+
+      closed: item.investorStatus?.toLowerCase() === 'closed',
+
+      // Audit Fields
+      revisionCount: 0,
+      revisionReason: undefined,
+      revisedBy: undefined,
+      revisedOn: null,
+      dateEditedBy: undefined,
+      dateEditedOn: null,
+      dateEditReason: undefined,
+
+      // Future Sub Items
+      subItems:
+        item.completionIndicators?.map((indicator: any, index: number) => ({
+          id: `${item.id}-${index}`,
+          name: indicator.indicatorLabel,
+          mandatory: true, // Current API doesn't expose mandatory flag
+          status:
+            item.status === 'submitted'
+              ? 'submitted'
+              : 'pending',
+          uploadDate: null,
+          actualSubmissionDate: item.actualDate ?? null,
+          finalSubmissionDate: item.actualDate ?? null,
+          reSubmitRequired: false,
+          reSubmitDueDate: null,
+          reviewer: undefined,
+          reviewedOn: item.lastReviewDate ?? null,
+          investorComment: item.reviewRemarks ?? '',
+          accepted:
+            item.investorStatus?.toLowerCase() === 'closed',
+        })) ?? [],
+
+      // Preserve complete backend object
+      ...item,
+    }));
+  }
+
+  function parseInput(text: string): ParseState {
+  const empty: ParseStats = { csItems: 0, cpItems: 0, roadmapItems: 0, applicableItems: null };
+  if (!text.trim()) return { parsed: null, error: null, stats: empty };
+  try {
+    const raw = JSON.parse(text);
+    const plan: PlanItem[] = Array.isArray(raw) ? raw : Array.isArray(raw?.plan) ? raw.plan : [];
+    let cs = 0,
+      cp = 0,
+      rm = 0;
+    for (const p of plan) {
+      if (p?.dealCondition === "CS") cs++;
+      else if (p?.dealCondition === "CP") cp++;
+      else if (p?.dealCondition === "Roadmap") rm++;
+    }
+    return {
+      parsed: Array.isArray(raw) ? { plan } : (raw as PlanJson),
+      error: null,
+      stats: { csItems: cs, cpItems: cp, roadmapItems: rm, applicableItems: null },
+    };
+  } catch (e) {
+    return { parsed: null, error: (e as Error).message, stats: empty };
+  }
+}
+
   const result = useMemo(() => {
     if (!planData?.plan) return null;
-    return calculateComplianceScore(mapESGCapItems(planData.plan));
+    const engine = new ComplianceScoreEngine();
+    const parse =  parseInput(JSON.stringify({ plan: planData.plan }));
+    const r = engine.calculateComplianceScore(parse.parsed);
+    return r;
+    // //console.log("retur result => ",r);
+    // return calculateComplianceScore(mapESGCapItems(planData.plan));
   }, [planData]);
 
-  console.log("ESG CAP Compliance Score:", result);
 
   useEffect(() => {
     getCompanyInfoList();
@@ -601,7 +737,7 @@ export default function ESGCAP() {
       items = items.filter(item => {
         const investorStatus = getDerivedInvestorStatus(item);
         const effectiveStatus = getEffectiveStatus(item);
-        const companyStatus = (item.companyStatus || '').toLowerCase();
+        const companyStatus = (item.companyStatus || item.status || '').toLowerCase().trim();
         const priority = (item.priority || '').toLowerCase();
         const rawInvestorStatus = (item.investorStatus || '').toLowerCase().trim();
         // ✅ FILTER: high-priority-overdue - Use INVESTOR STATUS
@@ -619,8 +755,8 @@ export default function ESGCAP() {
         }
 
         if (activeFilter === 'submitted-pending-review') {
-          return companyStatus === 'submitted' && 
-                 (investorStatus === 'under-review' || rawInvestorStatus === 'under review');
+          return companyStatus === 'submitted' &&
+            (investorStatus === 'under-review' || rawInvestorStatus === 'under review');
         }
 
         // ✅ FILTER: re-submit-requested - Use INVESTOR STATUS
@@ -754,7 +890,7 @@ export default function ESGCAP() {
         items={capItems}
         onFilterChange={setActiveFilter}
         activeFilter={activeFilter}
-        complianceScore={result?.overallScore}
+        complianceScore={result?.overallComplianceScore}
       />
 
       {/* <div className="flex items-center justify-between">

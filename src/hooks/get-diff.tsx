@@ -146,7 +146,7 @@ export function analyzeEscapChanges(oldData, newData) {
   const results = [];
   const { founderAcceptance, investorAcceptance } = newData.finalAcceptance ?? {};
   const bothAccepted = founderAcceptance === true && investorAcceptance === true;
-  console.log('Analyzing changes with finalAcceptance:', bothAccepted );
+  //console.log('Analyzing changes with finalAcceptance:', bothAccepted );
   if (bothAccepted) {
     // Both signed off → only watch acceptedPlan
     results.push(...diffAcceptedPlan(

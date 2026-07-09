@@ -132,6 +132,7 @@ const SectionHeader = ({ title, n, icon: Icon }: { title: string; n?: number; ic
 export const FeatureAnalyticsView = ({
   featureKey, companyRawData, currentInsights, currentAggregation, filters, quarterlyPerQuarterRawData, allCompanyRawData
 }: FeatureAnalyticsViewProps) => {
+  debugger;
   const navigate = useNavigate();
   const mapping = FEATURE_FIELD_MAPPINGS[featureKey];
 
@@ -150,7 +151,7 @@ export const FeatureAnalyticsView = ({
         );
 
       if (data) {
-        console.log('getting company profile data data',data);
+        //console.log('getting company profile data data',data);
         // setFeatureEnabledCompanyIds(new Set(data.map((d) => d.company_id)));
       }
     };

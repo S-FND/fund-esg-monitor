@@ -21,7 +21,7 @@ export function calculateAllSectionScores(
   questions: Record<string, CategoryQuestion[]>, 
   responses: ResponsesData
 ): SectionScores {
-  console.log("questions",questions)
+  //console.log("questions",questions)
   if(questions){
     return Object.keys(questions).reduce<SectionScores>((acc, section) => {
       const sectionQuestions = questions[section];

@@ -128,6 +128,7 @@ export interface ContactInfo {
 }
 
 export interface Company {
+  company_id: any;
   id: string;
   companyCode: string;      // LOGIN ID (Max 9-character Abbreviation)
   name: string;             // Legal company name (shown in profile)

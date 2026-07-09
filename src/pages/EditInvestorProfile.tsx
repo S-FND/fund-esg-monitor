@@ -264,7 +264,7 @@ export default function EditInvestorProfile() {
       if (!res.ok) return;
 
       const jsondata = await res.json();
-      console.log("📦 API response:", jsondata);
+      //console.log("📦 API response:", jsondata);
 
       if (jsondata?.data) {
         let sdgGoals: string[] = [];
@@ -275,7 +275,7 @@ export default function EditInvestorProfile() {
             const match = label.match(/\d+/);
             return match ? `goal${match[0]}` : label;
           });
-          console.log("✅ Parsed goal identifiers:", sdgGoals);
+          //console.log("✅ Parsed goal identifiers:", sdgGoals);
         }
 
         // ---------- SDG TARGETS ----------
@@ -284,7 +284,7 @@ export default function EditInvestorProfile() {
         if (apiSdgTarget) {
           // Split by comma+space (safe because target descriptions don't contain commas followed by space)
           const targetStrings = apiSdgTarget.split(', ').map((s: string) => s.trim());
-          console.log("🔹 Target strings from API:", targetStrings);
+          //console.log("🔹 Target strings from API:", targetStrings);
 
           // Flatten all targets from your imported JSON
           const allTargets = Array.isArray(sdgTargetsData)
@@ -297,13 +297,13 @@ export default function EditInvestorProfile() {
             return match ? match[0] : null;
           }).filter(Boolean);
 
-          console.log("🔹 Extracted target numbers:", targetNumbers);
+          //console.log("🔹 Extracted target numbers:", targetNumbers);
 
           // Match by target.value (which should contain numbers like "1.1")
           sdgTargets = allTargets.filter((t: any) =>
             targetNumbers.includes(t.value) || targetStrings.includes(t.label)
           );
-          console.log("✅ Matched target objects:", sdgTargets);
+          //console.log("✅ Matched target objects:", sdgTargets);
         }
 
         setFormData({
@@ -344,7 +344,7 @@ export default function EditInvestorProfile() {
         sdgTarget: selectedTargetLabels
       };
 
-      console.log('submitData', submitData);
+      //console.log('submitData', submitData);
       let res;
       if (formData['_id']) {
         res = await fetch(`${import.meta.env.VITE_API_URL}` + "/investor/general-info/", {
@@ -369,7 +369,7 @@ export default function EditInvestorProfile() {
         return;
       } else {
         const jsondata = await res.json();
-        console.log('jsondata', jsondata);
+        //console.log('jsondata', jsondata);
         toast({
           title: "Success",
           description: "Profile updated successfully",

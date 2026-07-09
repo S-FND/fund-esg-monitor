@@ -63,7 +63,7 @@ const PercentileBadge = ({ value, type }: { value: number; type: 'completeness' 
 };
 
 export const InsightTabv1 = ({ insights, timeSeries, companyRawData, companyCount, filters }: InsightTabProps) => {
-  console.log('InsightTab props:', { insights, timeSeries, companyRawData, companyCount, filters });
+  //console.log('InsightTab props:', { insights, timeSeries, companyRawData, companyCount, filters });
   const navigate = useNavigate();
   if (filters?.companyId) {
     return (
@@ -117,14 +117,155 @@ export const InsightTabv1 = ({ insights, timeSeries, companyRawData, companyCoun
       socialScore: new Set<string>(),
       governanceScore: new Set<string>(),
     };
-    for (const r of rankings) {
-      if (r.esgCompleteness.overall < 30) map.esgCompositeScore.add(r.brand);
-      if (r.esgCompleteness.E < 30) map.circularEconomyIndex.add(r.brand);
-      if (r.esgCompleteness.S < 30) map.socialScore.add(r.brand);
-      if (r.esgCompleteness.G < 30) map.governanceScore.add(r.brand);
+
+    const isAnnual = filters.period === 'annual';
+
+    // Helper: Check if value should be marked as warning/red
+    const shouldMarkRed = (value: any): boolean => {
+      // N/A → Red (missing data)
+      if (value === 'N/A' || value === null || value === undefined) {
+        return true;
+      }
+      // < 30% → Red (low completeness)
+      if (typeof value === 'number' && value < 30) {
+        return true;
+      }
+      return false;
+    };
+
+    if (isAnnual) {
+      // Annual view: use rankings data (all quarters combined)
+      for (const r of rankings) {
+        if (shouldMarkRed(r.esgCompleteness.overall)) {
+          map.esgCompositeScore.add(r.brand);
+        }
+        if (shouldMarkRed(r.esgCompleteness.E)) {
+          map.circularEconomyIndex.add(r.brand);
+        }
+        if (shouldMarkRed(r.esgCompleteness.S)) {
+          map.socialScore.add(r.brand);
+        }
+        if (shouldMarkRed(r.esgCompleteness.G)) {
+          map.governanceScore.add(r.brand);
+        }
+      }
+    } else {
+      // Quarterly view: use companyRawData (already filtered for the selected quarter)
+      for (const company of companyRawData) {
+        const brand = company.brand;
+        const kpis = company.kpis || {};
+        const allKpiKeys = Object.keys(kpis);
+        
+        // If no KPIs at all → N/A → mark red
+        if (allKpiKeys.length === 0) {
+          map.esgCompositeScore.add(brand);
+          map.circularEconomyIndex.add(brand);
+          map.socialScore.add(brand);
+          map.governanceScore.add(brand);
+          continue;
+        }
+        
+        // Calculate overall completeness for this quarter
+        const filledCount = Object.values(kpis).filter(v => v && v.trim() !== '').length;
+        const overallPct = (filledCount / allKpiKeys.length) * 100;
+        
+        if (overallPct < 30) {
+          map.esgCompositeScore.add(brand);
+        }
+        
+        // E category (Environment)
+        const eKpis = allKpiKeys.filter(k => 
+          k.startsWith('env_') || k.startsWith('circular_') || 
+          k.startsWith('waste_') || k.startsWith('water_') || k.startsWith('energy_')
+        );
+        if (eKpis.length === 0) {
+          map.circularEconomyIndex.add(brand); // N/A → Red
+        } else {
+          const eFilled = eKpis.filter(k => kpis[k] && kpis[k].trim() !== '').length;
+          const ePct = (eFilled / eKpis.length) * 100;
+          if (ePct < 30) {
+            map.circularEconomyIndex.add(brand);
+          }
+        }
+        
+        // S category (Social)
+        const sKpis = allKpiKeys.filter(k => 
+          k.startsWith('social_') || k.startsWith('employee_') || k.startsWith('gender_') ||
+          k.startsWith('pwd_') || k.startsWith('diversity_')
+        );
+        if (sKpis.length === 0) {
+          map.socialScore.add(brand); // N/A → Red
+        } else {
+          const sFilled = sKpis.filter(k => kpis[k] && kpis[k].trim() !== '').length;
+          const sPct = (sFilled / sKpis.length) * 100;
+          if (sPct < 30) {
+            map.socialScore.add(brand);
+          }
+        }
+        
+        // G category (Governance)
+        const gKpis = allKpiKeys.filter(k => 
+          k.startsWith('gov_') || k.startsWith('policy_') || k.startsWith('board_') ||
+          k.startsWith('executive_')
+        );
+        if (gKpis.length === 0) {
+          map.governanceScore.add(brand); // N/A → Red
+        } else {
+          const gFilled = gKpis.filter(k => kpis[k] && kpis[k].trim() !== '').length;
+          const gPct = (gFilled / gKpis.length) * 100;
+          if (gPct < 30) {
+            map.governanceScore.add(brand);
+          }
+        }
+      }
     }
+
     return map;
-  }, [rankings]);
+  }, [rankings, companyRawData, filters.period]);
+
+  const lowCompletenessRankingBrands = useMemo(() => {
+    const brands = new Set<string>();
+    
+    const shouldMarkRed = (value: any): boolean => {
+      if (value === 'N/A' || value === null || value === undefined) {
+        return true;
+      }
+      if (typeof value === 'number' && value < 30) {
+        return true;
+      }
+      return false;
+    };
+    
+    if (filters.period === 'annual') {
+      // Annual view: use overall completeness from rankings
+      for (const r of rankings) {
+        if (shouldMarkRed(r.esgCompleteness.overall)) {
+          brands.add(r.brand);
+        }
+      }
+    } else {
+      // Quarterly view: use companyRawData (already filtered for selected quarter)
+      for (const company of companyRawData) {
+        const kpis = company.kpis || {};
+        const allKpiKeys = Object.keys(kpis);
+        
+        // No KPIs → N/A → red
+        if (allKpiKeys.length === 0) {
+          brands.add(company.brand);
+          continue;
+        }
+        
+        const filledCount = Object.values(kpis).filter(v => v && v.trim() !== '').length;
+        const completenessPct = (filledCount / allKpiKeys.length) * 100;
+        
+        if (completenessPct < 30) {
+          brands.add(company.brand);
+        }
+      }
+    }
+    
+    return brands;
+  }, [rankings, companyRawData, filters.period]);
 
   // Build list of all companies for "not considered" tracking
   const allFilteredCompanies = companyRawData.map(c => ({
@@ -454,7 +595,7 @@ export const InsightTabv1 = ({ insights, timeSeries, companyRawData, companyCoun
             socialScore: { title: 'Social Score', insightKey: 'socialScore' },
             governanceScore: { title: 'Governance Score', insightKey: 'governanceScore' },
           };
-          console.log('Expanded Score:', expandedScore);
+          //console.log('Expanded Score:', expandedScore);
           const config = scoreMap[expandedScore];
           if (!config) return null;
           const pool = expandedScore === 'circularEconomyIndex' ? envEligibleCompanies : submittingCompanies;

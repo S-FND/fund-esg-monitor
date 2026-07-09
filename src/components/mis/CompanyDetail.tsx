@@ -987,7 +987,7 @@ const CompanyDetail = () => {
   }, [allQuartersProgress]);
 
   useEffect(()=>{
-    console.log('Quarterly progress updated:', allQuartersProgress);  
+    //console.log('Quarterly progress updated:', allQuartersProgress);  
   },[allQuartersProgress])
 
   // Filter and search feature KPIs
@@ -1106,24 +1106,24 @@ const CompanyDetail = () => {
 
   const isLoading = isLoadingProfile || isLoadingKPIs || isLoadingEntries || isLoadingOverrides;
 
-  if (!company && !isLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="space-y-6">
-          <div className="flex items-center justify-center h-96">
-            <div className="text-center">
-              <h2 className="text-xl font-semibold mb-2">Company Not Found</h2>
-              <p className="text-muted-foreground mb-4">The company you're looking for doesn't exist.</p>
-              <Button onClick={() => navigate('/mis/portfolio')}>
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Portfolio
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // if (!company && !isLoading) {
+  //   return (
+  //     <div className="space-y-6">
+  //       <div className="space-y-6">
+  //         <div className="flex items-center justify-center h-96">
+  //           <div className="text-center">
+  //             <h2 className="text-xl font-semibold mb-2">Company Not Found</h2>
+  //             <p className="text-muted-foreground mb-4">The company you're looking for doesn't exist.</p>
+  //             <Button onClick={() => navigate('/mis/portfolio')}>
+  //               <ArrowLeft className="w-4 h-4 mr-2" />
+  //               Back to Portfolio
+  //             </Button>
+  //           </div>
+  //         </div>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="space-y-6">

@@ -52,6 +52,8 @@ const TrendIcon = ({ trend }: { trend: Trend }) => {
 
 // ──── Grade categories ────
 
+const CATEGORY_RANK: Record<string, number> = { AA: 5, A: 4, BB: 3, B: 2, C: 1 };
+
 const CATEGORIES = [
   { key: 'AA', label: 'AA', range: '80–100', color: 'bg-emerald-100 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700', headerBg: 'bg-emerald-500', text: 'text-emerald-700 dark:text-emerald-300' },
   { key: 'A', label: 'A', range: '60–79', color: 'bg-blue-50 dark:bg-blue-950/40 border-blue-300 dark:border-blue-700', headerBg: 'bg-blue-500', text: 'text-blue-700 dark:text-blue-300' },
@@ -84,9 +86,37 @@ const getCategoryForPercentile = (percentile: number): string => {
 const TrendBreakdownGrid = ({ title, companies, onClose }: { title: string; companies: BreakdownCompany[]; onClose: () => void }) => {
   const [showScores, setShowScores] = useState(false);
   const withPercentiles = assignPercentiles(companies);
+  // Previous-period grades — rank the same pool on previousScore
+  const prevPool = companies
+    .filter(c => c.previousScore !== undefined && !isNaN(c.previousScore as number))
+    .map(c => ({ brand: c.brand, score: c.previousScore as number }));
+  const prevWithPercentiles = assignPercentiles(prevPool);
+  const prevCategoryByBrand = new Map(
+    prevWithPercentiles.map(c => [c.brand, getCategoryForPercentile(c.percentile)])
+  );
+
+  const computeCategoryTrend = (currentCategory: string, brand: string): Trend => {
+    const prevCategory = prevCategoryByBrand.get(brand);
+    if (!prevCategory) return 'new';
+    const curRank = CATEGORY_RANK[currentCategory];
+    const prevRank = CATEGORY_RANK[prevCategory];
+    if (curRank === prevRank) return 'stable';
+    return curRank > prevRank ? 'up' : 'down';
+  };
+  // const categorized = CATEGORIES.map(cat => ({
+  //   ...cat,
+  //   companies: withPercentiles.filter(c => getCategoryForPercentile(c.percentile) === cat.key).sort((a, b) => b.percentile - a.percentile),
+  // }));
   const categorized = CATEGORIES.map(cat => ({
     ...cat,
-    companies: withPercentiles.filter(c => getCategoryForPercentile(c.percentile) === cat.key).sort((a, b) => b.percentile - a.percentile),
+    companies: withPercentiles
+      .filter(c => getCategoryForPercentile(c.percentile) === cat.key)
+      .map(c => ({
+        ...c,
+        trend: computeCategoryTrend(cat.key, c.brand),
+        prevCategory: prevCategoryByBrand.get(c.brand),
+      }))
+      .sort((a, b) => b.percentile - a.percentile),
   }));
 
   return (
@@ -126,12 +156,14 @@ const TrendBreakdownGrid = ({ title, companies, onClose }: { title: string; comp
                           <TrendIcon trend={c.trend} />
                         </span>
                         {/* {showScores && c.trend !== 'new' && c.previousScore !== undefined && (
-                          <span className={`text-[10px] leading-tight ${
-                            c.trend === 'up' ? 'text-emerald-600 dark:text-emerald-400'
+                          <span className={`text-[10px] leading-tight ${c.trend === 'up' ? 'text-emerald-600 dark:text-emerald-400'
                             : c.trend === 'down' ? 'text-red-600 dark:text-red-400'
-                            : 'text-muted-foreground'
-                          }`}>
+                              : 'text-muted-foreground'
+                            }`}>
                             {c.previousScore.toFixed(1)} → {c.score.toFixed(1)}
+                            <span className="opacity-70">
+                              ({(((c.score - c.previousScore) / c.previousScore) * 100).toFixed(1)}%)
+                            </span>
                           </span>
                         )} */}
                       </div>

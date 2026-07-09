@@ -379,18 +379,18 @@ export const ESGRecommendationsPanel = ({
   rankings,
   year,
 }: ESGRecommendationsPanelProps) => {
-//   console.log("companyId in ESGRecommendationsPanel:", companyId);
-//   console.log("allCompaniesRaw in ESGRecommendationsPanel:", allCompaniesRaw);
+//   //console.log("companyId in ESGRecommendationsPanel:", companyId);
+//   //console.log("allCompaniesRaw in ESGRecommendationsPanel:", allCompaniesRaw);
 //   console
 // .log("rankings in ESGRecommendationsPanel:", rankings);
-// console.log("year in ESGRecommendationsPanel:", year);
+// //console.log("year in ESGRecommendationsPanel:", year);
   const [benchmark, setBenchmark] = useState<BenchmarkMode>('portfolio');
 
   // Derive sourcingEnabledIds from the social percentile data already computed
   const sourcingEnabledIds = useMemo(() => {
     const ids = new Set<string>();
     allCompaniesRaw.forEach(c => {
-      // console.log('Checking sourcing for company:', c.companyId, (c.insights as any)?._socialPercentiles);
+      // //console.log('Checking sourcing for company:', c.companyId, (c.insights as any)?._socialPercentiles);
       const sp = (c.insights as any)?._socialPercentiles;
       if (sp?.hasSourcing) ids.add(c.companyId);
     });

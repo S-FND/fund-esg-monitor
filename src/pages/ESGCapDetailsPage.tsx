@@ -250,7 +250,7 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                 entityId: entityId,
                 updatedPlan: updatedPlan,
             });
-            console.log('response', response?.data?.response);
+            //console.log('response', response?.data?.response);
             if (response?.data?.response === true) {
                 setFullPlan(updatedPlan);
                 setCapItem({ ...editedItem });
@@ -413,16 +413,22 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                                 <MetaPill label={`${editMode ? (editedItem.priority || "") : (capItem.priority || "")}`} />
                                 <MetaPill label={editMode ? (editedItem.targetDate ? `Due ${new Date(editedItem.targetDate).toLocaleDateString()}` : "") : (capItem.targetDate ? `Due ${new Date(capItem.targetDate).toLocaleDateString()}` : "")} tone="blue" />
                                 <MetaPill label={editMode ? (editedItem.category || "") : (capItem.category || "")} />
-                                <MetaPill 
-                                label={editMode ? (editedItem.companyStatus?.replaceAll("_", " ") || "") : (capItem.companyStatus?.replaceAll("_", " ") || "")} 
-                                tone={
-                                    capItem.companyStatus === "closed" ? "green" :
-                                    capItem.companyStatus === "submitted" ? "amber" :
-                                    capItem.companyStatus === "partly-submitted" ? "blue" :
-                                    capItem.companyStatus === "re-submit-Required" ? "red" :
-                                    "default"
-                                } 
-                                />
+                                <MetaPill
+                                    label={(capItem?.companyStatus ?? capItem?.status ?? "").replaceAll("_", " ")}
+                                    tone={
+                                        (capItem?.companyStatus ?? capItem?.status) === "completed" ||
+                                        (capItem?.companyStatus ?? capItem?.status) === "accepted"
+                                        ? "green"
+                                        : (capItem?.companyStatus ?? capItem?.status) === "pending"
+                                        ? "amber"
+                                        : (capItem?.companyStatus ?? capItem?.status) === "in_review" ||
+                                            (capItem?.companyStatus ?? capItem?.status) === "in_progress"
+                                        ? "blue"
+                                        : (capItem?.companyStatus ?? capItem?.status) === "delayed"
+                                        ? "red"
+                                        : "slate"
+                                    }
+                                    />
                                 <MetaPill 
                                     label={editMode ? (editedItem.investorStatus?.replace(/-/g, ' ')?.replace(/\b\w/g, char => char.toUpperCase()) || "") : (capItem.investorStatus?.replace(/-/g, ' ')?.replace(/\b\w/g, char => char.toUpperCase()) || "")} 
                                     tone={
@@ -518,7 +524,7 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                                             </SelectContent>
                                         </Select>
                                     ) : (
-                                        <div className="mt-1 text-sm">{capItem.companyStatus}</div>
+                                        <div className="mt-1 text-sm">{capItem.companyStatus || capItem.status}</div>
                                     )}
                                 </div>
                                 <div>
