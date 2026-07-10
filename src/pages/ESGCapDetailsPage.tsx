@@ -360,7 +360,7 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
             entityId: companyEntityId,
             itemId: capItem?._id,
             fileName: payload.fileName,
-            companyStatus: payload.companyStatus,
+            status: payload.status,
             reason: payload.reason
         })
         if (error) {
@@ -368,8 +368,8 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
             return; // ✅ stop execution
         }
 
-        if (data?.companyStatus) {
-            toast.success(`${payload.fileName} ${payload.companyStatus === "Accepted" ? "approved" : "rejected"}`);
+        if (data?.status) {
+            toast.success(`${payload.fileName} ${payload.status === "Accepted" ? "approved" : "rejected"}`);
             setIsSummaryOpen(false);
             await loadData();
         }
