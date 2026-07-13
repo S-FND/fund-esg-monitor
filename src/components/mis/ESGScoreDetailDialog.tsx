@@ -200,7 +200,7 @@ export const ESGScoreDetailDialog = ({ open, onOpenChange, scoreType, companyId,
   const q3Data = useAnalyticsDashboardData({ period: 'quarterly', quarter: 'Q3', year },kpiEntries,features);
   const q4Data = useAnalyticsDashboardData({ period: 'quarterly', quarter: 'Q4', year },kpiEntries,features);
   const annualData = useAnalyticsDashboardData({ period: 'annual', year },kpiEntries,features);
-  console.log('Fetched analytics data for ESGScoreDetailDialog', { annualData });
+  //console.log('Fetched analytics data for ESGScoreDetailDialog', { annualData });
 
   const isLoading = q1Data.isLoading || q2Data.isLoading || q3Data.isLoading || q4Data.isLoading || annualData.isLoading;
 
@@ -245,16 +245,16 @@ export const ESGScoreDetailDialog = ({ open, onOpenChange, scoreType, companyId,
         groupType: 'industry' | 'revenue',
         groupValue: string | undefined,
       ): { avg: number; count: number } => {
-        console.log(`Computing group average for composite metric ${scoreKey} by ${groupType}  ===== ${groupValue}`, { allCos, scoreKey, groupType, groupValue });
+        //console.log(`Computing group average for composite metric ${scoreKey} by ${groupType}  ===== ${groupValue}`, { allCos, scoreKey, groupType, groupValue });
         if (!allCos || !groupValue) return { avg: 0, count: 0 };
         const group = allCos.filter(c =>
           groupType === 'industry' ? c.industry === groupValue : c.revenueStage === groupValue
         );
-        console.log("group for composite avg:", group);
+        //console.log("group for composite avg:", group);
         const vals = group
           .map(c => (c.insights as any)?.[scoreKey])
           .filter((v: any) => v !== undefined && v !== null && !isNaN(v)) as number[];
-        console.log(`Values for ${scoreKey} by ${groupType}=${groupValue}:`, vals);
+        //console.log(`Values for ${scoreKey} by ${groupType}=${groupValue}:`, vals);
         return {
           avg: vals.length > 0 ? Math.round((vals.reduce((s: number, v: number) => s + v, 0) / vals.length) * 10) / 10 : 0,
           count: group.length,
@@ -262,7 +262,7 @@ export const ESGScoreDetailDialog = ({ open, onOpenChange, scoreType, companyId,
       };
 
       const getCompositeN = (allCos: CompanyRawMetrics[] | undefined, scoreKey: string): number => {
-        console.log(`Computing cohort size for composite metric ${scoreKey}`, { allCos, scoreKey });
+        //console.log(`Computing cohort size for composite metric ${scoreKey}`, { allCos, scoreKey });
         if (!allCos) return 0;
         if (scoreKey === 'circularEconomyIndex') {
           return allCos.filter(c => c.hasEnvironmentFeature && Object.keys(c.kpis).length > 0).length;
@@ -294,15 +294,15 @@ export const ESGScoreDetailDialog = ({ open, onOpenChange, scoreType, companyId,
         const combinedRawData = annualData.data?.quarterlyCombinedRawData;
         const currentCo = combinedRawData?.find(c => c.companyId === companyId);
         return compositeMetrics.map(metric => {
-          console.log(`Computing data for metric: ${metric}`, { combinedRawData, currentCo, industry, revenueStage });
+          //console.log(`Computing data for metric: ${metric}`, { combinedRawData, currentCo, industry, revenueStage });
           const scoreKey = getScoreKey(metric);
-          console.log(`Score key: ${scoreKey}, Company value: ${(currentCo?.insights as any)?.[scoreKey]}`);
+          //console.log(`Score key: ${scoreKey}, Company value: ${(currentCo?.insights as any)?.[scoreKey]}`);
           const value = (currentCo?.insights as any)?.[scoreKey] ?? 0;
           const indResult = computeGroupAvgComposite(combinedRawData, scoreKey, 'industry', industry);
           const revResult = computeGroupAvgComposite(combinedRawData, scoreKey, 'revenue', revenueStage);
-          console.log(`Group averages for ${metric}:`, { industryAvg: indResult, revenueAvg: revResult });
+          //console.log(`Group averages for ${metric}:`, { industryAvg: indResult, revenueAvg: revResult });
           const n = getCompositeN(combinedRawData, scoreKey);
-          console.log(`Cohort size for ${metric}:`, n);
+          //console.log(`Cohort size for ${metric}:`, n);
           const isNA = metric === 'Environment Score' && (!currentCo || !currentCo.hasEnvironmentFeature);
           return {
             metric,

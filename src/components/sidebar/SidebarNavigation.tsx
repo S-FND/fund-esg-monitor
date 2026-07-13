@@ -15,7 +15,7 @@ import { useState, useEffect } from "react";
 import { LogOut } from "lucide-react";
 // Helper: include all subitems if parent module is accessible
 const getAccessibleSubmenu = (item: typeof esgDDNavItem | typeof valuationNavItem | typeof misNavItem, accessibleMenus: string[]) => {
-  console.log('Checking access for item:', item.title, 'Accessible Menus:', accessibleMenus);
+  //console.log('Checking access for item:', item.title, 'Accessible Menus:', accessibleMenus);
   if (!item) return null;
   // If parent module is accessible, return item with all subItems
   if (accessibleMenus.includes(item.title)) return item;
@@ -43,7 +43,7 @@ export function SidebarNavigation() {
   };
 
   useEffect(() => {
-    console.log("Inside SidebarNavigation :: user => ",user)
+    //console.log("Inside SidebarNavigation :: user => ",user)
     // In a real app, this would come from the backend based on user roles
     // For demo purposes, we'll use mock data
     const  fetchUserAccess = async () => {
@@ -63,7 +63,7 @@ export function SidebarNavigation() {
           const modules = [p.moduleName];
           if (p.moduleName === "ESG DD") modules.push("ESG DD Report", "ESG CAP");
           if (p.moduleName === "Valuation") modules.push("ESG Risk Matrix");
-          console.log('modules',modules);
+          //console.log('modules',modules);
           return modules;
         });
       } else{

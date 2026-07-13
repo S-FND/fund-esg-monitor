@@ -987,7 +987,7 @@ const CompanyDetail = () => {
   }, [allQuartersProgress]);
 
   useEffect(()=>{
-    console.log('Quarterly progress updated:', allQuartersProgress);  
+    //console.log('Quarterly progress updated:', allQuartersProgress);  
   },[allQuartersProgress])
 
   // Filter and search feature KPIs

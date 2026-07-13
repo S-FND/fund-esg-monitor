@@ -28,6 +28,7 @@ import { KpiEntry } from '@/hooks/useAnalyticsDashboardDataHelpers';
 import { computeAnalyticsDashboardData, FeatureRowLite } from './ComputeAnalyticsDashboardDataInput';
 import { TrendsTab } from '@/hooks/TrendsTab';
 import { TrendsComparisonPage } from '@/hooks/TrendsComparisionPage';
+import CumulativeAnalytics from './cumulative-analytics/pages/CumulativeAnalytics';
 
 
 
@@ -115,7 +116,7 @@ const renderFeatureCard = (
   const rawDataSource = useQuarterlyCombined && data.quarterlyCombinedRawData
     ? data.quarterlyCombinedRawData
     : data.companyRawData;
-  // console.log(`[Feature Card] ${feature.label} - applicableCompanyCount: ${applicableCompanyCount}, rawDataSource length: ${rawDataSource.length}, dbPrefixes: ${dbPrefixes.join(', ')}`);
+  // //console.log(`[Feature Card] ${feature.label} - applicableCompanyCount: ${applicableCompanyCount}, rawDataSource length: ${rawDataSource.length}, dbPrefixes: ${dbPrefixes.join(', ')}`);
   const companiesWithData = rawDataSource.filter((c: any) => {
     if (!mapping) return false;
     if (enabledForFeature && !enabledForFeature.has(c.companyId)) return false;
@@ -491,7 +492,7 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     if (data) {
-      console.log('[AdminDashboard] Data loaded:', data);
+      //console.log('[AdminDashboard] Data loaded:', data);
     }
   }, [data]);
 
@@ -738,7 +739,7 @@ const AdminDashboard = () => {
       features: featureCompanyGroping[m.companyId] ?? {}
     }))
     setCompanies(companyFeature)
-    console.log('featureCompanyGroping ==>', featureCompanyGroping)
+    // //console.log('featureCompanyGroping ==>', featureCompanyGroping)
   }
 
   const getFilteredCompanies = () => {
@@ -764,7 +765,7 @@ const AdminDashboard = () => {
   //   kpiEntries: KPIEntryInput[],
   //   filters: AnalyticsFilters
   // ): KPIEntryInput[] => {
-  //   console.log('getFilteredKpis::',kpiEntries.length)
+  //   //console.log('getFilteredKpis::',kpiEntries.length)
   //   let filteredKpis=[]
   //   if(filters.period == "quarterly"){
   //     filteredKpis= kpiEntries.filter(k => k.quarter == filters.quarter && k.year == filters.year);
@@ -772,7 +773,7 @@ const AdminDashboard = () => {
   //   else if(filters.period == 'annual'){
   //     filteredKpis= kpiEntries.filter(k =>  k.year == filters.year);
   //   }
-  //   console.log('getFilteredKpis :: filtered ::: =' ,filteredKpis.length)
+  //   //console.log('getFilteredKpis :: filtered ::: =' ,filteredKpis.length)
   //   return filteredKpis
 
   // };
@@ -781,15 +782,15 @@ const AdminDashboard = () => {
     filters: AnalyticsFilters
   ): KPIEntryInput[] => {
 
-    console.log("Filters:", filters);
-    console.log("First KPI:", kpiEntries[0]);
+    //console.log("Filters:", filters);
+    //console.log("First KPI:", kpiEntries[0]);
 
     const filtered = kpiEntries.filter(k => {
       const quarterMatch = k.quarter === filters.quarter;
       const yearMatch = Number(k.year) === Number(filters.year);
 
       // if (!quarterMatch || !yearMatch) {
-      //   console.log({
+      //   //console.log({
       //     kQuarter: k.quarter,
       //     filterQuarter: filters.quarter,
       //     quarterMatch,
@@ -802,7 +803,7 @@ const AdminDashboard = () => {
       return quarterMatch && yearMatch;
     });
 
-    console.log("Filtered:", filtered.length);
+    //console.log("Filtered:", filtered.length);
     return filtered;
   }
 
@@ -813,7 +814,7 @@ const AdminDashboard = () => {
   }, [])
 
   const newData = useMemo(() => {
-    console.log("Calling memo")
+    //console.log("Calling memo")
     let data = computeAnalyticsDashboardData({
       kpiEntries: getFilteredKpis(kpiEntries, filters),
       featureRows: allCompanyFeature,
@@ -824,7 +825,7 @@ const AdminDashboard = () => {
         year: filters.year
       }
     })
-    console.log('computeAnalyticsDashboardData ::: ', data)
+    //console.log('computeAnalyticsDashboardData ::: ', data)
     return data;
   }, [kpiEntries, companies, filters.period,
     filters.quarter,
@@ -836,11 +837,11 @@ const AdminDashboard = () => {
     //   quarter:'Q1',
     //   year:2025
     // }})
-    // console.log('computeAnalyticsDashboardData ::: ',data)
+    // //console.log('computeAnalyticsDashboardData ::: ',data)
     // const allowed = new Set(companies.map(c => c.id));
     // const scopedEntries = kpiEntries.filter(e => allowed.has(e.companyId));
     // let result = generateAnalytics(scopedEntries, { companies })
-    // console.log('generateAnalytics ==> ', result)
+    // //console.log('generateAnalytics ==> ', result)
     // // For E/S/G/Composite scores + AA-C grades
 
     // const period: Period = filters.period === 'quarterly'
@@ -848,11 +849,11 @@ const AdminDashboard = () => {
     //   : { mode: 'annual', year: filters.year };
 
     // const simpleScores = computePortfolioScores({ entries: scopedEntries, companies, period });
-    // console.log('simpleScores', simpleScores)
+    // //console.log('simpleScores', simpleScores)
     // const rankings = computePortfolioRankings({ entries: scopedEntries, companies, period });
-    // console.log('rankings', rankings)
+    // //console.log('rankings', rankings)
     // const analytics = generateAnalytics(scopedEntries, { companies }, period);
-    // console.log('analytics', analytics)
+    // //console.log('analytics', analytics)
     // // or, across every year in scope:
     // const combined = generateCumulativeAnalytics(scopedEntries, { companies });
     // const { result: scores } = computePortfolioScores({
@@ -860,7 +861,7 @@ const AdminDashboard = () => {
     //   companies,
     //   period: { quarter: 'Q4', year: 2025 },
     // });
-    // console.log("Q4 scores:", scores)
+    // //console.log("Q4 scores:", scores)
 
     // For Overall / Completeness / Consistency / Timeliness ranks
     // const { result: rankings } = computePortfolioRankings({
@@ -1151,6 +1152,7 @@ const AdminDashboard = () => {
           <SelectTrigger className="w-64 h-8 text-xs"><SelectValue placeholder="Select Feature" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="overview">📊 Overview (All Features)</SelectItem>
+            <SelectItem value="cumulative">📊 Cumulative Data</SelectItem>
             {filters.period === 'annual' && (
               <>
                 <SelectItem disabled value="__quarterly_header" className="text-xs font-semibold text-muted-foreground">— Quarterly KPIs (Q1-Q4 Combined) —</SelectItem>
@@ -1231,10 +1233,11 @@ const AdminDashboard = () => {
           />
         </div>
       ) : data && selectedFeature === 'cumulative' ? (
-        <div className="mt-4 flex items-center justify-center p-12 rounded-lg border border-dashed border-border">
-          <p className="text-sm text-muted-foreground">
+        <div className="mt-4 items-center justify-center  rounded-lg border border-dashed border-border">
+          {/* <p className="text-sm text-muted-foreground">
             Cumulative data view coming soon.
-          </p>
+          </p> */}
+          <CumulativeAnalytics adminfilters={filters} />
         </div>
       ) : data && !selectedFeature ? (
         <Tabs value={searchParams.get('tab') || 'insight'} onValueChange={(v) => { const sp = new URLSearchParams(searchParams); sp.set('tab', v); setSearchParams(sp, { replace: true }); }} className="mt-4">

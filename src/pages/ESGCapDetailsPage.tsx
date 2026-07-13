@@ -251,7 +251,7 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                 entityId: entityId,
                 updatedPlan: updatedPlan,
             });
-            console.log('response', response?.data?.response);
+            //console.log('response', response?.data?.response);
             if (response?.data?.response === true) {
                 setFullPlan(updatedPlan);
                 setCapItem({ ...editedItem });

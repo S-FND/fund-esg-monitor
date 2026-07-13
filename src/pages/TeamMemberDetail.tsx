@@ -52,7 +52,7 @@ export default function TeamMemberDetail() {
   const [sampleRights, setSampleRights] = useState([])
   const [isActive, setIsActive] = useState(false);
   const { toast } = useToast();
-  console.log("Team member ID from params:", id);
+  //console.log("Team member ID from params:", id);
   const [selectedFunds, setSelectedFunds] = useState<string[]>([]);
   const [selectedCompanies, setSelectedCompanies] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState("access");
@@ -129,17 +129,17 @@ export default function TeamMemberDetail() {
       active: isActive,
       email: member.email
     }
-    console.log('payload', payload)
+    //console.log('payload', payload)
     try {
       let response = http.post(`subuser/activate`, payload)
-      console.log('response', response)
+      //console.log('response', response)
     } catch (error) {
 
     }
 
-    console.log('member', member)
-    console.log('allNavItems', allNavItems)
-    console.log('accessRights', accessRights)
+    //console.log('member', member)
+    //console.log('allNavItems', allNavItems)
+    //console.log('accessRights', accessRights)
   };
 
   // if (loading) {
@@ -230,7 +230,7 @@ export default function TeamMemberDetail() {
       try {
         let response = await http.post(`subuser/activate`, payload);
         getCompanyList()
-        console.log("toggle save response", response);
+        //console.log("toggle save response", response);
       } catch (error) {
         console.error("Error updating active status", error);
       }
@@ -251,7 +251,7 @@ export default function TeamMemberDetail() {
       }
       else {
         const jsondata = await res.json();
-        console.log('jsondata', jsondata)
+        //console.log('jsondata', jsondata)
         setPortfolioCompanyList(jsondata['data'])
 
       }
@@ -267,7 +267,7 @@ export default function TeamMemberDetail() {
   const getUserAccess = async () => {
     try {
       let response = await http.get(`subuser/access?id=${id}`);
-      console.log('response', response)
+      //console.log('response', response)
       if (response.data && response.data.status) {
         setAccessRights(response.data.data)
         if (response.data.funds && response.data.funds.length > 0) {
@@ -290,7 +290,7 @@ export default function TeamMemberDetail() {
         ? prev.filter(id => id !== fundId)
         : [...prev, fundId]
     );
-    console.log('selectedFunds', selectedFunds)
+    //console.log('selectedFunds', selectedFunds)
   };
 
   const toggleCompanySelection = (companyId: string) => {
@@ -309,7 +309,7 @@ export default function TeamMemberDetail() {
         assignedFunds: selectedFunds,
         assignedCompanies: selectedCompanies
       };
-      console.log('updatedMember', updatedMember)
+      //console.log('updatedMember', updatedMember)
       setMember(updatedMember);
       let payload = {
         accessUrls: {
@@ -320,7 +320,7 @@ export default function TeamMemberDetail() {
         active: member.active,
         email: member.email
       }
-      console.log('payload', payload)
+      //console.log('payload', payload)
       try {
         let response = await http.post(`subuser/activate`, payload)
         if (response.data) {
@@ -346,7 +346,7 @@ export default function TeamMemberDetail() {
       }
       else {
         const jsondata = await res.json();
-        console.log('jsondata', jsondata)
+        //console.log('jsondata', jsondata)
         setFunds(jsondata['data'])
       }
     } catch (error) {
@@ -361,7 +361,7 @@ export default function TeamMemberDetail() {
 
   useEffect(() => {
     if (id) {
-      console.log("Triggered by ID:", id);
+      //console.log("Triggered by ID:", id);
       getTeamDetails();
       getUserAccess();
       getFundList()
@@ -373,7 +373,7 @@ export default function TeamMemberDetail() {
   }, []);
 
   // useEffect(() => {
-  //   console.log('accessRights',accessRights)
+  //   //console.log('accessRights',accessRights)
   //   setSampleRights(accessRights)
   // }, [accessRights])
 

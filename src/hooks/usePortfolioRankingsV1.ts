@@ -42,7 +42,7 @@ export const usePortfolioRankingsV1 = (
           let profilesRes = await http.get<CompanyProfileRaw[]>('mis/company-profiles');
           let entriesRes = await http.get<KpiEntryRaw[]>(`mis/kpi-entries?years=${yearsQuery}`);
           let featuresRes = await http.get<FeatureSettingRaw[]>('mis/company-feature-settings?enabled=true');
-          console.log('Fetched data:', { profiles: profilesRes.data, entries: entriesRes.data, features: featuresRes.data });
+          //console.log('Fetched data:', { profiles: profilesRes.data, entries: entriesRes.data, features: featuresRes.data });
   
           const profilesData = profilesRes.data;
           const allEntries = entriesRes.data;
@@ -78,7 +78,7 @@ export const usePortfolioRankingsV1 = (
             featureMap[f.companyId].add(f.feature_key);
           }
   
-          console.log('Processed data:', { companies, typedEntries, featureMap });
+          //console.log('Processed data:', { companies, typedEntries, featureMap });
   
           // 6. Compute raw scores per company (completeness, consistency, timeliness)
           const raw = companies.map(company => {

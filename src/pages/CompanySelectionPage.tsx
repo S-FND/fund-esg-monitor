@@ -131,6 +131,10 @@ const isClosed = (item: any): boolean => {
 };
 
 interface Company {
+    firesidePoc: any;
+    fund: string;
+    category: any;
+    industry: any;
     _id: string;
     email: string;
     companyName: string;
@@ -290,8 +294,8 @@ export default function CompanySelectionPage() {
     }, []);
 
     useEffect(() => {
-        console.log("Summary updated:", summary);
-    }, [summary])
+        //console.log("Summary updated:", summary);
+    },[summary])
 
     // Calculate filter counts for each scoring category
     const filterCounts = useMemo(() => {

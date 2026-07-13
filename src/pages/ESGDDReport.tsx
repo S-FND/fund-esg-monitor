@@ -47,7 +47,7 @@ export default function ESGDDReport() {
   };
 
   const handleCompanyChange = (companyId: string) => {
-    console.log('companyId', companyId)
+    //console.log('companyId', companyId)
     if (companyId == 'all') {
       getAllReportList()
     }
@@ -57,7 +57,7 @@ export default function ESGDDReport() {
 
     setSelectedCompany(companyId);
     let filteredCompany = portfolioCompanies.filter((p) => p.email == companyId)[0];
-    console.log('filteredCompany', filteredCompany)
+    //console.log('filteredCompany', filteredCompany)
     applyFilters(companyId, null, null);
   };
 
@@ -100,7 +100,7 @@ export default function ESGDDReport() {
       }
       else {
         const jsondata = await res.json();
-        console.log('getCompanyInfoList ::jsondata', jsondata)
+        //console.log('getCompanyInfoList ::jsondata', jsondata)
         setPortfolioCompanies(jsondata['data'])
       }
     } catch (error) {

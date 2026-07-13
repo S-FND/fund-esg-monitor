@@ -70,7 +70,7 @@ const PercentileBadge = ({ value, type }: { value: number; type: 'completeness' 
 // when filters.companyId changes between renders.
 
 export const InsightTab = (props: InsightTabProps) => {
-    console.log('InsightTab props:', { insights: props.insights, timeSeries: props.timeSeries, companyRawData: props.companyRawData, companyCount: props.companyCount, filters: props.filters });
+    //console.log('InsightTab props:', { insights: props.insights, timeSeries: props.timeSeries, companyRawData: props.companyRawData, companyCount: props.companyCount, filters: props.filters });
   if (props.filters?.companyId) {
     const companyName =
       mockCompanies.find(c => c.id === props.filters.companyId)?.brand || 'Company';
@@ -102,8 +102,9 @@ const InsightTabInner = ({
     filters.year,
     filters.quarter || 'Q4',
     filters.cumulative,
+    filters.period
   );
-  // console.log('InsightTabInner rankings:', { allRankings, rankingsLoading });
+  // //console.log('InsightTabInner rankings:', { allRankings, rankingsLoading });
 
   // const rankingsV1 = usePortfolioRankings(
   //   filters.year,

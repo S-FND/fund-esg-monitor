@@ -1,21 +1,21 @@
 /**
  * useCumulativeAnalytics
  * ─────────────────────────────────────────────────────────────────────────────
- * Orchestrates the cumulative analytics pipeline:
- *   1. Reads centrally-managed enabled quarters via `useQuarterConfig`.
- *   2. Fetches the raw KPI entries across those slices (once, cached in state).
- *   3. Fetches per-company feature enablement.
- *   4. Runs the aggregation, scoring and ranking utilities.
+ * PURE hook — no API calls, no data fetching. The caller supplies:
+ *   • allEntries        — the full KPI entry universe (all years, all quarters)
+ *   • allFeatures       — full company_feature_settings map
+ *                         ({ [companyId]: { [featureKey]: boolean } })
+ *   • filters           — UI filters (industry / fund / company / etc.)
+ *   • enabledSlices?    — OPTIONAL. When omitted, falls back to
+ *                         DEFAULT_CUMULATIVE_SLICES (Q1..Q4 2025 + Q1 2026).
  *
- * Every expensive step is memoized on its inputs so filter changes don't
- * refetch, and the raw fetch re-runs only when the enabled-slice set changes.
+ * The hook slices the universe down to the enabled (year, quarter) set plus
+ * the FY/Annual overlays for each covered year, then runs the aggregation,
+ * scoring and ranking utilities.
  */
-import { useEffect, useMemo, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useMemo } from 'react';
 import { mockCompanies } from '@/data/mockData';
 import { isCompanyExcluded } from '@/lib/companyExclusions';
-import { useQuarterConfig } from '@/hooks/useQuarterConfig';
-import { fetchCumulativeEntries } from '../services/cumulativeDataService';
 import { aggregateCumulative } from '../utils/cumulativeAggregation';
 import { rankCumulative } from '../utils/cumulativeRanking';
 import { scoreCumulative } from '../utils/cumulativeScore';
@@ -26,6 +26,7 @@ import type {
   PortfolioRankingsResult,
   PortfolioScoreOutput,
 } from '../lib/portfolio-helpers';
+import { EnabledSlice } from '../services/quarterConfig';
 
 export interface CumulativeFilters {
   industry?: string;
@@ -36,73 +37,99 @@ export interface CumulativeFilters {
   companyId?: string;
 }
 
+export type FeatureFlagsMap = Record<string, Record<string, boolean>>;
+
 export interface CumulativeAnalyticsData {
   analytics: CumulativeAnalyticsResult;
   scores: PortfolioScoreOutput;
   rankings: PortfolioRankingsResult;
 }
 
-async function fetchFeatureFlagsMap(): Promise<Record<string, Record<string, boolean>>> {
-  const { data, error } = await supabase
-    .from('company_feature_settings')
-    .select('company_id, feature_key, enabled');
-  if (error) throw error;
-  const map: Record<string, Record<string, boolean>> = {};
-  for (const r of data ?? []) {
-    if (!map[r.company_id]) map[r.company_id] = {};
-    map[r.company_id][r.feature_key] = !!r.enabled;
-  }
-  return map;
+export interface UseCumulativeAnalyticsInput {
+  allEntries: KPIEntryInput[];
+  allFeatures: FeatureFlagsMap;
+  filters: CumulativeFilters;
+  /** Optional override. Defaults to DEFAULT_CUMULATIVE_SLICES. */
+  enabledSlices?: EnabledSlice[];
 }
 
-export function useCumulativeAnalytics(filters: CumulativeFilters) {
-  const { enabledSlices, loading: cfgLoading } = useQuarterConfig();
-  const [entries, setEntries] = useState<KPIEntryInput[]>([]);
-  const [features, setFeatures] = useState<Record<string, Record<string, boolean>>>({});
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+/**
+ * Default consolidation window used when the caller doesn't pass
+ * `enabledSlices`: Q1..Q4 of 2025 plus Q1 of 2026 (the currently opened
+ * quarter). FY/Annual overlays are added automatically per year.
+ */
+export const DEFAULT_CUMULATIVE_SLICES: EnabledSlice[] = [
+  { year: 2025, quarter: 'Q1' },
+  { year: 2025, quarter: 'Q2' },
+  { year: 2025, quarter: 'Q3' },
+  { year: 2025, quarter: 'Q4' },
+  { year: 2026, quarter: 'Q1' },
+];
 
-  // Stable key for the enabled-slice set — re-fetch only when the set actually changes.
-  const sliceKey = useMemo(
-    () => enabledSlices.map(s => `${s.year}-${s.quarter}`).sort().join('|'),
+/**
+ * Given a base list of quarter slices, returns the full slice set to pull
+ * for cumulative processing — i.e. the base slices plus the FY / Annual
+ * overlay for every year touched by the base set.
+ */
+export function expandSlicesWithAnnualOverlays(base: EnabledSlice[]): EnabledSlice[] {
+  const years = new Set(base.map(s => s.year));
+  const overlays: EnabledSlice[] = [];
+  for (const y of years) {
+    overlays.push({ year: y, quarter: 'FY' });
+    overlays.push({ year: y, quarter: 'Annual' });
+  }
+  const seen = new Set<string>();
+  return [...base, ...overlays].filter(s => {
+    const k = `${s.year}::${s.quarter}`;
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+}
+
+export function useCumulativeAnalytics({
+  allEntries,
+  allFeatures,
+  filters,
+  enabledSlices,
+}: UseCumulativeAnalyticsInput) {
+  const slices = useMemo(
+    () => (enabledSlices && enabledSlices.length > 0 ? enabledSlices : DEFAULT_CUMULATIVE_SLICES),
     [enabledSlices],
   );
 
-  useEffect(() => {
-    fetchFeatureFlagsMap().then(setFeatures).catch(e => setError(String(e)));
-  }, []);
+  // Stable identity for downstream memoization.
+  const sliceKey = useMemo(
+    () => slices.map(s => `${s.year}-${s.quarter}`).sort().join('|'),
+    [slices],
+  );
 
-  useEffect(() => {
-    if (cfgLoading) return;
-    if (enabledSlices.length === 0) {
-      setEntries([]);
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    fetchCumulativeEntries(enabledSlices)
-      .then(setEntries)
-      .catch(e => setError(String(e)))
-      .finally(() => setLoading(false));
-    // sliceKey drives refetch; enabledSlices identity may flip without change
+  // 1) Slice the entry universe down to the enabled (year, quarter) set +
+  //    FY/Annual overlays for each year in the set.
+  const entries = useMemo(() => {
+    if (!allEntries || allEntries.length === 0) return [];
+    const wanted = new Set(
+      expandSlicesWithAnnualOverlays(slices).map(s => `${s.year}::${s.quarter}`),
+    );
+    return allEntries.filter(e => wanted.has(`${e.year}::${e.quarter}`));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sliceKey, cfgLoading]);
+  }, [allEntries, sliceKey]);
 
-  // Only companies that actually reported at least one KPI in the enabled window
-  // participate in the cumulative view. Makes averages/rankings robust when the
-  // portfolio size differs across years (e.g. 2025=39, 2026=41).
+  // 2) Only companies that reported at least one KPI in the window
+  //    participate — mirrors the previous behavior.
   const reportingIds = useMemo(() => {
     const s = new Set<string>();
     for (const e of entries) s.add(e.companyId);
     return s;
   }, [entries]);
 
+  // 3) Build the analytics context (filtered Invested companies + their
+  //    feature flags).
   const context: AnalyticsContext = useMemo(() => {
     const invested = mockCompanies.filter(c => {
       if ((c as any).investmentStatus !== 'Invested') return false;
       const excludedFromAll =
-        enabledSlices.length > 0 &&
-        enabledSlices.every(s => isCompanyExcluded(c.id, s.quarter, s.year));
+        slices.length > 0 && slices.every(s => isCompanyExcluded(c.id, s.quarter, s.year));
       if (excludedFromAll) return false;
       if (reportingIds.size > 0 && !reportingIds.has(c.id)) return false;
       if (filters.industry && (c as any).industry !== filters.industry) return false;
@@ -120,25 +147,34 @@ export function useCumulativeAnalytics(filters: CumulativeFilters) {
         brand: c.brand,
         industry: c.industry,
         revenueStage: c.revenueStage,
-        features: features[c.id] ?? {},
+        features: allFeatures?.[c.id] ?? {},
       })),
     };
-  }, [enabledSlices, features, reportingIds, filters.industry, filters.fund, filters.revenueStage, filters.qCategory, filters.firesidePOC, filters.companyId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    sliceKey,
+    allFeatures,
+    reportingIds,
+    filters.industry,
+    filters.fund,
+    filters.revenueStage,
+    filters.qCategory,
+    filters.firesidePOC,
+    filters.companyId,
+  ]);
 
+  // 4) Run the three cumulative pipelines.
   const data: CumulativeAnalyticsData | null = useMemo(() => {
-    if (loading || cfgLoading) return null;
     if (context.companies.length === 0 || entries.length === 0) return null;
     const analytics = aggregateCumulative({ entries, context });
-    const scores = scoreCumulative({ entries, companies: context.companies, enabledSlices });
-    const rankings = rankCumulative({ entries, companies: context.companies, enabledSlices });
+    const scores = scoreCumulative({ entries, companies: context.companies, enabledSlices: slices });
+    const rankings = rankCumulative({ entries, companies: context.companies, enabledSlices: slices });
     return { analytics, scores, rankings };
-  }, [entries, context, enabledSlices, loading, cfgLoading]);
+  }, [entries, context, slices]);
 
   return {
     data,
-    loading: loading || cfgLoading,
-    error,
-    enabledSlices,
+    enabledSlices: slices,
     companyCount: context.companies.length,
   };
 }
