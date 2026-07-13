@@ -18,6 +18,7 @@ import { getEffectiveStatus } from "@/utils/esgStatus";
 import { mapESGCapItems } from "./mapESGCapItem";
 import { ComplianceScoreEngine, PlanItem, PlanJson } from "./compliance-score-engine";
 import { parse } from "node_modules/date-fns/parse";
+import { Badge } from "@/components/ui/badge";
 // import { calculateComplianceScore } from "./compliance-score-engine";
 
 interface PlanHistory {
@@ -84,7 +85,21 @@ export default function ESGCAP() {
   const [entityId, setEntityId] = useState<string>(null);
   const [reloadData, setReloadData] = useState(false);
   const [selectedEntityId, setSelectedEntityId] = useState(null)
-  const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  // const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  // Read from URL on mount
+  const capFilterFromUrl = searchParams.get('capFilter') || null;
+  const [activeFilter, setActiveFilter] = useState<string | null>(capFilterFromUrl);
+
+  const handleFilterChange = (filterKey: string | null) => {
+    setActiveFilter(filterKey);
+    const newParams = new URLSearchParams(searchParams);
+    if (filterKey) {
+      newParams.set('capFilter', filterKey);
+    } else {
+      newParams.delete('capFilter');
+    }
+    setSearchParams(newParams);
+  };
 
   useEffect(() => {
     if (companyEmail) {
@@ -562,33 +577,33 @@ export default function ESGCAP() {
   }
 
   function parseInput(text: string): ParseState {
-  const empty: ParseStats = { csItems: 0, cpItems: 0, roadmapItems: 0, applicableItems: null };
-  if (!text.trim()) return { parsed: null, error: null, stats: empty };
-  try {
-    const raw = JSON.parse(text);
-    const plan: PlanItem[] = Array.isArray(raw) ? raw : Array.isArray(raw?.plan) ? raw.plan : [];
-    let cs = 0,
-      cp = 0,
-      rm = 0;
-    for (const p of plan) {
-      if (p?.dealCondition === "CS") cs++;
-      else if (p?.dealCondition === "CP") cp++;
-      else if (p?.dealCondition === "Roadmap") rm++;
+    const empty: ParseStats = { csItems: 0, cpItems: 0, roadmapItems: 0, applicableItems: null };
+    if (!text.trim()) return { parsed: null, error: null, stats: empty };
+    try {
+      const raw = JSON.parse(text);
+      const plan: PlanItem[] = Array.isArray(raw) ? raw : Array.isArray(raw?.plan) ? raw.plan : [];
+      let cs = 0,
+        cp = 0,
+        rm = 0;
+      for (const p of plan) {
+        if (p?.dealCondition === "CS") cs++;
+        else if (p?.dealCondition === "CP") cp++;
+        else if (p?.dealCondition === "Roadmap") rm++;
+      }
+      return {
+        parsed: Array.isArray(raw) ? { plan } : (raw as PlanJson),
+        error: null,
+        stats: { csItems: cs, cpItems: cp, roadmapItems: rm, applicableItems: null },
+      };
+    } catch (e) {
+      return { parsed: null, error: (e as Error).message, stats: empty };
     }
-    return {
-      parsed: Array.isArray(raw) ? { plan } : (raw as PlanJson),
-      error: null,
-      stats: { csItems: cs, cpItems: cp, roadmapItems: rm, applicableItems: null },
-    };
-  } catch (e) {
-    return { parsed: null, error: (e as Error).message, stats: empty };
   }
-}
 
   const result = useMemo(() => {
     if (!planData?.plan) return null;
     const engine = new ComplianceScoreEngine();
-    const parse =  parseInput(JSON.stringify({ plan: planData.plan }));
+    const parse = parseInput(JSON.stringify({ plan: planData.plan }));
     const r = engine.calculateComplianceScore(parse.parsed);
     return r;
     // console.log("retur result => ",r);
@@ -862,7 +877,14 @@ export default function ESGCAP() {
   return (
     <div className="space-y-6">
       <Loader show={loading} text={loadingMessage} />
-      <Button variant="ghost" onClick={() => navigate("/esg-dd/cap")} className="mb-2">
+      <Button
+        variant="ghost"
+        onClick={() => {
+          const queryString = searchParams.toString();
+          navigate(`/esg-dd/cap${queryString ? '?' + queryString : ''}`);
+        }}
+        className="mb-2"
+      >
         ← Back to companies
       </Button>
       <div className="flex justify-between items-center">
@@ -888,7 +910,7 @@ export default function ESGCAP() {
       {/* Stats Cards */}
       <ESGCapScoring
         items={capItems}
-        onFilterChange={setActiveFilter}
+        onFilterChange={handleFilterChange}
         activeFilter={activeFilter}
         complianceScore={result?.overallComplianceScore}
       />
