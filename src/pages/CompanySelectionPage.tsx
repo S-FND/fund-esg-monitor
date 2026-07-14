@@ -1,9 +1,9 @@
 import { useEffect, useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { CompanyCardFilter } from "@/components/esg-cap/CompanyCardFilter";
-import { 
-    Leaf, ChevronLeft, ChevronRight, AlertTriangle, CheckCircle, 
-    Clock, FileText, RefreshCw, Building2 
+import {
+    Leaf, ChevronLeft, ChevronRight, AlertTriangle, CheckCircle,
+    Clock, FileText, RefreshCw, Building2
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -17,8 +17,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
 // NEW IMPORTS: scoring utilities
-import { calculateComplianceScore } from "./useComplianceScore";
+import { ESGCapItem } from "@/components/esg-cap/CAPTable";
 import { mapESGCapItems } from "./mapESGCapItem";
+import { ComplianceScoreEngine } from "./compliance-score-engine";
 
 // Helper: Normalize status
 const normalize = (s?: string) => (s ?? '').trim().toLowerCase();
@@ -186,28 +187,36 @@ interface DashboardResponse {
     data: Company[];
 }
 
-type ScoringFilterType = 'all'| 'hasCap' | 'due-in-this-month' | 'overdue' | 'partly-submitted' | 
-                         're-submit-requested' | 'submitted-pending-review' | 'closed';
+type ScoringFilterType = 'all' | 'hasCap' | 'due-in-this-month' | 'overdue' | 'partly-submitted' |
+    're-submit-requested' | 'submitted-pending-review' | 'closed';
 
 export default function CompanySelectionPage() {
     const [companies, setCompanies] = useState<Company[]>([]);
     const [loading, setLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState("");
+    // const [searchTerm, setSearchTerm] = useState("");
+    // const [scoringFilter, setScoringFilter] = useState<ScoringFilterType>('all');
+
+    const [searchParams, setSearchParams] = useSearchParams();
+    const searchTerm = searchParams.get('search') || '';
     const [summary, setSummary] = useState<DashboardResponse['summary'] | null>(null);
-    const [scoringFilter, setScoringFilter] = useState<ScoringFilterType>('all');
-    
+    const scoringFilter = (searchParams.get('scoring') as ScoringFilterType) || 'all';
+    const industry = searchParams.get('industry') || 'All Industries';
+    const fund = searchParams.get('fund') || 'All Funds';
+    const revenue = searchParams.get('revenue') || 'All Revenue';
+    const qCat = searchParams.get('qCat') || 'All Q Cat';
+    const firesidePoc = searchParams.get('firesidePoc') || 'All POCs';
     const industryOptions = [
-      "All Industries",
-      "Beauty & Personal Care",
-      "Fashion & Lifestyle",
-      "Health & Wellness",
-      "Food & Beverage",
-      "Home & Décor",
-      "Platform Enablers"
-  ];
-    
+        "All Industries",
+        "Beauty & Personal Care",
+        "Fashion & Lifestyle",
+        "Health & Wellness",
+        "Food & Beverage",
+        "Home & Décor",
+        "Platform Enablers"
+    ];
+
     const fundOptions = ["All Funds", "Fund I", "Fund II", "Fund III", "Fund IV"];
-    
+
     const revenueOptions = [
         "All Revenue",
         "₹0–50 Cr",
@@ -215,9 +224,9 @@ export default function CompanySelectionPage() {
         "₹100–500 Cr",
         "₹500+ Cr",
     ];
-    
+
     const qCatOptions = ["All Q Cat", "Q", "Q1", "Q2", "Q3", "Q4", "Early"];
-    
+
     const firesideOptions = [
         "All POCs",
         "Aashish Mirchandani",
@@ -231,15 +240,15 @@ export default function CompanySelectionPage() {
         "TBD",
         "Varun Varma",
     ];
-    
-    const [filters, setFilters] = useState({
-        industry: "All Industries",
-        fund: "All Funds",
-        revenue: "All Revenue",
-        qCat: "All Q Cat",
-        firesidePoc: "All POCs",
-    });
-    
+
+    // const [filters, setFilters] = useState({
+    //     industry: "All Industries",
+    //     fund: "All Funds",
+    //     revenue: "All Revenue",
+    //     qCat: "All Q Cat",
+    //     firesidePoc: "All POCs",
+    // });
+
     const navigate = useNavigate();
 
     const revenueMap: Record<string, string> = {
@@ -252,23 +261,23 @@ export default function CompanySelectionPage() {
     // Fetch dashboard data
     useEffect(() => {
         const fetchDashboard = async () => {
-            
+
             setLoading(true);
             try {
                 const res = await fetch(`${import.meta.env.VITE_API_URL}/investor/companyInfo/dashboard/esgcap`, {
-                    headers: { 
+                    headers: {
                         Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
                         'Content-Type': 'application/json',
                     },
                 });
-                
+
                 if (!res.ok) {
                     throw new Error(`HTTP error! status: ${res.status}`);
                 }
-                
+
                 const json: DashboardResponse = await res.json();
-                //console.log('Dashboard response:', json);
-                
+                console.log('Dashboard response:', json);
+
                 if (json.status) {
                     setCompanies(json.data || []);
                     setSummary(json.summary);
@@ -301,12 +310,12 @@ export default function CompanySelectionPage() {
 
         companies.forEach((company) => {
             if (!company._planItems || company._planItems.length === 0) return;
-            
+
             const planItems = company._planItems;
             const filteredItems = planItems.filter(
                 (item: any) => item.dealCondition === 'CP' || item.dealCondition === 'CS'
             );
-            
+
             if (filteredItems.length === 0) return;
 
             // Check each filter category
@@ -322,12 +331,12 @@ export default function CompanySelectionPage() {
             });
             if (hasOverdue) counts['overdue']++;
 
-            const hasPartlySubmitted = filteredItems.some((item: any) => 
+            const hasPartlySubmitted = filteredItems.some((item: any) =>
                 getInvestorStatus(item) === 'partly-submitted'
             );
             if (hasPartlySubmitted) counts['partly-submitted']++;
 
-            const hasResubmit = filteredItems.some((item: any) => 
+            const hasResubmit = filteredItems.some((item: any) =>
                 getInvestorStatus(item) === 're-submit-requested'
             );
             if (hasResubmit) counts['re-submit-requested']++;
@@ -348,7 +357,7 @@ export default function CompanySelectionPage() {
     }, [companies]);
 
     const totalWithCap = useMemo(() => {
-      return companies.filter(c => c._planItems && c._planItems.length > 0).length;
+        return companies.filter(c => c._planItems && c._planItems.length > 0).length;
     }, [companies]);
 
     // Apply all filters
@@ -359,26 +368,26 @@ export default function CompanySelectionPage() {
                 company.companyName?.toLowerCase().includes(searchLower) ||
                 company.email?.toLowerCase().includes(searchLower);
 
-            const matchesIndustry = filters.industry === "All Industries" || 
-                company.companyDetails?.industry === filters.industry ||
-                company.sector === filters.industry;
+            const matchesIndustry = industry === "All Industries" ||
+                company.companyDetails?.industry === industry ||
+                company.sector === industry;
 
-            const matchesFund = filters.fund === "All Funds" || 
-                company.companyDetails?.fund === filters.fund ||
-                company.fundCompany?.some((f: any) => f.fundName === filters.fund);
+            const matchesFund = fund === "All Funds" ||
+                company.companyDetails?.fund === fund ||
+                company.fundCompany?.some((f: any) => f.fundName === fund);
 
-            const matchesRevenue = filters.revenue === "All Revenue" || 
-                company.companyDetails?.revenue_stage === revenueMap[filters.revenue as keyof typeof revenueMap];
+            const matchesRevenue = revenue === "All Revenue" ||
+                company.companyDetails?.revenue_stage === revenueMap[revenue as keyof typeof revenueMap];
 
-            const matchesQCat = filters.qCat === "All Q Cat" || 
-                company.companyDetails?.q_category === filters.qCat;
+            const matchesQCat = qCat === "All Q Cat" ||
+                company.companyDetails?.q_category === qCat;
 
             const matchesFireside =
-                filters.firesidePoc === "All POCs" ||
-                company.firesidePoc?.toLowerCase().trim() === filters.firesidePoc.toLowerCase().trim() ||
-                company.companyDetails?.fireside_category?.toLowerCase().trim() === filters.firesidePoc.toLowerCase().trim() ||
+                firesidePoc === "All POCs" ||
+                company.firesidePoc?.toLowerCase().trim() === firesidePoc.toLowerCase().trim() ||
+                company.companyDetails?.fireside_category?.toLowerCase().trim() === firesidePoc.toLowerCase().trim() ||
                 company.assignedTeamMembers?.some((tm: any) =>
-                    tm.teamMemberName?.toLowerCase().trim() === filters.firesidePoc.toLowerCase().trim()
+                    tm.teamMemberName?.toLowerCase().trim() === firesidePoc.toLowerCase().trim()
                 );
 
             // Apply scoring filter
@@ -388,7 +397,7 @@ export default function CompanySelectionPage() {
                 const filteredItems = planItems.filter(
                     (item: any) => item.dealCondition === 'CP' || item.dealCondition === 'CS'
                 );
-                
+
                 if (filteredItems.length === 0) {
                     matchesScoring = false;
                 } else {
@@ -397,7 +406,7 @@ export default function CompanySelectionPage() {
                             const allClosed = filteredItems.every((item: any) => isClosed(item));
                             matchesScoring = allClosed;
                             break;
-                            
+
                         case 'due-in-this-month':
                             const hasDueThisMonth = filteredItems.some((item: any) => {
                                 const effectiveStatus = getEffectiveCompanyStatus(item);
@@ -405,7 +414,7 @@ export default function CompanySelectionPage() {
                             });
                             matchesScoring = hasDueThisMonth;
                             break;
-                            
+
                         case 'overdue':
                             const hasOverdue = filteredItems.some((item: any) => {
                                 const effectiveStatus = getEffectiveCompanyStatus(item);
@@ -413,21 +422,21 @@ export default function CompanySelectionPage() {
                             });
                             matchesScoring = hasOverdue;
                             break;
-                            
+
                         case 'partly-submitted':
-                            const hasPartlySubmitted = filteredItems.some((item: any) => 
+                            const hasPartlySubmitted = filteredItems.some((item: any) =>
                                 getInvestorStatus(item) === 'partly-submitted'
                             );
                             matchesScoring = hasPartlySubmitted;
                             break;
-                            
+
                         case 're-submit-requested':
-                            const hasResubmit = filteredItems.some((item: any) => 
+                            const hasResubmit = filteredItems.some((item: any) =>
                                 getInvestorStatus(item) === 're-submit-requested'
                             );
                             matchesScoring = hasResubmit;
                             break;
-                            
+
                         case 'submitted-pending-review':
                             const hasPendingReview = filteredItems.some((item: any) => {
                                 const companyStatus = normalize(item.companyStatus ?? item.status);
@@ -439,9 +448,9 @@ export default function CompanySelectionPage() {
                             break;
 
                         case 'hasCap':
-                          matchesScoring = company._planItems && company._planItems.length > 0;
-                          break;    
-                            
+                            matchesScoring = company._planItems && company._planItems.length > 0;
+                            break;
+
                         default:
                             matchesScoring = true;
                     }
@@ -460,18 +469,26 @@ export default function CompanySelectionPage() {
                 matchesScoring
             );
         });
-    }, [companies, searchTerm, filters, scoringFilter]);
+    }, [companies, searchTerm, scoringFilter, industry, fund, revenue, qCat, firesidePoc]);
 
     useEffect(() => {
         console.log("Filters updated:", filterCounts);
     }, [filterCounts]);
 
     const handleCompanySelect = (companyEmail: string) => {
-        navigate(`/esg-dd/cap/${encodeURIComponent(companyEmail)}`);
+        const queryString = searchParams.toString();
+        const url = `/esg-dd/cap/${encodeURIComponent(companyEmail)}${queryString ? '?' + queryString : ''}`;
+        navigate(url);
     };
 
     const handleScoringClick = (filter: ScoringFilterType) => {
-        setScoringFilter(scoringFilter === filter ? 'all' : filter);
+        const newParams = new URLSearchParams(searchParams);
+        if (scoringFilter === filter) {
+            newParams.delete('scoring'); // toggle off
+        } else {
+            newParams.set('scoring', filter);
+        }
+        setSearchParams(newParams);
     };
 
     const getCardClass = (filterKey: string, defaultBg: string, isStatic: boolean = false, count: number = 0) => {
@@ -491,12 +508,12 @@ export default function CompanySelectionPage() {
         return filteredCompanies.map(company => {
             const plans = company._planItems || [];
             const totalItems = plans.length;
-            
+
             let completedItems = 0;
             let overdueItems = 0;
             let openItems = 0;
             let pendingItems = 0;
-            
+
             plans.forEach(p => {
                 try {
                     if (!p) return;
@@ -515,7 +532,7 @@ export default function CompanySelectionPage() {
                     }
                     // if (inv === 'partly-submitted' || inv === 'submitted-pending-review' ||
                     //     inv === 're-submit-requested' || inv === 'high-priority-overdue') {
-                    if (eff === 'upcoming' || eff === 'due-in-this-month'){
+                    if (eff === 'upcoming' || eff === 'due-in-this-month') {
                         pendingItems++;
                     } else if (eff === 'submitted-pending-review') {
                         openItems++;
@@ -524,12 +541,12 @@ export default function CompanySelectionPage() {
                     // Skip this item if there's an error
                 }
             });
-    
+
             return {
                 ...company,
                 displayFund: company.fund || company.companyDetails?.fund || 'N/A',
-                displayCategory: company.category || company.industry || company.sector || 
-                               company.companyDetails?.industry || company.companyDetails?.fireside_category || 'N/A',
+                displayCategory: company.category || company.industry || company.sector ||
+                    company.companyDetails?.industry || company.companyDetails?.fireside_category || 'N/A',
                 esgPlanCount: totalItems,
                 esgCompletedCount: completedItems,
                 esgOverdueCount: overdueItems,
@@ -539,25 +556,33 @@ export default function CompanySelectionPage() {
         });
     }, [filteredCompanies]);
 
-    // NEW: Compute average compliance score across all companies with a plan
     const averageComplianceScore = useMemo(() => {
-        const companiesWithPlan = companies.filter(
-            c => c._planItems && c._planItems.length > 0
-        );
+        const companiesWithPlan = companies.filter(c => c._planItems && c._planItems.length > 0);
         if (companiesWithPlan.length === 0) return 0;
-    
-        const scores = companiesWithPlan.map(c => {
-            try {
-                const result = calculateComplianceScore(mapESGCapItems(c._planItems));
-                return result?.overallScore ?? 0;
-            } catch (e) {
-                return 0;
-            }
+      
+        const engine = new ComplianceScoreEngine();
+        const scores: number[] = [];
+      
+        companiesWithPlan.forEach((company) => {
+          try {
+            // Directly pass the raw items as PlanItem[] – the engine reads the fields it needs.
+            // Type assertion is safe because the runtime shape matches.
+            const planItems = company._planItems as any as PlanItem[];
+            const result = engine.calculateComplianceScore(planItems);
+            const score = result?.overallComplianceScore ?? 0;
+            scores.push(score);
+            console.log(`📊 ${company.companyName} → Score: ${score}`);
+          } catch (e) {
+            console.error(`❌ Error for ${company.companyName}:`, e);
+            scores.push(0);
+          }
         });
-    
+      
         const sum = scores.reduce((a, b) => a + b, 0);
-        return Math.round(sum / scores.length);
-    }, [companies]);
+        const avg = scores.length > 0 ? Math.round(sum / scores.length) : 0;
+        console.log(`📈 Total companies: ${scores.length}, Sum: ${sum}, Average: ${avg}%`);
+        return avg;
+      }, [companies]);
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-emerald-50/40 to-white">
@@ -573,16 +598,6 @@ export default function CompanySelectionPage() {
                                 Manage and track ESG data across your portfolio.
                             </p>
                         </div>
-                        {scoringFilter !== 'all' && (
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleScoringClick('all')}
-                                className="text-xs text-emerald-600 hover:text-emerald-700"
-                            >
-                                Clear Filter ✕
-                            </Button>
-                        )}
                     </div>
 
                     <Card>
@@ -665,46 +680,70 @@ export default function CompanySelectionPage() {
                     </Card>
                 </div>
 
-                 {/* Filters Row */}
-                 <div className="flex flex-col gap-4 mb-6 md:flex-row md:items-center md:justify-between">
+                {/* Filters Row */}
+                <div className="flex flex-col gap-4 mb-6 md:flex-row md:items-center md:justify-between">
                     <Input
                         placeholder="Search company by name or email..."
                         value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
                         className="md:w-[789px]"
+                        onChange={(e) => {
+                            const newParams = new URLSearchParams(searchParams);
+                            if (e.target.value) {
+                                newParams.set('search', e.target.value);
+                            } else {
+                                newParams.delete('search');
+                            }
+                            setSearchParams(newParams);
+                        }}
                     />
                     <div className="flex flex-wrap items-center gap-5">
-                    <Select
-                        value={filters.industry}
-                        onValueChange={(val) => setFilters((prev) => ({ ...prev, industry: val }))}
-                    >
-                        <SelectTrigger className="w-[128px]">
-                            <SelectValue placeholder="All Industries" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {industryOptions.map((opt) => (
-                                <SelectItem key={opt} value={opt}>
-                                    {opt}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                        <Select
+                            value={industry}
+                            onValueChange={(val) => {
+                                const newParams = new URLSearchParams(searchParams);
+                                if (val === "All Industries") {
+                                    newParams.delete('industry');
+                                } else {
+                                    newParams.set('industry', val);
+                                }
+                                setSearchParams(newParams);
+                            }}
+                        >
+                            <SelectTrigger className="w-[128px]">
+                                <SelectValue placeholder="All Industries" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {industryOptions.map((opt) => (
+                                    <SelectItem key={opt} value={opt}>
+                                        {opt}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
 
-                    <Select
-                        value={filters.fund}
-                        onValueChange={(val) => setFilters((prev) => ({ ...prev, fund: val }))}
-                    >
-                        <SelectTrigger className="w-[128px]">
-                            <SelectValue placeholder="All Funds" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {fundOptions.map((opt) => (
-                                <SelectItem key={opt} value={opt}>
-                                    {opt}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                        <Select
+                            value={fund}
+                            onValueChange={(val) => {
+                                const newParams = new URLSearchParams(searchParams);
+                                if (val === "All Funds") {
+                                    newParams.delete('fund');
+                                } else {
+                                    newParams.set('fund', val);
+                                }
+                                setSearchParams(newParams);
+                            }}
+                        >
+                            <SelectTrigger className="w-[128px]">
+                                <SelectValue placeholder="All Funds" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {fundOptions.map((opt) => (
+                                    <SelectItem key={opt} value={opt}>
+                                        {opt}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
                     {/* <Select
                         value={filters.revenue}

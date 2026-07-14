@@ -51,6 +51,7 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useNavigate } from 'react-router-dom';
 // -------------------- Reusable UI components (unchanged) --------------------
 const SectionCard: React.FC<{
     title: string;
@@ -131,7 +132,7 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
 
     const [isSummaryOpen, setIsSummaryOpen] = useState(false);
     const [selectedFilesForSummary, setSelectedFilesForSummary] = useState<any[]>([]);
-
+    const navigate = useNavigate();
     const openDocumentSummary = (indicatorLabel: string) => {
         const filesForIndicator = capItem?.fileUploadedData?.filter(
             (file: any) => file.indicatorLabel === indicatorLabel
@@ -394,9 +395,13 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
             <div className="mx-auto max-w-[1440px] px-6 py-8 space-y-6">
                 {/* Header with Edit Mode Toggle */}
                 <div>
-                    <Link to={`/esg-dd/cap/${encodeURIComponent(companyEmail)}`} className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"> 
-                        <ArrowLeft className="mr-1 h-4 w-4" />Back
-                    </Link>
+                <Button
+                    variant="ghost"
+                    onClick={() => navigate(-1)}
+                    className="mb-2"
+                    >
+                    ← Back
+                </Button>
                     <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
                         <div className="flex-1">
                             {editMode ? (
