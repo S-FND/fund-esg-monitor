@@ -1250,10 +1250,10 @@ const AdminDashboard = () => {
               <Lightbulb className="w-3.5 h-3.5" />
               Insight
             </TabsTrigger>
-            <TabsTrigger value="trends" className="flex items-center gap-1.5 text-xs">
+            {/* <TabsTrigger value="trends" className="flex items-center gap-1.5 text-xs">
               <Lightbulb className="w-3.5 h-3.5" />
               Trends
-            </TabsTrigger>
+            </TabsTrigger> */}
           </TabsList>
 
           <TabsContent value="aggregation" className="mt-4">
@@ -1325,13 +1325,14 @@ const AdminDashboard = () => {
             />
           </TabsContent>
 
-          <TabsContent value="trends" className="mt-4">
-            <TrendsTab
+          {/* <TabsContent value="trends" className="mt-4"> */}
+            {/* <TrendsTab
               periodAFilters={{ period: 'quarterly', quarter: 'Q4', year: 2025, cumulative: false }}
               periodBFilters={{ period: 'quarterly', quarter: 'Q1', year: 2026, cumulative: false }}
               newInsight={true}
-            />
-          </TabsContent>
+            /> */}
+            {/* <TrendsComparisonPage />
+          </TabsContent> */}
         </Tabs>
       ) : null}
     </div>

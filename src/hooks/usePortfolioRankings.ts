@@ -6,6 +6,7 @@ import { isCompanyExcluded } from '@/lib/companyExclusions';
 import { fetchAllRows } from '@/lib/supabasePaginate';
 import { useAsOf, isPeriodAfterCutoff } from '@/contexts/AsOfContext';
 import { http } from '@/utils/httpInterceptor';
+import { AnalyticsFilters } from './useAnalyticsDashboardData';
 
 export interface ESGCompleteness {
   E: number;
@@ -152,6 +153,7 @@ export const usePortfolioRankings = (
   quarter: string = 'Q4',
   cumulative: boolean = false,
   period: 'quarterly' | 'annual' = 'quarterly',
+  filters?:AnalyticsFilters
 ) => {
   const [rankings, setRankings] = useState<CompanyRanking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
