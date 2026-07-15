@@ -109,7 +109,7 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
     const [searchParams] = useSearchParams();
     const itemName = searchParams.get('itemName');
     const companyEntityId = searchParams.get('companyEntityId');
-    const companyEmail = searchParams.get('companyEmail'); 
+    const companyEmail = searchParams.get('companyEmail');
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [capItem, setCapItem] = useState<any>(null);
@@ -378,30 +378,30 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
 
     const formatInvestorStatusDisplay = (status: string): string => {
         if (!status) return '';
-        
+
         // Remove hyphens and split into words
         const words = status.split('-');
-        
+
         // Capitalize first letter of each word and join with space
         const formatted = words
-          .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-          .join(' ');
-        
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' ');
+
         return formatted;
-      };
+    };
 
     return (
         <div className="min-h-screen bg-[hsl(220_25%_97%)] dark:bg-background">
             <div className="mx-auto max-w-[1440px] px-6 py-8 space-y-6">
                 {/* Header with Edit Mode Toggle */}
                 <div>
-                <Button
-                    variant="ghost"
-                    onClick={() => navigate(-1)}
-                    className="mb-2"
+                    <Button
+                        variant="ghost"
+                        onClick={() => navigate(-1)}
+                        className="mb-2"
                     >
-                    ← Back
-                </Button>
+                        ← Back
+                    </Button>
                     <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
                         <div className="flex-1">
                             {editMode ? (
@@ -422,26 +422,26 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                                     label={(capItem?.companyStatus ?? capItem?.status ?? "").replaceAll("_", " ")}
                                     tone={
                                         (capItem?.companyStatus ?? capItem?.status) === "completed" ||
-                                        (capItem?.companyStatus ?? capItem?.status) === "accepted"
-                                        ? "green"
-                                        : (capItem?.companyStatus ?? capItem?.status) === "pending"
-                                        ? "amber"
-                                        : (capItem?.companyStatus ?? capItem?.status) === "in_review" ||
-                                            (capItem?.companyStatus ?? capItem?.status) === "in_progress"
-                                        ? "blue"
-                                        : (capItem?.companyStatus ?? capItem?.status) === "delayed"
-                                        ? "red"
-                                        : "slate"
+                                            (capItem?.companyStatus ?? capItem?.status) === "accepted"
+                                            ? "green"
+                                            : (capItem?.companyStatus ?? capItem?.status) === "pending"
+                                                ? "amber"
+                                                : (capItem?.companyStatus ?? capItem?.status) === "in_review" ||
+                                                    (capItem?.companyStatus ?? capItem?.status) === "in_progress"
+                                                    ? "blue"
+                                                    : (capItem?.companyStatus ?? capItem?.status) === "delayed"
+                                                        ? "red"
+                                                        : "slate"
                                     }
-                                    />
-                                <MetaPill 
-                                    label={editMode ? (editedItem.investorStatus?.replace(/-/g, ' ')?.replace(/\b\w/g, char => char.toUpperCase()) || "") : (capItem.investorStatus?.replace(/-/g, ' ')?.replace(/\b\w/g, char => char.toUpperCase()) || "")} 
+                                />
+                                <MetaPill
+                                    label={editMode ? (editedItem.investorStatus?.replace(/-/g, ' ')?.replace(/\b\w/g, char => char.toUpperCase()) || "") : (capItem.investorStatus?.replace(/-/g, ' ')?.replace(/\b\w/g, char => char.toUpperCase()) || "")}
                                     tone={
                                         capItem.investorStatus === "high-priority-overdue" ? "red" :
-                                        capItem.investorStatus === "closed" ? "green" :
-                                        capItem.investorStatus === "submitted" ? "amber" :
-                                        "default"
-                                    } 
+                                            capItem.investorStatus === "closed" ? "green" :
+                                                capItem.investorStatus === "submitted" ? "amber" :
+                                                    "default"
+                                    }
                                 />
                             </div>
                         </div>
@@ -637,69 +637,69 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                         </div>
 
                         <div className="rounded-xl border bg-muted/30 p-5">
-                        <div className="grid gap-8 lg:grid-cols-2">
-                            <div>
-                                <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Investor Status</div>
-                                <div className="mt-2">
-                                    {editMode ? (
-                                        <Select value={editedItem.investorStatus || 'Under Review'} onValueChange={(val) => setEditedItem({ ...editedItem, investorStatus: val })}>
-                                            <SelectTrigger className="w-full"><SelectValue placeholder="Select Investor Status"  /></SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="re-submit-requested">
-                                                    Re-submit Requested
-                                                </SelectItem>
-                                                <SelectItem value="under-review">
-                                                    Under Review
-                                                </SelectItem>
-                                                <SelectItem value="reviewed-with-comments">
-                                                    Reviewed with Comments
-                                                </SelectItem>
-                                                <SelectItem value="closed">
-                                                    Closed
-                                                </SelectItem>
-                                                <SelectItem value="deferred">
-                                                    Deferred
-                                                </SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    ) : (
-                                        <div className="mt-1 flex items-center gap-3 rounded-lg border bg-card p-4">
-                                            {/* <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-emerald-500 bg-emerald-500 text-white"><CheckCircle2 className="h-4 w-4" /></span> */}
-                                            <div>
-                                                <div className="text-sm font-semibold">{formatInvestorStatusDisplay(capItem.investorStatus) || ' '}</div>
-                                                <div className="text-xs text-muted-foreground">
-                                                {capItem.investorStatus && (
-                                                <div className="text-xs text-muted-foreground">
-                                                    {new Date(capItem.lastReviewDate).toLocaleDateString()}
-                                                </div>
-                                                )}
+                            <div className="grid gap-8 lg:grid-cols-2">
+                                <div>
+                                    <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Investor Status</div>
+                                    <div className="mt-2">
+                                        {editMode ? (
+                                            <Select value={editedItem.investorStatus || 'Under Review'} onValueChange={(val) => setEditedItem({ ...editedItem, investorStatus: val })}>
+                                                <SelectTrigger className="w-full"><SelectValue placeholder="Select Investor Status" /></SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="re-submit-requested">
+                                                        Re-submit Requested
+                                                    </SelectItem>
+                                                    <SelectItem value="under-review">
+                                                        Under Review
+                                                    </SelectItem>
+                                                    <SelectItem value="reviewed-with-comments">
+                                                        Reviewed with Comments
+                                                    </SelectItem>
+                                                    <SelectItem value="closed">
+                                                        Closed
+                                                    </SelectItem>
+                                                    <SelectItem value="deferred">
+                                                        Deferred
+                                                    </SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        ) : (
+                                            <div className="mt-1 flex items-center gap-3 rounded-lg border bg-card p-4">
+                                                {/* <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-emerald-500 bg-emerald-500 text-white"><CheckCircle2 className="h-4 w-4" /></span> */}
+                                                <div>
+                                                    <div className="text-sm font-semibold">{formatInvestorStatusDisplay(capItem.investorStatus) || ' '}</div>
+                                                    <div className="text-xs text-muted-foreground">
+                                                        {capItem.investorStatus && (
+                                                            <div className="text-xs text-muted-foreground">
+                                                                {new Date(capItem.lastReviewDate).toLocaleDateString()}
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    )}
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                            <div>
-                                <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Review Comment</div>
-                                <div className="mt-2">
-                                    {editMode ? (
-                                        <Textarea
-                                            value={editedItem.reviewRemarks || ''}
-                                            onChange={(e) => setEditedItem({ ...editedItem, reviewRemarks: e.target.value })}
-                                            rows={4}
-                                            placeholder="Add review comments..."
-                                        />
-                                    ) : (
-                                        <div className="rounded-lg border bg-card p-3 text-sm">
-                                            {capItem.reviewRemarks || ''}
-                                        </div>
-                                    )}
+                                <div>
+                                    <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Review Comment</div>
+                                    <div className="mt-2">
+                                        {editMode ? (
+                                            <Textarea
+                                                value={editedItem.reviewRemarks || ''}
+                                                onChange={(e) => setEditedItem({ ...editedItem, reviewRemarks: e.target.value })}
+                                                rows={4}
+                                                placeholder="Add review comments..."
+                                            />
+                                        ) : (
+                                            <div className="rounded-lg border bg-card p-3 text-sm">
+                                                {capItem.reviewRemarks || ''}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    </div>
-                    
+
                 </SectionCard>
 
                 {/* Completion Tracking - Guidance & Resources now editable */}
@@ -799,6 +799,7 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                                                             (f: any) =>
                                                                 f?.indicatorResponse === 'no'
                                                         );
+                                                        const status = matchedEntries?.find((f: any) => f?.status)?.status;
                                                         return (
                                                             <>
                                                                 {/* Indicator row */}
@@ -819,6 +820,22 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                                                                             >
                                                                                 Response Uploaded
                                                                             </Badge>
+
+                                                                            {status && (
+                                                                                <Badge
+                                                                                    variant="outline"
+                                                                                    className={`h-6 rounded-full px-2 text-[10px] font-medium ${status === "Accepted"
+                                                                                            ? "bg-green-100 text-green-700 border-green-300"
+                                                                                            : status === "Rejected"
+                                                                                                ? "bg-red-100 text-red-700 border-red-300"
+                                                                                                : status === "Pending"
+                                                                                                    ? "bg-yellow-100 text-yellow-700 border-yellow-300"
+                                                                                                    : "bg-gray-100 text-gray-700 border-gray-300"
+                                                                                        }`}
+                                                                                >
+                                                                                    {status === "Rejected" ? "Re-submit" : status}
+                                                                                </Badge>
+                                                                            )}
 
                                                                             <Button
                                                                                 variant="ghost"
@@ -1075,7 +1092,7 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
 
                 {/* Company Actions - review only */}
                 <SectionCard title="Company Actions" subtitle="Internal review and reviewer thread" icon={<MessageSquare className="h-4 w-4" />} variant="muted">
-                <div className="space-y-6">
+                    <div className="space-y-6">
                         <div className={cn('grid overflow-hidden transition-all', showUpdateNotes ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0')}>
                             <div className="min-h-0">
                                 <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Update Notes</label>
@@ -1149,7 +1166,7 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                                 {capItem?.requestChange || 'No change request submitted.'}
                             </div>
                         </div>
-                    </div>    
+                    </div>
                 </SectionCard>
 
                 {/* Delete confirmation (unchanged) */}
