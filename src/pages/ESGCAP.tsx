@@ -19,6 +19,8 @@ import { mapESGCapItems } from "./mapESGCapItem";
 import { ComplianceScoreEngine, PlanItem, PlanJson } from "./compliance-score-engine";
 import { parse } from "node_modules/date-fns/parse";
 import { Badge } from "@/components/ui/badge";
+import AuditDrawer, { AuditLog } from "./AuditDrawer";
+import { History } from "lucide-react";
 // import { calculateComplianceScore } from "./compliance-score-engine";
 
 interface PlanHistory {
@@ -85,6 +87,8 @@ export default function ESGCAP() {
   const [entityId, setEntityId] = useState<string>(null);
   const [reloadData, setReloadData] = useState(false);
   const [selectedEntityId, setSelectedEntityId] = useState(null)
+  const [auditOpen, setAuditOpen] = useState(false);
+  const [logs, setLogs] = useState<AuditLog[]>([]);
   // const [activeFilter, setActiveFilter] = useState<string | null>(null);
   // Read from URL on mount
   const capFilterFromUrl = searchParams.get('capFilter') || null;
@@ -865,6 +869,18 @@ export default function ESGCAP() {
     }
   };
 
+  const getAuditLogs = async () => {
+    let logs: any = await http.get('audit');
+    console.log("audit logs ", logs?.data);
+    if (logs?.data?.status == true) {
+      setLogs(logs.data['data']);
+    }
+  }
+
+  useEffect(() => {
+    getAuditLogs();
+  }, []);
+
   const loggedInUser = getLoggedInUser();
   const isFiresideEmail = loggedInUser?.email?.endsWith('@fireside.com') ?? false;
 
@@ -894,19 +910,28 @@ export default function ESGCAP() {
             Review and finalize the ESG Corrective Action Plan items
           </p>
         </div>
-        <AddCAPDialog
-          onAddItem={handleAddItem}
-          onAddMultipleItems={handleAddMultipleItems}
-          existingPlan={capItems}
-          onRefresh={() => {
-            if (selectedEntityId) getPlanList(selectedEntityId);
-          }}
-          companyId={companyObjectId}
-          companyEmail={selectedCompany !== "all" ? selectedCompany : undefined}
-          entityId={selectedEntityId}
-        />
+          <div className="flex flex-wrap items-center justify-end gap-2 mb-3 md:mb-0">
+            <Button
+              variant="outline"
+              onClick={() => setAuditOpen(true)}
+              className="flex items-center gap-2" // comment for production
+            >
+              <History className="w-4 h-4" />
+              Audit Logs
+            </Button>
+            <AddCAPDialog
+              onAddItem={handleAddItem}
+              onAddMultipleItems={handleAddMultipleItems}
+              existingPlan={capItems}
+              onRefresh={() => {
+                if (selectedEntityId) getPlanList(selectedEntityId);
+              }}
+              companyId={companyObjectId}
+              companyEmail={selectedCompany !== "all" ? selectedCompany : undefined}
+              entityId={selectedEntityId}
+            />
+        </div>
       </div>
-
       {/* Stats Cards */}
       <ESGCapScoring
         items={capItems}
@@ -1047,7 +1072,7 @@ export default function ESGCAP() {
           </CardFooter>
         )} */}
       </CardContent>
-
+      <AuditDrawer open={auditOpen} onClose={() => setAuditOpen(false)} logs={logs} />
       <ReviewDialog
         item={selectedItem}
         open={reviewDialogOpen}
