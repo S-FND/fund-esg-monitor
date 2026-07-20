@@ -5,12 +5,13 @@ import { http } from "@/utils/httpInterceptor";
 import { mockCompanies } from "@/data/mockData";
 import { isCompanyExcluded } from "@/lib/companyExclusions";
 import { FEATURE_FIELD_MAPPINGS } from "@/lib/featureFieldMapping";
-import { r2 } from "./useAnalyticsDashboardData";
+import { AnalyticsFilters, r2 } from "./useAnalyticsDashboardData";
 
 export const usePortfolioRankingsV1 = (
     year: number = 2025,
     quarter: string = 'Q4',
     cumulative: boolean = false,
+    filters:AnalyticsFilters 
   ) => {
     const [rankings, setRankings] = useState<CompanyRanking[]>([]);
     const [isLoading, setIsLoading] = useState(true);

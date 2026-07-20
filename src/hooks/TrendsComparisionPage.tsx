@@ -331,8 +331,8 @@ const TrendBreakdownGrid = ({ title, companies, onClose }: { title: string; comp
                         </span>
                         {showScores && c.previousScore !== undefined && (
                           <span className={`text-[10px] leading-tight ${c.trend === 'up' ? 'text-emerald-600 dark:text-emerald-400'
-                              : c.trend === 'down' ? 'text-red-600 dark:text-red-400'
-                                : 'text-muted-foreground'
+                            : c.trend === 'down' ? 'text-red-600 dark:text-red-400'
+                              : 'text-muted-foreground'
                             }`}>
                             {c.previousScore.toFixed(1)} → {c.score.toFixed(1)}
                             {c.prevPercentile !== undefined && (
@@ -376,7 +376,7 @@ const PeriodSelector = ({
     <div className="flex flex-col gap-2 min-w-[220px]">
       <Label className="text-xs text-muted-foreground">{label}</Label>
       <div className="flex gap-2">
-        <Select
+        {/* <Select
           value={value.periodType}
           onValueChange={(v: 'quarterly' | 'annual') => onChange({ ...value, periodType: v })}
         >
@@ -387,7 +387,7 @@ const PeriodSelector = ({
             <SelectItem value="quarterly">Quarterly</SelectItem>
             <SelectItem value="annual">Annual</SelectItem>
           </SelectContent>
-        </Select>
+        </Select> */}
 
         {value.periodType === 'quarterly' && (
           <Select
@@ -428,16 +428,18 @@ const PeriodSelector = ({
 interface TrendsComparisonPageProps {
   filters?: AnalyticsFilters;
   newInsight?: boolean;
+  showTrends?: boolean;
+  setShowTrends?: (value: boolean) => void;
 }
 
-export const TrendsComparisonPage = ({ filters, newInsight = false }: TrendsComparisonPageProps) => {
-  const [periodA, setPeriodA] = useState<PeriodSelection>({...filters, ...defaultPeriodA});
-  const [periodB, setPeriodB] = useState<PeriodSelection>({...filters, ...defaultPeriodB});
+export const TrendsComparisonPage = ({ filters, newInsight = false,showTrends,setShowTrends }: TrendsComparisonPageProps) => {
+  const [periodA, setPeriodA] = useState<PeriodSelection>({ ...filters, ...defaultPeriodA });
+  const [periodB, setPeriodB] = useState<PeriodSelection>({ ...filters, ...defaultPeriodB });
   console.log('TrendsComparisonPage called with filters:', filters, 'periodA:', periodA, 'periodB:', periodB);
   // "Applied" state — comparison only recomputes when the user clicks Compare,
   // not on every dropdown change (avoids re-fetching on every intermediate selection).
-  const [appliedA, setAppliedA] = useState<PeriodSelection>({...filters, ...defaultPeriodA });
-  const [appliedB, setAppliedB] = useState<PeriodSelection>({...filters, ...defaultPeriodB });
+  const [appliedA, setAppliedA] = useState<PeriodSelection>({ ...filters, ...defaultPeriodA });
+  const [appliedB, setAppliedB] = useState<PeriodSelection>({ ...filters, ...defaultPeriodB });
 
   const [expandedScore, setExpandedScore] = useState<string | null>('esgCompositeScore');
   const [expandedRanking, setExpandedRanking] = useState<string | null>('overall');
@@ -456,13 +458,13 @@ export const TrendsComparisonPage = ({ filters, newInsight = false }: TrendsComp
   const periodBFilters = toFilters(appliedB);
 
   // ── Period A rankings ──
-  const rankingsAV1 = usePortfolioRankings(periodAFilters.year, periodAFilters.quarter || "FY", periodAFilters.cumulative,null,filters);
-  const rankingsAV2 = usePortfolioRankingsV1(periodAFilters.year, periodAFilters.quarter || "FY", periodAFilters.cumulative,filters);
+  const rankingsAV1 = usePortfolioRankings(periodAFilters.year, periodAFilters.quarter || "FY", periodAFilters.cumulative, null, filters);
+  const rankingsAV2 = usePortfolioRankingsV1(periodAFilters.year, periodAFilters.quarter || "FY", periodAFilters.cumulative, filters);
   const { rankings: allRankingsA, isLoading: rankingsALoading } = newInsight ? rankingsAV2 : rankingsAV1;
 
   // ── Period B rankings ──
-  const rankingsBV1 = usePortfolioRankings(periodBFilters.year, periodBFilters.quarter || "FY", periodBFilters.cumulative,null,filters);
-  const rankingsBV2 = usePortfolioRankingsV1(periodBFilters.year, periodBFilters.quarter || "FY", periodBFilters.cumulative,filters);
+  const rankingsBV1 = usePortfolioRankings(periodBFilters.year, periodBFilters.quarter || "FY", periodBFilters.cumulative, null, filters);
+  const rankingsBV2 = usePortfolioRankingsV1(periodBFilters.year, periodBFilters.quarter || "FY", periodBFilters.cumulative, filters);
   const { rankings: allRankingsB, isLoading: rankingsBLoading } = newInsight ? rankingsBV2 : rankingsBV1;
 
   const rankingsAByBrand = useMemo(() => {
@@ -483,6 +485,11 @@ export const TrendsComparisonPage = ({ filters, newInsight = false }: TrendsComp
     companyRawDataA.forEach(c => map.set(c.brand, c));
     return map;
   }, [companyRawDataA]);
+
+  console.log("Rankings A:", allRankingsA);
+  console.log("Rankings B:", allRankingsB);
+  console.log("Company Raw Data A:", companyRawDataA);
+  console.log("Company Raw Data B:", companyRawDataB);
 
   // ── Company pools — comparisons are driven by Period B's (target) company set ──
   const submittingCompaniesB = companyRawDataB.filter(c => Object.keys(c.kpis).length > 0);
@@ -577,11 +584,54 @@ export const TrendsComparisonPage = ({ filters, newInsight = false }: TrendsComp
 
       {/* ─── Responsiveness Score ─────────────────────────────────────────── */}
       <section>
-        <div className="flex items-center gap-2 mb-3">
+        {/* <div className="flex items-center gap-2 mb-3">
           <Trophy className="w-5 h-5 text-amber-500" />
           <h2 className="text-base font-semibold">Responsiveness Score — Trends</h2>
           <Badge variant="outline" className="text-xs">Completeness · Consistency · Timeliness</Badge>
           <Badge variant="secondary" className="text-xs"><Users className="w-3 h-3 mr-1" />n={rankingsWithAvg.length}</Badge>
+        </div> */}
+
+        <div className="flex items-center justify-between mb-3">
+          <div
+            className="flex items-center gap-2 cursor-pointer group"
+            onClick={() =>{} }
+          >
+            <Trophy className="w-5 h-5 text-amber-500" />
+            <h2 className="text-base font-semibold group-hover:underline">
+              Responsiveness Score — Trends
+            </h2>
+
+            <Badge variant="outline" className="text-xs">
+              Completeness · Consistency · Timeliness
+            </Badge>
+
+            <Badge variant="secondary" className="text-xs">
+              <Users className="w-3 h-3 mr-1" />
+              n={rankingsWithAvg.length}
+            </Badge>
+          </div>
+
+          {/* Toggle */}
+          <div className="flex items-center gap-2">
+            <span
+              className={`text-sm ${!showTrends ? "font-semibold text-foreground" : "text-muted-foreground"
+                }`}
+            >
+              Insights
+            </span>
+
+            <Switch
+              checked={showTrends}
+              onCheckedChange={setShowTrends}
+            />
+
+            <span
+              className={`text-sm ${showTrends ? "font-semibold text-foreground" : "text-muted-foreground"
+                }`}
+            >
+              Trends
+            </span>
+          </div>
         </div>
 
         {isLoading ? (
