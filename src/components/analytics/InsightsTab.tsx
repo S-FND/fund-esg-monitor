@@ -387,7 +387,7 @@ const InsightTabInner = ({
 
       {/* ─── Responsiveness Score ─────────────────────────────────────────── */}
       <section>
-        <div className="flex items-center justify-between mb-3">
+        {/* <div className="flex items-center justify-between mb-3">
           <div
             className="flex items-center gap-2 cursor-pointer group"
             onClick={() =>
@@ -411,7 +411,6 @@ const InsightTabInner = ({
             </Badge>
           </div>
 
-          {/* Toggle */}
           <div className="flex items-center gap-2">
             <span
               className={`text-sm ${!showTrends ? "font-semibold text-foreground" : "text-muted-foreground"
@@ -432,7 +431,7 @@ const InsightTabInner = ({
               Trends
             </span>
           </div>
-        </div>
+        </div> */}
         {/* <div
           className="flex items-center gap-2 mb-3 cursor-pointer group"
           onClick={() => navigate(`/mis/company-rankings?year=${filters.year}&quarter=${filters.quarter || 'Q4'}`)}
@@ -445,7 +444,7 @@ const InsightTabInner = ({
             n={rankings.length}
           </Badge>
         </div> */}
-        {showTrends ? (<TrendsComparisonPage filters={filters} />) :
+        {showTrends ? (<TrendsComparisonPage filters={filters} showTrends={showTrends} setShowTrends={setShowTrends} />) :
           <>
             {rankingsLoading ? (
               <div className="grid grid-cols-3 gap-3 mb-3">
@@ -460,6 +459,52 @@ const InsightTabInner = ({
             ) : (
               <>
                 {/* Ranking stat cards */}
+                <div className="flex items-center justify-between mb-3">
+                  <div
+                    className="flex items-center gap-2 cursor-pointer group"
+                    onClick={() =>
+                      navigate(
+                        `/mis/company-rankings?year=${filters.year}&quarter=${filters.quarter || "Q4"}`
+                      )
+                    }
+                  >
+                    <Trophy className="w-5 h-5 text-amber-500" />
+                    <h2 className="text-base font-semibold group-hover:underline">
+                      Responsiveness Score
+                    </h2>
+
+                    <Badge variant="outline" className="text-xs">
+                      Completeness · Consistency · Timeliness
+                    </Badge>
+
+                    <Badge variant="secondary" className="text-xs">
+                      <Users className="w-3 h-3 mr-1" />
+                      n={rankings.length}
+                    </Badge>
+                  </div>
+
+                  {/* Toggle */}
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`text-sm ${!showTrends ? "font-semibold text-foreground" : "text-muted-foreground"
+                        }`}
+                    >
+                      Insights
+                    </span>
+
+                    <Switch
+                      checked={showTrends}
+                      onCheckedChange={setShowTrends}
+                    />
+
+                    <span
+                      className={`text-sm ${showTrends ? "font-semibold text-foreground" : "text-muted-foreground"
+                        }`}
+                    >
+                      Trends
+                    </span>
+                  </div>
+                </div>
                 <div className="grid grid-cols-4 gap-3 mb-3">
                   {rankingCards.map(card => {
                     const isExpanded = expandedRanking === card.key;
