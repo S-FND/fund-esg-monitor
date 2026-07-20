@@ -938,6 +938,7 @@ export default function ESGCAP() {
         onFilterChange={handleFilterChange}
         activeFilter={activeFilter}
         complianceScore={result?.overallComplianceScore}
+        entityId={selectedEntityId}
       />
 
       {/* <div className="flex items-center justify-between">
