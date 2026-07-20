@@ -735,7 +735,7 @@ const CompanyDetail = () => {
       // const { error } = await supabase
       //   .from('kpi_entries')
       //   .upsert(upserts, { onConflict: 'company_id,kpi_id,quarter,year' });
-      const { error } = await http.post(`mis/kpi-entries`, { entries: upserts });
+      const { error } = await http.post(`mis/kpi-entries/upsert`, { entries: upserts });
 
       if (error) throw error;
 
