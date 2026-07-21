@@ -539,10 +539,12 @@ export default function AuditDrawer({ open, onClose, logs }: {
                     </p>
                     {(() => {
                       const { reportId, item } = getReportIdAndItem(log);
+                      const planItemName = getPlanItemName(log);
+
                       if (!reportId) return null;
                       return (
                         <Link
-                          to={`/esg-dd/cap/${reportId}?itemName=${encodeURIComponent(item)}`}
+                          to={`/esg-cap/review/${reportId}?itemName=${encodeURIComponent(planItemName)}&companyEntityId=${reportId}&companyEmail=${encodeURIComponent(item)}`}
                           className="text-xs text-blue-500 hover:text-blue-700 underline ml-2 flex-shrink-0"
                           onClick={(e) => e.stopPropagation()}
                           target="_blank"
