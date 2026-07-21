@@ -37,10 +37,10 @@ interface ComplianceGraphModalProps {
 }
 
 const getComplianceRating = (score: number = 0) => {
-  if (score >= 85) return { grade: "AA", label: "On Track", color: "text-green-600", bgColor: "bg-green-100", minScore: 85 };
-  if (score >= 70) return { grade: "A", label: "Stable", color: "text-emerald-600", bgColor: "bg-emerald-100", minScore: 70 };
-  if (score >= 55) return { grade: "BB", label: "Needs Attention", color: "text-yellow-600", bgColor: "bg-yellow-100", minScore: 55 };
-  if (score >= 40) return { grade: "B", label: "At Risk", color: "text-orange-600", bgColor: "bg-orange-100", minScore: 40 };
+  if (score >= 81) return { grade: "AA", label: "On Track", color: "text-green-600", bgColor: "bg-green-100", minScore: 85 };
+  if (score >= 61) return { grade: "A", label: "Stable", color: "text-emerald-600", bgColor: "bg-emerald-100", minScore: 61 };
+  if (score >= 41) return { grade: "BB", label: "Needs Attention", color: "text-yellow-600", bgColor: "bg-yellow-100", minScore: 41 };
+  if (score >= 21) return { grade: "B", label: "At Risk", color: "text-orange-600", bgColor: "bg-orange-100", minScore: 21 };
   return { grade: "C", label: "Critical", color: "text-red-600", bgColor: "bg-red-100", minScore: 0 };
 };
 
@@ -211,10 +211,10 @@ export const ComplianceGraphModal: React.FC<ComplianceGraphModalProps> = ({
   }, [snapshots, selectedYear]);
 
   const formatYAxisTick = (value: number) => {
-    if (value >= 85) return 'AA';
-    if (value >= 70) return 'A';
-    if (value >= 55) return 'BB';
-    if (value >= 40) return 'B';
+    if (value >= 81) return 'AA';
+    if (value >= 61) return 'A';
+    if (value >= 41) return 'BB';
+    if (value >= 21) return 'B';
     return 'C';
   };
 
@@ -330,11 +330,11 @@ export const ComplianceGraphModal: React.FC<ComplianceGraphModalProps> = ({
               <LineChart data={chartData} margin={{ top: 20, right: 30, left: 30, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey={viewType === 'quarterly' ? 'quarter' : 'month'} tick={{ fontSize: 12 }} />
-                <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} tickFormatter={formatYAxisTick} ticks={[0, 40, 55, 70, 85, 100]} label={{ value: 'Grade', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fontSize: 12, fill: '#666' } }} />
-                <ReferenceLine y={85} stroke="#22c55e" strokeDasharray="3 3" strokeWidth={1} />
-                <ReferenceLine y={70} stroke="#10b981" strokeDasharray="3 3" strokeWidth={1} />
-                <ReferenceLine y={55} stroke="#eab308" strokeDasharray="3 3" strokeWidth={1} />
-                <ReferenceLine y={40} stroke="#f97316" strokeDasharray="3 3" strokeWidth={1} />
+                <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} tickFormatter={formatYAxisTick} ticks={[0, 21, 41, 61, 81, 100]} label={{ value: 'Grade', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fontSize: 12, fill: '#666' } }} />
+                <ReferenceLine y={81} stroke="#22c55e" strokeDasharray="3 3" strokeWidth={1} />
+                <ReferenceLine y={61} stroke="#10b981" strokeDasharray="3 3" strokeWidth={1} />
+                <ReferenceLine y={41} stroke="#eab308" strokeDasharray="3 3" strokeWidth={1} />
+                <ReferenceLine y={21} stroke="#f97316" strokeDasharray="3 3" strokeWidth={1} />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend />
                 {seriesKeys.map(({ key, name, color }) => (
@@ -345,11 +345,11 @@ export const ComplianceGraphModal: React.FC<ComplianceGraphModalProps> = ({
               <BarChart data={chartData} margin={{ top: 20, right: 30, left: 30, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey={viewType === 'quarterly' ? 'quarter' : 'month'} tick={{ fontSize: 12 }} />
-                <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} tickFormatter={formatYAxisTick} ticks={[0, 40, 55, 70, 85, 100]} label={{ value: 'Grade', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fontSize: 12, fill: '#666' } }} />
-                <ReferenceLine y={85} stroke="#22c55e" strokeDasharray="3 3" strokeWidth={1} />
-                <ReferenceLine y={70} stroke="#10b981" strokeDasharray="3 3" strokeWidth={1} />
-                <ReferenceLine y={55} stroke="#eab308" strokeDasharray="3 3" strokeWidth={1} />
-                <ReferenceLine y={40} stroke="#f97316" strokeDasharray="3 3" strokeWidth={1} />
+                <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} tickFormatter={formatYAxisTick} ticks={[0, 21, 41, 61, 81, 100]} label={{ value: 'Grade', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fontSize: 12, fill: '#666' } }} />
+                <ReferenceLine y={81} stroke="#22c55e" strokeDasharray="3 3" strokeWidth={1} />
+                <ReferenceLine y={61} stroke="#10b981" strokeDasharray="3 3" strokeWidth={1} />
+                <ReferenceLine y={41} stroke="#eab308" strokeDasharray="3 3" strokeWidth={1} />
+                <ReferenceLine y={21} stroke="#f97316" strokeDasharray="3 3" strokeWidth={1} />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend />
                 {seriesKeys.map(({ key, name, color }) => (
@@ -360,7 +360,6 @@ export const ComplianceGraphModal: React.FC<ComplianceGraphModalProps> = ({
           </ResponsiveContainer>
         )}
 
-        <div className="text-xs text-muted-foreground text-center mt-2 border-t pt-2">Illustrative (tracked quarter on quarter)</div>
       </DialogContent>
     </Dialog>
   );
