@@ -29,6 +29,8 @@ export interface KPIEntryInput {
   quarter: string; // 'Q1' | 'Q2' | 'Q3' | 'Q4' | 'FY' | 'Annual'
   year: number;
   submittedAt?: string | null; // ISO timestamp
+  kpi_id: string; // Back-compat alias for kpiId
+  submitted_at: string | null; // Back-compat alias for submittedAt
 }
 
 // ─── Unified Company type ───

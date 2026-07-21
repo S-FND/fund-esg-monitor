@@ -63,6 +63,7 @@ import CompanyRankings from "./components/mis/CompanyRankings";
 import CompanySelectionPage from "./pages/CompanySelectionPage";
 import ProtectedRoute from "./contexts/ProtectedRoute";
 import ESGCAPDashboard from "./pages/ESGCAPDashboard";
+import AdminDashboardDuplicate from "./components/mis/AdminDashboardDuplicate";
 
 function App() {
   const { toast } = useToast();
@@ -166,6 +167,10 @@ function App() {
 
                  <Route path="/mis/dashboard" element={
                     <AdminDashboard />
+                } />
+
+                <Route path="/mis/dashboard/duplicate" element={
+                    <AdminDashboardDuplicate />
                 } />
                 <Route path="/mis/portfolio" element={
                     <Portfolio />  

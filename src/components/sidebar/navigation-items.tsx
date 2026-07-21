@@ -78,6 +78,11 @@ export const misNavItem: NavItemWithSubItems = {
       icon: FileText,
     },
     {
+      title: "Dup Dashboard",
+      href: "/mis/dashboard/duplicate",
+      icon: FileText,
+    },
+    {
       title: "Portfolio",
       href: "/mis/portfolio",
       icon: FileCheck,

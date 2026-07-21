@@ -18,6 +18,15 @@ import { Skeleton } from '@/components/ui/skeleton';
 import CompanyDashboard from '../mis/CompanyDashboard';
 import { mockCompanies } from '@/data/mockData';
 import { usePortfolioRankingsV1 } from '@/hooks/usePortfolioRankingsV1';
+<<<<<<< Updated upstream
+=======
+import { Switch } from '../ui/switch';
+import { TrendsComparisonPage } from '@/hooks/TrendsComparisionPage';
+import { KPIEntryInput } from '../mis/portfolio-helpers';
+import { FeatureRowLite } from '../mis/ComputeAnalyticsDashboardDataInput';
+import { Company } from '@/types/esg';
+// import { Company } from '../mis/cumulative-analytics/lib/portfolio-helpers';
+>>>>>>> Stashed changes
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface InsightTabProps {
@@ -26,7 +35,15 @@ interface InsightTabProps {
   companyRawData: CompanyRawMetrics[];
   companyCount: number;
   filters: any;
+<<<<<<< Updated upstream
   newInsight:Boolean
+=======
+  newInsight: Boolean;
+  kpiEntries?:{ companyId: string; kpi_id: string; value: string | null; quarter: string; year: number; submitted_at: string }[] ;
+  companyFeatures?: { companyId: string; featureKey: string; enabled: boolean }[] | FeatureRowLite[];
+  allCompanyProfiles?: Company[] ;
+
+>>>>>>> Stashed changes
 }
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -93,7 +110,14 @@ const InsightTabInner = ({
   companyRawData,
   companyCount,
   filters,
+<<<<<<< Updated upstream
   newInsight=false
+=======
+  newInsight = false,
+  kpiEntries,
+  companyFeatures,
+  allCompanyProfiles,
+>>>>>>> Stashed changes
 }: InsightTabProps) => {
   const navigate = useNavigate();
 
@@ -395,6 +419,7 @@ const InsightTabInner = ({
             <Users className="w-3 h-3 mr-1" />
             n={rankings.length}
           </Badge>
+<<<<<<< Updated upstream
         </div>
 
         {rankingsLoading ? (
@@ -408,6 +433,10 @@ const InsightTabInner = ({
             </CardContent>
           </Card>
         ) : (
+=======
+        </div> */}
+        {showTrends ? (<TrendsComparisonPage filters={filters} kpiEntries={kpiEntries} companyFeatures={companyFeatures} allCompanyProfiles={allCompanyProfiles} />) :
+>>>>>>> Stashed changes
           <>
             {/* Ranking stat cards */}
             <div className="grid grid-cols-4 gap-3 mb-3">

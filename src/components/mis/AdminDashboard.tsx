@@ -16,7 +16,7 @@ import { exportCSV, exportTransposedCSV, exportPDF, exportXLSX, captureCharts, b
 import { buildAllFeatureCharts, renderFeatureChartsInPDF } from '@/lib/pdfChartRenderer';
 import { FEATURE_INSIGHT_METRICS, FEATURE_AGGREGATION_EXPORTS } from '@/lib/featureInsightMetrics';
 import { BarChart3, Lightbulb, Building2, Calendar, Layers, Download, FileText, FileSpreadsheet } from 'lucide-react';
-import { Industry, Fund, RevenueStage, QCategory } from '@/types/esg';
+import { Industry, Fund, RevenueStage, QCategory, Company } from '@/types/esg';
 import { FEATURE_FIELD_MAPPINGS, resolveFieldValue } from '@/lib/featureFieldMapping';
 import { mockCompanies } from '@/data/mockData';
 import { useQuery } from '@tanstack/react-query';
@@ -29,6 +29,7 @@ import { computeAnalyticsDashboardData, FeatureRowLite } from './ComputeAnalytic
 import { TrendsTab } from '@/hooks/TrendsTab';
 import { TrendsComparisonPage } from '@/hooks/TrendsComparisionPage';
 import CumulativeAnalytics from './cumulative-analytics/pages/CumulativeAnalytics';
+import { CompanyProfileRaw } from '@/hooks/usePortfolioRankings';
 
 
 
@@ -343,6 +344,7 @@ const AdminDashboard = () => {
   const [kpiEntries, setKpiEntries] = useState<KPIEntryInput[]>([]);
   const [companies, setCompanies] = useState<CompanyContext[]>([])
   const [allCompanyFeature, setAllCompanyFeature] = useState<FeatureRowLite[]>([])
+  const [allCompanyProfiles, setAllCompanyProfiles] = useState<Company[]>([])
 
   // Dynamic filter options based on actual data
   const dynamicIndustries = useMemo(() => {
@@ -497,9 +499,9 @@ const AdminDashboard = () => {
   }, [data]);
 
   const getInitialData = async () => {
-    let allEntries: { companyId: string; kpi_id: string; value: string | null; quarter: string; year: number }[] = [];
+    let allEntries: { companyId: string; kpi_id: string; value: string | null; quarter: string; year: number;submitted_at: string | null }[] = [];
 
-    const res = await http.get<{ companyId: string; kpi_id: string; value: string | null; quarter: string; year: number }[]>(
+    const res = await http.get<{ companyId: string; kpi_id: string; value: string | null; quarter: string; year: number; submitted_at: string | null }[]>(
       `mis/kpi-entries`
     );
     if (res.error) throw res.error
@@ -508,7 +510,9 @@ const AdminDashboard = () => {
       kpiId: d.kpi_id,        // internal_id from kpi_master
       value: d.value,
       quarter: d.quarter,       // 'Q1' | 'Q2' | 'Q3' | 'Q4' | 'FY'
-      year: d.year
+      year: d.year,
+      kpi_id: d.kpi_id,      // internal_id from kpi_master
+      submitted_at:d.submitted_at,  // timestamp of submission
     })))
 
     const featuresRes = await http.get<{ companyId: string; feature_key: string, enabled: boolean }[]>(
@@ -524,6 +528,11 @@ const AdminDashboard = () => {
         featureCompanyGroping[f.companyId][f.feature_key] = f.enabled;
       }
     });
+
+    let profilesRes = await http.get<Company[]>('mis/company-profiles');
+    setAllCompanyProfiles(profilesRes.data);
+
+
     let allCompanies = [
       {
         "companyId": "company-2",
@@ -1322,6 +1331,9 @@ const AdminDashboard = () => {
               companyCount={data.companyCount}
               filters={filters}
               newInsight={false}
+              kpiEntries={kpiEntries}
+              companyFeatures={allCompanyFeature}
+              allCompanyProfiles={allCompanyProfiles}
             />
           </TabsContent>
 

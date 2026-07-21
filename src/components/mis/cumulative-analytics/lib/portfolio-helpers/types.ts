@@ -3,6 +3,8 @@
  * No dependencies on any project code.
  */
 
+import { Fund } from "@/types/esg";
+
 // ─── Input types ───
 
 export interface KPIField {
@@ -46,6 +48,10 @@ export interface Company {
   revenueStage?: string;
   features?: Record<string, boolean>;
   enabledFeatures?: string[];
+  fund?:Fund;
+  fl?: string; 
+  company_id: any; 
+  companyId: string;  
 }
 
 /** Back-compat aliases (deprecated — use `Company`). */
