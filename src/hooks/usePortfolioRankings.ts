@@ -685,9 +685,11 @@ export const usePortfolioRankings = (
             : ALL_ANNUAL_FEATURES;
 
           // Before : const totalKPIs = getTotalKPICount(qFeats) * 4 + getTotalKPICount(aFeats);
-          const totalKPIs = period === 'annual' ? getTotalKPICount(qFeats) * 4 + getTotalKPICount(aFeats) : getTotalKPICount(qFeats);
+          // console.log(`Company ${company.companyId} - Q Features: ${qFeats.length}, A Features: ${aFeats.length}`);
+          // console.log(`Company ${company.companyId} - getTotalKPICount(qFeats): ${getTotalKPICount(qFeats)}, getTotalKPICount(aFeats): ${getTotalKPICount(aFeats)}`);
+          const totalKPIs = period === 'annual' ? getTotalKPICount(qFeats) * (year == 2025 ? 4 : 1) + (year == 2025 ? getTotalKPICount(aFeats) : 0) : getTotalKPICount(qFeats);
           //
-
+          // console.log(`Company ${company.companyId} - Total KPIs: ${totalKPIs}`);
           let totalFilled = 0;
           let adjustedTotalKPIs = totalKPIs;
 
@@ -700,15 +702,15 @@ export const usePortfolioRankings = (
           const govAFeats = aFeats.filter(k => GOV_ANNUAL_FEATURES.includes(k));
 
           // let envTotal = getTotalKPICount(envQFeats) * 4 + getTotalKPICount(envAFeats);
-          let envTotal = period === 'annual' ? getTotalKPICount(envQFeats) * 4 + getTotalKPICount(envAFeats) : getTotalKPICount(envQFeats);
+          let envTotal = period === 'annual' ? getTotalKPICount(envQFeats) * (year == 2025 ? 4 : 1) +  (year == 2025 ? getTotalKPICount(envAFeats) : 0) : getTotalKPICount(envQFeats);
 
           let envFilled = 0;
           // let socTotal = getTotalKPICount(socQFeats) * 4 + getTotalKPICount(socAFeats);
-          let socTotal = period === 'annual' ? getTotalKPICount(socQFeats) * 4 + getTotalKPICount(socAFeats) : getTotalKPICount(socQFeats);
+          let socTotal = period === 'annual' ? getTotalKPICount(socQFeats) * (year == 2025 ? 4 : 1) + (year == 2025 ? getTotalKPICount(socAFeats) : 0) : getTotalKPICount(socQFeats);
 
           let socFilled = 0;
           // let govTotal = getTotalKPICount(govQFeats) * 4 + getTotalKPICount(govAFeats);
-          let govTotal = period === 'annual' ? getTotalKPICount(govQFeats) * 4 + getTotalKPICount(govAFeats) : getTotalKPICount(govQFeats);
+          let govTotal = period === 'annual' ? getTotalKPICount(govQFeats) * (year == 2025 ? 4 : 1) + (year == 2025 ? getTotalKPICount(govAFeats) : 0) : getTotalKPICount(govQFeats);
 
           let govFilled = 0;
 
@@ -741,7 +743,8 @@ export const usePortfolioRankings = (
           const completionPct = adjustedTotalKPIs > 0
             ? r2((totalFilled / adjustedTotalKPIs) * 100)
             : 0;
-
+          // console.log(`Company ${company.companyId} - Total Filled: ${totalFilled}, Adjusted Total KPIs: ${adjustedTotalKPIs}, Completion %: ${completionPct}`);
+          // console.log(`Company ${company.companyId} - E: ${envFilled}/${envTotal}, S: ${socFilled}/${socTotal}, G: ${govFilled}/${govTotal}`);
           const esgCompleteness: ESGCompleteness = {
             E: envTotal > 0 ? r2((envFilled / envTotal) * 100) : 0,
             S: socTotal > 0 ? r2((socFilled / socTotal) * 100) : 0,
