@@ -1,17 +1,20 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { ESGCapItem } from './esg-cap/CAPTable';
 import { getDerivedInvestorStatus, isInvestorStatusClosed } from '@/utils/investorStatusUtils';
 import { getEffectiveStatus } from '@/utils/esgStatus';
+import { ComplianceGraphModal } from './ComplianceGraphModal';
 
 interface ESGCapScoringProps {
   items: ESGCapItem[];
   onFilterChange?: (filterKey: string | null) => void;
   activeFilter?: string | null;
-  complianceScore?: number; // Optional prop for compliance score
+  complianceScore?: number;
+  entityId: string;
 }
 
-export const ESGCapScoring: React.FC<ESGCapScoringProps> = ({ items, onFilterChange, activeFilter,complianceScore }) => {
+export const ESGCapScoring: React.FC<ESGCapScoringProps> = ({ items, onFilterChange, activeFilter,complianceScore, entityId }) => {
+  const [modalOpen, setModalOpen] = useState(false);
 
   // ✅ FILTER: Only include CP and CS items for card counting (exclude ESG_Roadmap)
   const filteredItems = items.filter(
@@ -113,12 +116,13 @@ export const ESGCapScoring: React.FC<ESGCapScoringProps> = ({ items, onFilterCha
   };
 
   return (
+    <>
     <div className="space-y-4">
       <Card>
         <CardContent className="py-3">
           <div className="grid grid-cols-6 gap-2">
             {/* 1. Portfolio Compliance Score - STATIC */}
-            <div className="text-center p-2 rounded-lg bg-green-50 cursor-default">
+            <div className="text-center p-2 rounded-lg bg-green-50 cursor-default" onClick={() => setModalOpen(true)}>
               <div className="flex items-center justify-center gap-1">
                 <div className="text-lg font-bold text-green-600">{complianceScore?.toFixed(1)}%</div>
               </div>
@@ -191,5 +195,11 @@ export const ESGCapScoring: React.FC<ESGCapScoringProps> = ({ items, onFilterCha
         </CardContent>
       </Card>
     </div>
+     <ComplianceGraphModal
+      entityId={entityId}
+      open={modalOpen}
+      onOpenChange={setModalOpen}
+    />
+   </>
   );
 };

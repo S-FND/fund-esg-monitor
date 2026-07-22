@@ -541,10 +541,10 @@ export function calculateComplianceScore(
     : Math.round((sumWeighted / sumWeights) * 10) / 10;
 
   const status: ScoreStatus =
-    overallScore >= 85 ? "On Track"       :
-    overallScore >= 70 ? "Stable"          :
-    overallScore >= 55 ? "Needs Attention" :
-    overallScore >= 40 ? "At Risk"         : "Critical";
+    overallScore >= 81 ? "On Track"       :
+    overallScore >= 61 ? "Stable"          :
+    overallScore >= 41 ? "Needs Attention" :
+    overallScore >= 21 ? "At Risk"         : "Critical";
 
   return {
     overallScore, status,

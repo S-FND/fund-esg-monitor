@@ -20,7 +20,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ESGCapItem } from "@/components/esg-cap/CAPTable";
 import { mapESGCapItems } from "./mapESGCapItem";
 import { ComplianceScoreEngine } from "./compliance-score-engine";
-
+import AuditDrawer, { AuditLog } from "./AuditDrawer";
+import { History } from "lucide-react";
+import { http } from "@/utils/httpInterceptor";
 // Helper: Normalize status
 const normalize = (s?: string) => (s ?? '').trim().toLowerCase();
 
@@ -195,7 +197,8 @@ export default function CompanySelectionPage() {
     const [loading, setLoading] = useState(true);
     // const [searchTerm, setSearchTerm] = useState("");
     // const [scoringFilter, setScoringFilter] = useState<ScoringFilterType>('all');
-
+    const [auditOpen, setAuditOpen] = useState(false);
+    const [logs, setLogs] = useState<AuditLog[]>([]);
     const [searchParams, setSearchParams] = useSearchParams();
     const searchTerm = searchParams.get('search') || '';
     const [summary, setSummary] = useState<DashboardResponse['summary'] | null>(null);
@@ -240,6 +243,18 @@ export default function CompanySelectionPage() {
         "TBD",
         "Varun Varma",
     ];
+
+    const getAuditLogs = async () => {
+        let logs: any = await http.get('audit');
+        console.log("audit logs ", logs?.data);
+        if (logs?.data?.status == true) {
+          setLogs(logs.data['data']);
+        }
+      }
+    
+      useEffect(() => {
+        getAuditLogs();
+      }, []);
 
     // const [filters, setFilters] = useState({
     //     industry: "All Industries",
@@ -589,7 +604,7 @@ export default function CompanySelectionPage() {
             <div className="container mx-auto py-8 px-4">
                 {/* ESG Scoring Cards */}
                 <div className="mb-6">
-                    <div className="flex flex-wrap items-center gap-2 mb-3">
+                    <div className="flex justify-between items-center">
                         <div>
                             <h1 className="text-2xl font-bold tracking-tight">
                                 Portfolio Companies
@@ -597,6 +612,16 @@ export default function CompanySelectionPage() {
                             <p className="text-muted-foreground">
                                 Manage and track ESG data across your portfolio.
                             </p>
+                        </div>
+                        <div className="flex flex-wrap items-center justify-end gap-2 mb-3 md:mb-0">
+                            <Button
+                                variant="outline"
+                                onClick={() => setAuditOpen(true)}
+                                className="flex items-center gap-2" // comment for production
+                                >
+                                <History className="w-4 h-4" />
+                                Audit Logs
+                            </Button>
                         </div>
                     </div>
 
@@ -770,6 +795,7 @@ export default function CompanySelectionPage() {
                     loading={loading}
                     showESGStatus={true}
                 />
+                <AuditDrawer open={auditOpen} onClose={() => setAuditOpen(false)} logs={logs} />
             </div>
         </div>
     );
