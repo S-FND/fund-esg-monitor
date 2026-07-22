@@ -107,6 +107,7 @@ const InsightTabInner = ({
     filters.cumulative,
     filters.period
   );
+  // console.log('InsightTabInner rankings:', { allRankings });
   // //console.log('InsightTabInner rankings:', { allRankings, rankingsLoading });
 
   // const rankingsV1 = usePortfolioRankings(
@@ -142,7 +143,10 @@ const InsightTabInner = ({
   const [trendView, setTrendView] = useState<'quarterly' | 'annual'>('quarterly');
 
   // ── Company pools ──
-  const submittingCompanies = companyRawData.filter(c => Object.keys(c.kpis).length > 0);
+  //Commenting this line as clients want to see all companies in the ESG category breakdown, not just those that submitted data
+  // const submittingCompanies = companyRawData.filter(c => Object.keys(c.kpis).length > 0);
+  const submittingCompanies = [...companyRawData];
+
   const submittingCount = submittingCompanies.length;
   const envEligibleCompanies = submittingCompanies.filter(c => c.hasEnvironmentFeature);
 
@@ -615,13 +619,16 @@ const InsightTabInner = ({
                 };
                 const config = scoreMap[expandedScore];
                 if (!config) return null;
+                // console.log('InsightsTab - expandedScore:', expandedScore, 'config:', config);
                 const pool = expandedScore === 'circularEconomyIndex' ? envEligibleCompanies : submittingCompanies;
+                // console.log('InsightsTab - pool:', pool);
                 const companiesForBreakdown = pool
                   .filter(c =>
                     c.insights[config.insightKey] !== undefined &&
                     !isNaN(c.insights[config.insightKey] as number),
                   )
                   .map(c => ({ brand: c.brand, score: c.insights[config.insightKey] as number }));
+                // console.log('InsightsTab - companiesForBreakdown:', companiesForBreakdown);
                 return (
                   <div className="mt-3">
                     <ESGCategoryBreakdown

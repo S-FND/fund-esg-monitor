@@ -927,7 +927,7 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters, kpiEntries?
   // Stable serialized key to prevent re-fetching on referentially-new-but-equal filter objects
   const filtersKey = JSON.stringify(filters);
   const asOfKey = `${asOf?.month ?? 'live'}-${asOf?.year ?? 'live'}`;
-
+    console.log("Filters key:", filtersKey, "As-of key:", asOfKey);
   // useEffect(() => {
   //   if (filters.year && filters.year == 2025) {
 
@@ -990,6 +990,17 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters, kpiEntries?
           `mis/kpi-entries?years=${years.join(',')}`
         );
         allEntries = res.data || [];
+        if (filters.year) {
+          allEntries = allEntries.filter(e => e.year === filters.year);
+        }
+
+        //Static value replace for 2026 for annual kpi from 2025 FY values
+        if (filters.year === 2026) {
+          const fy2025Entries = res.data.filter(e => e.year === 2025 && e.quarter === 'FY');
+          const fy2026Entries = fy2025Entries.map(e => ({ ...e, year: 2026 }));
+          allEntries = [...allEntries.filter(e => e.quarter !== 'FY'), ...fy2026Entries];
+        }
+
         //console.log('Fetched KPI entries:', allEntries.filter(e => e.year === 2026), 'entries for years', years);
         if (asOf) {
           allEntries = allEntries.filter(e => !isPeriodAfterCutoff(e.quarter, e.year, asOf));
