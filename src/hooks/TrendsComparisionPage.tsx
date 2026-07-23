@@ -336,7 +336,7 @@ const TrendBreakdownGrid = ({ title, companies, onClose }: { title: string; comp
                             }`}>
                             {c.previousScore.toFixed(1)} → {c.score.toFixed(1)}
                             {c.prevPercentile !== undefined && (
-                              <> &nbsp;({c.prevPercentile}% → {c.percentile}%)</>
+                              <> &nbsp;(P{c.prevPercentile} → P{c.percentile})</>
                             )}
                           </span>
                         )}

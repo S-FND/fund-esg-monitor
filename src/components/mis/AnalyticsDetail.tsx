@@ -1920,6 +1920,7 @@ const AnalyticsDetail = () => {
   });
   // Display data: either the companies with data, or missing companies
   const displayData = showMissing ? missingCompanies : sortedData;
+  console.log('displayData',displayData)
 
   const summary = computeSummary(sortedData.map(d => parseFloat(d.value)), !!isPct);
   const { total, avg, max, min, isNumeric } = summary;
@@ -2213,7 +2214,6 @@ const AnalyticsDetail = () => {
           const isCircularEconomy = state?.sourceInsightKey === 'circularEconomyIndex';
           const nonFashionHeaders = ratioColumnHeaders; // default headers from config
           const fashionHeaders = CIRCULAR_ECONOMY_FASHION_HEADERS;
-
           const renderCompanyTable = (
             tableData: typeof displayData,
             tableLabel: string,
