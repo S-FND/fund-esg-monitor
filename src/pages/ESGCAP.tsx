@@ -14,12 +14,7 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { getDerivedInvestorStatus } from '@/utils/investorStatusUtils';
 import { getEffectiveStatus } from "@/utils/esgStatus";
-// import { calculateComplianceScore } from "./useComplianceScore";
-import { mapESGCapItems } from "./mapESGCapItem";
 import { ComplianceScoreEngine, PlanItem, PlanJson } from "./compliance-score-engine";
-import { parse } from "node_modules/date-fns/parse";
-import { Badge } from "@/components/ui/badge";
-// import { calculateComplianceScore } from "./compliance-score-engine";
 
 interface PlanHistory {
   updateByUserId: string;
@@ -894,25 +889,27 @@ export default function ESGCAP() {
             Review and finalize the ESG Corrective Action Plan items
           </p>
         </div>
-        <AddCAPDialog
-          onAddItem={handleAddItem}
-          onAddMultipleItems={handleAddMultipleItems}
-          existingPlan={capItems}
-          onRefresh={() => {
-            if (selectedEntityId) getPlanList(selectedEntityId);
-          }}
-          companyId={companyObjectId}
-          companyEmail={selectedCompany !== "all" ? selectedCompany : undefined}
-          entityId={selectedEntityId}
-        />
+          <div className="flex flex-wrap items-center justify-end gap-2 mb-3 md:mb-0">
+            <AddCAPDialog
+              onAddItem={handleAddItem}
+              onAddMultipleItems={handleAddMultipleItems}
+              existingPlan={capItems}
+              onRefresh={() => {
+                if (selectedEntityId) getPlanList(selectedEntityId);
+              }}
+              companyId={companyObjectId}
+              companyEmail={selectedCompany !== "all" ? selectedCompany : undefined}
+              entityId={selectedEntityId}
+            />
+        </div>
       </div>
-
       {/* Stats Cards */}
       <ESGCapScoring
         items={capItems}
         onFilterChange={handleFilterChange}
         activeFilter={activeFilter}
         complianceScore={result?.overallComplianceScore}
+        entityId={selectedEntityId}
       />
 
       {/* <div className="flex items-center justify-between">
@@ -1047,7 +1044,6 @@ export default function ESGCAP() {
           </CardFooter>
         )} */}
       </CardContent>
-
       <ReviewDialog
         item={selectedItem}
         open={reviewDialogOpen}

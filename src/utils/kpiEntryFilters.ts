@@ -43,7 +43,9 @@ export const filterKpiEntries = <T extends { companyId: string; quarter: string;
           entry.year === year;
         return fyMatch;
       }
-      return entry.quarter === quarter && entry.year === year;
+      // return entry.quarter === quarter && entry.year === year;
+      //Static code change for showing FY and Annual for 2026 when Q1-Q4 are selected for 2026
+      return (entry.quarter === quarter || entry.quarter === 'FY') && entry.year === year;
     }
 
     if (quarters && quarters.length > 0) {
@@ -63,5 +65,10 @@ export const filterKpiEntries = <T extends { companyId: string; quarter: string;
     return year ? entry.year === year : true;
   });
   //console.log(filteredEntries.length, 'entries after filtering for', filteredEntries.filter(e => e.year === 2025).length, 'entries for 2025',filteredEntries.filter(e => e.year === 2026).length, 'entries for 2026', filteredEntries.filter(e => e.quarter === 'Q1' && e.year === 2026).length, 'entries for Q1 2026');
+  console.log(`Filtered ${filteredEntries.length} entries for year=${year}, quarter=${quarter}, quarters=${quarters}, allowAnnualForFY=${allowAnnualForFY}, cumulative=${cumulative}`);
+  if(quarter && quarter === 'FY') {
+    console.log(`Filtered ${filteredEntries.filter(e => e.quarter === 'FY').length} entries for FY`);
+    console.log(`Filtered ${filteredEntries.filter(e => e.quarter === 'Annual').length} entries for Annual`);
+  }
   return filteredEntries;
 };
