@@ -772,13 +772,16 @@ const AnalyticsDetail = () => {
   // Rebuild company data from fresh data with quarterly breakdowns
   const rebuiltCompanyData = useMemo(() => {
     if (!freshData || !state || !canRefetch) return null;
-    //console.log(`[rebuild] RUNNING at ${Date.now()}`, {
-    //   hasFreshData: !!freshData,
-    //   featureIdsSize: featureEnabledCompanyIds?.size ?? 'null',
-    //   sourceKpiKey: state.sourceKpiKey,
-    //   sourceInsightKey: state.sourceInsightKey,
-    //   sourceCalcId: state.sourceCalcId,
-    // });
+
+    console.log("freshData :: ",freshData)
+
+    console.log(`[rebuild] RUNNING at ${Date.now()}`, {
+      hasFreshData: !!freshData,
+      featureIdsSize: featureEnabledCompanyIds?.size ?? 'null',
+      sourceKpiKey: state.sourceKpiKey,
+      sourceInsightKey: state.sourceInsightKey,
+      sourceCalcId: state.sourceCalcId,
+    });
 
     const sourceKpiKey = state.sourceKpiKey;
     const sourceInsightKey = state.sourceInsightKey as keyof InsightMetrics | undefined;
@@ -926,7 +929,7 @@ const AnalyticsDetail = () => {
     if (sourceInsightKey) {
       const isAnnualOnlyInsight = annualOnlyInsightKeysSet.has(sourceInsightKey as string);
       let rawData = applyFeatureCompanyFilter(freshData.quarterlyCombinedRawData || freshData.companyRawData);
-
+      console.log('rawData :: ',rawData)
       // For CSR, check if quarterly combined data has CSR entries; if not, fall back to FY
       if (sourceInsightKey === 'csrSpendRatio' && freshData.companyRawData) {
         const hasCSRInQuarterly = rawData.some(c => {
@@ -1763,7 +1766,7 @@ const AnalyticsDetail = () => {
     const qVals = [r.q1, r.q2, r.q3, r.q4].filter(v => v && v !== '' && v !== '0' && v !== '0.00');
     return qVals.length > 0;
   });
-
+  console.log("activeCompanyData :: => ",activeCompanyData.length)
   // Apply quarter filter
   const filteredCompanyData = useMemo(() => {
     let data = activeCompanyData;
@@ -1833,13 +1836,15 @@ const AnalyticsDetail = () => {
           }
           return updated;
         })
-        .filter(row => {
-          return row.value !== undefined && row.value !== null && row.value !== '' && row.value !== '—';
-        });
+        // .filter(row => {
+        //   return row.value !== undefined && row.value !== null && row.value !== '' && row.value !== '—';
+        // });
     }
 
     return data;
   }, [activeCompanyData, filterQuarter, state?.sourceInsightKey, freshData]);
+
+  console.log('filteredCompanyData :: => ',filteredCompanyData)
 
   if (!state) {
     return (
