@@ -122,7 +122,7 @@ export const ESGCapScoring: React.FC<ESGCapScoringProps> = ({ items, onFilterCha
         <CardContent className="py-3">
           <div className="grid grid-cols-6 gap-2">
             {/* 1. Portfolio Compliance Score - STATIC */}
-            <div className="text-center p-2 rounded-lg bg-green-50 cursor-default" onClick={() => setModalOpen(true)}>
+            <div className="text-center p-2 rounded-lg bg-green-50 cursor-default cursor-pointer" onClick={() => setModalOpen(true)}>
               <div className="flex items-center justify-center gap-1">
                 <div className="text-lg font-bold text-green-600">{complianceScore?.toFixed(1)}%</div>
               </div>
