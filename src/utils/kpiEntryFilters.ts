@@ -43,7 +43,9 @@ export const filterKpiEntries = <T extends { companyId: string; quarter: string;
           entry.year === year;
         return fyMatch;
       }
-      return entry.quarter === quarter && entry.year === year;
+      // return entry.quarter === quarter && entry.year === year;
+      //Static code change for showing FY and Annual for 2026 when Q1-Q4 are selected for 2026
+      return (entry.quarter === quarter || entry.quarter === 'FY') && entry.year === year;
     }
 
     if (quarters && quarters.length > 0) {
