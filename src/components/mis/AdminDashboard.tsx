@@ -392,6 +392,12 @@ const AdminDashboard = () => {
     if (f.companyId) p.companyId = f.companyId;
     if (f.cumulative) p.cumulative = 'true';
     if (feat) p.feature = feat;
+
+    const view = searchParams.get("view");
+    if (view) {
+      p.view = view;
+    }
+
     setSearchParams(p, { replace: true });
   }, [setSearchParams]);
 
@@ -1326,12 +1332,12 @@ const AdminDashboard = () => {
           </TabsContent>
 
           {/* <TabsContent value="trends" className="mt-4"> */}
-            {/* <TrendsTab
+          {/* <TrendsTab
               periodAFilters={{ period: 'quarterly', quarter: 'Q4', year: 2025, cumulative: false }}
               periodBFilters={{ period: 'quarterly', quarter: 'Q1', year: 2026, cumulative: false }}
               newInsight={true}
             /> */}
-            {/* <TrendsComparisonPage />
+          {/* <TrendsComparisonPage />
           </TabsContent> */}
         </Tabs>
       ) : null}

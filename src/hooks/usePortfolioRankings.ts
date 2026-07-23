@@ -34,6 +34,7 @@ export interface CompanyProfileRaw {
   companyId: string;
   revenueStage: string;
   industry: string;
+  company_id?: string;
 }
 
 export interface KpiEntryRaw {
@@ -158,7 +159,7 @@ export const usePortfolioRankings = (
   const [rankings, setRankings] = useState<CompanyRanking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { asOf } = useAsOf();
-  let selectedPeriod = period == 'annual' ? ['Q1', 'Q2', 'Q3', 'Q4', 'FY'] : [quarter,'FY'];
+  let selectedPeriod = period == 'annual' ? ['Q1', 'Q2', 'Q3', 'Q4', 'FY'] : [quarter, 'FY'];
   //console.log('usePortfolioRankings - asOf:', asOf, 'year:', year, 'quarter:', quarter, 'cumulative:', cumulative, 'period:', period);
   // useEffect(() => {
   //   const fetch = async () => {
@@ -637,9 +638,25 @@ export const usePortfolioRankings = (
         let featuresRes = await http.get<FeatureSettingRaw[]>('mis/company-feature-settings?enabled=true');
         //console.log('Fetched data:', { profiles: profilesRes.data, entries: entriesRes.data, features: featuresRes.data });
 
-        const profilesData = profilesRes.data;
+        let profilesData = profilesRes.data;
         let allEntries = entriesRes.data;
-        const allFeatures = featuresRes.data;
+        let allFeatures = featuresRes.data;
+
+
+        if (filters) {
+          let filteredCompanies = [...mockCompanies]
+
+          if (filters.fund) filteredCompanies = filteredCompanies.filter(m => m.fund == filters.fund);
+          if (filters.industry) filteredCompanies = filteredCompanies.filter(c => c.industry === filters.industry);
+          if (filters.revenueStage) filteredCompanies = filteredCompanies.filter(c => c.revenueStage === filters.revenueStage);
+          if (filters.qCategory) filteredCompanies = filteredCompanies.filter(c => c.qCategory === filters.qCategory);
+          if (filters.firesidePOC) filteredCompanies = filteredCompanies.filter(c => c.fl === filters.firesidePOC);
+
+            profilesData = profilesData.filter(p => filteredCompanies.find(f => f.id == p.company_id))
+            allEntries = allEntries.filter(e => profilesData.find(p => p.company_id == e.companyId))
+          
+        }
+
         //Static code change for annual kpi data to show in 2026 from 2025
         if (year === 2026) {
           const entriesRes2025 = await http.get<KpiEntryRaw[]>(`mis/kpi-entries?year=2025`);
@@ -663,7 +680,7 @@ export const usePortfolioRankings = (
 
         // 3. Build company list from mockCompanies (invested only)
         const companies = mockCompanies
-          .filter(c => c.investmentStatus === 'Invested')
+          .filter(c => c.investmentStatus === 'Invested' && profilesData.find(p => p.company_id == c.id))
           .map(c => ({
             companyId: c.id,
             industry: profileMap[c.id]?.industry || c.industry || '',
@@ -697,7 +714,7 @@ export const usePortfolioRankings = (
           // Before : const totalKPIs = getTotalKPICount(qFeats) * 4 + getTotalKPICount(aFeats);
           // console.log(`Company ${company.companyId} - Q Features: ${qFeats.length}, A Features: ${aFeats.length}`);
           // console.log(`Company ${company.companyId} - getTotalKPICount(qFeats): ${getTotalKPICount(qFeats)}, getTotalKPICount(aFeats): ${getTotalKPICount(aFeats)}`);
-          const totalKPIs = period === 'annual' ? getTotalKPICount(qFeats) * (year == 2025 ? 4 : 1) + getTotalKPICount(aFeats)  : getTotalKPICount(qFeats) + getTotalKPICount(aFeats);
+          const totalKPIs = period === 'annual' ? getTotalKPICount(qFeats) * (year == 2025 ? 4 : 1) + getTotalKPICount(aFeats) : getTotalKPICount(qFeats) + getTotalKPICount(aFeats);
           //
           // console.log(`Company ${company.companyId} - Total KPIs: ${totalKPIs}`);
           let totalFilled = 0;
@@ -712,11 +729,11 @@ export const usePortfolioRankings = (
           const govAFeats = aFeats.filter(k => GOV_ANNUAL_FEATURES.includes(k));
 
           // let envTotal = getTotalKPICount(envQFeats) * 4 + getTotalKPICount(envAFeats);
-          let envTotal = period === 'annual' ? getTotalKPICount(envQFeats) * (year == 2025 ? 4 : 1) + getTotalKPICount(envAFeats)  : getTotalKPICount(envQFeats) + getTotalKPICount(envAFeats);
+          let envTotal = period === 'annual' ? getTotalKPICount(envQFeats) * (year == 2025 ? 4 : 1) + getTotalKPICount(envAFeats) : getTotalKPICount(envQFeats) + getTotalKPICount(envAFeats);
 
           let envFilled = 0;
           // let socTotal = getTotalKPICount(socQFeats) * 4 + getTotalKPICount(socAFeats);
-          let socTotal = period === 'annual' ? getTotalKPICount(socQFeats) * (year == 2025 ? 4 : 1) + getTotalKPICount(socAFeats)  : getTotalKPICount(socQFeats) + getTotalKPICount(socAFeats);
+          let socTotal = period === 'annual' ? getTotalKPICount(socQFeats) * (year == 2025 ? 4 : 1) + getTotalKPICount(socAFeats) : getTotalKPICount(socQFeats) + getTotalKPICount(socAFeats);
 
           let socFilled = 0;
           // let govTotal = getTotalKPICount(govQFeats) * 4 + getTotalKPICount(govAFeats);

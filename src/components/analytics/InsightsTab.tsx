@@ -20,6 +20,7 @@ import { mockCompanies } from '@/data/mockData';
 import { usePortfolioRankingsV1 } from '@/hooks/usePortfolioRankingsV1';
 import { Switch } from '../ui/switch';
 import { TrendsComparisonPage } from '@/hooks/TrendsComparisionPage';
+import { useSearchParams } from "react-router-dom";
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface InsightTabProps {
@@ -98,7 +99,23 @@ const InsightTabInner = ({
   newInsight = false
 }: InsightTabProps) => {
   const navigate = useNavigate();
-  const [showTrends, setShowTrends] = useState(false);
+  
+
+const [searchParams, setSearchParams] = useSearchParams();
+
+const initialView = searchParams.get("view") === "trends" || false;
+
+const [showTrends, setShowTrends] = useState(initialView);
+
+  const handleViewChange = (checked: boolean) => {
+    setShowTrends(checked);
+  
+    const params = new URLSearchParams(searchParams);
+  
+    params.set("view", checked ? "trends" : "insights");
+  
+    setSearchParams(params, { replace: true });
+  };
 
   // ── Rankings ──
   const { rankings: allRankings, isLoading: rankingsLoading } = usePortfolioRankings(
@@ -498,7 +515,7 @@ const InsightTabInner = ({
 
                     <Switch
                       checked={showTrends}
-                      onCheckedChange={setShowTrends}
+                      onCheckedChange={handleViewChange}
                     />
 
                     <span
