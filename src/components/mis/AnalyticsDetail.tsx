@@ -2269,13 +2269,13 @@ const AnalyticsDetail = () => {
                         </TableRow>
                       ) : (
                         tableData.map((row, i) => {
-                          // const isLowCompleteness = state?.lowCompletenessBrands?.includes(row.brand);
+                          const isLowCompleteness = state?.lowCompletenessBrands?.includes(row.brand);
                           const isRedHighlight = shouldHighlightRed(row, title);
                           //console.log(`[${row.brand}] isRedHighlight: ${isRedHighlight}, title: "${title}"`);
                           return (
                             <TableRow key={`${row.brand}-${i}`} className={showMissing ? 'bg-destructive/5' : ''}>
                               <TableCell className="text-xs text-muted-foreground">{i + 1}</TableCell>
-                              <TableCell className={`text-xs font-medium ${isRedHighlight ? 'text-red-600 dark:text-red-400' : ''}`}>
+                              <TableCell className={`text-xs font-medium ${isLowCompleteness ? 'text-red-600 dark:text-red-400' : ''}`}>
                                 {row.brand}
                               </TableCell>
                               <TableCell className="text-xs">

@@ -149,7 +149,7 @@
 
 // TrendsComparisonPage.tsx
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, TrendingUp, TrendingDown, Minus, Trophy, BarChart3, Leaf, UsersRound, Shield, CheckCircle2, RefreshCw, Clock, ChevronDown, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -162,6 +162,7 @@ import { AnalyticsFilters, InsightMetrics, CompanyRawMetrics, useAnalyticsDashbo
 import { usePortfolioRankings } from "@/hooks/usePortfolioRankings";
 import { usePortfolioRankingsV1 } from "@/hooks/usePortfolioRankingsV1";
 import { Fund, Industry, QCategory, RevenueStage } from "@/types/esg";
+import { useSearchParams } from "react-router-dom";
 
 // ──── Config — adjust to match your app's actual available years/quarters ────
 const AVAILABLE_YEARS = [2024, 2025, 2026];
@@ -179,7 +180,7 @@ interface PeriodSelection {
   firesidePOC?: string;
 }
 
-const defaultPeriodA: PeriodSelection = { periodType: 'quarterly', quarter: 'Q1', year: 2025 };
+const defaultPeriodA: PeriodSelection = { periodType: 'quarterly', quarter: 'Q4', year: 2025 };
 const defaultPeriodB: PeriodSelection = { periodType: 'quarterly', quarter: 'Q1', year: 2026 };
 
 function toFilters(sel: PeriodSelection): AnalyticsFilters {
@@ -432,9 +433,41 @@ interface TrendsComparisonPageProps {
   setShowTrends?: (value: boolean) => void;
 }
 
-export const TrendsComparisonPage = ({ filters, newInsight = false,showTrends,setShowTrends }: TrendsComparisonPageProps) => {
-  const [periodA, setPeriodA] = useState<PeriodSelection>({ ...filters, ...defaultPeriodA });
-  const [periodB, setPeriodB] = useState<PeriodSelection>({ ...filters, ...defaultPeriodB });
+export const TrendsComparisonPage = ({ filters, newInsight = false, showTrends, setShowTrends }: TrendsComparisonPageProps) => {
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  function parsePeriod(
+    raw: string | null,
+    defaults: PeriodSelection
+  ): PeriodSelection {
+    if (!raw) return { ...filters, ...defaults };
+    const [quarter, year] = raw.split(" ");
+    return { ...filters, ...defaults, quarter, year: parseInt(year) };
+  }
+
+  const periodA = useMemo(
+    () => parsePeriod(searchParams.get("periodA"), defaultPeriodA),
+    [searchParams, filters]
+  );
+
+  const periodB = useMemo(
+    () => parsePeriod(searchParams.get("periodB"), defaultPeriodB),
+    [searchParams, filters]
+  );
+
+  const setPeriodA = (next: PeriodSelection) => {
+    const params = new URLSearchParams(searchParams);
+    params.set("periodA", `${next.quarter} ${next.year}`);
+    setSearchParams(params, { replace: true });
+  };
+
+  const setPeriodB = (next: PeriodSelection) => {
+    const params = new URLSearchParams(searchParams);
+    params.set("periodB", `${next.quarter} ${next.year}`);
+    setSearchParams(params, { replace: true });
+  };
+  // const [periodA, setPeriodA] = useState<PeriodSelection>({ ...filters, ...defaultPeriodA });
+  // const [periodB, setPeriodB] = useState<PeriodSelection>({ ...filters, ...defaultPeriodB });
   console.log('TrendsComparisonPage called with filters:', filters, 'periodA:', periodA, 'periodB:', periodB);
   // "Applied" state — comparison only recomputes when the user clicks Compare,
   // not on every dropdown change (avoids re-fetching on every intermediate selection).
@@ -443,6 +476,34 @@ export const TrendsComparisonPage = ({ filters, newInsight = false,showTrends,se
 
   const [expandedScore, setExpandedScore] = useState<string | null>('esgCompositeScore');
   const [expandedRanking, setExpandedRanking] = useState<string | null>('overall');
+
+
+
+
+
+  // useEffect(()=>{
+  //   const view = searchParams.get("view");
+  //   const paramsPeriodA=searchParams.get("periodA");
+  //   const paramsPeriodB=searchParams.get("periodB");
+  //   setPeriodA({...periodA,quarter:paramsPeriodA.split(" ")[0],year:parseInt(paramsPeriodA.split(" ")[1])})
+  //   setPeriodB({...periodB,quarter:paramsPeriodB.split(" ")[0],year:parseInt(paramsPeriodB.split(" ")[1])})
+  //   console.log('This is view :: view =>',view)
+  // },[searchParams])
+
+  // useEffect(()=>{
+  //    const params = new URLSearchParams(searchParams);
+  //   if(periodA && periodA.quarter && periodA.year){
+  //     params.set("periodA", `${periodA.quarter} ${periodA.year}`);
+  //   }
+  //   if(periodB && periodB.quarter && periodB.year){
+  //     params.set("periodB", `${periodB.quarter} ${periodB.year}`);
+  //   }
+
+
+  //   // params.set("view", checked ? "trends" : "insights");
+
+  //   setSearchParams(params, { replace: true });
+  // },[periodA,periodB])
 
   const handleCompare = () => {
     setAppliedA(periodA);
@@ -486,10 +547,10 @@ export const TrendsComparisonPage = ({ filters, newInsight = false,showTrends,se
     return map;
   }, [companyRawDataA]);
 
-  console.log("Rankings A:", allRankingsA);
-  console.log("Rankings B:", allRankingsB);
-  console.log("Company Raw Data A:", companyRawDataA);
-  console.log("Company Raw Data B:", companyRawDataB);
+  // console.log("Rankings A:", allRankingsA);
+  // console.log("Rankings B:", allRankingsB);
+  // console.log("Company Raw Data A:", companyRawDataA);
+  // console.log("Company Raw Data B:", companyRawDataB);
 
   // ── Company pools — comparisons are driven by Period B's (target) company set ──
   const submittingCompaniesB = companyRawDataB.filter(c => Object.keys(c.kpis).length > 0);
@@ -594,7 +655,7 @@ export const TrendsComparisonPage = ({ filters, newInsight = false,showTrends,se
         <div className="flex items-center justify-between mb-3">
           <div
             className="flex items-center gap-2 cursor-pointer group"
-            onClick={() =>{} }
+            onClick={() => { }}
           >
             <Trophy className="w-5 h-5 text-amber-500" />
             <h2 className="text-base font-semibold group-hover:underline">
