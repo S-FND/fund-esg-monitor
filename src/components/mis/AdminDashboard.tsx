@@ -396,7 +396,19 @@ const AdminDashboard = () => {
     const view = searchParams.get("view");
     if (view) {
       p.view = view;
+      if (view == 'trends') {
+        const periodA = searchParams.get("periodA");
+        const periodB = searchParams.get("periodB");
+
+        if (periodA) {
+          p.periodA = periodA;
+        }
+        if (periodB) {
+          p.periodB = periodB;
+        }
+      }
     }
+
 
     setSearchParams(p, { replace: true });
   }, [setSearchParams]);
@@ -432,6 +444,7 @@ const AdminDashboard = () => {
   // const isFeatureView = selectedFeature && selectedFeature !== 'cumulative';
 
   const { data, isLoading, error } = useAnalyticsDashboardData(filters);
+  console.log('AdminDashboard :: data',data)
   // ─── Build detail tables for PDF export (derived insights + aggregation per-company) ───
   const buildPDFDetailTables = (rawData: any[], featureKeys: { key: string; label: string }[]): import('@/lib/exportUtils').PDFDetailTable[] => {
     const tables: import('@/lib/exportUtils').PDFDetailTable[] = [];
