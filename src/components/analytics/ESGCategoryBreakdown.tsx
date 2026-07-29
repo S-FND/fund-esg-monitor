@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { X, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { AnalyticsFilters } from '@/hooks/useAnalyticsDashboardData';
+import { mockCompanies } from '@/data/mockData';
 
 interface CompanyScore {
   brand: string;
@@ -17,6 +19,8 @@ interface ESGCategoryBreakdownProps {
   onClose: () => void;
   onCategoryClick?: (categoryKey: string, categoryLabel: string, companyBrands: string[]) => void;
   lowCompletenessBrands?: Set<string>;
+  filters: AnalyticsFilters;
+  setFilteredCompanyBrands: React.Dispatch<React.SetStateAction<string[]>>;
 }
 
 const CATEGORIES = [
@@ -56,12 +60,53 @@ const getCategoryForPercentile = (percentile: number): string => {
   return 'C';
 };
 
-export const ESGCategoryBreakdown = ({ title, companies, onClose, onCategoryClick, lowCompletenessBrands }: ESGCategoryBreakdownProps) => {
+export const ESGCategoryBreakdown = ({ title, companies, onClose, onCategoryClick, lowCompletenessBrands, filters,setFilteredCompanyBrands }: ESGCategoryBreakdownProps) => {
   const [showScores, setShowScores] = useState(false);
-  //console.log("ESGCategoryBreakdown - companies:", companies);
+  console.log("ESGCategoryBreakdown - companies:", companies);
+  console.log("ESGCategoryBreakdown - filters:", filters);
   // console.log("ESGCategoryBreakdown - companies.length:", companies.length);
   const withPercentiles = assignPercentiles(companies);
   // console.log("ESGCategoryBreakdown - withPercentiles:", withPercentiles);
+  // let filteredCompanyIds = mockCompanies
+  // .filter((c) => {
+  //   if(c.investmentStatus !== 'Invested') return false;
+  //   if (filters?.fund && c.fund !== filters.fund) return false;
+  //   if (filters?.industry && c.industry !== filters.industry) return false;
+  //   if (filters?.revenueStage && c.revenueStage !== filters.revenueStage) return false;
+  //   if (filters?.qCategory && c.qCategory !== filters.qCategory) return false;
+  //   if (filters?.firesidePOC && c.fl !== filters.firesidePOC) return false;
+  //   return true;
+  // })
+  // .map((c) => c.brand);
+  // console.log('filteredCompanyIds :: => ',filteredCompanyIds)
+  const filteredCompanyIds = useMemo(() => {
+    return mockCompanies
+      .filter((c) => {
+        if (c.investmentStatus !== 'Invested') return false;
+        if (filters?.fund && c.fund !== filters.fund) return false;
+        if (filters?.industry && c.industry !== filters.industry) return false;
+        if (filters?.revenueStage && c.revenueStage !== filters.revenueStage) return false;
+        if (filters?.qCategory && c.qCategory !== filters.qCategory) return false;
+        if (filters?.firesidePOC && c.fl !== filters.firesidePOC) return false;
+        return true;
+      })
+      .map((c) => c.brand);
+  }, [
+    filters?.fund,
+    filters?.industry,
+    filters?.revenueStage,
+    filters?.qCategory,
+    filters?.firesidePOC,
+  ]);
+
+  useEffect(() => {
+    setFilteredCompanyBrands((prev) => {
+      const same =
+        prev.length === filteredCompanyIds.length &&
+        prev.every((id, i) => id === filteredCompanyIds[i]);
+      return same ? prev : filteredCompanyIds;
+    });
+  }, [filteredCompanyIds, setFilteredCompanyBrands]);
 
   const categorized = CATEGORIES.map(cat => ({
     ...cat,
@@ -76,7 +121,7 @@ export const ESGCategoryBreakdown = ({ title, companies, onClose, onCategoryClic
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <CardTitle className="text-sm">{title} — Grade Breakdown</CardTitle>
-            <Badge variant="secondary" className="text-[10px]">n={companies.length}</Badge>
+            <Badge variant="secondary" className="text-[10px]">n={filteredCompanyIds.length}</Badge>
           </div>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
@@ -115,7 +160,7 @@ export const ESGCategoryBreakdown = ({ title, companies, onClose, onCategoryClic
                 {cat.companies.length === 0 ? (
                   <p className="text-[10px] text-muted-foreground text-center py-2 italic">No companies</p>
                 ) : (
-                  cat.companies.map(c => {
+                  cat.companies.filter(c => filteredCompanyIds.includes(c.brand)).map(c => {
                     const isLowCompleteness = lowCompletenessBrands?.has(c.brand);
                     return (
                       <div
@@ -135,7 +180,7 @@ export const ESGCategoryBreakdown = ({ title, companies, onClose, onCategoryClic
                 )}
                 {cat.companies.length > 0 && (
                   <div className="text-center pt-1">
-                    <Badge variant="outline" className="text-[9px]">{cat.companies.length} companies</Badge>
+                    <Badge variant="outline" className="text-[9px]">{cat.companies.filter(c => filteredCompanyIds.includes(c.brand)).length} companies</Badge>
                   </div>
                 )}
               </div>
