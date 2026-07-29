@@ -1052,12 +1052,13 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters, kpiEntries?
         if (filters.year && filters.year == 2025) {
           filteredCompanies = filteredCompanies.filter(c => !['company-44', 'company-45'].includes(c.id))
         }
-        if (filters.industry) filteredCompanies = filteredCompanies.filter(c => c.industry === filters.industry);
-        if (filters.fund) filteredCompanies = filteredCompanies.filter(c => c.fund === filters.fund);
-        if (filters.revenueStage) filteredCompanies = filteredCompanies.filter(c => c.revenueStage === filters.revenueStage);
-        if (filters.qCategory) filteredCompanies = filteredCompanies.filter(c => c.qCategory === filters.qCategory);
-        if (filters.firesidePOC) filteredCompanies = filteredCompanies.filter(c => c.fl === filters.firesidePOC);
-        if (filters.companyId) filteredCompanies = filteredCompanies.filter(c => c.id === filters.companyId);
+        // Need to do filters after calculation
+        // if (filters.industry) filteredCompanies = filteredCompanies.filter(c => c.industry === filters.industry);
+        // if (filters.fund) filteredCompanies = filteredCompanies.filter(c => c.fund === filters.fund);
+        // if (filters.revenueStage) filteredCompanies = filteredCompanies.filter(c => c.revenueStage === filters.revenueStage);
+        // if (filters.qCategory) filteredCompanies = filteredCompanies.filter(c => c.qCategory === filters.qCategory);
+        // if (filters.firesidePOC) filteredCompanies = filteredCompanies.filter(c => c.fl === filters.firesidePOC);
+        // if (filters.companyId) filteredCompanies = filteredCompanies.filter(c => c.id === filters.companyId);
         const companyIds = new Set(filteredCompanies.map(c => c.id));
         //console.log('filters.cumulative', filters.cumulative);
         //console.log("periods :: timeSeries => ", periods);

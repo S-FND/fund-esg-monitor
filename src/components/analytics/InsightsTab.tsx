@@ -99,8 +99,9 @@ const InsightTabInner = ({
   newInsight = false
 }: InsightTabProps) => {
   const navigate = useNavigate();
+    const [filteredCompanyBrands, setFilteredCompanyBrands] = useState<string[]>([])
 
-
+  console.log('InsightTabInner :: filters => ',filters)
   const [searchParams, setSearchParams] = useSearchParams();
 
   const initialView = searchParams.get("view") === "trends" || false;
@@ -169,7 +170,7 @@ const InsightTabInner = ({
   // const submittingCompanies = companyRawData.filter(c => Object.keys(c.kpis).length > 0);
   const submittingCompanies = [...companyRawData];
 
-  const submittingCount = submittingCompanies.length;
+  const submittingCount = submittingCompanies.filter(c => filteredCompanyBrands.includes(c.brand)).length;
   const envEligibleCompanies = submittingCompanies.filter(c => c.hasEnvironmentFeature);
 
   // ── Per-company composite score averages ──
@@ -406,7 +407,7 @@ const InsightTabInner = ({
 
   const esgCards = [
     { key: 'esgCompositeScore', label: 'ESG Performance Composite Score', value: perCompanyScores.esgCompositeScore, icon: <BarChart3 className="w-4 h-4 text-emerald-600" />, color: 'border-emerald-300 dark:border-emerald-700 bg-emerald-50/50 dark:bg-emerald-950/20', large: true, count: submittingCount },
-    { key: 'circularEconomyIndex', label: 'Environment Score', value: perCompanyScores.circularEconomyIndex, icon: <Leaf className="w-4 h-4 text-amber-600" />, color: 'border-amber-200 dark:border-amber-800 bg-amber-50/30 dark:bg-amber-950/10', large: false, count: envEligibleCompanies.length },
+    { key: 'circularEconomyIndex', label: 'Environment Score', value: perCompanyScores.circularEconomyIndex, icon: <Leaf className="w-4 h-4 text-amber-600" />, color: 'border-amber-200 dark:border-amber-800 bg-amber-50/30 dark:bg-amber-950/10', large: false, count: envEligibleCompanies.filter(c => filteredCompanyBrands.includes(c.brand)).length },
     { key: 'socialScore', label: 'Social Score', value: perCompanyScores.socialScore, icon: <UsersRound className="w-4 h-4 text-blue-600" />, color: 'border-blue-200 dark:border-blue-800 bg-blue-50/30 dark:bg-blue-950/10', large: false, count: submittingCount },
     { key: 'governanceScore', label: 'Governance Score', value: perCompanyScores.governanceScore, icon: <Shield className="w-4 h-4 text-purple-600" />, color: 'border-purple-200 dark:border-purple-800 bg-purple-50/30 dark:bg-purple-950/10', large: false, count: submittingCount },
   ];
@@ -508,7 +509,7 @@ const InsightTabInner = ({
 
                     <Badge variant="secondary" className="text-xs">
                       <Users className="w-3 h-3 mr-1" />
-                      n={rankings.length}
+                      n={rankings.filter(c => filteredCompanyBrands.includes(c.brand)).length}
                     </Badge>
                   </div>
 
@@ -563,7 +564,7 @@ const InsightTabInner = ({
                             </span>
                             <span className="text-xs text-muted-foreground mb-1">avg score</span>
                           </div>
-                          <Badge variant="secondary" className="text-[10px] mt-1">n={rankings.length}</Badge>
+                          <Badge variant="secondary" className="text-[10px] mt-1">n={rankings.filter(c => filteredCompanyBrands.includes(c.brand)).length}</Badge>
                         </CardContent>
                       </Card>
                     );
@@ -590,6 +591,8 @@ const InsightTabInner = ({
                         onCategoryClick={(catKey, catLabel, brands) =>
                           handleRankingCategoryDrillDown(config.key, config.label, catLabel, brands)
                         }
+                        filters={filters}
+                        setFilteredCompanyBrands={setFilteredCompanyBrands}
                       />
                     </div>
                   );
@@ -671,7 +674,8 @@ const InsightTabInner = ({
                       onCategoryClick={(catKey, catLabel, brands) =>
                         handleDrillDown(`${config.title} — Grade ${catLabel}`, config.insightKey, brands)
                       }
-
+                      filters={filters}
+                      setFilteredCompanyBrands={setFilteredCompanyBrands}
                     />
                   </div>
                 );

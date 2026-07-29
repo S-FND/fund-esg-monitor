@@ -654,20 +654,20 @@ export const usePortfolioRankings = (
         let allEntries = entriesRes.data;
         let allFeatures = featuresRes.data;
 
+        //Need to do filters after calculation
+        // if (filters) {
+        //   let filteredCompanies = [...mockCompanies]
 
-        if (filters) {
-          let filteredCompanies = [...mockCompanies]
+        //   if (filters.fund) filteredCompanies = filteredCompanies.filter(m => m.fund == filters.fund);
+        //   if (filters.industry) filteredCompanies = filteredCompanies.filter(c => c.industry === filters.industry);
+        //   if (filters.revenueStage) filteredCompanies = filteredCompanies.filter(c => c.revenueStage === filters.revenueStage);
+        //   if (filters.qCategory) filteredCompanies = filteredCompanies.filter(c => c.qCategory === filters.qCategory);
+        //   if (filters.firesidePOC) filteredCompanies = filteredCompanies.filter(c => c.fl === filters.firesidePOC);
 
-          if (filters.fund) filteredCompanies = filteredCompanies.filter(m => m.fund == filters.fund);
-          if (filters.industry) filteredCompanies = filteredCompanies.filter(c => c.industry === filters.industry);
-          if (filters.revenueStage) filteredCompanies = filteredCompanies.filter(c => c.revenueStage === filters.revenueStage);
-          if (filters.qCategory) filteredCompanies = filteredCompanies.filter(c => c.qCategory === filters.qCategory);
-          if (filters.firesidePOC) filteredCompanies = filteredCompanies.filter(c => c.fl === filters.firesidePOC);
+        //   profilesData = profilesData.filter(p => filteredCompanies.find(f => f.id == p.company_id))
+        //   allEntries = allEntries.filter(e => profilesData.find(p => p.company_id == e.companyId))
 
-          profilesData = profilesData.filter(p => filteredCompanies.find(f => f.id == p.company_id))
-          allEntries = allEntries.filter(e => profilesData.find(p => p.company_id == e.companyId))
-
-        }
+        // }
 
         //Static code change for annual kpi data to show in 2026 from 2025
         if (year === 2026) {
