@@ -1,10 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { CompanyCardFilter } from "@/components/esg-cap/CompanyCardFilter";
-import {
-    Leaf, ChevronLeft, ChevronRight, AlertTriangle, CheckCircle,
-    Clock, FileText, RefreshCw, Building2
-} from "lucide-react";
+import {Bell} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
     Select,
@@ -243,6 +240,22 @@ export default function CompanySelectionPage() {
         "TBD",
         "Varun Varma",
     ];
+
+    const [unreadCount, setUnreadCount] = useState(0);
+    useEffect(() => {
+        const fetchUnreadCount = async () => {
+        try {
+            const response: any = await http.get('notification');
+            if (response?.data?.status === true && response.data?.data) {
+            const unread = response.data.data.filter((n: any) => !n.isRead).length;
+            setUnreadCount(unread);
+            }
+        } catch (error) {
+            console.error('Failed to fetch unread count:', error);
+        }
+        };
+        fetchUnreadCount();
+    }, []);
 
     const getAuditLogs = async () => {
         let logs: any = await http.get('audit');
@@ -614,15 +627,36 @@ export default function CompanySelectionPage() {
                             </p>
                         </div>
                         <div className="flex flex-wrap items-center justify-end gap-2 mb-3 md:mb-0">
-                            <Button
-                                variant="outline"
-                                onClick={() => setAuditOpen(true)}
-                                className="flex items-center gap-2" // comment for production
-                                >
-                                <History className="w-4 h-4" />
-                                Audit Logs
-                            </Button>
-                        </div>
+                        {/* Notifications */}
+                        <Button
+                            variant="outline"
+                            onClick={() => navigate('/notifications')}
+                            className="group relative px-3 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300"
+                        >
+                            <Bell className="w-4 h-4" />
+                            <span className="ml-2 hidden group-hover:inline whitespace-nowrap">
+                            Notifications
+                            </span>
+
+                            {unreadCount > 0 && (
+                            <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                                {unreadCount}
+                            </span>
+                            )}
+                        </Button>
+
+                        {/* Audit Logs */}
+                        <Button
+                            variant="outline"
+                            onClick={() => setAuditOpen(true)}
+                            className="group px-3 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300"
+                        >
+                            <History className="w-4 h-4" />
+                            <span className="ml-2 hidden group-hover:inline whitespace-nowrap">
+                            Audit Logs
+                            </span>
+                        </Button>
+                       </div>
                     </div>
 
                     <Card>
