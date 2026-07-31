@@ -358,10 +358,10 @@ export default function Team() {
                             Edit
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-red-600">
+                          {/* <DropdownMenuItem className="text-red-600">
                             <UserX className="h-4 w-4 mr-2" />
                             Deactivate
-                          </DropdownMenuItem>
+                          </DropdownMenuItem> */}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>

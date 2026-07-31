@@ -7,7 +7,10 @@ import {
   ListChecks, 
   Users, 
   FileCheck,
-  Calculator 
+  Calculator, 
+  Bell,
+  LayoutDashboard,
+  Logs
 } from "lucide-react";
 import { NavItem, NavItemWithSubItems } from "./types";
 
@@ -52,7 +55,7 @@ export const esgDDNavItem: NavItemWithSubItems = {
      {
       title: "ESG CAP Dashboard",
       href: "/esg-dd/cap/dashboard",
-      icon: FileCheck,
+      icon: LayoutDashboard,
     },
     {
       title: "ESG DD Report",
@@ -62,7 +65,12 @@ export const esgDDNavItem: NavItemWithSubItems = {
     {
       title: "ESG CAP",
       href: "/esg-dd/cap",
-      icon: FileCheck,
+      icon: Logs,
+    },
+    {
+      title: "Notification",
+      href: "/notifications",
+      icon: Bell,
     },
   ]
 };
