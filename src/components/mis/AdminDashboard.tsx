@@ -392,6 +392,24 @@ const AdminDashboard = () => {
     if (f.companyId) p.companyId = f.companyId;
     if (f.cumulative) p.cumulative = 'true';
     if (feat) p.feature = feat;
+
+    const view = searchParams.get("view");
+    if (view) {
+      p.view = view;
+      if (view == 'trends') {
+        const periodA = searchParams.get("periodA");
+        const periodB = searchParams.get("periodB");
+
+        if (periodA) {
+          p.periodA = periodA;
+        }
+        if (periodB) {
+          p.periodB = periodB;
+        }
+      }
+    }
+
+
     setSearchParams(p, { replace: true });
   }, [setSearchParams]);
 
@@ -426,6 +444,7 @@ const AdminDashboard = () => {
   // const isFeatureView = selectedFeature && selectedFeature !== 'cumulative';
 
   const { data, isLoading, error } = useAnalyticsDashboardData(filters);
+  console.log('AdminDashboard :: data', data)
   // ─── Build detail tables for PDF export (derived insights + aggregation per-company) ───
   const buildPDFDetailTables = (rawData: any[], featureKeys: { key: string; label: string }[]): import('@/lib/exportUtils').PDFDetailTable[] => {
     const tables: import('@/lib/exportUtils').PDFDetailTable[] = [];
@@ -1063,7 +1082,16 @@ const AdminDashboard = () => {
             <>
               <Badge variant="secondary" className="text-xs">
                 <Building2 className="w-3 h-3 mr-1" />
-                {data.companyCount} companies
+                {mockCompanies
+                  .filter((c) => {
+                    if (c.investmentStatus !== 'Invested') return false;
+                    if (filters?.fund && c.fund !== filters.fund) return false;
+                    if (filters?.industry && c.industry !== filters.industry) return false;
+                    if (filters?.revenueStage && c.revenueStage !== filters.revenueStage) return false;
+                    if (filters?.qCategory && c.qCategory !== filters.qCategory) return false;
+                    if (filters?.firesidePOC && c.fl !== filters.firesidePOC) return false;
+                    return true;
+                  }).length} companies
               </Badge>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -1326,12 +1354,12 @@ const AdminDashboard = () => {
           </TabsContent>
 
           {/* <TabsContent value="trends" className="mt-4"> */}
-            {/* <TrendsTab
+          {/* <TrendsTab
               periodAFilters={{ period: 'quarterly', quarter: 'Q4', year: 2025, cumulative: false }}
               periodBFilters={{ period: 'quarterly', quarter: 'Q1', year: 2026, cumulative: false }}
               newInsight={true}
             /> */}
-            {/* <TrendsComparisonPage />
+          {/* <TrendsComparisonPage />
           </TabsContent> */}
         </Tabs>
       ) : null}

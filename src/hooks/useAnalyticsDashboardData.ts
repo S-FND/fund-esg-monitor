@@ -248,6 +248,7 @@ const INCIDENT_TYPES = [
 ];
 
 export function buildAggregation(kpis: Record<string, string>): AggregationMetrics {
+  // console.log("kpis",kpis)
   const netRevenue = parseNum(kpis['net_revenue']);
   const revenueTier2Plus = parseNum(kpis['revenue_tier2_plus']);
   const totalCustomersServed = parseNum(kpis['total_customers_served']);
@@ -646,6 +647,9 @@ export function sumAggregations(items: AggregationMetrics[]): AggregationMetrics
 const safeDiv = (num: number, den: number): number => den === 0 ? 0 : num / den;
 
 export function deriveInsights(agg: AggregationMetrics, industry?: string, hasFashionPackaging?: boolean): InsightMetrics {
+    // if(industry){
+    //   console.log('agg',JSON.stringify(agg),industry,'hasFashionPackaging :: ',hasFashionPackaging)
+    // }
   const totalEmployees = agg.totalEmployment;
   const totalPlastic = agg.primaryPlasticVirgin + agg.primaryPlasticRecycled + agg.secondaryPlasticVirgin + agg.secondaryPlasticRecycled + agg.fashionPlasticPrimaryRecyclable + agg.fashionPlasticPrimaryNonRecyclable + agg.fashionPlasticSecondaryRecyclable + agg.fashionPlasticSecondaryNonRecyclable;
 
@@ -927,7 +931,7 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters, kpiEntries?
   // Stable serialized key to prevent re-fetching on referentially-new-but-equal filter objects
   const filtersKey = JSON.stringify(filters);
   const asOfKey = `${asOf?.month ?? 'live'}-${asOf?.year ?? 'live'}`;
-    console.log("Filters key:", filtersKey, "As-of key:", asOfKey);
+  console.log("Filters key:", filtersKey, "As-of key:", asOfKey);
   // useEffect(() => {
   //   if (filters.year && filters.year == 2025) {
 
@@ -981,7 +985,7 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters, kpiEntries?
         }
 
         // const years = [...new Set(periods.map(p => p.year))];
-          const years = filters.years && filters.years.length > 0
+        const years = filters.years && filters.years.length > 0
           ? filters.years
           : [...new Set(periods.map(p => p.year))];
         let allEntries: { companyId: string; kpi_id: string; value: string | null; quarter: string; year: number }[] = [];
@@ -1048,12 +1052,13 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters, kpiEntries?
         if (filters.year && filters.year == 2025) {
           filteredCompanies = filteredCompanies.filter(c => !['company-44', 'company-45'].includes(c.id))
         }
-        if (filters.industry) filteredCompanies = filteredCompanies.filter(c => c.industry === filters.industry);
-        if (filters.fund) filteredCompanies = filteredCompanies.filter(c => c.fund === filters.fund);
-        if (filters.revenueStage) filteredCompanies = filteredCompanies.filter(c => c.revenueStage === filters.revenueStage);
-        if (filters.qCategory) filteredCompanies = filteredCompanies.filter(c => c.qCategory === filters.qCategory);
-        if (filters.firesidePOC) filteredCompanies = filteredCompanies.filter(c => c.fl === filters.firesidePOC);
-        if (filters.companyId) filteredCompanies = filteredCompanies.filter(c => c.id === filters.companyId);
+        // Need to do filters after calculation
+        // if (filters.industry) filteredCompanies = filteredCompanies.filter(c => c.industry === filters.industry);
+        // if (filters.fund) filteredCompanies = filteredCompanies.filter(c => c.fund === filters.fund);
+        // if (filters.revenueStage) filteredCompanies = filteredCompanies.filter(c => c.revenueStage === filters.revenueStage);
+        // if (filters.qCategory) filteredCompanies = filteredCompanies.filter(c => c.qCategory === filters.qCategory);
+        // if (filters.firesidePOC) filteredCompanies = filteredCompanies.filter(c => c.fl === filters.firesidePOC);
+        // if (filters.companyId) filteredCompanies = filteredCompanies.filter(c => c.id === filters.companyId);
         const companyIds = new Set(filteredCompanies.map(c => c.id));
         //console.log('filters.cumulative', filters.cumulative);
         //console.log("periods :: timeSeries => ", periods);
@@ -1122,7 +1127,7 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters, kpiEntries?
           const aggregation = buildAggregation(kpis);
           const hasFashionPkg = fashionPkgCompanyIds.has(company.id);
           // //console.log(`Company ${company.name} (${company.id}) - `);
-
+          
           const insights = deriveInsights(aggregation, company.industry, hasFashionPkg);
           const obj = {
             companyId: company.id,
@@ -1166,8 +1171,9 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters, kpiEntries?
         });
         const quarterlyVirginReductions = computeCrossQuarterVirginReductions(vprPerQuarter);
 
-        applyEnvironmentPercentileNormalization(companyRawData, quarterlyVirginReductions);
-        applySocialScorePercentileNormalization(companyRawData, sourcingCompanyIds);
+        //Commented this for showing same score for filter and without filter
+        // applyEnvironmentPercentileNormalization(companyRawData, quarterlyVirginReductions);
+        // applySocialScorePercentileNormalization(companyRawData, sourcingCompanyIds);
 
         let allCompanyRawData: CompanyRawMetrics[] | undefined;
         let allQuarterlyCombinedRawData: CompanyRawMetrics[] | undefined;
@@ -1260,10 +1266,10 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters, kpiEntries?
                 combinedKpis[k] = v;
               }
             });
-
+            
             const aggregation = buildAggregation(combinedKpis);
             const hasFashionPkg = fashionPkgCompanyIds.has(company.id);
-
+            
             const insights = deriveInsights(aggregation, company.industry, hasFashionPkg);
             return {
               companyId: company.id,
@@ -1290,8 +1296,8 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters, kpiEntries?
           });
           const virginReductions = computeCrossQuarterVirginReductions(perQuarterForVPR);
 
-          applyEnvironmentPercentileNormalization(quarterlyCombinedRawData, virginReductions);
-          applySocialScorePercentileNormalization(quarterlyCombinedRawData, sourcingCompanyIds);
+          // applyEnvironmentPercentileNormalization(quarterlyCombinedRawData, virginReductions);
+          // applySocialScorePercentileNormalization(quarterlyCombinedRawData, sourcingCompanyIds);
 
           const combinedAggs = quarterlyCombinedRawData.map(c => c.aggregation);
           quarterlyCombinedAggregation = sumAggregations(combinedAggs);

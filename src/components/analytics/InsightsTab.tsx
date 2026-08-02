@@ -20,6 +20,7 @@ import { mockCompanies } from '@/data/mockData';
 import { usePortfolioRankingsV1 } from '@/hooks/usePortfolioRankingsV1';
 import { Switch } from '../ui/switch';
 import { TrendsComparisonPage } from '@/hooks/TrendsComparisionPage';
+import { useSearchParams } from "react-router-dom";
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface InsightTabProps {
@@ -98,7 +99,29 @@ const InsightTabInner = ({
   newInsight = false
 }: InsightTabProps) => {
   const navigate = useNavigate();
-  const [showTrends, setShowTrends] = useState(false);
+    const [filteredCompanyBrands, setFilteredCompanyBrands] = useState<string[]>([])
+
+  console.log('InsightTabInner :: filters => ',filters)
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const initialView = searchParams.get("view") === "trends" || false;
+
+  const [showTrends, setShowTrends] = useState(initialView);
+
+  useEffect(()=>{
+    // console.log('showtrends :: ',showTrends)
+    handleViewChange(showTrends);
+  },[showTrends])
+
+  const handleViewChange = (checked: boolean) => {
+    // console.log('checked', checked)
+    setShowTrends(checked);
+    const params = new URLSearchParams(searchParams);
+
+    params.set("view", checked ? "trends" : "insights");
+
+    setSearchParams(params, { replace: true });
+  };
 
   // ── Rankings ──
   const { rankings: allRankings, isLoading: rankingsLoading } = usePortfolioRankings(
@@ -147,7 +170,7 @@ const InsightTabInner = ({
   // const submittingCompanies = companyRawData.filter(c => Object.keys(c.kpis).length > 0);
   const submittingCompanies = [...companyRawData];
 
-  const submittingCount = submittingCompanies.length;
+  const submittingCount = submittingCompanies.filter(c => filteredCompanyBrands.includes(c.brand)).length;
   const envEligibleCompanies = submittingCompanies.filter(c => c.hasEnvironmentFeature);
 
   // ── Per-company composite score averages ──
@@ -188,6 +211,8 @@ const InsightTabInner = ({
     return map;
   }, [rankings]);
 
+  console.log("lowCompletenessMap :: ",lowCompletenessMap)
+
   // ── All companies list (for "Not Considered" tracking) ──
   const allFilteredCompanies = companyRawData.map(c => ({
     brand: c.brand,
@@ -205,6 +230,7 @@ const InsightTabInner = ({
       ((r.completionPct + r.consistencyPct + r.timelinessScore) / 3) * 10,
     ) / 10,
   }));
+  console.log('rankingsWithAvg :: ',rankingsWithAvg)
 
   const sortedRankings = useMemo(() => {
     const keyMap: Record<string, string> = {
@@ -381,7 +407,7 @@ const InsightTabInner = ({
 
   const esgCards = [
     { key: 'esgCompositeScore', label: 'ESG Performance Composite Score', value: perCompanyScores.esgCompositeScore, icon: <BarChart3 className="w-4 h-4 text-emerald-600" />, color: 'border-emerald-300 dark:border-emerald-700 bg-emerald-50/50 dark:bg-emerald-950/20', large: true, count: submittingCount },
-    { key: 'circularEconomyIndex', label: 'Environment Score', value: perCompanyScores.circularEconomyIndex, icon: <Leaf className="w-4 h-4 text-amber-600" />, color: 'border-amber-200 dark:border-amber-800 bg-amber-50/30 dark:bg-amber-950/10', large: false, count: envEligibleCompanies.length },
+    { key: 'circularEconomyIndex', label: 'Environment Score', value: perCompanyScores.circularEconomyIndex, icon: <Leaf className="w-4 h-4 text-amber-600" />, color: 'border-amber-200 dark:border-amber-800 bg-amber-50/30 dark:bg-amber-950/10', large: false, count: envEligibleCompanies.filter(c => filteredCompanyBrands.includes(c.brand)).length },
     { key: 'socialScore', label: 'Social Score', value: perCompanyScores.socialScore, icon: <UsersRound className="w-4 h-4 text-blue-600" />, color: 'border-blue-200 dark:border-blue-800 bg-blue-50/30 dark:bg-blue-950/10', large: false, count: submittingCount },
     { key: 'governanceScore', label: 'Governance Score', value: perCompanyScores.governanceScore, icon: <Shield className="w-4 h-4 text-purple-600" />, color: 'border-purple-200 dark:border-purple-800 bg-purple-50/30 dark:bg-purple-950/10', large: false, count: submittingCount },
   ];
@@ -483,9 +509,10 @@ const InsightTabInner = ({
 
                     <Badge variant="secondary" className="text-xs">
                       <Users className="w-3 h-3 mr-1" />
-                      n={rankings.length}
+                      n={rankings.filter(c => filteredCompanyBrands.includes(c.brand)).length}
                     </Badge>
                   </div>
+
 
                   {/* Toggle */}
                   <div className="flex items-center gap-2">
@@ -499,6 +526,8 @@ const InsightTabInner = ({
                     <Switch
                       checked={showTrends}
                       onCheckedChange={setShowTrends}
+                      onChange={(e) => console.log('raw click on change, current showTrends:')}
+                      onClick={(e) => console.log('raw click, current showTrends:', showTrends)}
                     />
 
                     <span
@@ -508,6 +537,7 @@ const InsightTabInner = ({
                       Trends
                     </span>
                   </div>
+
                 </div>
                 <div className="grid grid-cols-4 gap-3 mb-3">
                   {rankingCards.map(card => {
@@ -534,7 +564,7 @@ const InsightTabInner = ({
                             </span>
                             <span className="text-xs text-muted-foreground mb-1">avg score</span>
                           </div>
-                          <Badge variant="secondary" className="text-[10px] mt-1">n={rankings.length}</Badge>
+                          <Badge variant="secondary" className="text-[10px] mt-1">n={rankings.filter(c => filteredCompanyBrands.includes(c.brand)).length}</Badge>
                         </CardContent>
                       </Card>
                     );
@@ -545,10 +575,13 @@ const InsightTabInner = ({
                 {expandedRanking && (() => {
                   const config = rankingCards.find(c => c.key === expandedRanking);
                   if (!config) return null;
-                  const companiesForBreakdown = rankingsWithAvg.map(r => ({
+                  console.log(`config :: `,config)
+                  const companiesForBreakdown = rankingsWithAvg.map(r => {
+                    console.log(r[config.scoreKey])
+                    return {
                     brand: r.brand,
                     score: (r as any)[config.scoreKey] as number,
-                  }));
+                  }});
                   return (
                     <div className="mb-3">
                       <ESGCategoryBreakdown
@@ -558,6 +591,8 @@ const InsightTabInner = ({
                         onCategoryClick={(catKey, catLabel, brands) =>
                           handleRankingCategoryDrillDown(config.key, config.label, catLabel, brands)
                         }
+                        filters={filters}
+                        setFilteredCompanyBrands={setFilteredCompanyBrands}
                       />
                     </div>
                   );
@@ -619,16 +654,16 @@ const InsightTabInner = ({
                 };
                 const config = scoreMap[expandedScore];
                 if (!config) return null;
-                // console.log('InsightsTab - expandedScore:', expandedScore, 'config:', config);
+                console.log('InsightsTab - expandedScore:', expandedScore, 'config:', config);
                 const pool = expandedScore === 'circularEconomyIndex' ? envEligibleCompanies : submittingCompanies;
-                // console.log('InsightsTab - pool:', pool);
+                console.log('InsightsTab - pool:', pool);
                 const companiesForBreakdown = pool
                   .filter(c =>
                     c.insights[config.insightKey] !== undefined &&
                     !isNaN(c.insights[config.insightKey] as number),
                   )
                   .map(c => ({ brand: c.brand, score: c.insights[config.insightKey] as number }));
-                // console.log('InsightsTab - companiesForBreakdown:', companiesForBreakdown);
+                console.log('InsightsTab - companiesForBreakdown:', companiesForBreakdown);
                 return (
                   <div className="mt-3">
                     <ESGCategoryBreakdown
@@ -639,7 +674,8 @@ const InsightTabInner = ({
                       onCategoryClick={(catKey, catLabel, brands) =>
                         handleDrillDown(`${config.title} — Grade ${catLabel}`, config.insightKey, brands)
                       }
-
+                      filters={filters}
+                      setFilteredCompanyBrands={setFilteredCompanyBrands}
                     />
                   </div>
                 );

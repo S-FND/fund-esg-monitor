@@ -34,6 +34,7 @@ export interface CompanyProfileRaw {
   companyId: string;
   revenueStage: string;
   industry: string;
+  company_id?: string;
 }
 
 export interface KpiEntryRaw {
@@ -73,11 +74,16 @@ export const SOCIAL_ANNUAL_FEATURES = ['operations', 'csr'];
 export const GOV_QUARTERLY_FEATURES: string[] = [];
 export const GOV_ANNUAL_FEATURES = ['governancePolicies', 'certifications', 'sri', 'externalReporting'];
 
-export const getTotalKPICount = (featureKeys: string[]): number => {
+export const getTotalKPICount = (featureKeys: string[], consoleStatus ?:Boolean): number => {
   let count = 0;
   for (const key of featureKeys) {
     const mapping = FEATURE_FIELD_MAPPINGS[key];
-    if (mapping) count += mapping.kpis.filter(kpi => !kpi.excludeFromProgress).length;
+    if (mapping) {
+      if (consoleStatus) {
+        console.log(`Feature Key :: ${key} :: kpis :: => ${JSON.stringify(mapping.kpis.filter(kpi => !kpi.excludeFromProgress))}`)
+      }
+      count += mapping.kpis.filter(kpi => !kpi.excludeFromProgress).length;
+    }
   }
   return count;
 };
@@ -120,15 +126,22 @@ export const isKPIGroupFilled = (
 };
 
 export const countFilledKPIs = (featureKeys: string[], entries: { kpi_id: string; value: string | null }[]): number => {
+  // console.log('featureKeys :: ',featureKeys)
+  // console.log("Entries :: => ",entries.length)
   let count = 0;
   for (const key of featureKeys) {
     const mapping = FEATURE_FIELD_MAPPINGS[key];
     if (!mapping) continue;
     for (const kpi of mapping.kpis) {
       if (kpi.excludeFromProgress) continue;
+      let isKPIGroupFilledStatus=isKPIGroupFilled(kpi, entries);
+      // console.log("isKPIGroupFilled(kpi, entries) :: ",isKPIGroupFilledStatus)
       if (isKPIGroupFilled(kpi, entries)) count++;
+      // console.log(`kpi :: ${kpi.id} :: =>`,count)
     }
+    // console.log(`Key :: ${key} => `,count)
   }
+  // console.log("Total Count :: => ",count)
   return count;
 };
 
@@ -158,7 +171,7 @@ export const usePortfolioRankings = (
   const [rankings, setRankings] = useState<CompanyRanking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { asOf } = useAsOf();
-  let selectedPeriod = period == 'annual' ? ['Q1', 'Q2', 'Q3', 'Q4', 'FY'] : [quarter,'FY'];
+  let selectedPeriod = period == 'annual' && year == 2025 ? ['Q1', 'Q2', 'Q3', 'Q4', 'FY'] : [quarter, 'FY'];
   //console.log('usePortfolioRankings - asOf:', asOf, 'year:', year, 'quarter:', quarter, 'cumulative:', cumulative, 'period:', period);
   // useEffect(() => {
   //   const fetch = async () => {
@@ -637,20 +650,42 @@ export const usePortfolioRankings = (
         let featuresRes = await http.get<FeatureSettingRaw[]>('mis/company-feature-settings?enabled=true');
         //console.log('Fetched data:', { profiles: profilesRes.data, entries: entriesRes.data, features: featuresRes.data });
 
-        const profilesData = profilesRes.data;
+        let profilesData = profilesRes.data;
         let allEntries = entriesRes.data;
-        const allFeatures = featuresRes.data;
+        let allFeatures = featuresRes.data;
+
+        //Need to do filters after calculation
+        // if (filters) {
+        //   let filteredCompanies = [...mockCompanies]
+
+        //   if (filters.fund) filteredCompanies = filteredCompanies.filter(m => m.fund == filters.fund);
+        //   if (filters.industry) filteredCompanies = filteredCompanies.filter(c => c.industry === filters.industry);
+        //   if (filters.revenueStage) filteredCompanies = filteredCompanies.filter(c => c.revenueStage === filters.revenueStage);
+        //   if (filters.qCategory) filteredCompanies = filteredCompanies.filter(c => c.qCategory === filters.qCategory);
+        //   if (filters.firesidePOC) filteredCompanies = filteredCompanies.filter(c => c.fl === filters.firesidePOC);
+
+        //   profilesData = profilesData.filter(p => filteredCompanies.find(f => f.id == p.company_id))
+        //   allEntries = allEntries.filter(e => profilesData.find(p => p.company_id == e.companyId))
+
+        // }
+
         //Static code change for annual kpi data to show in 2026 from 2025
         if (year === 2026) {
           const entriesRes2025 = await http.get<KpiEntryRaw[]>(`mis/kpi-entries?year=2025`);
           if (entriesRes2025.data && entriesRes2025.data.length > 0) {
             const fy2025Entries = entriesRes2025.data.filter(e => e.year === 2025 && e.quarter === 'FY');
+            // console.log("fy2025Entries ==> ",fy2025Entries)
             const fy2026Entries = fy2025Entries.map(e => ({ ...e, year: 2026 }));
+            // console.log("fy2026Entries ==> ",fy2026Entries)
+            // console.log('allEntries ',allEntries.length)
             allEntries = [...allEntries.filter(e => e.quarter !== 'FY'), ...fy2026Entries];
+            // console.log('2 allEntries ',allEntries.length)
+            
           }
           // allEntries.push(...entriesRes2025.data);
         }
-
+        // let company7Entries=allEntries.filter(a => a.companyId == 'company-7' && a.quarter == 'FY')
+        //     console.log('company7Entries :: =>',company7Entries)
 
         // 2. Build profile lookup: companyId → { revenue_stage, industry }
         const profileMap: Record<string, { revenue_stage: string; industry: string }> = {};
@@ -663,7 +698,7 @@ export const usePortfolioRankings = (
 
         // 3. Build company list from mockCompanies (invested only)
         const companies = mockCompanies
-          .filter(c => c.investmentStatus === 'Invested')
+          .filter(c => c.investmentStatus === 'Invested' && profilesData.find(p => p.company_id == c.id))
           .map(c => ({
             companyId: c.id,
             industry: profileMap[c.id]?.industry || c.industry || '',
@@ -695,9 +730,9 @@ export const usePortfolioRankings = (
             : ALL_ANNUAL_FEATURES;
 
           // Before : const totalKPIs = getTotalKPICount(qFeats) * 4 + getTotalKPICount(aFeats);
-          // console.log(`Company ${company.companyId} - Q Features: ${qFeats.length}, A Features: ${aFeats.length}`);
-          // console.log(`Company ${company.companyId} - getTotalKPICount(qFeats): ${getTotalKPICount(qFeats)}, getTotalKPICount(aFeats): ${getTotalKPICount(aFeats)}`);
-          const totalKPIs = period === 'annual' ? getTotalKPICount(qFeats) * (year == 2025 ? 4 : 1) + getTotalKPICount(aFeats)  : getTotalKPICount(qFeats) + getTotalKPICount(aFeats);
+          console.log(`Start Company ${company.companyId} - Q Features: ${qFeats}, A Features: ${aFeats}`);
+          console.log(`Company  ${company.companyId} - getTotalKPICount(qFeats): ${getTotalKPICount(qFeats)}, getTotalKPICount(aFeats): ${getTotalKPICount(aFeats)}`);
+          const totalKPIs = period === 'annual' ? getTotalKPICount(qFeats) * (year == 2025 ? 4 : 1) + getTotalKPICount(aFeats) : getTotalKPICount(qFeats) + getTotalKPICount(aFeats);
           //
           // console.log(`Company ${company.companyId} - Total KPIs: ${totalKPIs}`);
           let totalFilled = 0;
@@ -710,33 +745,38 @@ export const usePortfolioRankings = (
           const socAFeats = aFeats.filter(k => SOCIAL_ANNUAL_FEATURES.includes(k));
           const govQFeats = qFeats.filter(k => GOV_QUARTERLY_FEATURES.includes(k));
           const govAFeats = aFeats.filter(k => GOV_ANNUAL_FEATURES.includes(k));
+          console.log('envAFeats :: ', envAFeats)
+          console.log('envQFeats ::', envQFeats)
+          console.log("getTotalKPICount(envAFeats,true):: =>",getTotalKPICount(envAFeats))
+          console.log("getTotalKPICount(envQFeats,true):: =>",getTotalKPICount(envQFeats))
 
           // let envTotal = getTotalKPICount(envQFeats) * 4 + getTotalKPICount(envAFeats);
-          let envTotal = period === 'annual' ? getTotalKPICount(envQFeats) * (year == 2025 ? 4 : 1) + getTotalKPICount(envAFeats)  : getTotalKPICount(envQFeats) + getTotalKPICount(envAFeats);
+          let envTotal = period === 'annual' ? getTotalKPICount(envQFeats,true) * (year == 2025 ? 4 : 1) + getTotalKPICount(envAFeats,true) : getTotalKPICount(envQFeats,true) + getTotalKPICount(envAFeats,true);
 
           let envFilled = 0;
           // let socTotal = getTotalKPICount(socQFeats) * 4 + getTotalKPICount(socAFeats);
-          let socTotal = period === 'annual' ? getTotalKPICount(socQFeats) * (year == 2025 ? 4 : 1) + getTotalKPICount(socAFeats)  : getTotalKPICount(socQFeats) + getTotalKPICount(socAFeats);
+          let socTotal = period === 'annual' ? getTotalKPICount(socQFeats) * (year == 2025 ? 4 : 1) + getTotalKPICount(socAFeats) : getTotalKPICount(socQFeats) + getTotalKPICount(socAFeats);
 
           let socFilled = 0;
           // let govTotal = getTotalKPICount(govQFeats) * 4 + getTotalKPICount(govAFeats);
           let govTotal = period === 'annual' ? getTotalKPICount(govQFeats) * (year == 2025 ? 4 : 1) + getTotalKPICount(govAFeats) : getTotalKPICount(govQFeats) + getTotalKPICount(govAFeats);
 
           let govFilled = 0;
-
           // 6a. Completeness — per period, skip excluded quarters
           // for (const p of ['Q1', 'Q2', 'Q3', 'Q4', 'FY']) {
           for (const p of selectedPeriod) {
+            console.log('p :: => ',p)
             if (isCompanyExcluded(company.companyId, p, year)) {
               if (p !== 'FY') {
                 adjustedTotalKPIs -= getTotalKPICount(qFeats);
-                envTotal -= getTotalKPICount(envQFeats);
+                envTotal -= getTotalKPICount(envQFeats, true);
                 socTotal -= getTotalKPICount(socQFeats);
                 govTotal -= getTotalKPICount(govQFeats);
               }
               continue;
             }
             const pEntries = cEntries.filter(e => e.quarter === p);
+            console.log('pEntries ==> ',pEntries.length)
             totalFilled += countFilledKPIs(p === 'FY' ? aFeats : qFeats, pEntries);
 
             // envFilled += countFilledKPIs(envQFeats, pEntries);
@@ -745,7 +785,12 @@ export const usePortfolioRankings = (
 
             //Static code change for showing Annual kpis to quarter filter
             if (p === 'FY') {
-              envFilled += countFilledKPIs(envAFeats, pEntries);
+              let envCount=countFilledKPIs(envAFeats, pEntries);
+              // envFilled += countFilledKPIs(envAFeats, pEntries);
+              // console.log('Internal Envfilled :: envFilled => ',envFilled)
+              // console.log('Internal envCount :: envCount => ',envCount)
+              envFilled=envFilled+envCount;
+              // console.log('Internal Envfilled plus count :: envFilled => ',envFilled)
               socFilled += countFilledKPIs(socAFeats, pEntries);
               govFilled += countFilledKPIs(govAFeats, pEntries);
             } else {
@@ -753,13 +798,16 @@ export const usePortfolioRankings = (
               socFilled += countFilledKPIs(socQFeats, pEntries);
               govFilled += countFilledKPIs(govQFeats, pEntries);
             }
+            
+            console.log('envFilled :: => ',envFilled)
           }
-
+          console.log('totalFilled :: ',totalFilled)
+          console.log('adjustedTotalKPIs :: ',adjustedTotalKPIs)
           const completionPct = adjustedTotalKPIs > 0
             ? r2((totalFilled / adjustedTotalKPIs) * 100)
             : 0;
-          // console.log(`Company ${company.companyId} - Total Filled: ${totalFilled}, Adjusted Total KPIs: ${adjustedTotalKPIs}, Completion %: ${completionPct}`);
-          // console.log(`Company ${company.companyId} - E: ${envFilled}/${envTotal}, S: ${socFilled}/${socTotal}, G: ${govFilled}/${govTotal}`);
+          console.log(`Company ${company.companyId} - Total Filled: ${totalFilled}, Adjusted Total KPIs: ${adjustedTotalKPIs}, Completion %: ${completionPct}`);
+          console.log(`Company ${company.companyId} - E: ${envFilled}/${envTotal}, S: ${socFilled}/${socTotal}, G: ${govFilled}/${govTotal}`);
           const esgCompleteness: ESGCompleteness = {
             E: envTotal > 0 ? r2((envFilled / envTotal) * 100) : 0,
             S: socTotal > 0 ? r2((socFilled / socTotal) * 100) : 0,
@@ -801,11 +849,29 @@ export const usePortfolioRankings = (
             : 0;
 
           // 6c. Timeliness — first submission per period, capped at March 3 of next year
+          let timelineYearObj = {
+            2025: {
+              TIMELINESS_CUTOFF: new Date(2026, 2, 3, 23, 59, 59).getTime(),
+              feb4: new Date(2026, 1, 4).getTime(),
+              feb20: new Date(2026, 1, 20).getTime(),
+              feb24: new Date(2026, 1, 24).getTime()
+            },
+            2026: {
+              TIMELINESS_CUTOFF: new Date(2026, 6, 19, 23, 59, 59).getTime(),
+              feb4: new Date(2026, 5, 30).getTime(),
+              feb20: new Date(2026, 6, 10).getTime(),
+              feb24: new Date(2026, 6, 15).getTime()
+            }
+          }
           const deadlineYear = year + 1;
-          const TIMELINESS_CUTOFF = new Date(deadlineYear, 2, 3, 23, 59, 59).getTime();
-          const feb4 = new Date(deadlineYear, 1, 4).getTime();
-          const feb20 = new Date(deadlineYear, 1, 20).getTime();
-          const feb24 = new Date(deadlineYear, 1, 24).getTime();
+          // const TIMELINESS_CUTOFF = new Date(deadlineYear, 2, 3, 23, 59, 59).getTime();
+          // const feb4 = new Date(deadlineYear, 1, 4).getTime();
+          // const feb20 = new Date(deadlineYear, 1, 20).getTime();
+          // const feb24 = new Date(deadlineYear, 1, 24).getTime();
+          const TIMELINESS_CUTOFF = timelineYearObj[year]?.TIMELINESS_CUTOFF;
+          const feb4 = timelineYearObj[year]?.feb4;
+          const feb20 = timelineYearObj[year]?.feb20;
+          const feb24 = timelineYearObj[year]?.feb24;
 
           const firstSubmissionPerPeriod: number[] = [];
           // for (const p of ['Q1', 'Q2', 'Q3', 'Q4', 'FY']) {

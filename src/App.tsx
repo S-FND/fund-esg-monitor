@@ -63,6 +63,7 @@ import CompanyRankings from "./components/mis/CompanyRankings";
 import CompanySelectionPage from "./pages/CompanySelectionPage";
 import ProtectedRoute from "./contexts/ProtectedRoute";
 import ESGCAPDashboard from "./pages/ESGCAPDashboard";
+import NotificationsPage from "./pages/Notifications";
 
 function App() {
   const { toast } = useToast();
@@ -161,6 +162,7 @@ function App() {
                 <Route path="esg-cap/review/:id" element={<ESGCapDetailsPage />} />
                 <Route path="valuation" element={<Valuation />} />
                 <Route path="esg-dd/risk-matrix" element={<ESGRiskMatrix />} />
+                <Route path="/notifications" element={<NotificationsPage />} />
                 {/* <Route path="/audit-logs" element={<AuditLogsPage />} /> */}
 
 

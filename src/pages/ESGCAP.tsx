@@ -321,7 +321,7 @@ export default function ESGCAP() {
     (planData.finalPlan || (planData.founderPlanFinalStatus && planData.investorPlanFinalStatus)) :
     false;
 
-  const handleSubmitAllCap = async () => {
+  const handleSubmitAllCap = async (capItems) => {
     try {
       // //console.log('planData planData', planData);
       const payload = {
@@ -633,12 +633,12 @@ export default function ESGCAP() {
     saveToLocalStorage(updatedItems);
   };
 
-  const handleDeleteItem = (itemId: string | number) => {
+  const handleDeleteItem = async (itemId: string | number) => {
     const updatedItems = capItems.filter(item => item.id !== itemId);
     setCapItems(updatedItems);
     setFilteredCAPItems(updatedItems);
     saveToLocalStorage(updatedItems);
-
+    await handleSubmitAllCap(updatedItems);
     toast({
       title: "Item Deleted",
       description: "Item has been removed from the plan.",
