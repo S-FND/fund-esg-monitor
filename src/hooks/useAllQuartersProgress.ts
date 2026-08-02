@@ -196,10 +196,10 @@ export const useAllQuartersProgress = (companyId: string, year: number = 2025, r
 
     const quarterlyTotal = getFeatureKPICount(effectiveQuarterly);
     const annualTotal = getFeatureKPICount(effectiveAnnual);
-    //console.log('Effective quarterly features:', effectiveQuarterly);
-    //console.log('Effective annual features:', effectiveAnnual);
-    //console.log('Quarterly total KPIs:', quarterlyTotal);
-    //console.log('Annual total KPIs:', annualTotal);
+    console.log('Effective quarterly features:', effectiveQuarterly);
+    console.log('Effective annual features:', effectiveAnnual);
+    console.log('Quarterly total KPIs:', quarterlyTotal);
+    console.log('Annual total KPIs:', annualTotal);
     PERIODS.forEach(period => {
       // Skip excluded quarters for this company
       // Skip periods past the "As of" cutoff so the snapshot reflects what was available then.

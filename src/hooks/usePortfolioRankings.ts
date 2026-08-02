@@ -801,7 +801,8 @@ export const usePortfolioRankings = (
             
             console.log('envFilled :: => ',envFilled)
           }
-
+          console.log('totalFilled :: ',totalFilled)
+          console.log('adjustedTotalKPIs :: ',adjustedTotalKPIs)
           const completionPct = adjustedTotalKPIs > 0
             ? r2((totalFilled / adjustedTotalKPIs) * 100)
             : 0;
