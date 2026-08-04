@@ -205,17 +205,56 @@ export default function CompanySelectionPage() {
     const revenue = searchParams.get('revenue') || 'All Revenue';
     const qCat = searchParams.get('qCat') || 'All Q Cat';
     const firesidePoc = searchParams.get('firesidePoc') || 'All POCs';
-    const industryOptions = [
-        "All Industries",
-        "Beauty & Personal Care",
-        "Fashion & Lifestyle",
-        "Health & Wellness",
-        "Food & Beverage",
-        "Home & Décor",
-        "Platform Enablers"
-    ];
+    // const industryOptions = [
+    //     "All Industries",
+    //     "Beauty & Personal Care",
+    //     "Fashion & Lifestyle",
+    //     "Health & Wellness",
+    //     "Food & Beverage",
+    //     "Home & Décor",
+    //     "Platform Enablers"
+    // ];
 
-    const fundOptions = ["All Funds", "Fund I", "Fund II", "Fund III", "Fund IV"];
+    // const fundOptions = ["All Funds", "Fund I", "Fund II", "Fund III", "Fund IV"];
+
+    const industryOptions = useMemo(() => {
+        const values = new Set<string>();
+      
+        companies.forEach((company) => {
+          const industry =
+            company.companyDetails?.industry ||
+            company.industry ||
+            company.sector;
+      
+          if (industry?.trim()) {
+            values.add(industry.trim());
+          }
+        });
+      
+        return ["All Industries", ...Array.from(values).sort()];
+      }, [companies]);
+      
+      const fundOptions = useMemo(() => {
+        const values = new Set<string>();
+      
+        companies.forEach((company) => {
+          if (company.companyDetails?.fund?.trim()) {
+            values.add(company.companyDetails.fund.trim());
+          }
+      
+          company.fundCompany?.forEach((fund) => {
+            if (fund.fundName?.trim()) {
+              values.add(fund.fundName.trim());
+            }
+          });
+      
+          if (company.fund?.trim()) {
+            values.add(company.fund.trim());
+          }
+        });
+      
+        return ["All Funds", ...Array.from(values).sort()];
+      }, [companies]);
 
     const revenueOptions = [
         "All Revenue",

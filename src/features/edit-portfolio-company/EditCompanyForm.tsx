@@ -36,6 +36,7 @@ interface Company {
   companyName: string;
   companytype: string;
   email: string;
+  industry: string;
   sector: string;
   location: string;
   gst: string;
@@ -151,6 +152,7 @@ export default function EditCompanyForm({ company }: { company: Company }) {
       companytype: editData.companytype,
       email: editData.email,
       sector: editData.sector,
+      industry: editData.industry,
       location: editData.location,
       gst: editData.gst,
       fundName: editData.fundName,
@@ -269,6 +271,14 @@ export default function EditCompanyForm({ company }: { company: Company }) {
                     <Input
                       name="sector"
                       value={editData?.sector}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  <div >
+                    <Label>Industry</Label>
+                    <Input
+                      name="industry"
+                      value={editData?.industry || ""}
                       onChange={handleChange}
                     />
                   </div>
