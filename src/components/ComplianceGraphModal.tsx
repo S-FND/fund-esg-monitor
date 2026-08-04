@@ -200,15 +200,21 @@ export const ComplianceGraphModal: React.FC<ComplianceGraphModalProps> = ({
     if (selectedYear === 'all') {
       const uniqueYears = [...new Set(snapshots.map(d => d.year))];
       const sortedYears = uniqueYears.sort((a, b) => a - b);
-      // return sortedYears.map((year) => ({
-      //   key: `${year}`,
-      //   name: `${year}`,
-      //   color: CHART_COLOR,
-      // }));
-      return [{ key: 'score', name: 'Compliance Score', color: CHART_COLOR }];
-    } else {
-      return [{ key: 'score', name: 'Compliance Score', color: CHART_COLOR }];
+  
+      return sortedYears.map((year) => ({
+        key: `${year}`,
+        name: `${year}`,
+        color: CHART_COLOR,
+      }));
     }
+  
+    return [
+      {
+        key: 'score',
+        name: 'Compliance Score',
+        color: CHART_COLOR,
+      },
+    ];
   }, [snapshots, selectedYear]);
 
   const formatYAxisTick = (value: number) => {
@@ -263,12 +269,12 @@ export const ComplianceGraphModal: React.FC<ComplianceGraphModalProps> = ({
                 <div className="w-px h-8 bg-gray-200" />
                 <div className="flex items-center gap-2">
                   {/* <span className="text-2xl font-bold text-green-600">{currentScore?.toFixed(1)}%</span> */}
-                  {trend !== null && (
+                  {/* {trend !== null && (
                     <span className={`text-sm ${trend > 0 ? 'text-green-600' : trend < 0 ? 'text-red-600' : 'text-gray-400'}`}>
                       {trend > 0 ? <TrendingUp className="h-4 w-4 inline" /> : trend < 0 ? <TrendingDown className="h-4 w-4 inline" /> : <Minus className="h-4 w-4 inline" />}
                       {trend > 0 ? '+' : ''}{trend?.toFixed(1)}%
                     </span>
-                  )}
+                  )} */}
                 </div>
                 <Badge className={`${currentRating?.bgColor} ${currentRating?.color} border-0`}>{currentRating?.label}</Badge>
               </div>
