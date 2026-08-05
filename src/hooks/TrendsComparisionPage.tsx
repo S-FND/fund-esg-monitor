@@ -540,14 +540,14 @@ export const TrendsComparisonPage = ({ filters, newInsight = false,showTrends,se
     ? Math.round((avgCompletenessA + avgConsistencyA + avgTimelinessA) / 3 * 10) / 10 : undefined;
 
   const rankingCards = [
-    { key: 'overall', label: 'Overall Ranking Score', value: avgOverallB, prevValue: avgOverallA, scoreKey: 'averageScore' as const, icon: <Trophy className="w-4 h-4 text-purple-600" />, color: 'border-purple-300 dark:border-purple-700 bg-purple-50/50 dark:bg-purple-950/20', large: true },
+    { key: 'overall', label: 'Responsiveness Score', value: avgOverallB, prevValue: avgOverallA, scoreKey: 'averageScore' as const, icon: <Trophy className="w-4 h-4 text-purple-600" />, color: 'border-purple-300 dark:border-purple-700 bg-purple-50/50 dark:bg-purple-950/20', large: true },
     { key: 'completeness', label: 'Completeness', value: avgCompletenessB, prevValue: avgCompletenessA, scoreKey: 'completionPct' as const, icon: <CheckCircle2 className="w-4 h-4 text-amber-600" />, color: 'border-amber-200 dark:border-amber-800 bg-amber-50/30 dark:bg-amber-950/10', large: false },
     { key: 'consistency', label: 'Consistency', value: avgConsistencyB, prevValue: avgConsistencyA, scoreKey: 'consistencyPct' as const, icon: <RefreshCw className="w-4 h-4 text-emerald-600" />, color: 'border-emerald-200 dark:border-emerald-800 bg-emerald-50/30 dark:bg-emerald-950/10', large: false },
     { key: 'timeliness', label: 'Timeliness', value: avgTimelinessB, prevValue: avgTimelinessA, scoreKey: 'timelinessScore' as const, icon: <Clock className="w-4 h-4 text-blue-600" />, color: 'border-blue-200 dark:border-blue-800 bg-blue-50/30 dark:bg-blue-950/10', large: false },
   ];
 
   const esgCards = [
-    { key: 'esgCompositeScore', label: 'ESG Performance Composite Score', value: scoresB.esgCompositeScore, prevValue: scoresA.esgCompositeScore, insightKey: 'esgCompositeScore' as const, icon: <BarChart3 className="w-4 h-4 text-emerald-600" />, color: 'border-emerald-300 dark:border-emerald-700 bg-emerald-50/50 dark:bg-emerald-950/20', large: true, count: submittingCountB, pool: submittingCompaniesB },
+    { key: 'esgCompositeScore', label: 'ESG Composite Score', value: scoresB.esgCompositeScore, prevValue: scoresA.esgCompositeScore, insightKey: 'esgCompositeScore' as const, icon: <BarChart3 className="w-4 h-4 text-emerald-600" />, color: 'border-emerald-300 dark:border-emerald-700 bg-emerald-50/50 dark:bg-emerald-950/20', large: true, count: submittingCountB, pool: submittingCompaniesB },
     { key: 'circularEconomyIndex', label: 'Environment Score', value: scoresB.circularEconomyIndex, prevValue: scoresA.circularEconomyIndex, insightKey: 'circularEconomyIndex' as const, icon: <Leaf className="w-4 h-4 text-amber-600" />, color: 'border-amber-200 dark:border-amber-800 bg-amber-50/30 dark:bg-amber-950/10', large: false, count: envEligibleCompaniesB.length, pool: envEligibleCompaniesB },
     { key: 'socialScore', label: 'Social Score', value: scoresB.socialScore, prevValue: scoresA.socialScore, insightKey: 'socialScore' as const, icon: <UsersRound className="w-4 h-4 text-blue-600" />, color: 'border-blue-200 dark:border-blue-800 bg-blue-50/30 dark:bg-blue-950/10', large: false, count: submittingCountB, pool: submittingCompaniesB },
     { key: 'governanceScore', label: 'Governance Score', value: scoresB.governanceScore, prevValue: scoresA.governanceScore, insightKey: 'governanceScore' as const, icon: <Shield className="w-4 h-4 text-purple-600" />, color: 'border-purple-200 dark:border-purple-800 bg-purple-50/30 dark:bg-purple-950/10', large: false, count: submittingCountB, pool: submittingCompaniesB },
@@ -683,7 +683,7 @@ export const TrendsComparisonPage = ({ filters, newInsight = false,showTrends,se
       <section>
         <div className="flex items-center gap-2 mb-3">
           <BarChart3 className="w-5 h-5 text-primary" />
-          <h2 className="text-base font-semibold">Cross-Module: ESG Performance — Trends</h2>
+          <h2 className="text-base font-semibold">ESG Composite Score - Trends</h2>
           <Badge variant="outline" className="text-xs">Auto-calculated</Badge>
           <Badge variant="secondary" className="text-xs"><Users className="w-3 h-3 mr-1" />n={submittingCountB}</Badge>
         </div>

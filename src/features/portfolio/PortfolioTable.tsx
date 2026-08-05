@@ -48,6 +48,7 @@ interface Company {
   _id: string;
   companyName: string;
   sector: string;
+  industry: string;
   companytype: string;
   founder: string;
   opportunityStatus: string;
@@ -177,7 +178,8 @@ export function PortfolioTable({
             <TableRow className="bg-gray-50 hover:bg-gray-50">
               <TableHead className="font-semibold text-gray-700 w-12 text-center">No.</TableHead>
               <TableHead className="font-semibold text-gray-700">Company</TableHead>
-              <TableHead className="font-semibold text-gray-700">Sector</TableHead>
+              <TableHead className="font-semibold text-gray-700">Industry</TableHead>
+              {/* <TableHead className="font-semibold text-gray-700">Sector</TableHead> */}
               {/* <TableHead className="font-semibold text-gray-700">Stage</TableHead> */}
               <TableHead className="font-semibold text-gray-700">Founder/CEO</TableHead>
               <TableHead className="font-semibold text-gray-700">Status</TableHead>
@@ -214,9 +216,22 @@ export function PortfolioTable({
                     </div>
                   </TableCell>
 
-                  <TableCell>
+                  {/* <TableCell>
                     <Badge variant="outline" className={deleted ? 'bg-gray-100 text-gray-600 border-gray-200' : 'bg-blue-50 text-blue-700 border-blue-200'}>
                       {company.sector}
+                    </Badge>
+                  </TableCell> */}
+
+                  <TableCell>
+                    <Badge
+                      variant="outline"
+                      className={
+                        deleted
+                          ? "bg-gray-100 text-gray-600 border-gray-200"
+                          : "bg-blue-50 text-blue-700 border-blue-200"
+                      }
+                    >
+                      {company.industry || "-"}
                     </Badge>
                   </TableCell>
 

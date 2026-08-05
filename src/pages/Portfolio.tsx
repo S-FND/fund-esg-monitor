@@ -12,6 +12,7 @@ import { toast } from "sonner"; // Add this import
 interface Company {
   _id: string;
   companyName: string;
+  industry: string;
   sector: string;
   esgCategory: string;
   companytype: string;
@@ -54,6 +55,8 @@ export default function Portfolio() {
   const [funds, setFunds] = useState([]);
   const [filteredCompanies, setFilteredCompanies] = useState<Company[]>([]);
   const [sectors, setSectors] = useState<string[]>([]);
+  const [selectedIndustry, setSelectedIndustry] = useState("all");
+  const [industries, setIndustries] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [deletingCompanyId, setDeletingCompanyId] = useState<string | null>(null);
 
@@ -63,7 +66,8 @@ export default function Portfolio() {
 
   const clearFilters = () => {
     setSelectedFund("all");
-    setSelectedSector("all");
+    // setSelectedSector("all");
+    setSelectedIndustry("all");
   };
 
   const getFundList = async () => {
@@ -99,13 +103,11 @@ export default function Portfolio() {
         setPortfolioCompanyList(jsondata['data']);
         setFilteredCompanies(jsondata['data']);
 
-        let sectorList: string[] = [];
-        jsondata['data'].forEach((company: Company) => {
-          if (company.sector) {
-            sectorList.push(company.sector);
-          }
-        });
-        setSectors(Array.from(new Set(sectorList)));
+        const industryList: string[] = jsondata.data
+          .map((company: Company) => company.industry)
+          .filter(Boolean);
+
+        setIndustries([...new Set(industryList)]);
       }
     } catch (error) {
       console.error("Api call:", error);
@@ -189,12 +191,17 @@ export default function Portfolio() {
     }
 
     // Sector filter
-    if (selectedSector !== 'all') {
-      filtered = filtered.filter((p: any) => p.sector === selectedSector);
+    // if (selectedSector !== 'all') {
+    //   filtered = filtered.filter((p: any) => p.sector === selectedSector);
+    // }
+    if (selectedIndustry !== "all") {
+      filtered = filtered.filter(
+        (p: Company) => p.industry === selectedIndustry
+      );
     }
 
     setFilteredCompanies(filtered);
-  }, [selectedFund, selectedSector, statusFilter, portfolioCompanyList]);
+  }, [selectedFund, selectedIndustry, statusFilter, portfolioCompanyList]);
 
   // Handle status filter change
   const handleStatusFilterChange = (filter: "all" | "active" | "deleted") => {
@@ -256,11 +263,12 @@ export default function Portfolio() {
 
         <FilterControls
           funds={funds}
-          sectors={sectors}
+          // sectors={sectors}
+          industries={industries}
           selectedFund={selectedFund}
-          selectedSector={selectedSector}
+          selectedIndustry={selectedIndustry}
           setSelectedFund={setSelectedFund}
-          setSelectedSector={setSelectedSector}
+          setSelectedIndustry={setSelectedIndustry}
         />
 
       {filteredCompanies.length > 0 ? (

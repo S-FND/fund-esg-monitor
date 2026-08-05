@@ -174,7 +174,7 @@ function ESGCompositePanelInner({
     <section className="space-y-3">
       <div className="flex items-center gap-2">
         <BarChart3 className="w-4 h-4 text-emerald-500" />
-        <h2 className="text-base font-semibold">Cross-Module: ESG Composite Scores</h2>
+        <h2 className="text-base font-semibold">ESG Composite Score</h2>
         <Badge variant="outline" className="text-[10px]">Auto-calculated</Badge>
         <Badge variant="secondary" className="text-[10px] ml-1">n={n}</Badge>
       </div>
@@ -238,7 +238,7 @@ function CategoryBreakdownCard({
       <CardContent className="pt-4">
         <div className="flex items-center justify-between mb-2 gap-2">
           <div className="flex items-center gap-2">
-            <h3 className="text-sm font-semibold">{pillarLabel} — Category Breakdown</h3>
+            <h3 className="text-sm font-semibold">{pillarLabel} — Grade Breakdown</h3>
             <Badge variant="secondary" className="text-[10px]">n={n}</Badge>
           </div>
           <div className="flex items-center gap-2">

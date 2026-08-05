@@ -80,6 +80,19 @@ interface Company {
   sourceofInformation: string
 }
 
+export const industryOptions = [
+  'CleanTech',
+  'DeepTech',
+  'EdTech',
+  'Entertainment',
+  'Fashion & Lifestyle',
+  'FinTech',
+  'Food & Beverage',
+  'HealthTech',
+  'Manufacturing',
+  'Platform Enablers'
+];
+
 export default function EditCompanyForm({ company }: { company: Company }) {
   const navigate = useNavigate();
   const [editData, setEditData] = useState({ ...company });
@@ -267,18 +280,26 @@ export default function EditCompanyForm({ company }: { company: Company }) {
                     />
                   </div>
                   <div>
+                    <Label>Industry</Label>
+                    <select
+                      name="industry"
+                      value={editData?.industry || ""}
+                      onChange={handleChange}
+                      className="border rounded-md w-full h-10 px-2"
+                    >
+                      <option value="">Select</option>
+                      {industryOptions.map((industry) => (
+                        <option key={industry} value={industry}>
+                          {industry}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
                     <Label>Sector</Label>
                     <Input
                       name="sector"
                       value={editData?.sector}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  <div >
-                    <Label>Industry</Label>
-                    <Input
-                      name="industry"
-                      value={editData?.industry || ""}
                       onChange={handleChange}
                     />
                   </div>
