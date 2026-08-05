@@ -24,7 +24,7 @@ const gradeOf = (v: number): BucketKey => {
 type Metric = 'average' | 'completeness' | 'consistency' | 'timeliness';
 
 const METRIC_META: Record<Metric, { label: string; icon: React.ComponentType<{ className?: string }>; card: string; iconColor: string; getScore: (r: CompanyRanking) => number }> = {
-  average:      { label: 'Overall Ranking Score', icon: Trophy,        card: 'border-purple-200 bg-purple-50/60 dark:bg-purple-950/20', iconColor: 'text-purple-500',  getScore: r => (r.completionPct + r.consistencyPct + r.timelinessScore) / 3 },
+  average:      { label: 'Responsiveness Score', icon: Trophy,        card: 'border-purple-200 bg-purple-50/60 dark:bg-purple-950/20', iconColor: 'text-purple-500',  getScore: r => (r.completionPct + r.consistencyPct + r.timelinessScore) / 3 },
   completeness: { label: 'Completeness',          icon: CheckCircle2,  card: 'border-amber-200 bg-amber-50/60 dark:bg-amber-950/20',    iconColor: 'text-amber-500',   getScore: r => r.completionPct },
   consistency:  { label: 'Consistency',           icon: RefreshCw,     card: 'border-emerald-200 bg-emerald-50/60 dark:bg-emerald-950/20', iconColor: 'text-emerald-500', getScore: r => r.consistencyPct },
   timeliness:   { label: 'Timeliness',            icon: Clock,         card: 'border-blue-200 bg-blue-50/60 dark:bg-blue-950/20',      iconColor: 'text-blue-500',    getScore: r => r.timelinessScore },
@@ -91,7 +91,7 @@ export const CompanyRankingsPanel = ({ rankings, metric: metricProp = 'average',
     <section className="space-y-3">
       <div className="flex items-center gap-2">
         <Trophy className="w-4 h-4 text-amber-500" />
-        <h2 className="text-base font-semibold">Company Rankings</h2>
+        <h2 className="text-base font-semibold">Responsiveness Score</h2>
         <Badge variant="outline" className="text-[10px]">Completeness · Consistency · Timeliness</Badge>
         <Badge variant="secondary" className="text-[10px] ml-1">n={n}</Badge>
       </div>
@@ -131,7 +131,7 @@ export const CompanyRankingsPanel = ({ rankings, metric: metricProp = 'average',
         <CardContent className="pt-4">
           <div className="flex items-center justify-between mb-2 gap-2">
             <div className="flex items-center gap-2">
-              <h3 className="text-sm font-semibold">{METRIC_META[metric].label} — Category Breakdown</h3>
+              <h3 className="text-sm font-semibold">{METRIC_META[metric].label} — Grade Breakdown</h3>
               <Badge variant="secondary" className="text-[10px]">n={n}</Badge>
             </div>
             <div className="flex items-center gap-2">

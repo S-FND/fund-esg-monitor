@@ -65,6 +65,19 @@ const futureActionOptions = [
   { value: "To review further", label: "To review further" }
 ];
 
+export const industryOptions = [
+  'CleanTech',
+  'DeepTech',
+  'EdTech',
+  'Entertainment',
+  'Fashion & Lifestyle',
+  'FinTech',
+  'Food & Beverage',
+  'HealthTech',
+  'Manufacturing',
+  'Platform Enablers'
+];
+
 export default function NewCompany() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -73,6 +86,7 @@ export default function NewCompany() {
     email: "",
     sector: "",
     location: "",
+    industry: "",
     gst: "",
     fundName: "",
     founder: "",
@@ -196,6 +210,24 @@ export default function NewCompany() {
                   placeholder="Enter email address"
                   required
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="industry">Industry</Label>
+                <Select
+                  value={formData.industry}
+                  onValueChange={(value) => handleSelectChange("industry", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Industry" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {industryOptions.map((industry) => (
+                      <SelectItem key={industry} value={industry}>
+                        {industry}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">

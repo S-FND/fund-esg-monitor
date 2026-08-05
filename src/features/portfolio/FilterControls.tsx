@@ -8,19 +8,25 @@ interface Fund {
 }
 interface FilterControlsProps {
   funds: Fund[];
-  sectors: string[];
+  // sectors: string[];
+  industries: string[];
   selectedFund: string;
-  selectedSector: string;
+  selectedIndustry: string;
+  // selectedSector: string;
   setSelectedFund: (val: string) => void;
-  setSelectedSector: (val: string) => void;
+  // setSelectedSector: (val: string) => void;
+  setSelectedIndustry: (val: string) => void;
 }
 export function FilterControls({
   funds,
-  sectors,
+  // sectors,
+  industries,
   selectedFund,
-  selectedSector,
+  // selectedSector,
+  selectedIndustry,
   setSelectedFund,
-  setSelectedSector,
+  // setSelectedSector,
+  setSelectedIndustry,
 }: FilterControlsProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -41,16 +47,16 @@ export function FilterControls({
         </Select>
       </div>
       <div>
-        <Label className="block text-sm font-medium mb-1">Filter by Sector</Label>
-        <Select value={selectedSector} onValueChange={setSelectedSector}>
+        <Label className="block text-sm font-medium mb-1">Filter by Industry</Label>
+        <Select value={selectedIndustry} onValueChange={setSelectedIndustry}>
           <SelectTrigger>
-            <SelectValue placeholder="All Sectors" />
+            <SelectValue placeholder="All Industry" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Sectors</SelectItem>
-            {sectors?.map(sector => (
-              <SelectItem key={sector} value={sector}>
-                {sector}
+            <SelectItem value="all">All Industry</SelectItem>
+            {industries?.map(industry => (
+              <SelectItem key={industry} value={industry}>
+                {industry}
               </SelectItem>
             ))}
           </SelectContent>
