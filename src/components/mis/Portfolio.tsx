@@ -72,22 +72,59 @@ const GENERIC_FIELD_IDS = new Set([
   'waste_generated', 'waste_recycled_pct', 'na',
 ]);
 
+// const isKPIGroupFilled = (
+//   kpi: { id: string; fields: { id: string }[] },
+//   entries: { kpi_id: string; value: string | null }[]
+// ): boolean => {
+//   const validEntries = entries.filter(
+//     e => e.value !== null && e.value !== '' && e.value.trim() !== ''
+//   );
+//   return kpi.fields.some(field => {
+//     return validEntries.some(entry => {
+//       if (entry.kpi_id === field.id) return true;
+//       if (GENERIC_FIELD_IDS.has(field.id)) {
+//         return entry.kpi_id.includes(kpi.id) &&
+//           (entry.kpi_id.includes(field.id) || entry.kpi_id.endsWith(`_${field.id}`));
+//       }
+//       if (entry.kpi_id.endsWith(`_${field.id}`)) return true;
+//       if (field.id.length >= 12 && entry.kpi_id.includes(field.id)) return true;
+//       return false;
+//     });
+//   });
+// };
+
 const isKPIGroupFilled = (
   kpi: { id: string; fields: { id: string }[] },
   entries: { kpi_id: string; value: string | null }[]
 ): boolean => {
   const validEntries = entries.filter(
-    e => e.value !== null && e.value !== '' && e.value.trim() !== ''
+    e => e.value !== null && e.value !== '' && e.value.trim() !== '' && !e.kpi_id.endsWith('_additional_comments')
   );
+
+  // Direct match: entry kpi_id equals the KPI group id itself
+  // Handles simple single-field KPIs like net_revenue, revenue_tier2_plus
+  if (validEntries.some(entry => entry.kpi_id === kpi.id)) return true;
+
   return kpi.fields.some(field => {
     return validEntries.some(entry => {
+      // Exact match on field id
       if (entry.kpi_id === field.id) return true;
+
+      // Composite key: kpi_id + field_id (e.g., employees_wc_male_fulltime)
+      if (entry.kpi_id === `${kpi.id}_${field.id}`) return true;
+
+      // For generic/shared field IDs, require the entry also contains the KPI id
       if (GENERIC_FIELD_IDS.has(field.id)) {
-        return entry.kpi_id.includes(kpi.id) &&
+        return entry.kpi_id.includes(kpi.id) && 
           (entry.kpi_id.includes(field.id) || entry.kpi_id.endsWith(`_${field.id}`));
       }
+
+      // For unique field IDs, suffix match is safe
       if (entry.kpi_id.endsWith(`_${field.id}`)) return true;
+
+      // Long field IDs (>=12 chars) are unique enough for includes
       if (field.id.length >= 12 && entry.kpi_id.includes(field.id)) return true;
+
       return false;
     });
   });

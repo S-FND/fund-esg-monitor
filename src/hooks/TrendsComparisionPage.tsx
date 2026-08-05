@@ -149,7 +149,7 @@
 
 // TrendsComparisonPage.tsx
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, TrendingUp, TrendingDown, Minus, Trophy, BarChart3, Leaf, UsersRound, Shield, CheckCircle2, RefreshCw, Clock, ChevronDown, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -162,6 +162,8 @@ import { AnalyticsFilters, InsightMetrics, CompanyRawMetrics, useAnalyticsDashbo
 import { usePortfolioRankings } from "@/hooks/usePortfolioRankings";
 import { usePortfolioRankingsV1 } from "@/hooks/usePortfolioRankingsV1";
 import { Fund, Industry, QCategory, RevenueStage } from "@/types/esg";
+import { useSearchParams } from "react-router-dom";
+import { mockCompanies } from "@/data/mockData";
 
 // ──── Config — adjust to match your app's actual available years/quarters ────
 const AVAILABLE_YEARS = [2024, 2025, 2026];
@@ -179,7 +181,7 @@ interface PeriodSelection {
   firesidePOC?: string;
 }
 
-const defaultPeriodA: PeriodSelection = { periodType: 'quarterly', quarter: 'Q1', year: 2025 };
+const defaultPeriodA: PeriodSelection = { periodType: 'quarterly', quarter: 'Q4', year: 2025 };
 const defaultPeriodB: PeriodSelection = { periodType: 'quarterly', quarter: 'Q1', year: 2026 };
 
 function toFilters(sel: PeriodSelection): AnalyticsFilters {
@@ -251,8 +253,51 @@ const getCategoryForPercentile = (percentile: number): string => {
 
 // ──── Inline breakdown grid (grade-band trend only) ────
 
-const TrendBreakdownGrid = ({ title, companies, onClose }: { title: string; companies: BreakdownCompany[]; onClose: () => void }) => {
+const TrendBreakdownGrid = ({ title, companies, onClose, filters, setFilteredCompanyBrands }: { title: string; companies: BreakdownCompany[]; onClose: () => void; filters: AnalyticsFilters; setFilteredCompanyBrands: React.Dispatch<React.SetStateAction<string[]>>; }) => {
   const [showScores, setShowScores] = useState(false);
+
+  // let filteredCompanyIds = mockCompanies
+  //   .filter((c) => {
+  //     if(c.investmentStatus !== 'Invested') return false;
+  //     if (filters?.fund && c.fund !== filters.fund) return false;
+  //     if (filters?.industry && c.industry !== filters.industry) return false;
+  //     if (filters?.revenueStage && c.revenueStage !== filters.revenueStage) return false;
+  //     if (filters?.qCategory && c.qCategory !== filters.qCategory) return false;
+  //     if (filters?.firesidePOC && c.fl !== filters.firesidePOC) return false;
+  //     return true;
+  //   })
+  //   .map((c) => c.brand);
+
+  //   setFilteredCompanyBrands(filteredCompanyIds)
+
+  const filteredCompanyIds = useMemo(() => {
+    return mockCompanies
+      .filter((c) => {
+        if (c.investmentStatus !== 'Invested') return false;
+        if (filters?.fund && c.fund !== filters.fund) return false;
+        if (filters?.industry && c.industry !== filters.industry) return false;
+        if (filters?.revenueStage && c.revenueStage !== filters.revenueStage) return false;
+        if (filters?.qCategory && c.qCategory !== filters.qCategory) return false;
+        if (filters?.firesidePOC && c.fl !== filters.firesidePOC) return false;
+        return true;
+      })
+      .map((c) => c.brand);
+  }, [
+    filters?.fund,
+    filters?.industry,
+    filters?.revenueStage,
+    filters?.qCategory,
+    filters?.firesidePOC,
+  ]);
+
+  useEffect(() => {
+    setFilteredCompanyBrands((prev) => {
+      const same =
+        prev.length === filteredCompanyIds.length &&
+        prev.every((id, i) => id === filteredCompanyIds[i]);
+      return same ? prev : filteredCompanyIds;
+    });
+  }, [filteredCompanyIds, setFilteredCompanyBrands]);
 
   // Current-period grades (ranked among this pool)
   const withPercentiles = assignPercentiles(companies);
@@ -299,7 +344,7 @@ const TrendBreakdownGrid = ({ title, companies, onClose }: { title: string; comp
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <CardTitle className="text-sm">{title} — Grade Breakdown</CardTitle>
-            <Badge variant="secondary" className="text-[10px]">n={companies.length}</Badge>
+            <Badge variant="secondary" className="text-[10px]">n={filteredCompanyIds.length}</Badge>
           </div>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
@@ -322,7 +367,7 @@ const TrendBreakdownGrid = ({ title, companies, onClose }: { title: string; comp
                 {cat.companies.length === 0 ? (
                   <p className="text-[10px] text-muted-foreground text-center py-2 italic">No companies</p>
                 ) : (
-                  cat.companies.map(c => (
+                  cat.companies.filter(c => filteredCompanyIds.includes(c.brand)).map(c => (
                     <div key={c.brand} className="flex items-center justify-between px-2 py-1 rounded text-xs bg-background/60 hover:bg-background transition-colors">
                       <div className="flex flex-col min-w-0">
                         <span className="truncate font-medium flex items-center gap-1">
@@ -350,7 +395,7 @@ const TrendBreakdownGrid = ({ title, companies, onClose }: { title: string; comp
                   ))
                 )}
                 {cat.companies.length > 0 && (
-                  <div className="text-center pt-1"><Badge variant="outline" className="text-[9px]">{cat.companies.length} companies</Badge></div>
+                  <div className="text-center pt-1"><Badge variant="outline" className="text-[9px]">{cat.companies.filter(c => filteredCompanyIds.includes(c.brand)).length} companies</Badge></div>
                 )}
               </div>
             </div>
@@ -432,9 +477,42 @@ interface TrendsComparisonPageProps {
   setShowTrends?: (value: boolean) => void;
 }
 
-export const TrendsComparisonPage = ({ filters, newInsight = false,showTrends,setShowTrends }: TrendsComparisonPageProps) => {
-  const [periodA, setPeriodA] = useState<PeriodSelection>({ ...filters, ...defaultPeriodA });
-  const [periodB, setPeriodB] = useState<PeriodSelection>({ ...filters, ...defaultPeriodB });
+export const TrendsComparisonPage = ({ filters, newInsight = false, showTrends, setShowTrends }: TrendsComparisonPageProps) => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [filteredCompanyBrands, setFilteredCompanyBrands] = useState<string[]>([])
+
+  function parsePeriod(
+    raw: string | null,
+    defaults: PeriodSelection
+  ): PeriodSelection {
+    if (!raw) return { ...filters, ...defaults };
+    const [quarter, year] = raw.split(" ");
+    return { ...filters, ...defaults, quarter, year: parseInt(year) };
+  }
+
+  const periodA = useMemo(
+    () => parsePeriod(searchParams.get("periodA"), defaultPeriodA),
+    [searchParams, filters]
+  );
+
+  const periodB = useMemo(
+    () => parsePeriod(searchParams.get("periodB"), defaultPeriodB),
+    [searchParams, filters]
+  );
+
+  const setPeriodA = (next: PeriodSelection) => {
+    const params = new URLSearchParams(searchParams);
+    params.set("periodA", `${next.quarter} ${next.year}`);
+    setSearchParams(params, { replace: true });
+  };
+
+  const setPeriodB = (next: PeriodSelection) => {
+    const params = new URLSearchParams(searchParams);
+    params.set("periodB", `${next.quarter} ${next.year}`);
+    setSearchParams(params, { replace: true });
+  };
+  // const [periodA, setPeriodA] = useState<PeriodSelection>({ ...filters, ...defaultPeriodA });
+  // const [periodB, setPeriodB] = useState<PeriodSelection>({ ...filters, ...defaultPeriodB });
   console.log('TrendsComparisonPage called with filters:', filters, 'periodA:', periodA, 'periodB:', periodB);
   // "Applied" state — comparison only recomputes when the user clicks Compare,
   // not on every dropdown change (avoids re-fetching on every intermediate selection).
@@ -443,6 +521,34 @@ export const TrendsComparisonPage = ({ filters, newInsight = false,showTrends,se
 
   const [expandedScore, setExpandedScore] = useState<string | null>('esgCompositeScore');
   const [expandedRanking, setExpandedRanking] = useState<string | null>('overall');
+
+
+
+
+
+  // useEffect(()=>{
+  //   const view = searchParams.get("view");
+  //   const paramsPeriodA=searchParams.get("periodA");
+  //   const paramsPeriodB=searchParams.get("periodB");
+  //   setPeriodA({...periodA,quarter:paramsPeriodA.split(" ")[0],year:parseInt(paramsPeriodA.split(" ")[1])})
+  //   setPeriodB({...periodB,quarter:paramsPeriodB.split(" ")[0],year:parseInt(paramsPeriodB.split(" ")[1])})
+  //   console.log('This is view :: view =>',view)
+  // },[searchParams])
+
+  // useEffect(()=>{
+  //    const params = new URLSearchParams(searchParams);
+  //   if(periodA && periodA.quarter && periodA.year){
+  //     params.set("periodA", `${periodA.quarter} ${periodA.year}`);
+  //   }
+  //   if(periodB && periodB.quarter && periodB.year){
+  //     params.set("periodB", `${periodB.quarter} ${periodB.year}`);
+  //   }
+
+
+  //   // params.set("view", checked ? "trends" : "insights");
+
+  //   setSearchParams(params, { replace: true });
+  // },[periodA,periodB])
 
   const handleCompare = () => {
     setAppliedA(periodA);
@@ -486,14 +592,14 @@ export const TrendsComparisonPage = ({ filters, newInsight = false,showTrends,se
     return map;
   }, [companyRawDataA]);
 
-  console.log("Rankings A:", allRankingsA);
-  console.log("Rankings B:", allRankingsB);
-  console.log("Company Raw Data A:", companyRawDataA);
-  console.log("Company Raw Data B:", companyRawDataB);
+  // console.log("Rankings A:", allRankingsA);
+  // console.log("Rankings B:", allRankingsB);
+  // console.log("Company Raw Data A:", companyRawDataA);
+  // console.log("Company Raw Data B:", companyRawDataB);
 
   // ── Company pools — comparisons are driven by Period B's (target) company set ──
   const submittingCompaniesB = companyRawDataB.filter(c => Object.keys(c.kpis).length > 0);
-  const submittingCountB = submittingCompaniesB.length;
+  const submittingCountB = submittingCompaniesB.filter(c => filteredCompanyBrands.includes(c.brand)).length;
   const envEligibleCompaniesB = submittingCompaniesB.filter(c => c.hasEnvironmentFeature);
 
   const submittingCompaniesA = companyRawDataA.filter(c => Object.keys(c.kpis).length > 0);
@@ -547,8 +653,8 @@ export const TrendsComparisonPage = ({ filters, newInsight = false,showTrends,se
   ];
 
   const esgCards = [
-    { key: 'esgCompositeScore', label: 'ESG Composite Score', value: scoresB.esgCompositeScore, prevValue: scoresA.esgCompositeScore, insightKey: 'esgCompositeScore' as const, icon: <BarChart3 className="w-4 h-4 text-emerald-600" />, color: 'border-emerald-300 dark:border-emerald-700 bg-emerald-50/50 dark:bg-emerald-950/20', large: true, count: submittingCountB, pool: submittingCompaniesB },
-    { key: 'circularEconomyIndex', label: 'Environment Score', value: scoresB.circularEconomyIndex, prevValue: scoresA.circularEconomyIndex, insightKey: 'circularEconomyIndex' as const, icon: <Leaf className="w-4 h-4 text-amber-600" />, color: 'border-amber-200 dark:border-amber-800 bg-amber-50/30 dark:bg-amber-950/10', large: false, count: envEligibleCompaniesB.length, pool: envEligibleCompaniesB },
+    { key: 'esgCompositeScore', label: 'ESG Performance Composite Score', value: scoresB.esgCompositeScore, prevValue: scoresA.esgCompositeScore, insightKey: 'esgCompositeScore' as const, icon: <BarChart3 className="w-4 h-4 text-emerald-600" />, color: 'border-emerald-300 dark:border-emerald-700 bg-emerald-50/50 dark:bg-emerald-950/20', large: true, count: submittingCountB, pool: submittingCompaniesB },
+    { key: 'circularEconomyIndex', label: 'Environment Score', value: scoresB.circularEconomyIndex, prevValue: scoresA.circularEconomyIndex, insightKey: 'circularEconomyIndex' as const, icon: <Leaf className="w-4 h-4 text-amber-600" />, color: 'border-amber-200 dark:border-amber-800 bg-amber-50/30 dark:bg-amber-950/10', large: false, count: envEligibleCompaniesB.filter(c => filteredCompanyBrands.includes(c.brand)).length, pool: envEligibleCompaniesB },
     { key: 'socialScore', label: 'Social Score', value: scoresB.socialScore, prevValue: scoresA.socialScore, insightKey: 'socialScore' as const, icon: <UsersRound className="w-4 h-4 text-blue-600" />, color: 'border-blue-200 dark:border-blue-800 bg-blue-50/30 dark:bg-blue-950/10', large: false, count: submittingCountB, pool: submittingCompaniesB },
     { key: 'governanceScore', label: 'Governance Score', value: scoresB.governanceScore, prevValue: scoresA.governanceScore, insightKey: 'governanceScore' as const, icon: <Shield className="w-4 h-4 text-purple-600" />, color: 'border-purple-200 dark:border-purple-800 bg-purple-50/30 dark:bg-purple-950/10', large: false, count: submittingCountB, pool: submittingCompaniesB },
   ];
@@ -594,7 +700,7 @@ export const TrendsComparisonPage = ({ filters, newInsight = false,showTrends,se
         <div className="flex items-center justify-between mb-3">
           <div
             className="flex items-center gap-2 cursor-pointer group"
-            onClick={() =>{} }
+            onClick={() => { }}
           >
             <Trophy className="w-5 h-5 text-amber-500" />
             <h2 className="text-base font-semibold group-hover:underline">
@@ -607,7 +713,7 @@ export const TrendsComparisonPage = ({ filters, newInsight = false,showTrends,se
 
             <Badge variant="secondary" className="text-xs">
               <Users className="w-3 h-3 mr-1" />
-              n={rankingsWithAvg.length}
+              n={rankingsWithAvg.filter(c => filteredCompanyBrands.includes(c.brand)).length}
             </Badge>
           </div>
 
@@ -654,7 +760,7 @@ export const TrendsComparisonPage = ({ filters, newInsight = false,showTrends,se
                         <span className={`${card.large ? 'text-3xl' : 'text-2xl'} font-bold`}>{card.value.toFixed(1)}</span>
                         <span className="text-xs text-muted-foreground mb-1">avg score</span>
                       </div>
-                      <Badge variant="secondary" className="text-[10px] mt-1">n={rankingsWithAvg.length}</Badge>
+                      <Badge variant="secondary" className="text-[10px] mt-1">n={rankingsWithAvg.filter(c => filteredCompanyBrands.includes(c.brand)).length}</Badge>
                     </CardContent>
                   </Card>
                 );
@@ -673,7 +779,7 @@ export const TrendsComparisonPage = ({ filters, newInsight = false,showTrends,se
                   previousScore: prevValue,
                 };
               });
-              return <div className="mb-3"><TrendBreakdownGrid title={config.label} companies={companiesForBreakdown} onClose={() => setExpandedRanking(null)} /></div>;
+              return <div className="mb-3"><TrendBreakdownGrid title={config.label} companies={companiesForBreakdown} onClose={() => setExpandedRanking(null)} filters={filters} setFilteredCompanyBrands={setFilteredCompanyBrands} /></div>;
             })()}
           </>
         )}
@@ -685,7 +791,7 @@ export const TrendsComparisonPage = ({ filters, newInsight = false,showTrends,se
           <BarChart3 className="w-5 h-5 text-primary" />
           <h2 className="text-base font-semibold">ESG Composite Score - Trends</h2>
           <Badge variant="outline" className="text-xs">Auto-calculated</Badge>
-          <Badge variant="secondary" className="text-xs"><Users className="w-3 h-3 mr-1" />n={submittingCountB}</Badge>
+          <Badge variant="secondary" className="text-xs"><Users className="w-3 h-3 mr-1" />n={submittingCompaniesB.filter(c => filteredCompanyBrands.includes(c.brand)).length}</Badge>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
@@ -724,7 +830,7 @@ export const TrendsComparisonPage = ({ filters, newInsight = false,showTrends,se
                 previousScore: prevValue,
               };
             });
-          return <div className="mt-3"><TrendBreakdownGrid title={config.label} companies={companiesForBreakdown} onClose={() => setExpandedScore(null)} /></div>;
+          return <div className="mt-3"><TrendBreakdownGrid title={config.label} companies={companiesForBreakdown} onClose={() => setExpandedScore(null)} filters={filters} setFilteredCompanyBrands={setFilteredCompanyBrands} /></div>;
         })()}
       </section>
     </div>
