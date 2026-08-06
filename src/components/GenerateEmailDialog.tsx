@@ -529,7 +529,7 @@ interface Props {
   quarter?: string;
 }
 
-export const GenerateEmailDialog = ({ year = 2025, quarter = 'Q4' }: Props) => {
+export const GenerateEmailDialog = ({ year = 2026, quarter = 'Q1' }: Props) => {
   const [open, setOpen] = useState(false);
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
   const [generating, setGenerating] = useState(false);

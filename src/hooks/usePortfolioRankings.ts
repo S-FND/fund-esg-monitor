@@ -670,20 +670,21 @@ export const usePortfolioRankings = (
         // }
 
         //Static code change for annual kpi data to show in 2026 from 2025
-        if (year === 2026) {
-          const entriesRes2025 = await http.get<KpiEntryRaw[]>(`mis/kpi-entries?year=2025`);
-          if (entriesRes2025.data && entriesRes2025.data.length > 0) {
-            const fy2025Entries = entriesRes2025.data.filter(e => e.year === 2025 && e.quarter === 'FY');
-            // console.log("fy2025Entries ==> ",fy2025Entries)
-            const fy2026Entries = fy2025Entries.map(e => ({ ...e, year: 2026 }));
-            // console.log("fy2026Entries ==> ",fy2026Entries)
-            // console.log('allEntries ',allEntries.length)
-            allEntries = [...allEntries.filter(e => e.quarter !== 'FY'), ...fy2026Entries];
-            // console.log('2 allEntries ',allEntries.length)
+        //Second change as for rankins section no AY from past year needs to be added
+        // if (year === 2026) {
+        //   const entriesRes2025 = await http.get<KpiEntryRaw[]>(`mis/kpi-entries?year=2025`);
+        //   if (entriesRes2025.data && entriesRes2025.data.length > 0) {
+        //     const fy2025Entries = entriesRes2025.data.filter(e => e.year === 2025 && e.quarter === 'FY');
+        //     // console.log("fy2025Entries ==> ",fy2025Entries)
+        //     const fy2026Entries = fy2025Entries.map(e => ({ ...e, year: 2026 }));
+        //     // console.log("fy2026Entries ==> ",fy2026Entries)
+        //     // console.log('allEntries ',allEntries.length)
+        //     allEntries = [...allEntries.filter(e => e.quarter !== 'FY'), ...fy2026Entries];
+        //     // console.log('2 allEntries ',allEntries.length)
             
-          }
+        //   }
           // allEntries.push(...entriesRes2025.data);
-        }
+        // }
         // let company7Entries=allEntries.filter(a => a.companyId == 'company-7' && a.quarter == 'FY')
         //     console.log('company7Entries :: =>',company7Entries)
 
