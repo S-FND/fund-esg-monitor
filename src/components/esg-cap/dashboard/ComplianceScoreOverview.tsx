@@ -42,7 +42,7 @@ export interface GradeConfig {
 
 export const GRADE_CONFIG: GradeConfig[] = [
   {
-    key: "AA", min: 85, max: 100, status: "On Track",
+    key: "AA", min: 81, max: 100, status: "On Track",
     bg: "bg-[#d5f0de] dark:bg-emerald-950/30",
     border: "border-[#bfe6cc] dark:border-emerald-900",
     text: "text-[#1f7a44] dark:text-emerald-300",
@@ -50,7 +50,7 @@ export const GRADE_CONFIG: GradeConfig[] = [
     chipBg: "bg-[#eaf7ef] dark:bg-emerald-950/50",
   },
   {
-    key: "A", min: 70, max: 84, status: "Stable",
+    key: "A", min: 61, max: 80, status: "Stable",
     bg: "bg-[#dbe7fb] dark:bg-blue-950/30",
     border: "border-[#c3d6f5] dark:border-blue-900",
     text: "text-[#2559c4] dark:text-blue-300",
@@ -58,7 +58,7 @@ export const GRADE_CONFIG: GradeConfig[] = [
     chipBg: "bg-[#ecf2fd] dark:bg-blue-950/50",
   },
   {
-    key: "BB", min: 55, max: 69, status: "Needs Attention",
+    key: "BB", min: 41, max: 60, status: "Needs Attention",
     bg: "bg-[#fbeac2] dark:bg-amber-950/30",
     border: "border-[#f5dfa2] dark:border-amber-900",
     text: "text-[#a06b12] dark:text-amber-300",
@@ -66,7 +66,7 @@ export const GRADE_CONFIG: GradeConfig[] = [
     chipBg: "bg-[#fdf5df] dark:bg-amber-950/50",
   },
   {
-    key: "B", min: 40, max: 54, status: "At Risk",
+    key: "B", min: 21, max: 40, status: "At Risk",
     bg: "bg-[#fbd8bf] dark:bg-orange-950/30",
     border: "border-[#f7c9a3] dark:border-orange-900",
     text: "text-[#a94a13] dark:text-orange-300",
@@ -74,7 +74,7 @@ export const GRADE_CONFIG: GradeConfig[] = [
     chipBg: "bg-[#fdeadb] dark:bg-orange-950/50",
   },
   {
-    key: "C", min: 0, max: 39, status: "Critical",
+    key: "C", min: 0, max: 20, status: "Critical",
     bg: "bg-[#f9d3d8] dark:bg-red-950/30",
     border: "border-[#f4b8bf] dark:border-red-900",
     text: "text-[#b8283a] dark:text-red-300",
@@ -181,8 +181,18 @@ interface GradeColumnProps {
 function GradeColumn({ grade, entries, showScores }: GradeColumnProps) {
   return (
     <div className={cn("rounded-lg border overflow-hidden flex flex-col", grade.border, grade.bg)}>
-      <div className={cn("px-3 py-2 text-white font-bold text-center text-base tracking-wide", grade.headerBg)}>
-        {grade.key}
+      <div
+        className={cn(
+          "px-3 py-2 text-white text-center",
+          grade.headerBg
+        )}
+      >
+        <div className="text-sm font-bold tracking-wide">
+          {grade.key}
+        </div>
+        <div className="text-xs font-medium opacity-90">
+          {grade.status}
+        </div>
       </div>
       <div className="p-1.5 flex-1 space-y-1 min-h-[120px]">
         {entries.length === 0 ? (

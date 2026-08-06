@@ -157,22 +157,52 @@ function parseFileUploadDetails(log: AuditLog) {
 
 // ---- Helper: Format change values ----
 function formatValue(val: any): string {
-  if (val === null || val === undefined) return '—';
-  if (typeof val === 'string') return val;
-  if (typeof val === 'number') return String(val);
-  if (typeof val === 'boolean') return val ? 'Yes' : 'No';
-  if (Array.isArray(val) || typeof val === 'object') {
-    if (Array.isArray(val) && val.length > 0 && typeof val[0] === 'object') {
+  if (val === null || val === undefined) return "—";
+
+  // Date object
+  if (val instanceof Date) {
+    return val.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  }
+
+  // ISO date string
+  if (
+    typeof val === "string" &&
+    /^\d{4}-\d{2}-\d{2}(T.*)?$/.test(val) &&
+    !isNaN(Date.parse(val))
+  ) {
+    return new Date(val).toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  }
+
+  if (typeof val === "string") return val;
+  if (typeof val === "number") return String(val);
+  if (typeof val === "boolean") return val ? "Yes" : "No";
+
+  if (Array.isArray(val) || typeof val === "object") {
+    if (Array.isArray(val) && val.length > 0 && typeof val[0] === "object") {
       const item = val[0];
+
       if (item.indicatorResponse) {
-        return `Response: ${item.indicatorResponse}${item.indicatorNote ? `, Note: ${item.indicatorNote}` : ''}`;
+        return `Response: ${item.indicatorResponse}${
+          item.indicatorNote ? `, Note: ${item.indicatorNote}` : ""
+        }`;
       }
+
       if (item.filename || item.fileName) {
         return `File: ${item.filename || item.fileName}`;
       }
     }
+
     return JSON.stringify(val, null, 2);
   }
+
   return String(val);
 }
 
@@ -509,10 +539,12 @@ export default function AuditDrawer({ open, onClose, logs }: {
                     </p>
                     {(() => {
                       const { reportId, item } = getReportIdAndItem(log);
+                      const planItemName = getPlanItemName(log);
+
                       if (!reportId) return null;
                       return (
                         <Link
-                          to={`/esg-dd/cap/${reportId}?itemName=${encodeURIComponent(item)}`}
+                          to={`/esg-cap/review/${reportId}?itemName=${encodeURIComponent(planItemName)}&companyEntityId=${reportId}&companyEmail=${encodeURIComponent(item)}`}
                           className="text-xs text-blue-500 hover:text-blue-700 underline ml-2 flex-shrink-0"
                           onClick={(e) => e.stopPropagation()}
                           target="_blank"

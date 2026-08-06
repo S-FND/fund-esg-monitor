@@ -1,10 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { CompanyCardFilter } from "@/components/esg-cap/CompanyCardFilter";
-import {
-    Leaf, ChevronLeft, ChevronRight, AlertTriangle, CheckCircle,
-    Clock, FileText, RefreshCw, Building2
-} from "lucide-react";
+import {Bell} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
     Select,
@@ -20,7 +17,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ESGCapItem } from "@/components/esg-cap/CAPTable";
 import { mapESGCapItems } from "./mapESGCapItem";
 import { ComplianceScoreEngine } from "./compliance-score-engine";
-
+import AuditDrawer, { AuditLog } from "./AuditDrawer";
+import { History } from "lucide-react";
+import { http } from "@/utils/httpInterceptor";
 // Helper: Normalize status
 const normalize = (s?: string) => (s ?? '').trim().toLowerCase();
 
@@ -195,7 +194,8 @@ export default function CompanySelectionPage() {
     const [loading, setLoading] = useState(true);
     // const [searchTerm, setSearchTerm] = useState("");
     // const [scoringFilter, setScoringFilter] = useState<ScoringFilterType>('all');
-
+    const [auditOpen, setAuditOpen] = useState(false);
+    const [logs, setLogs] = useState<AuditLog[]>([]);
     const [searchParams, setSearchParams] = useSearchParams();
     const searchTerm = searchParams.get('search') || '';
     const [summary, setSummary] = useState<DashboardResponse['summary'] | null>(null);
@@ -240,6 +240,34 @@ export default function CompanySelectionPage() {
         "TBD",
         "Varun Varma",
     ];
+
+    const [unreadCount, setUnreadCount] = useState(0);
+    useEffect(() => {
+        const fetchUnreadCount = async () => {
+        try {
+            const response: any = await http.get('notification');
+            if (response?.data?.status === true && response.data?.data) {
+            const unread = response.data.data.filter((n: any) => !n.isRead).length;
+            setUnreadCount(unread);
+            }
+        } catch (error) {
+            console.error('Failed to fetch unread count:', error);
+        }
+        };
+        fetchUnreadCount();
+    }, []);
+
+    const getAuditLogs = async () => {
+        let logs: any = await http.get('audit');
+        console.log("audit logs ", logs?.data);
+        if (logs?.data?.status == true) {
+          setLogs(logs.data['data']);
+        }
+      }
+    
+      useEffect(() => {
+        getAuditLogs();
+      }, []);
 
     // const [filters, setFilters] = useState({
     //     industry: "All Industries",
@@ -589,7 +617,7 @@ export default function CompanySelectionPage() {
             <div className="container mx-auto py-8 px-4">
                 {/* ESG Scoring Cards */}
                 <div className="mb-6">
-                    <div className="flex flex-wrap items-center gap-2 mb-3">
+                    <div className="flex justify-between items-center">
                         <div>
                             <h1 className="text-2xl font-bold tracking-tight">
                                 Portfolio Companies
@@ -598,6 +626,37 @@ export default function CompanySelectionPage() {
                                 Manage and track ESG data across your portfolio.
                             </p>
                         </div>
+                        <div className="flex flex-wrap items-center justify-end gap-2 mb-3 md:mb-0">
+                        {/* Notifications */}
+                        <Button
+                            variant="outline"
+                            onClick={() => navigate('/notifications')}
+                            className="group relative px-3 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300"
+                        >
+                            <Bell className="w-4 h-4" />
+                            <span className="ml-2 hidden group-hover:inline whitespace-nowrap">
+                            Notifications
+                            </span>
+
+                            {unreadCount > 0 && (
+                            <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                                {unreadCount}
+                            </span>
+                            )}
+                        </Button>
+
+                        {/* Audit Logs */}
+                        <Button
+                            variant="outline"
+                            onClick={() => setAuditOpen(true)}
+                            className="group px-3 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300"
+                        >
+                            <History className="w-4 h-4" />
+                            <span className="ml-2 hidden group-hover:inline whitespace-nowrap">
+                            Audit Logs
+                            </span>
+                        </Button>
+                       </div>
                     </div>
 
                     <Card>
@@ -770,6 +829,7 @@ export default function CompanySelectionPage() {
                     loading={loading}
                     showESGStatus={true}
                 />
+                <AuditDrawer open={auditOpen} onClose={() => setAuditOpen(false)} logs={logs} />
             </div>
         </div>
     );
