@@ -171,7 +171,7 @@ export const usePortfolioRankings = (
   const [rankings, setRankings] = useState<CompanyRanking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { asOf } = useAsOf();
-  let selectedPeriod = period == 'annual' && year == 2025 ? ['Q1', 'Q2', 'Q3', 'Q4', 'FY'] : [quarter, 'FY'];
+  let selectedPeriod = period == 'annual' && year == 2025 ? ['Q1', 'Q2', 'Q3', 'Q4', 'FY'] : [quarter];
   //console.log('usePortfolioRankings - asOf:', asOf, 'year:', year, 'quarter:', quarter, 'cumulative:', cumulative, 'period:', period);
   // useEffect(() => {
   //   const fetch = async () => {
@@ -733,8 +733,9 @@ export const usePortfolioRankings = (
           // Before : const totalKPIs = getTotalKPICount(qFeats) * 4 + getTotalKPICount(aFeats);
           console.log(`Start Company ${company.companyId} - Q Features: ${qFeats}, A Features: ${aFeats}`);
           console.log(`Company  ${company.companyId} - getTotalKPICount(qFeats): ${getTotalKPICount(qFeats)}, getTotalKPICount(aFeats): ${getTotalKPICount(aFeats)}`);
-          const totalKPIs = period === 'annual' ? getTotalKPICount(qFeats) * (year == 2025 ? 4 : 1) + getTotalKPICount(aFeats) : getTotalKPICount(qFeats) + getTotalKPICount(aFeats);
-          //
+          // const totalKPIs = period === 'annual' ? getTotalKPICount(qFeats) * (year == 2025 ? 4 : 1) + getTotalKPICount(aFeats) : getTotalKPICount(qFeats) + getTotalKPICount(aFeats);
+          const totalKPIs = period === 'annual' ? getTotalKPICount(qFeats) * (year == 2025 ? 4 : 1) + (year == 2025?getTotalKPICount(aFeats):0) : getTotalKPICount(qFeats);
+
           // console.log(`Company ${company.companyId} - Total KPIs: ${totalKPIs}`);
           let totalFilled = 0;
           let adjustedTotalKPIs = totalKPIs;
