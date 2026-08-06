@@ -987,11 +987,18 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                                 month: 'short',
                                 year: 'numeric',
                             }) : ' '} />
-                            <Field label="Actual Completion" value={capItem?.actualDate ? new Date(capItem?.lastReviewDate).toLocaleDateString('en-GB', {
-                                day: '2-digit',
-                                month: 'short',
-                                year: 'numeric',
-                            }) : ' '} />
+                            <Field
+                                label="Actual Completion"
+                                value={
+                                    capItem?.actualDate
+                                    ? new Date(capItem.actualDate).toLocaleDateString("en-GB", {
+                                        day: "2-digit",
+                                        month: "short",
+                                        year: "numeric",
+                                        })
+                                    : ""
+                                }
+                            />
                             <div>
                                 <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                                     Last Review Date
