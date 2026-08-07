@@ -217,7 +217,8 @@ export interface AnalyticsDashboardData {
 
 // ──── Helpers ────
 const parseNum = (val: string | null | undefined): number => {
-  if (!val || val === '' || val === 'N/A' || val === 'NA') return 0;
+  // if (!val || val === '' || val === 'N/A' || val === 'NA') return 0;
+  if (!val || val === '') return 0;
   const parsed = parseFloat(val);
   return isNaN(parsed) ? 0 : parsed;
 };
