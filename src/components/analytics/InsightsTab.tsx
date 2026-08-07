@@ -203,10 +203,10 @@ const InsightTabInner = ({
       governanceScore: new Set<string>(),
     };
     for (const r of rankings) {
-      if (r.esgCompleteness.overall < 30) map.esgCompositeScore.add(r.brand);
-      if (r.esgCompleteness.E < 30) map.circularEconomyIndex.add(r.brand);
-      if (r.esgCompleteness.S < 30) map.socialScore.add(r.brand);
-      if (r.esgCompleteness.G < 30) map.governanceScore.add(r.brand);
+      if (r.esgCompletenessAll.overall < 30) map.esgCompositeScore.add(r.brand);
+      if (r.esgCompletenessAll.E < 30) map.circularEconomyIndex.add(r.brand);
+      if (r.esgCompletenessAll.S < 30) map.socialScore.add(r.brand);
+      if (r.esgCompletenessAll.G < 30) map.governanceScore.add(r.brand);
     }
     return map;
   }, [rankings]);
