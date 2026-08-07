@@ -27,6 +27,7 @@ export interface CompanyRanking {
   consistencyPercentile: number;
   timelinessPercentile: number;
   esgCompleteness: ESGCompleteness;
+  esgCompletenessAll: ESGCompleteness;
 }
 
 // types/api.ts
@@ -74,14 +75,14 @@ export const SOCIAL_ANNUAL_FEATURES = ['operations', 'csr'];
 export const GOV_QUARTERLY_FEATURES: string[] = [];
 export const GOV_ANNUAL_FEATURES = ['governancePolicies', 'certifications', 'sri', 'externalReporting'];
 
-export const getTotalKPICount = (featureKeys: string[], consoleStatus ?:Boolean): number => {
+export const getTotalKPICount = (featureKeys: string[], consoleStatus?: Boolean): number => {
   let count = 0;
   for (const key of featureKeys) {
     const mapping = FEATURE_FIELD_MAPPINGS[key];
     if (mapping) {
-      if (consoleStatus) {
-        console.log(`Feature Key :: ${key} :: kpis :: => ${JSON.stringify(mapping.kpis.filter(kpi => !kpi.excludeFromProgress))}`)
-      }
+      // if (consoleStatus) {
+      //   console.log(`Feature Key :: ${key} :: kpis :: => ${JSON.stringify(mapping.kpis.filter(kpi => !kpi.excludeFromProgress))}`)
+      // }
       count += mapping.kpis.filter(kpi => !kpi.excludeFromProgress).length;
     }
   }
@@ -134,7 +135,7 @@ export const countFilledKPIs = (featureKeys: string[], entries: { kpi_id: string
     if (!mapping) continue;
     for (const kpi of mapping.kpis) {
       if (kpi.excludeFromProgress) continue;
-      let isKPIGroupFilledStatus=isKPIGroupFilled(kpi, entries);
+      let isKPIGroupFilledStatus = isKPIGroupFilled(kpi, entries);
       // console.log("isKPIGroupFilled(kpi, entries) :: ",isKPIGroupFilledStatus)
       if (isKPIGroupFilled(kpi, entries)) count++;
       // console.log(`kpi :: ${kpi.id} :: =>`,count)
@@ -158,6 +159,93 @@ const calculatePercentile = (_value: number, _allValues: number[], rank: number,
   const ascIdx = total - 1 - rank; // convert descending rank to ascending index
   const percentile = Math.round(((ascIdx + 1) / total) * 99);
   return Math.max(1, Math.min(99, percentile));
+};
+
+const calculateCompleteness = (
+  companyId: string,
+  cEntries: KpiEntryRaw[],
+  enabled: Set<string>,
+  year: number,
+  period: 'quarterly' | 'annual',
+  selectedPeriod: string[]
+): ESGCompleteness => {
+  // console.log(`Calculating completeness for company ${companyId}, year ${year}, period ${period}, selectedPeriod ${selectedPeriod} , fyentries length ${cEntries.filter(e => e.quarter === 'FY').length} ;`);
+  const qFeats = enabled.size > 0
+    ? ALL_QUARTERLY_FEATURES.filter(k => enabled.has(k))
+    : ALL_QUARTERLY_FEATURES;
+  const aFeats = enabled.size > 0
+    ? ALL_ANNUAL_FEATURES.filter(k => enabled.has(k))
+    : ALL_ANNUAL_FEATURES;
+
+  const totalKPIs = period === 'annual'
+    ? getTotalKPICount(qFeats) * (year == 2025 ? 4 : 1) + getTotalKPICount(aFeats)
+    : getTotalKPICount(qFeats) + getTotalKPICount(aFeats);
+
+  let totalFilled = 0;
+  let adjustedTotalKPIs = totalKPIs;
+
+  // Per-ESG category feature sets
+  const envQFeats = qFeats.filter(k => ENV_QUARTERLY_FEATURES.includes(k));
+  const envAFeats = aFeats.filter(k => ENV_ANNUAL_FEATURES.includes(k));
+  const socQFeats = qFeats.filter(k => SOCIAL_QUARTERLY_FEATURES.includes(k));
+  const socAFeats = aFeats.filter(k => SOCIAL_ANNUAL_FEATURES.includes(k));
+  const govQFeats = qFeats.filter(k => GOV_QUARTERLY_FEATURES.includes(k));
+  const govAFeats = aFeats.filter(k => GOV_ANNUAL_FEATURES.includes(k));
+
+  let envTotal = period === 'annual'
+    ? getTotalKPICount(envQFeats, true) * (year == 2025 ? 4 : 1) + getTotalKPICount(envAFeats) 
+    : getTotalKPICount(envQFeats, true) + getTotalKPICount(envAFeats) ;
+  let envFilled = 0;
+
+  let socTotal = period === 'annual'
+    ? getTotalKPICount(socQFeats) * (year == 2025 ? 4 : 1) + getTotalKPICount(socAFeats) 
+    : getTotalKPICount(socQFeats) + getTotalKPICount(socAFeats);
+  let socFilled = 0;
+
+  let govTotal = period === 'annual'
+    ? getTotalKPICount(govQFeats) * (year == 2025 ? 4 : 1) + getTotalKPICount(govAFeats) 
+    : getTotalKPICount(govQFeats)+ getTotalKPICount(govAFeats) ;
+  let govFilled = 0;
+
+  // Completeness — per period, skip excluded quarters
+  for (const p of [...selectedPeriod,'FY']) {
+    if (isCompanyExcluded(companyId, p, year)) {
+      if (p !== 'FY') {
+        adjustedTotalKPIs -= getTotalKPICount(qFeats);
+        envTotal -= getTotalKPICount(envQFeats, true);
+        socTotal -= getTotalKPICount(socQFeats);
+        govTotal -= getTotalKPICount(govQFeats);
+      }
+      continue;
+    }
+    const pEntries = cEntries.filter(e => e.quarter === p);
+    totalFilled += countFilledKPIs(p === 'FY' ? aFeats : qFeats, pEntries);
+
+    // Static code change for showing Annual kpis to quarter filter
+    if (p === 'FY') {
+      let envCount = countFilledKPIs(envAFeats, pEntries);
+      envFilled = envFilled + envCount;
+      socFilled += countFilledKPIs(socAFeats, pEntries);
+      govFilled += countFilledKPIs(govAFeats, pEntries);
+    } else {
+      envFilled += countFilledKPIs(envQFeats, pEntries);
+      socFilled += countFilledKPIs(socQFeats, pEntries);
+      govFilled += countFilledKPIs(govQFeats, pEntries);
+    }
+  }
+
+  const completionPct = adjustedTotalKPIs > 0
+    ? r2((totalFilled / adjustedTotalKPIs) * 100)
+    : 0;
+
+  const esgCompleteness: ESGCompleteness = {
+    E: envTotal > 0 ? r2((envFilled / envTotal) * 100) : 0,
+    S: socTotal > 0 ? r2((socFilled / socTotal) * 100) : 0,
+    G: govTotal > 0 ? r2((govFilled / govTotal) * 100) : 0,
+    overall: completionPct,
+  };
+
+  return esgCompleteness;
 };
 
 // ─── Hook ───
@@ -671,20 +759,20 @@ export const usePortfolioRankings = (
 
         //Static code change for annual kpi data to show in 2026 from 2025
         //Second change as for rankins section no AY from past year needs to be added
-        // if (year === 2026) {
-        //   const entriesRes2025 = await http.get<KpiEntryRaw[]>(`mis/kpi-entries?year=2025`);
-        //   if (entriesRes2025.data && entriesRes2025.data.length > 0) {
-        //     const fy2025Entries = entriesRes2025.data.filter(e => e.year === 2025 && e.quarter === 'FY');
-        //     // console.log("fy2025Entries ==> ",fy2025Entries)
-        //     const fy2026Entries = fy2025Entries.map(e => ({ ...e, year: 2026 }));
-        //     // console.log("fy2026Entries ==> ",fy2026Entries)
-        //     // console.log('allEntries ',allEntries.length)
-        //     allEntries = [...allEntries.filter(e => e.quarter !== 'FY'), ...fy2026Entries];
-        //     // console.log('2 allEntries ',allEntries.length)
-            
-        //   }
-          // allEntries.push(...entriesRes2025.data);
-        // }
+        let fy2026Entries = []
+        if (year === 2026) {
+          const entriesRes2025 = await http.get<KpiEntryRaw[]>(`mis/kpi-entries?year=2025`);
+          if (entriesRes2025.data && entriesRes2025.data.length > 0) {
+            const fy2025Entries = entriesRes2025.data.filter(e => e.year === 2025 && e.quarter === 'FY');
+            // console.log("fy2025Entries ==> ",fy2025Entries)
+            fy2026Entries = fy2025Entries.map(e => ({ ...e, year: 2026 }));
+            // console.log("fy2026Entries ==> ",fy2026Entries)
+            // console.log('allEntries ',allEntries.length)
+            allEntries = [...allEntries.filter(e => e.quarter !== 'FY'), ...fy2026Entries];
+            // console.log('2 allEntries ',allEntries.length)
+
+          }
+        }
         // let company7Entries=allEntries.filter(a => a.companyId == 'company-7' && a.quarter == 'FY')
         //     console.log('company7Entries :: =>',company7Entries)
 
@@ -723,6 +811,16 @@ export const usePortfolioRankings = (
           const cEntries = typedEntries.filter(e => e.companyId === company.companyId);
           const enabled = featureMap[company.companyId] || new Set();
 
+          const esgCompletenessAll = calculateCompleteness(
+            company.companyId,
+            [...typedEntries,...fy2026Entries].filter(e => e.companyId === company.companyId),
+            enabled,
+            year,
+            period,
+            selectedPeriod
+          );
+          // console.log(`Company ${company.companyId} - ESG Completeness:`, esgCompletenessAll);
+
           const qFeats = enabled.size > 0
             ? ALL_QUARTERLY_FEATURES.filter(k => enabled.has(k))
             : ALL_QUARTERLY_FEATURES;
@@ -734,7 +832,7 @@ export const usePortfolioRankings = (
           console.log(`Start Company ${company.companyId} - Q Features: ${qFeats}, A Features: ${aFeats}`);
           console.log(`Company  ${company.companyId} - getTotalKPICount(qFeats): ${getTotalKPICount(qFeats)}, getTotalKPICount(aFeats): ${getTotalKPICount(aFeats)}`);
           // const totalKPIs = period === 'annual' ? getTotalKPICount(qFeats) * (year == 2025 ? 4 : 1) + getTotalKPICount(aFeats) : getTotalKPICount(qFeats) + getTotalKPICount(aFeats);
-          const totalKPIs = period === 'annual' ? getTotalKPICount(qFeats) * (year == 2025 ? 4 : 1) + (year == 2025?getTotalKPICount(aFeats):0) : getTotalKPICount(qFeats);
+          const totalKPIs = period === 'annual' ? getTotalKPICount(qFeats) * (year == 2025 ? 4 : 1) + (year == 2025 ? getTotalKPICount(aFeats) : 0) : getTotalKPICount(qFeats);
 
           // console.log(`Company ${company.companyId} - Total KPIs: ${totalKPIs}`);
           let totalFilled = 0;
@@ -749,25 +847,28 @@ export const usePortfolioRankings = (
           const govAFeats = aFeats.filter(k => GOV_ANNUAL_FEATURES.includes(k));
           console.log('envAFeats :: ', envAFeats)
           console.log('envQFeats ::', envQFeats)
-          console.log("getTotalKPICount(envAFeats,true):: =>",getTotalKPICount(envAFeats))
-          console.log("getTotalKPICount(envQFeats,true):: =>",getTotalKPICount(envQFeats))
+          console.log("getTotalKPICount(envAFeats,true):: =>", getTotalKPICount(envAFeats))
+          console.log("getTotalKPICount(envQFeats,true):: =>", getTotalKPICount(envQFeats))
 
           // let envTotal = getTotalKPICount(envQFeats) * 4 + getTotalKPICount(envAFeats);
-          let envTotal = period === 'annual' ? getTotalKPICount(envQFeats,true) * (year == 2025 ? 4 : 1) + getTotalKPICount(envAFeats,true) : getTotalKPICount(envQFeats,true) + getTotalKPICount(envAFeats,true);
+          // let envTotal = period === 'annual' ? getTotalKPICount(envQFeats,true) * (year == 2025 ? 4 : 1) + getTotalKPICount(envAFeats,true) : getTotalKPICount(envQFeats,true) + getTotalKPICount(envAFeats,true);
+          let envTotal = period === 'annual' ? getTotalKPICount(envQFeats, true) * (year == 2025 ? 4 : 1) + (year == 2025 ? getTotalKPICount(envAFeats) : 0) : getTotalKPICount(envQFeats, true);
 
           let envFilled = 0;
           // let socTotal = getTotalKPICount(socQFeats) * 4 + getTotalKPICount(socAFeats);
-          let socTotal = period === 'annual' ? getTotalKPICount(socQFeats) * (year == 2025 ? 4 : 1) + getTotalKPICount(socAFeats) : getTotalKPICount(socQFeats) + getTotalKPICount(socAFeats);
+          // let socTotal = period === 'annual' ? getTotalKPICount(socQFeats) * (year == 2025 ? 4 : 1) + getTotalKPICount(socAFeats) : getTotalKPICount(socQFeats) + getTotalKPICount(socAFeats);
+          let socTotal = period === 'annual' ? getTotalKPICount(socQFeats) * (year == 2025 ? 4 : 1) + (year == 2025 ? getTotalKPICount(socAFeats) : 0) : getTotalKPICount(socQFeats);
 
           let socFilled = 0;
           // let govTotal = getTotalKPICount(govQFeats) * 4 + getTotalKPICount(govAFeats);
-          let govTotal = period === 'annual' ? getTotalKPICount(govQFeats) * (year == 2025 ? 4 : 1) + getTotalKPICount(govAFeats) : getTotalKPICount(govQFeats) + getTotalKPICount(govAFeats);
+          // let govTotal = period === 'annual' ? getTotalKPICount(govQFeats) * (year == 2025 ? 4 : 1) + getTotalKPICount(govAFeats) : getTotalKPICount(govQFeats) + getTotalKPICount(govAFeats);
+          let govTotal = period === 'annual' ? getTotalKPICount(govQFeats) * (year == 2025 ? 4 : 1) + (year == 2025 ? getTotalKPICount(govAFeats) : 0) : getTotalKPICount(govQFeats);
 
           let govFilled = 0;
           // 6a. Completeness — per period, skip excluded quarters
           // for (const p of ['Q1', 'Q2', 'Q3', 'Q4', 'FY']) {
           for (const p of selectedPeriod) {
-            console.log('p :: => ',p)
+            console.log('p :: => ', p)
             if (isCompanyExcluded(company.companyId, p, year)) {
               if (p !== 'FY') {
                 adjustedTotalKPIs -= getTotalKPICount(qFeats);
@@ -778,7 +879,7 @@ export const usePortfolioRankings = (
               continue;
             }
             const pEntries = cEntries.filter(e => e.quarter === p);
-            console.log('pEntries ==> ',pEntries.length)
+            console.log('pEntries ==> ', pEntries.length)
             totalFilled += countFilledKPIs(p === 'FY' ? aFeats : qFeats, pEntries);
 
             // envFilled += countFilledKPIs(envQFeats, pEntries);
@@ -787,11 +888,11 @@ export const usePortfolioRankings = (
 
             //Static code change for showing Annual kpis to quarter filter
             if (p === 'FY') {
-              let envCount=countFilledKPIs(envAFeats, pEntries);
+              let envCount = countFilledKPIs(envAFeats, pEntries);
               // envFilled += countFilledKPIs(envAFeats, pEntries);
               // console.log('Internal Envfilled :: envFilled => ',envFilled)
               // console.log('Internal envCount :: envCount => ',envCount)
-              envFilled=envFilled+envCount;
+              envFilled = envFilled + envCount;
               // console.log('Internal Envfilled plus count :: envFilled => ',envFilled)
               socFilled += countFilledKPIs(socAFeats, pEntries);
               govFilled += countFilledKPIs(govAFeats, pEntries);
@@ -800,11 +901,11 @@ export const usePortfolioRankings = (
               socFilled += countFilledKPIs(socQFeats, pEntries);
               govFilled += countFilledKPIs(govQFeats, pEntries);
             }
-            
-            console.log('envFilled :: => ',envFilled)
+
+            console.log('envFilled :: => ', envFilled)
           }
-          console.log('totalFilled :: ',totalFilled)
-          console.log('adjustedTotalKPIs :: ',adjustedTotalKPIs)
+          console.log('totalFilled :: ', totalFilled)
+          console.log('adjustedTotalKPIs :: ', adjustedTotalKPIs)
           const completionPct = adjustedTotalKPIs > 0
             ? r2((totalFilled / adjustedTotalKPIs) * 100)
             : 0;
@@ -912,6 +1013,7 @@ export const usePortfolioRankings = (
             consistencyPct,
             timelinessScore: r2(timelinessScore),
             esgCompleteness,
+            esgCompletenessAll
           };
         });
 
