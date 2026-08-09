@@ -174,13 +174,18 @@ export const ESGCapScoring: React.FC<ESGCapScoringProps> = ({ items, onFilterCha
       | "under3"
       | "over3"
   ) => {
-    return csItems.filter(item => {
+    return csItems.filter((item) => {
   
       // Priority
-      if ((item.priority || "Medium") !== priority) {
+      const itemPriority = (item.priority || "Medium")
+        .trim()
+        .toLowerCase();
+  
+      if (itemPriority !== priority.toLowerCase()) {
         return false;
       }
   
+      // Target date required
       if (!item.targetDate) {
         return false;
       }
@@ -193,16 +198,18 @@ export const ESGCapScoring: React.FC<ESGCapScoringProps> = ({ items, onFilterCha
   
       const submitDate = getSubmitDate(item);
   
-      // =========================
+      // =================================================
       // SUBMITTED
-      // =========================
+      // =================================================
       if (submitDate) {
+  
         const months = getMonthDifference(
           targetDate,
           submitDate
         );
   
         switch (type) {
+  
           case "ontime":
             return months <= 0;
   
@@ -215,8 +222,9 @@ export const ESGCapScoring: React.FC<ESGCapScoringProps> = ({ items, onFilterCha
           case "buffer3":
             return months === 3;
   
+          // Submitted items should not appear here
           case "under3":
-            return months > 0 && months < 3;
+            return false;
   
           case "over3":
             return months > 3;
@@ -226,9 +234,9 @@ export const ESGCapScoring: React.FC<ESGCapScoringProps> = ({ items, onFilterCha
         }
       }
   
-      // =========================
+      // =================================================
       // NOT SUBMITTED
-      // =========================
+      // =================================================
       const today = new Date();
   
       const months = getMonthDifference(
@@ -236,17 +244,19 @@ export const ESGCapScoring: React.FC<ESGCapScoringProps> = ({ items, onFilterCha
         today
       );
   
-      // Target date has not passed
-      if (months <= 0) {
-        return false;
-      }
-  
-      // Not completed but overdue < 3 months
+      // -----------------------------------------
+      // NOT COMPLETED <3 BUFFER TIME
+      //
+      // Includes upcoming items and items overdue
+      // by less than 3 months.
+      // -----------------------------------------
       if (type === "under3") {
-        return months < 3;
+        return months <= 3;
       }
   
-      // Not completed > 3 months
+      // -----------------------------------------
+      // NOT COMPLETED >3 BUFFER TIME
+      // -----------------------------------------
       if (type === "over3") {
         return months > 3;
       }
