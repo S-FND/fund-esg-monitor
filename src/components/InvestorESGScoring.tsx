@@ -115,9 +115,388 @@ export const ESGCapScoring: React.FC<ESGCapScoringProps> = ({ items, onFilterCha
     onFilterChange?.(newFilter);
   };
 
+  const csItems = filteredItems.filter(
+    item => item.dealCondition === "CS"
+  );
+
+  const getSubmitDate = (item: any): Date | null => {
+    const indicators = item.completionIndicators || [];
+  
+    const uploadedDates = indicators
+      .map(indicator => indicator.uploadedAt)
+      .filter(Boolean)
+      .map(date => new Date(date as string))
+      .filter(date => !isNaN(date.getTime()));
+  
+    // Last uploadedAt = submit date
+    if (uploadedDates.length > 0) {
+      return new Date(
+        Math.max(...uploadedDates.map(date => date.getTime()))
+      );
+    }
+  
+    // If no uploadedAt and company submitted,
+    // use this item's createdAt
+    const companyStatus = (
+      item.companyStatus ||
+      item.status ||
+      ""
+    ).toLowerCase().trim();
+  
+    if (companyStatus === "submitted" && item.createdAt) {
+      const createdAt = new Date(item.createdAt);
+  
+      if (!isNaN(createdAt.getTime())) {
+        return createdAt;
+      }
+    }
+  
+    return null;
+  };
+
+  const getMonthDifference = (
+    targetDate: Date,
+    submitDate: Date
+  ): number => {
+    return (
+      (submitDate.getFullYear() - targetDate.getFullYear()) * 12 +
+      (submitDate.getMonth() - targetDate.getMonth())
+    );
+  };
+
+  const getCSCount = (
+    priority: "High" | "Medium" | "Low",
+    type:
+      | "ontime"
+      | "buffer1"
+      | "buffer2"
+      | "buffer3"
+      | "under3"
+      | "over3"
+  ) => {
+    return csItems.filter((item) => {
+  
+      // Priority
+      const itemPriority = (item.priority || "Medium")
+        .trim()
+        .toLowerCase();
+  
+      if (itemPriority !== priority.toLowerCase()) {
+        return false;
+      }
+  
+      // Target date required
+      if (!item.targetDate) {
+        return false;
+      }
+  
+      const targetDate = new Date(item.targetDate);
+  
+      if (isNaN(targetDate.getTime())) {
+        return false;
+      }
+  
+      const submitDate = getSubmitDate(item);
+  
+      // =================================================
+      // SUBMITTED
+      // =================================================
+      if (submitDate) {
+  
+        const months = getMonthDifference(
+          targetDate,
+          submitDate
+        );
+  
+        switch (type) {
+  
+          case "ontime":
+            return months <= 0;
+  
+          case "buffer1":
+            return months === 1;
+  
+          case "buffer2":
+            return months === 2;
+  
+          case "buffer3":
+            return months === 3;
+  
+          // Submitted items should not appear here
+          case "under3":
+            return false;
+  
+          case "over3":
+            return months > 3;
+  
+          default:
+            return false;
+        }
+      }
+  
+      // =================================================
+      // NOT SUBMITTED
+      // =================================================
+      const today = new Date();
+  
+      const months = getMonthDifference(
+        targetDate,
+        today
+      );
+  
+      // -----------------------------------------
+      // NOT COMPLETED <3 BUFFER TIME
+      //
+      // Includes upcoming items and items overdue
+      // by less than 3 months.
+      // -----------------------------------------
+      if (type === "under3") {
+        return months <= 3;
+      }
+  
+      // -----------------------------------------
+      // NOT COMPLETED >3 BUFFER TIME
+      // -----------------------------------------
+      if (type === "over3") {
+        return months > 3;
+      }
+  
+      return false;
+    }).length;
+  };
+
+  const getPriorityTotal = (
+    priority: "High" | "Medium" | "Low"
+  ) => {
+    return csItems.filter((item) => {
+      const itemPriority = (item.priority || "Medium")
+        .trim()
+        .toLowerCase();
+  
+      return itemPriority === priority.toLowerCase();
+    }).length;
+  };
+
+  const getCSTotal = (type:
+    | "ontime"
+    | "buffer1"
+    | "buffer2"
+    | "buffer3"
+    | "under3"
+    | "over3"
+  ) => {
+    return (
+      getCSCount("High", type) +
+      getCSCount("Medium", type) +
+      getCSCount("Low", type)
+    );
+  };
+
   return (
     <>
     <div className="space-y-4">
+      <Card className="mt-3 border-emerald-100">
+        <CardContent className="p-3">
+          <div className="overflow-x-auto rounded-xl border border-slate-100">
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-sm font-semibold text-slate-700">
+              CS Items
+            </div>
+          </div>
+            {/* Header */}
+            <div className="grid grid-cols-[0.8fr_1.4fr_1.7fr_1.7fr_1.7fr_1.7fr_1.7fr_0.8fr] min-w-[950px] items-center bg-emerald-50/70 px-3 py-2.5">
+
+              <div className="text-[10px] font-semibold uppercase tracking-wide ">
+                Priority
+              </div>
+
+              <div className="text-center text-[10px] font-semibold ">
+                Completed in Time
+              </div>
+
+              <div className="text-center text-[10px] font-semibold ">
+                Completed within 1 Buffer Time
+              </div>
+
+              <div className="text-center text-[10px] font-semibold ">
+                Completed within 2 Buffer Time
+              </div>
+
+              <div className="text-center text-[10px] font-semibold ">
+                Completed within 3 Buffer Time
+              </div>
+
+              <div className="text-center text-[10px] font-semibold ">
+                Not completed &lt;3 Buffer Time
+              </div>
+
+              <div className="text-center text-[10px] font-semibold ">
+                Not completed &gt;3 Buffer Time
+              </div>
+
+              <div className="text-center text-[10px] font-bold ">
+                Total
+              </div>
+
+            </div>
+
+
+            {/* High */}
+            <div className="grid grid-cols-[0.8fr_1.4fr_1.7fr_1.7fr_1.7fr_1.7fr_1.7fr_0.8fr] min-w-[950px] items-center border-t border-slate-100 px-3 py-2.5">
+
+              <div className="text-xs font-bold text-red-600">
+                High
+              </div>
+
+              <div className="text-center text-xs font-semibold">
+                {getCSCount("High", "ontime")}
+              </div>
+
+              <div className="text-center text-xs font-semibold">
+                {getCSCount("High", "buffer1")}
+              </div>
+
+              <div className="text-center text-xs font-semibold">
+                {getCSCount("High", "buffer2")}
+              </div>
+
+              <div className="text-center text-xs font-semibold">
+                {getCSCount("High", "buffer3")}
+              </div>
+
+              <div className="text-center text-xs font-semibold">
+                {getCSCount("High", "under3")}
+              </div>
+
+              <div className="text-center text-xs font-bold text-red-600">
+                {getCSCount("High", "over3")}
+              </div>
+
+              <div className="text-center text-xs font-bold">
+                {getPriorityTotal("High")}
+              </div>
+
+            </div>
+
+
+            {/* Medium */}
+            <div className="grid grid-cols-[0.8fr_1.4fr_1.7fr_1.7fr_1.7fr_1.7fr_1.7fr_0.8fr] min-w-[950px] items-center border-t border-slate-100 px-3 py-2.5">
+
+              <div className="text-xs font-bold text-amber-600">
+                Medium
+              </div>
+
+              <div className="text-center text-xs font-semibold">
+                {getCSCount("Medium", "ontime")}
+              </div>
+
+              <div className="text-center text-xs font-semibold">
+                {getCSCount("Medium", "buffer1")}
+              </div>
+
+              <div className="text-center text-xs font-semibold">
+                {getCSCount("Medium", "buffer2")}
+              </div>
+
+              <div className="text-center text-xs font-semibold">
+                {getCSCount("Medium", "buffer3")}
+              </div>
+
+              <div className="text-center text-xs font-semibold">
+                {getCSCount("Medium", "under3")}
+              </div>
+
+              <div className="text-center text-xs font-bold text-red-600">
+                {getCSCount("Medium", "over3")}
+              </div>
+
+              <div className="text-center text-xs font-bold">
+                {getPriorityTotal("Medium")}
+              </div>
+
+            </div>
+
+
+            {/* Low */}
+            <div className="grid grid-cols-[0.8fr_1.4fr_1.7fr_1.7fr_1.7fr_1.7fr_1.7fr_0.8fr] min-w-[950px] items-center border-t border-slate-100 px-3 py-2.5">
+
+              <div className="text-xs font-bold text-slate-500">
+                Low
+              </div>
+
+              <div className="text-center text-xs font-semibold">
+                {getCSCount("Low", "ontime")}
+              </div>
+
+              <div className="text-center text-xs font-semibold">
+                {getCSCount("Low", "buffer1")}
+              </div>
+
+              <div className="text-center text-xs font-semibold">
+                {getCSCount("Low", "buffer2")}
+              </div>
+
+              <div className="text-center text-xs font-semibold">
+                {getCSCount("Low", "buffer3")}
+              </div>
+
+              <div className="text-center text-xs font-semibold">
+                {getCSCount("Low", "under3")}
+              </div>
+
+              <div className="text-center text-xs font-bold text-red-600">
+                {getCSCount("Low", "over3")}
+              </div>
+
+              <div className="text-center text-xs font-bold">
+                {getPriorityTotal("Low")}
+              </div>
+
+            </div>
+
+
+            {/* Total */}
+            <div className="grid grid-cols-[0.8fr_1.4fr_1.7fr_1.7fr_1.7fr_1.7fr_1.7fr_0.8fr] min-w-[950px] items-center border-t border-emerald-200 bg-emerald-50 px-3 py-2.5">
+
+              <div className="text-xs font-bold text-emerald-700">
+                Total
+              </div>
+
+              <div className="text-center text-xs font-bold text-emerald-700">
+                {getCSTotal("ontime")}
+              </div>
+
+              <div className="text-center text-xs font-bold text-emerald-700">
+                {getCSTotal("buffer1")}
+              </div>
+
+              <div className="text-center text-xs font-bold text-emerald-700">
+                {getCSTotal("buffer2")}
+              </div>
+
+              <div className="text-center text-xs font-bold text-emerald-700">
+                {getCSTotal("buffer3")}
+              </div>
+
+              <div className="text-center text-xs font-bold text-emerald-700">
+                {getCSTotal("under3")}
+              </div>
+
+              <div className="text-center text-xs font-bold text-red-600">
+                {getCSTotal("over3")}
+              </div>
+
+              <div className="flex justify-center">
+                <span className="rounded-full bg-emerald-200 px-3 py-1 text-xs font-bold text-emerald-800">
+                  {csItems.length}
+                </span>
+              </div>
+
+            </div>
+
+          </div>
+        </CardContent>
+      </Card>
       <Card>
         <CardContent className="py-3">
           <div className="grid grid-cols-6 gap-2">
