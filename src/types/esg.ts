@@ -154,6 +154,7 @@ export interface Company {
   loginPassword: string;
   createdAt: string;
   qCategory?: QCategory;
+  misCompanyId?: string; // For internal use only, to link with MIS system
 }
 
 export interface KPIEntry {

@@ -950,7 +950,7 @@ export const usePortfolioRankings = (
           const consistencyPct = qKPIDefs.length > 0
             ? r2((consistencyRatio / qKPIDefs.length) * 100)
             : 0;
-
+          console.log('year :: ',year)
           // 6c. Timeliness — first submission per period, capped at March 3 of next year
           let timelineYearObj = {
             2025: {
@@ -986,24 +986,32 @@ export const usePortfolioRankings = (
               .filter(d => !isNaN(d) && d <= TIMELINESS_CUTOFF);
             if (periodSubs.length > 0) firstSubmissionPerPeriod.push(Math.min(...periodSubs));
           }
-
+          console.log('firstSubmissionPerPeriod',firstSubmissionPerPeriod)
+          console.log('TIMELINESS_CUTOFF',TIMELINESS_CUTOFF);
+          console.log('feb4',feb4);
+          console.log('feb20',feb20);
+          console.log('feb24',feb24);
           let timelinessScore = 0;
           if (firstSubmissionPerPeriod.length > 0) {
             const effectiveDate = Math.max(...firstSubmissionPerPeriod);
+            console.log('effectiveDate',effectiveDate)
             if (effectiveDate <= feb4) {
               timelinessScore = 100;
             } else if (effectiveDate <= feb20) {
               const daysSinceFeb4 = (effectiveDate - feb4) / (1000 * 60 * 60 * 24);
+              console.log('daysSinceFeb4',daysSinceFeb4)
               timelinessScore = Math.max(90, 100 - (daysSinceFeb4 / 16) * 10);
             } else if (effectiveDate <= feb24) {
               const daysSinceFeb20 = (effectiveDate - feb20) / (1000 * 60 * 60 * 24);
+              console.log('daysSinceFeb20',daysSinceFeb20)
               timelinessScore = Math.max(70, 90 - (daysSinceFeb20 / 4) * 20);
             } else {
               const daysLate = (effectiveDate - feb24) / (1000 * 60 * 60 * 24);
+              console.log('daysLate',daysLate)
               timelinessScore = Math.max(0, 70 - daysLate);
             }
           }
-
+          console.log('timelinessScore :: ', timelinessScore, "Brand :: ", company.brand);
           return {
             companyId: company.companyId,
             companyName: company.brand,
