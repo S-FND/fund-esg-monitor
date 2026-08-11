@@ -47,7 +47,7 @@ const percentileToCategory = (p: number): string => {
 };
 
 const getTrendIcon = (trend: 'up' | 'down' | 'stable') => {
-  console.log('trend :: ',trend)
+  console.log('trend :: ', trend)
   if (trend === 'up') {
     return `
       <svg
@@ -816,7 +816,7 @@ const getQuarterAnalyticsWithTrend = (
             )
             : 'stable',
       },
-      timelinessPercentile:{
+      timelinessPercentile: {
         current: currentQuarter.timelinessPercentile,
         previous: prevQuarter?.timelinessPercentile ?? null,
         trend:
@@ -950,46 +950,50 @@ export const GenerateEmailDialog = ({ year = 2026, quarter = 'Q1' }: Props) => {
       }
     })
     console.log('escapData :: ', escapData)
-    let complianceScore = await result({ plan: escapData.plan });
-    console.log('complianceScore :: ', complianceScore)
-    const complianceRating = getComplianceRating(complianceScore.overallComplianceScore ?? 0) as { grade: string; label: string; color: string };
+    let esgCapTemplateData = null;
+    if (escapData) {
+      let complianceScore = await result({ plan: escapData.plan });
+      console.log('complianceScore :: ', complianceScore)
+      const complianceRating = getComplianceRating(complianceScore.overallComplianceScore ?? 0) as { grade: string; label: string; color: string };
 
-    let esgCapTemplateData = {
-      complianceScore: complianceScore.overallComplianceScore ?? 0,
-      complianceRating: complianceRating,
-      priorityScore: {
-        high: {
-          ontime: getCSCount("High", "ontime", escapData.plan),
-          buffer1: getCSCount("High", "buffer1", escapData.plan),
-          buffer2: getCSCount("High", "buffer2", escapData.plan),
-          buffer3: getCSCount("High", "buffer3", escapData.plan),
-          under3: getCSCount("High", "under3", escapData.plan),
-          over3: getCSCount("High", "over3", escapData.plan),
-          total: getPriorityTotal("High", escapData.plan)
+      esgCapTemplateData = {
+        complianceScore: complianceScore.overallComplianceScore ?? 0,
+        complianceRating: complianceRating,
+        priorityScore: {
+          high: {
+            ontime: getCSCount("High", "ontime", escapData.plan),
+            buffer1: getCSCount("High", "buffer1", escapData.plan),
+            buffer2: getCSCount("High", "buffer2", escapData.plan),
+            buffer3: getCSCount("High", "buffer3", escapData.plan),
+            under3: getCSCount("High", "under3", escapData.plan),
+            over3: getCSCount("High", "over3", escapData.plan),
+            total: getPriorityTotal("High", escapData.plan)
 
+          },
+          medium: {
+            ontime: getCSCount("Medium", "ontime", escapData.plan),
+            buffer1: getCSCount("Medium", "buffer1", escapData.plan),
+            buffer2: getCSCount("Medium", "buffer2", escapData.plan),
+            buffer3: getCSCount("Medium", "buffer3", escapData.plan),
+            under3: getCSCount("Medium", "under3", escapData.plan),
+            over3: getCSCount("Medium", "over3", escapData.plan),
+            total: getPriorityTotal("Medium", escapData.plan)
+          },
+          low: {
+            ontime: getCSCount("Low", "ontime", escapData.plan),
+            buffer1: getCSCount("Low", "buffer1", escapData.plan),
+            buffer2: getCSCount("Low", "buffer2", escapData.plan),
+            buffer3: getCSCount("Low", "buffer3", escapData.plan),
+            under3: getCSCount("Low", "under3", escapData.plan),
+            over3: getCSCount("Low", "over3", escapData.plan),
+            total: getPriorityTotal("Low", escapData.plan)
+          }
         },
-        medium: {
-          ontime: getCSCount("Medium", "ontime", escapData.plan),
-          buffer1: getCSCount("Medium", "buffer1", escapData.plan),
-          buffer2: getCSCount("Medium", "buffer2", escapData.plan),
-          buffer3: getCSCount("Medium", "buffer3", escapData.plan),
-          under3: getCSCount("Medium", "under3", escapData.plan),
-          over3: getCSCount("Medium", "over3", escapData.plan),
-          total: getPriorityTotal("Medium", escapData.plan)
-        },
-        low: {
-          ontime: getCSCount("Low", "ontime", escapData.plan),
-          buffer1: getCSCount("Low", "buffer1", escapData.plan),
-          buffer2: getCSCount("Low", "buffer2", escapData.plan),
-          buffer3: getCSCount("Low", "buffer3", escapData.plan),
-          under3: getCSCount("Low", "under3", escapData.plan),
-          over3: getCSCount("Low", "over3", escapData.plan),
-          total: getPriorityTotal("Low", escapData.plan)
-        }
-      },
-      plan: escapData.plan,
-      esgMetrics: calculateEsgMetrics(escapData.plan)
+        plan: escapData.plan,
+        esgMetrics: calculateEsgMetrics(escapData.plan)
+      }
     }
+
 
 
 
@@ -1004,10 +1008,10 @@ export const GenerateEmailDialog = ({ year = 2026, quarter = 'Q1' }: Props) => {
       currentM,
       prevM
     );
-    console.log('compareResult :: ',compareResult)
+    console.log('compareResult :: ', compareResult)
     if (format === 'docx') {
       // const blob = await generateEmailDOCX(company, ranking, companyRaw, rawData, rankings, overallProgress, scoreFormat);
-      const blob = await generateEmailDOCXV4(currentMisConstruct.company, currentMisConstruct.ranking, currentMisConstruct.companyRaw, currentMisConstruct.rawData, currentMisConstruct.rankings, currentM,prevM, currentMisConstruct.overallProgress,currentMisConstruct.scoreFormat, esgCapTemplateData);
+      const blob = await generateEmailDOCXV4(currentMisConstruct.company, currentMisConstruct.ranking, currentMisConstruct.companyRaw, currentMisConstruct.rawData, currentMisConstruct.rankings, currentM, prevM, currentMisConstruct.overallProgress, currentMisConstruct.scoreFormat, esgCapTemplateData);
 
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -1018,7 +1022,7 @@ export const GenerateEmailDialog = ({ year = 2026, quarter = 'Q1' }: Props) => {
     } else {
       // const html = generateEmailHTML(company, ranking, companyRaw, rawData, rankings, overallProgress, scoreFormat);
       // const html = generateEmailHTMLV4(currentMisConstruct.company, currentMisConstruct.ranking, currentMisConstruct.companyRaw, currentMisConstruct.rawData, currentMisConstruct.rankings, currentMisConstruct.overallProgress, currentMisConstruct.scoreFormat, esgCapTemplateData, prevMisConstruct);
-      const html = generateEmailHTMLV4(currentMisConstruct.company,currentMisConstruct.rankings,compareResult, esgCapTemplateData)
+      const html = generateEmailHTMLV4(currentMisConstruct.company, currentMisConstruct.rankings, compareResult, esgCapTemplateData)
       const blob = new Blob([html], { type: 'text/html' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -3708,7 +3712,7 @@ function generateEmailHTMLV4(
   //     completedOn: '28 Jun 2024',
   //   },
   // ];
-  const dummyCapItems = esgCapTemplateData.plan.filter(item => item.dealCondition == 'CS');
+  // const dummyCapItems = esgCapTemplateData.plan.filter(item => item.dealCondition == 'CS');
 
   return `<!DOCTYPE html>
 <html>
@@ -4310,7 +4314,7 @@ ${getTrendIcon(m.indicators?.pillars[2]?.companyPctileTrend)}
 <!-- ========================================================= -->
 <!-- COMPLIANCE SCORE + PRIORITY SUMMARY                       -->
 <!-- ========================================================= -->
-<h2 style="font-size:17px;color:#2d2d2d;margin:8px 0 4px 0;border-bottom:2px solid #e5e7eb;padding-bottom:6px;">ESGCAP Report</h2>
+${esgCapTemplateData ? `<h2 style="font-size:17px;color:#2d2d2d;margin:8px 0 4px 0;border-bottom:2px solid #e5e7eb;padding-bottom:6px;">ESGCAP Report</h2>
 
 <table
   width="100%"
@@ -4874,8 +4878,8 @@ ${getTrendIcon(m.indicators?.pillars[2]?.companyPctileTrend)}
 </td>
 
 </tr>
-</table>
-
+</table>`: ""
+    }
 
 
 
@@ -12708,25 +12712,25 @@ async function generateEmailDOCXV4(
 
         ...(showGrade
           ? [
-              new Paragraph({
-                alignment: AlignmentType.CENTER,
+            new Paragraph({
+              alignment: AlignmentType.CENTER,
 
-                spacing: {
-                  before: 0,
-                  after: 25,
-                  line: 210,
-                },
+              spacing: {
+                before: 0,
+                after: 25,
+                line: 210,
+              },
 
-                children: [
-                  new TextRun({
-                    text: 'grade',
-                    size: 16,
-                    color: '6B7280',
-                    font: 'Arial',
-                  }),
-                ],
-              }),
-            ]
+              children: [
+                new TextRun({
+                  text: 'grade',
+                  size: 16,
+                  color: '6B7280',
+                  font: 'Arial',
+                }),
+              ],
+            }),
+          ]
           : []),
 
         new Paragraph({
@@ -12826,7 +12830,7 @@ async function generateEmailDOCXV4(
   // ESCAP PRIORITY SUMMARY
   // ============================================================
 
-  const prioritySummary = [
+  const prioritySummary = esgCapTemplateData ? [
     {
       priority: 'High',
       color: 'DC2626',
@@ -12853,7 +12857,7 @@ async function generateEmailDOCXV4(
       notCompleted: esgCapTemplateData.priorityScore.low.under3,
       total: esgCapTemplateData.priorityScore.low.total,
     },
-  ];
+  ]:[];
 
   // ============================================================
   // ESCAP HEADER CELL
@@ -14309,7 +14313,7 @@ async function generateEmailDOCXV4(
           // ======================================================
           // 7. COMPLIANCE SCORE + PRIORITY TABLE
           // ======================================================
-          new Paragraph({
+          ...(esgCapTemplateData?[new Paragraph({
             spacing: {
               before: 280,
               after: 90,
@@ -14815,7 +14819,9 @@ async function generateEmailDOCXV4(
                   ),
               }),
             ],
-          }),
+          })]:[]),
+
+          
 
           // ======================================================
           // 9. CONDITIONS PRECEDENT
