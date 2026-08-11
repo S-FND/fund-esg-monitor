@@ -236,12 +236,47 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
         if (!capItem || !editedItem) return;
         setSaving(true);
         try {
+
+            // Keys that should be checked
+            const fieldsToCheck = [
+                "item",
+                "category",
+                "priority",
+                "companyStatus",
+                "targetDate",
+                "actualDate",
+                "esgLever",
+                "dealCondition",
+                "capSource",
+                "implementationSupportNeeded",
+                "timelineMonth",
+                "measures",
+                "issue",
+                "investorStatus",
+                "reviewRemarks",
+                "completionIndicators",
+                "deliverable",
+                "lastReviewDate",
+                "closureVerifiedBy",
+            ];
+
+            // Only store KEY names that changed
+            const changedFields = fieldsToCheck.filter((key) => {
+                const oldValue = capItem[key];
+                const newValue = editedItem[key];
+
+                return JSON.stringify(oldValue) !== JSON.stringify(newValue);
+            });
+
+            console.log("Changed fields:", changedFields);
+
             const updatedPlan = fullPlan.map((item: any) =>
                 item.reportId === capItem?.reportId &&
                     item.item === capItem?.item
                     ? {
                         ...item,
                         ...editedItem,
+                        changedFields,
                         highlights: { investor: false, company: true },
                     }
                     : item
@@ -256,7 +291,12 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                 setFullPlan(updatedPlan);
                 setCapItem({ ...editedItem });
                 setEditMode(false);
-                toast.success("CAP item updated successfully");
+                // toast.success("CAP item updated successfully");
+                toast.success(
+                    changedFields.length > 0
+                        ? `Updated: ${changedFields.join(", ")}`
+                        : "No changes detected"
+                );
             } else {
                 toast.error(response?.data?.message || "Failed to save changes");
             }
