@@ -261,6 +261,7 @@ export class ComplianceScoreEngine {
 
   /** Public API */
   calculateComplianceScore(planJson: PlanJson | PlanItem[] | null | undefined): EngineResult {
+    console.log("calculateComplianceScore :: ", planJson);
     const today = startOfDay(this.config.today ?? new Date());
     const rawItems: PlanItem[] = Array.isArray(planJson)
       ? planJson
