@@ -410,7 +410,8 @@ export function CAPTable({
       itemId: item['_id'],
       fileName: payload.fileName,
       status: payload.status,
-      reason: payload.reason
+      reason: payload.reason,
+      indicatorLabel: payload.indicatorLabel,
     })
     if (error) {
       toast({
@@ -1060,7 +1061,8 @@ export function CAPTable({
             fileIndex: index,
             status,
             reason,
-            fileName
+            fileName,
+            indicatorLabel,
           });
         }} />
     </TooltipProvider>

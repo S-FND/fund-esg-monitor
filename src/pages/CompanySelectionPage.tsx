@@ -542,6 +542,22 @@ export default function CompanySelectionPage() {
         console.log("Filters updated:", filterCounts);
     }, [filterCounts]);
 
+    // const backfillUploadedAt = async () => {
+    //     try {
+    //       const response = await http.get(
+    //         "investor/esgdd/escap/backfill/uploaded-at"
+    //       );
+      
+    //       console.log("Success:", response.data);
+    //     } catch (error) {
+    //       console.error("Backfill failed:", error);
+    //     }
+    //   };
+
+    // useEffect(() => {
+    //     backfillUploadedAt();
+    // }, []);
+
     const handleCompanySelect = (companyEmail: string) => {
         const queryString = searchParams.toString();
         const url = `/esg-dd/cap/${encodeURIComponent(companyEmail)}${queryString ? '?' + queryString : ''}`;

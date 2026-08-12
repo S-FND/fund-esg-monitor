@@ -45,7 +45,9 @@ type Props = {
     status: "Accepted" | "Rejected";
     reason?: string;
     fileName: string;
+    indicatorLabel: string;
   }) => void;
+  indicatorLabel: string;
 };
 
 export default function DocumentSummaryDialog({
@@ -53,6 +55,7 @@ export default function DocumentSummaryDialog({
   files,
   onClose,
   onSubmit,
+  indicatorLabel,
 }: Props) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [status, setStatus] = useState<"Accepted" | "Rejected" | null>(null);
@@ -109,6 +112,7 @@ export default function DocumentSummaryDialog({
         status,
         reason: isReject ? reason : undefined,
         fileName: files[selectedIndex].filename,
+        indicatorLabel,
       });
       // Close dialog after successful submit
       onClose();

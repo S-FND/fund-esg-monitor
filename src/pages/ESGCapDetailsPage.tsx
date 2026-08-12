@@ -396,25 +396,37 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
         );
     }
 
-    const handleAcceptDocument = async (payload) => {
-        const { data, error } = await http.post('investor/esgdd/escap/document/accept', {
-            entityId: companyEntityId,
-            itemId: capItem?._id,
-            fileName: payload.fileName,
-            status: payload.status,
-            reason: payload.reason
-        })
+    const handleAcceptDocument = async (payload: any) => {
+        const { data, error } = await http.post(
+            'investor/esgdd/escap/document/accept',
+            {
+                entityId: companyEntityId,
+                itemId: capItem?._id,
+                fileName: payload.fileName,
+                indicatorLabel: payload.indicatorLabel,
+                status: payload.status,
+                reason: payload.reason,
+            }
+        );
+    
         if (error) {
-            toast.error(`${payload.fileName} failed to process. Please try again or check the document.`);
-            return; // ✅ stop execution
+            toast.error(
+                `${payload.fileName} failed to process. Please try again or check the document.`
+            );
+            return;
         }
-
+    
         if (data?.status) {
-            toast.success(`${payload.fileName} ${payload.status === "Accepted" ? "approved" : "rejected"}`);
+            toast.success(
+                `${payload.fileName} ${
+                    payload.status === 'Accepted' ? 'approved' : 'rejected'
+                }`
+            );
+    
             setIsSummaryOpen(false);
             await loadData();
         }
-    }
+    };
 
     const formatInvestorStatusDisplay = (status: string): string => {
         if (!status) return '';
@@ -1249,13 +1261,15 @@ const ESGCapDetailsPageInvestor: React.FC = () => {
                   }}
             /> */}
 
-            <DocumentSummaryDialog open={isSummaryOpen} files={capItem.fileUploadedData} onClose={() => setIsSummaryOpen(false)}
+            <DocumentSummaryDialog open={isSummaryOpen} files={selectedFilesForSummary} indicatorLabel={selectedIndicator || ""} onClose={() => setIsSummaryOpen(false)}
                 onSubmit={({ index, status, reason, fileName }) => {
+                    const selectedFile = selectedFilesForSummary[index];
                     handleAcceptDocument({
                         fileIndex: index,
                         status,
                         reason,
-                        fileName
+                        fileName,
+                        indicatorLabel: selectedFile?.indicatorLabel,
                     });
                 }} />
         </div >
