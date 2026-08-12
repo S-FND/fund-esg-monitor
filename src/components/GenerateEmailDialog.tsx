@@ -13938,7 +13938,7 @@ async function generateEmailDOCXV4(
 
             children: [
               new TextRun({
-                text: 'ESG Score Cards',
+                text: 'Progress (Data Reporting)',
                 size: 28,
                 bold: true,
                 color: '2D2D2D',
