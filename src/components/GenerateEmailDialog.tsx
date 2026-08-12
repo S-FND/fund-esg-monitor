@@ -4358,7 +4358,7 @@ ${esgCapTemplateData ? `<h2 style="font-size:17px;color:#2d2d2d;margin:8px 0 4px
     margin-bottom:4px;
   "
 >
-  ${esgCapTemplateData.complianceRating.grade}%
+  ${esgCapTemplateData.complianceRating.grade}
 </div>
 
 <div
