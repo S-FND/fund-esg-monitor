@@ -99,11 +99,12 @@ export class HttpClient {
             break;
             
           case 404:
-            toast({
-              title: "Not Found",
-              description: "The requested resource was not found.",
-              variant: "destructive"
-            });
+            // //console.log()
+            // toast({
+            //   title: "Not Found",
+            //   description: "The requested resource was not found.",
+            //   variant: "destructive"
+            // });
             break;
             
           case 500:

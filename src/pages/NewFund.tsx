@@ -129,7 +129,7 @@ export default function NewFund() {
       }
       else {
         const jsondata = await res.json();
-        console.log('jsondata', jsondata)
+        //console.log('jsondata', jsondata)
         setPortfolioCompanies(jsondata['data'])
       }
     } catch (error) {
@@ -157,7 +157,7 @@ export default function NewFund() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Submitting fund data:", formData);
+    //console.log("Submitting fund data:", formData);
 
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}` + `/investor/fund`, {
@@ -180,7 +180,7 @@ export default function NewFund() {
       }
 
       const jsondata = await res.json();
-      console.log('jsondata', jsondata);
+      //console.log('jsondata', jsondata);
 
       // If companies were selected, add them to the fund
       if (selectedCompanies.length > 0 && jsondata.data?._id) {
@@ -222,7 +222,7 @@ export default function NewFund() {
       );
 
       const data = await res.json();
-      console.log("Companies Added to Fund ✅", data);
+      //console.log("Companies Added to Fund ✅", data);
     } catch (error) {
       console.error("addCompanyToFund error:", error);
     }

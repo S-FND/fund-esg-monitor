@@ -14,7 +14,7 @@ import { useEffect } from "react";
 export function Sidebar() {
   const {user}=useAuth();
   useEffect(()=>{
-    console.log("UseAuth in Sidebar :: user =>",user)
+    //console.log("UseAuth in Sidebar :: user =>",user)
   },[user])
   return (
     <ShadcnSidebar side="left" collapsible="icon" variant="sidebar">

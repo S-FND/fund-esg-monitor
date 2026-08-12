@@ -13,11 +13,15 @@ import DocumentSummaryDialog from "./document-summary-review";
 import { http } from "@/utils/httpInterceptor";
 import { toast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
-export type CAPStatus = 'upcoming' | 'due in <1 month' | 'overdue' | 'submitted' | 'request to re-submit';
-
+import { getEffectiveStatus } from '@/utils/esgStatus';
+export type CAPStatus = '' | 'due-in-this-month' | 'overdue' | 'partly-submitted' | 're-submit-Required' | 'submitted' | 'closed' | 'upcoming';
 export type CAPCategory = "environmental" | "social" | "governance";
 export type CAPType = "CP" | "CS" | "ESG_Roadmap" | "none";
 export type CAPPriority = "High" | "Medium" | "Low";
+import { StatusBadge } from './StatusBadge';
+import { getDerivedInvestorStatus } from '@/utils/investorStatusUtils';
+import { SubItemStatus } from "@/pages/useComplianceScore";
+
 export type EvidenceType =
   | "data"
   | "report"
@@ -141,7 +145,7 @@ export interface ESGCapItem {
   category: CAPCategory;
   recommendation?: string;
   priority: CAPPriority;
-  status: CAPStatus;
+  companyStatus: CAPStatus;
   investorStatus: string;
   deadline?: string;
   targetDate?: string;
@@ -169,6 +173,7 @@ export interface ESGCapItem {
   sections?: string[];
   sourceType?: string;
   aiResponseRaw?: AiResponse;
+  companyId?: string;
   fileUploadedData?: {
     filename: string;
     mimetype: string;
@@ -176,7 +181,28 @@ export interface ESGCapItem {
     s3Link: string;
     status: 'Accepted' | 'Rejected' | 'Pending';
     aiSummary: IDocumentValidation;
-  }[]
+  }[];
+  completionIndicators?: CompletionIndicator[];
+  status?:string;
+  highlights?:{
+    investor:Boolean
+  }
+  
+}
+
+export interface CompletionIndicator {
+  indicatorLabel:       string;
+  isMandatory?:         boolean;        // defaults true
+  status?:              SubItemStatus;
+  submissionDate?:      string | null;
+  resubmitRequired?:    boolean;
+  resubmitDueDate?:     string | null;
+  resubmitComment?:     string | null;
+  resubmittedDate?:     string | null;  // null = resubmit still open
+  finalSubmissionDate?: string | null;  // explicit override
+  guidanceResources?:   string;
+  fileUploadUrl?:       string;
+  reviewedOn?:          string | null;
 }
 
 interface CAPTableProps {
@@ -191,17 +217,18 @@ interface CAPTableProps {
   onRevert?: (itemId: string | number) => void;
   finalPlan?: boolean;
   progressPercentage?: number;
+  companyEmail?: string;
   companyEntityId: string
   setReloadData?: (reload: boolean) => void;
 }
 
 // ==================== DATE FORMATTER HELPERS ====================
 const formatDisplayDate = (dateStr?: string): string => {
-  if (!dateStr || dateStr === '—' || dateStr === '-') return '-';
+  if (!dateStr || dateStr === ' ' || dateStr === ' ') return ' ';
 
   const date = new Date(dateStr);
 
-  if (isNaN(date.getTime())) return '-';
+  if (isNaN(date.getTime())) return ' ';
 
   return date.toLocaleDateString('en-GB', {
     day: '2-digit',
@@ -215,45 +242,29 @@ const isDateField = (fieldName: string): boolean => {
 };
 // ================================================================
 
-const getStatusBadge = (status: CAPStatus) => {
-  switch (status) {
-    case 'upcoming':
-      return (
-        <Badge className="bg-slate-100 text-slate-700 hover:bg-slate-200">
-          <Clock className="h-3 w-3 mr-1" /> Upcoming
-        </Badge>
-      );
-    case 'due in <1 month':
-      return (
-        <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-200">
-          <AlertTriangle className="h-3 w-3 mr-1" /> Due in &lt;1 Month
-        </Badge>
-      );
+const getStatusBadge = (companyStatus: CAPStatus) => {
+  if (!companyStatus?.trim()) return null;
+  switch (companyStatus) {
+    case 'due-in-this-month':
+      return <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-200"><AlertTriangle className="h-3 w-3 mr-1" /> Due in &lt;1 Month</Badge>;
     case 'overdue':
-      return (
-        <Badge className="bg-red-100 text-red-800 hover:bg-red-200">
-          <X className="h-3 w-3 mr-1" /> Overdue
-        </Badge>
-      );
+      return <Badge className="bg-red-100 text-red-800 hover:bg-red-200"><X className="h-3 w-3 mr-1" /> Overdue</Badge>;
+    case 'partly-submitted':
+      return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200"><Upload className="h-3 w-3 mr-1" /> Partly Submitted</Badge>;
+    case 're-submit-Required':
+      return <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-200"><RotateCcw className="h-3 w-3 mr-1" /> Re-submit Required</Badge>;
     case 'submitted':
-      return (
-        <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200">
-          <Upload className="h-3 w-3 mr-1" /> Submitted
-        </Badge>
-      );
-    case 'request to re-submit':
-      return (
-        <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-200">
-          <RotateCcw className="h-3 w-3 mr-1" /> Request to Re-submit
-        </Badge>
-      );
+      return <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-200"><Clock className="h-3 w-3 mr-1" /> Submitted</Badge>;
+    case 'closed':
+      return <Badge className="bg-green-100 text-green-800 hover:bg-green-200"><Check className="h-3 w-3 mr-1" /> Closed</Badge>;
     default:
-      return <Badge variant="outline">{status}</Badge>;
+      return <Badge variant="outline">{companyStatus}</Badge>;
   }
 };
 
 
 const getPriorityBadge = (priority: CAPPriority) => {
+  if (!priority?.trim()) return null;
   switch (priority?.toLowerCase()) {
     case "high":
       return (
@@ -286,6 +297,7 @@ const getPriorityBadge = (priority: CAPPriority) => {
 };
 
 const getCategoryBadge = (category: string) => {
+  if (!category?.trim()) return null;
   switch (category?.toLowerCase()) {
     case "environmental":
       return <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">Environmental</Badge>;
@@ -320,7 +332,7 @@ const RenderChangedField = ({
   };
 
   if (!hasChanged || !isComparisonView) {
-    const displayValue = formatValue(currentValue) || "-";
+    const displayValue = formatValue(currentValue) || " ";
     return <span>{displayValue}</span>;
   }
 
@@ -359,10 +371,13 @@ export function CAPTable({
   isComparisonView = false,
   onRevertField,
   onRevert,
+  companyEmail,
   companyEntityId,
   setReloadData
 }: CAPTableProps) {
-  const completedItems = items.filter(item => item.investorStatus === 'closed').length;
+  const completedItems = items.filter(
+    item => getDerivedInvestorStatus(item) === 'closed'
+  ).length;
   const progressPercentage = items.length > 0 ? Math.round((completedItems / items.length) * 100) : 0;
   const [isViewAiOpen, setIsViewAiOpen] = useState(false);
   const [item, setItem] = useState<ESGCapItem>({} as ESGCapItem);
@@ -387,121 +402,6 @@ export function CAPTable({
       setDeleteDialog({ open: false, item: null });
       setConfirmText("");
     }
-  };
-
-  const [isAddingRow, setIsAddingRow] = useState(false);
-  const [newRowData, setNewRowData] = useState({
-    // Basic Information
-    item: "",
-    category: "social" as CAPCategory,
-    priority: "Medium" as CAPPriority,
-
-    // Issue & Findings
-    issue: "",
-    relatedFinding: "",
-    esgLever: "",
-    capSource: "",
-    updateNote: "",
-    // Action Details
-    measures: "",
-    resource: "",
-    deliverable: "",
-    timelineMonth: "",
-
-    // Dates & Conditions
-    targetDate: "",
-    actualDate: "",
-    dealCondition: "CP" as CAPType,
-
-    // Status & Tracking
-    status: "pending" as CAPStatus,
-    // statusUpdate: "",
-    investorStatus: "",
-    investorStatusUpdate: "",
-    progressPercentage: "",
-
-    // Review & Verification
-    reviewRemarks: "",
-    lastReviewDate: "",
-    implementationSupportNeeded: "",
-    closureVerifiedBy: "",
-
-    // Assignment
-    assignedTo: "",
-
-    // Additional
-    remarks: "",
-  });
-
-  const addNewRow = () => {
-    if (!newRowData.item || !newRowData.measures) {
-      alert("Please fill Item and Measures");
-      return;
-    }
-
-    const newItem: ESGCapItem = {
-      id: Date.now(),
-      item: newRowData.item,
-      issue: newRowData.issue || undefined,
-      relatedFinding: newRowData.relatedFinding || undefined,
-      esgLever: newRowData.esgLever || undefined,
-      capSource: newRowData.capSource || undefined,
-      measures: newRowData.measures,
-      category: newRowData.category,
-      priority: newRowData.priority,
-      resource: newRowData.resource || undefined,
-      deliverable: newRowData.deliverable || undefined,
-      timelineMonth: newRowData.timelineMonth ? Number(newRowData.timelineMonth) : undefined,
-      targetDate: newRowData.targetDate || undefined,
-      actualDate: newRowData.actualDate || undefined,
-      dealCondition: newRowData.dealCondition,
-      status: newRowData.status,
-      updateNote: newRowData.updateNote,
-      investorStatus: newRowData.investorStatus,
-      // statusUpdate: newRowData.statusUpdate || undefined,
-      investorStatusUpdate: newRowData.investorStatusUpdate || undefined,
-      progressPercentage: newRowData.progressPercentage ? Number(newRowData.progressPercentage) : undefined,
-      reviewRemarks: newRowData.reviewRemarks || undefined,
-      lastReviewDate: newRowData.lastReviewDate || undefined,
-      implementationSupportNeeded: newRowData.implementationSupportNeeded || undefined,
-      closureVerifiedBy: newRowData.closureVerifiedBy || undefined,
-      assignedTo: newRowData.assignedTo || undefined,
-      remarks: newRowData.remarks || undefined,
-      createdAt: new Date().toISOString(),
-    };
-
-    onAddItem?.(newItem);
-
-    // Reset form
-    setNewRowData({
-      item: "",
-      category: "social",
-      priority: "Medium",
-      issue: "",
-      relatedFinding: "",
-      esgLever: "",
-      capSource: "",
-      measures: "",
-      resource: "",
-      deliverable: "",
-      timelineMonth: "",
-      targetDate: "",
-      actualDate: "",
-      dealCondition: "CP",
-      status: "overdue",
-      investorStatus: "",
-      // statusUpdate: "",
-      updateNote: "",
-      investorStatusUpdate: "",
-      progressPercentage: "",
-      reviewRemarks: "",
-      lastReviewDate: "",
-      implementationSupportNeeded: "",
-      closureVerifiedBy: "",
-      assignedTo: "",
-      remarks: "",
-    });
-    setIsAddingRow(false);
   };
 
   const handleAcceptDocument = async (payload) => {
@@ -548,7 +448,7 @@ export function CAPTable({
     itemId: string | number,
     // Special formatting for badges
     isBadge?: boolean,
-    badgeType?: 'category' | 'priority' | 'status' | 'investorStatus'
+    badgeType?: 'category' | 'priority' | 'companyStatus' | 'investorStatus'
   ) => {
     const formatValue = (val: any) => {
       if (isDateField(fieldName)) return formatDisplayDate(val);
@@ -568,14 +468,14 @@ export function CAPTable({
               <div className="line-through opacity-60">
                 {badgeType === 'category' && getCategoryBadge(formatBadge(originalValue))}
                 {badgeType === 'priority' && getPriorityBadge(formatBadge(originalValue))}
-                {badgeType === 'status' && getStatusBadge(formatBadge(originalValue))}
+                {badgeType === 'companyStatus' && getStatusBadge(formatBadge(originalValue))}
                 {badgeType === 'investorStatus' && getInvestorStatusBadge(formatBadge(originalValue))}
               </div>
               <ArrowRight className="h-3 w-3" />
               <div>
                 {badgeType === 'category' && getCategoryBadge(formatBadge(currentValue))}
                 {badgeType === 'priority' && getPriorityBadge(formatBadge(currentValue))}
-                {badgeType === 'status' && getStatusBadge(formatBadge(currentValue))}
+                {badgeType === 'companyStatus' && getStatusBadge(formatBadge(currentValue))}
                 {badgeType === 'investorStatus' && getInvestorStatusBadge(formatBadge(originalValue))}
               </div>
             </div>
@@ -608,11 +508,11 @@ export function CAPTable({
       const displayValue = formatValue(currentValue);
       if (badgeType === 'category') return getCategoryBadge(displayValue);
       if (badgeType === 'priority') return getPriorityBadge(displayValue);
-      if (badgeType === 'status') return getStatusBadge(displayValue);
+      if (badgeType === 'companyStatus') return getStatusBadge(displayValue);
       if (badgeType === 'investorStatus') return getInvestorStatusBadge(displayValue);
     }
     // Default: use formatted value (dates become readable)
-    return <span>{formatValue(currentValue) || "-"}</span>;
+    return <span>{formatValue(currentValue) || " "}</span>;
   };
 
   const getSortIcon = (key: string) => {
@@ -634,7 +534,35 @@ export function CAPTable({
     });
   };
 
+  const isOverdue = (item: ESGCapItem) => {
+    if (!item.targetDate) return false;
+    const investorStatus = getDerivedInvestorStatus(item);
+    if (investorStatus === 'closed') return false;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const target = new Date(item.targetDate);
+    target.setHours(0, 0, 0, 0);
+
+    return target < today;
+  };
+
   const sortedItems = [...items].sort((a, b) => {
+    // 1. Check if items are closed (push to bottom)
+    const aIsClosed = getDerivedInvestorStatus(a) === 'closed';
+    const bIsClosed = getDerivedInvestorStatus(b) === 'closed';
+
+    if (aIsClosed && !bIsClosed) return 1;
+    if (!aIsClosed && bIsClosed) return -1;
+
+    // 2. Check overdue items (push to top) - optional
+    const aIsOverdue = isOverdue(a);
+    const bIsOverdue = isOverdue(b);
+
+    if (aIsOverdue && !bIsOverdue) return -1;
+    if (!aIsOverdue && bIsOverdue) return 1;
+
+    // 3. If both have same status, apply normal sorting
     if (!sortConfig) return 0;
 
     let aVal: any = a[sortConfig.key];
@@ -659,35 +587,103 @@ export function CAPTable({
   });
 
   const getInvestorStatusBadge = (status: string) => {
-    const statusMap: Record<string, { label: string; className: string }> = {
-      "under review": { label: "Under Review", className: "bg-yellow-100 text-yellow-800 border-yellow-300" },
-      "reviewed with comments": { label: "Reviewed with Comments", className: "bg-blue-100 text-blue-800 border-blue-300" },
-      "closed": { label: "closed", className: "bg-green-600 text-white border-green-700" },
-      "deferred": { label: "Deferred", className: "bg-gray-200 text-gray-700 border-gray-300" }
+    if (!status?.trim()) return null;
+
+    // Normalize status for comparison
+    const normalizedStatus = status.toLowerCase().trim();
+
+    // Special handling for high-priority-overdue - CRITICAL STATUS
+    if (normalizedStatus === 'high-priority-overdue') {
+      return (
+        <Badge
+          variant="outline"
+          className="bg-red-100 text-red-800 border-red-300 px-2.5 py-1 flex items-center gap-1 whitespace-nowrap"
+        >
+          <AlertTriangle className="h-3 w-3" />
+          High Priority Overdue
+        </Badge>
+      );
+    }
+
+    // Map for other statuses - EXACTLY matching the Select options
+    const map: Record<string, { label: string; className: string; icon: React.ReactNode }> = {
+      "re-submit requested": {
+        label: "Re-submit Requested",
+        className: "bg-amber-100 text-amber-800 border-amber-300 px-2.5 py-1 whitespace-nowrap",
+        icon: <RotateCcw className="h-3 w-3 mr-1" />
+      },
+      "under-review": {
+        label: "Under Review",
+        className: "bg-blue-100 text-blue-800 border-blue-300 px-2.5 py-1 whitespace-nowrap",
+        icon: <Clock className="h-3 w-3 mr-1" />
+      },
+      "reviewed-with-comments": {
+        label: "Reviewed with Comments",
+        className: "bg-purple-100 text-purple-800 border-purple-300 px-2.5 py-1 whitespace-nowrap",
+        icon: <Pencil className="h-3 w-3 mr-1" />
+      },
+      "closed": {
+        label: "Closed",
+        className: "bg-green-100 text-green-800 border-green-300 px-2.5 py-1 whitespace-nowrap",
+        icon: <Check className="h-3 w-3 mr-1" />
+      },
+      "deferred": {
+        label: "Deferred",
+        className: "bg-gray-100 text-gray-600 border-gray-300 px-2.5 py-1 whitespace-nowrap",
+        icon: null
+      },
+      "under review": {
+        label: "Under Review",
+        className: "bg-blue-100 text-blue-800 border-blue-300 px-2.5 py-1 whitespace-nowrap",
+        icon: <Clock className="h-3 w-3 mr-1" />
+      },
     };
-    const config = statusMap[status?.toLowerCase()] || { label: status || '-', className: "bg-gray-100 text-gray-600" };
-    return <Badge variant="outline" className={config.className}>{config.label}</Badge>;
-  };
 
-  // Inside CAPTable component, before return
-  const normalizeStatus = (status?: string) =>
-    (status ?? "").trim().toLowerCase();
+    // Additional statuses that might come from company status mapping
+    const additionalMap: Record<string, { label: string; className: string; icon: React.ReactNode }> = {
+      "overdue": {
+        label: "Overdue",
+        className: "bg-red-50 text-red-600 border-red-200 px-2.5 py-1 whitespace-nowrap",
+        icon: <X className="h-3 w-3 mr-1" />
+      },
+      "partly-submitted": {
+        label: "Partly Submitted",
+        className: "bg-blue-100 text-blue-800 border-blue-300 px-2.5 py-1 whitespace-nowrap",
+        icon: <Upload className="h-3 w-3 mr-1" />
+      },
+      "submitted": {
+        label: "Submitted",
+        className: "bg-purple-100 text-purple-800 border-purple-300 px-2.5 py-1 whitespace-nowrap",
+        icon: <Clock className="h-3 w-3 mr-1" />
+      },
+      "due-in-this-month": {
+        label: "Due in this Month",
+        className: "bg-orange-100 text-orange-800 border-orange-300 px-2.5 py-1 whitespace-nowrap",
+        icon: <AlertTriangle className="h-3 w-3 mr-1" />
+      }
+    };
 
-  const isOverdue = (item: ESGCapItem) => {
-    if (!item.targetDate) return false;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const targetDate = new Date(item.targetDate);
-    targetDate.setHours(0, 0, 0, 0);
-    const isClosed = normalizeStatus(item.investorStatus) === "closed";
-    return normalizeStatus(item.status) === "overdue" && targetDate < today && !isClosed && !item.actualDate;
+    // Try to find in main map first, then additional map
+    const config = map[normalizedStatus] || additionalMap[normalizedStatus] || {
+      label: status || ' ',
+      className: "bg-gray-100 text-gray-600 px-2.5 py-1 whitespace-nowrap",
+      icon: null
+    };
+
+    return (
+      <Badge variant="outline" className={config.className}>
+        {config.icon}
+        {config.label}
+      </Badge>
+    );
   };
 
   const getRowClassName = (item: ESGCapItem) => {
-    const closed = normalizeStatus(item.investorStatus) === "closed";
-    const overdue = isOverdue(item);
-    return `transition-colors ${closed ? "bg-gray-300 text-gray-500" : overdue ? "text-red-700" : ""
-      }`;
+    const investorStatus = getDerivedInvestorStatus(item);
+    const derived = getEffectiveStatus(item);
+    if (investorStatus === 'closed') return 'bg-gray-300 text-gray-500';
+    if (derived === 'overdue') return 'text-red-700';
+    return '';
   };
 
   return (
@@ -725,8 +721,8 @@ export function CAPTable({
                   <th className="p-3 text-left">Completed On</th>
                   <th className="p-3 text-center">Actions</th>
                   {/* <th className="p-3 text-left">Issue</th>
-                  <th className="p-3 text-left">Completion indicator</th> */}
-                  {/* <th className="p-3 text-left">Progress Percentage</th> */}
+                  <th className="p-3 text-left">Completion indicator</th>
+                  <th className="p-3 text-left">Progress Percentage</th> */}
                 </>
               ) : (
                 // FULL VIEW HEADERS (all columns + Progress Percentage after Target Date)
@@ -760,8 +756,10 @@ export function CAPTable({
           <tbody>
             {sortedItems.map((item, index) => {
               const originalItem = getOriginalItem(item.id);
+              const isInvestorHighlighted = item.highlights?.investor === true;
               return (
-                <tr key={item.id} className={`${getRowClassName(item)} ${isComparisonView ? "bg-muted/30 hover:bg-muted/50" : "hover:bg-gray-50"}`}>
+                <tr key={item.id} className={`${getRowClassName(item)} ${isComparisonView ? "bg-muted/30 hover:bg-muted/50" : "hover:bg-gray-50"} ${isInvestorHighlighted ? "border-l-4 border-green-500" : ""
+                  }`}>
                   {!showFullColumns ? (
                     // COMPACT VIEW ROWS
                     <>
@@ -776,7 +774,11 @@ export function CAPTable({
                         {renderField(item.targetDate, originalItem?.targetDate, "targetDate", item.id)}
                       </td>
                       <td className="p-3">
-                        {renderField(item.status, originalItem?.status, "status", item.id, true, 'status')}
+                        {item.targetDate ? (
+                          <StatusBadge status={getEffectiveStatus(item)} />
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
                       </td>
                       <td className="p-3">
                         {renderField(item.investorStatus, originalItem?.investorStatus, "investorStatus", item.id, true, 'investorStatus')}
@@ -801,9 +803,7 @@ export function CAPTable({
                                 className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white"
                               >
                                 <Link
-                                  to={`/esg-cap/review/${item?.reportId
-                                    }?itemName=${encodeURIComponent(item?.item || "")}&companyEntityId=${companyEntityId || ""
-                                    }`}
+                                  to={`/esg-cap/review/${item?.reportId}?itemName=${encodeURIComponent(item?.item || "")}&companyEntityId=${companyEntityId || ""}&companyEmail=${encodeURIComponent(companyEmail || "")}`}
                                 >
                                   <Pencil className="h-3.5 w-3.5" />
                                 </Link>
@@ -854,7 +854,11 @@ export function CAPTable({
                         {renderField(item.targetDate, originalItem?.targetDate, "targetDate", item.id)}
                       </td>
                       <td className="p-3">
-                        {renderField(item.status, originalItem?.status, "status", item.id, true, 'status')}
+                        {item.targetDate ? (
+                          <StatusBadge status={getEffectiveStatus(item)} />
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
                       </td>
                       <td className="p-3">
                         {renderField(item.investorStatus, originalItem?.investorStatus, "investorStatus", item.id, true, 'investorStatus')}
@@ -971,7 +975,7 @@ export function CAPTable({
       </div>
 
       {/* Progress footer (unchanged) */}
-      <div className="flex justify-between items-center p-4 bg-muted rounded-lg mt-4">
+      {/* <div className="flex justify-between items-center p-4 bg-muted rounded-lg mt-4">
         <div className="text-sm text-muted-foreground">
           Total Action Items: <span className="font-semibold">{items.length}</span>
         </div>
@@ -984,278 +988,7 @@ export function CAPTable({
             <span className="font-semibold text-sm">{progressPercentage}%</span>
           </div>
         </div>
-      </div>
-
-      {/* Add New Row section – identical to original (unchanged) */}
-      {!isComparisonView && onAddItem && (
-        <div className="mt-4 border-t pt-4">
-          {!isAddingRow ? (
-            <Button onClick={() => setIsAddingRow(true)} variant="outline" className="w-full" style={{ display: "none" }}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add New Row
-            </Button>
-          ) : (
-            <div className="border rounded-lg p-6 bg-gray-50 max-h-[600px] overflow-y-auto">
-              <div className="space-y-6">
-                <h3 className="text-lg font-semibold mb-4">Add New CAP Item</h3>
-
-                {/* 1. Item */}
-                <div>
-                  <label className="block mb-1 font-medium text-sm">Item *</label>
-                  <Textarea
-                    value={newRowData.item}
-                    onChange={(e) => setNewRowData({ ...newRowData, item: e.target.value })}
-                    className="min-h-[60px]"
-                    placeholder="Enter CAP item description"
-                  />
-                </div>
-
-                {/* 2. Category & 3. Priority */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block mb-1 font-medium text-sm">Category</label>
-                    <Select
-                      value={newRowData.category}
-                      onValueChange={(v: CAPCategory) => setNewRowData({ ...newRowData, category: v })}
-                    >
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="environmental">Environmental</SelectItem>
-                        <SelectItem value="social">Social</SelectItem>
-                        <SelectItem value="governance">Governance</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <label className="block mb-1 font-medium text-sm">Priority</label>
-                    <Select
-                      value={newRowData.priority}
-                      onValueChange={(v: CAPPriority) => setNewRowData({ ...newRowData, priority: v })}
-                    >
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="High">High</SelectItem>
-                        <SelectItem value="Medium">Medium</SelectItem>
-                        <SelectItem value="Low">Low</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {/* 4. Issue &  */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block mb-1 font-medium text-sm">Issue</label>
-                    <Textarea
-                      value={newRowData.issue}
-                      onChange={(e) => setNewRowData({ ...newRowData, issue: e.target.value })}
-                      placeholder="Describe the issue"
-                      className="min-h-[60px]"
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-                  {/* 6. ESG Lever */}
-                  <div>
-                    <label className="block mb-1 font-medium text-sm">ESG Lever</label>
-                    <Input
-                      value={newRowData.esgLever}
-                      onChange={(e) => setNewRowData({ ...newRowData, esgLever: e.target.value })}
-                      placeholder="e.g., Policy, Training, Technology"
-                    />
-                  </div>
-
-                  {/* 6.1. CAP Source */}
-                  <div>
-                    <label className="block mb-1 font-medium text-sm">CAP Source</label>
-                    <Input
-                      value={newRowData.capSource}
-                      onChange={(e) => setNewRowData({ ...newRowData, capSource: e.target.value })}
-                      placeholder="e.g., Policy, Training, Technology"
-                    />
-                  </div>
-                </div>
-                {/* 7. Measures */}
-                <div>
-                  <label className="block mb-1 font-medium text-sm">Measures & Corrective Actions *</label>
-                  <Textarea
-                    value={newRowData.measures}
-                    onChange={(e) => setNewRowData({ ...newRowData, measures: e.target.value })}
-                    className="min-h-[80px]"
-                    placeholder="Describe the corrective actions to be taken"
-                  />
-                </div>
-
-                {/* 8. Resource & 9. Deliverable */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block mb-1 font-medium text-sm">Completion Indicator</label>
-                    <Textarea
-                      value={newRowData.deliverable}
-                      onChange={(e) => setNewRowData({ ...newRowData, deliverable: e.target.value })}
-                      placeholder="What will be delivered?"
-                      className="min-h-[60px]"
-                    />
-                  </div>
-                </div>
-
-                {/* 10. Timeline Month & 11. Target Date & 12. Actual Date */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block mb-1 font-medium text-sm">Timeline (Months)</label>
-                    <Input
-                      type="number"
-                      min="0"
-                      value={newRowData.timelineMonth}
-                      onChange={(e) => setNewRowData({ ...newRowData, timelineMonth: e.target.value })}
-                      placeholder="e.g., 3"
-                    />
-                  </div>
-                  <div>
-                    <label className="block mb-1 font-medium text-sm">Target Date</label>
-                    <Input
-                      type="date"
-                      value={newRowData.targetDate}
-                      onChange={(e) => setNewRowData({ ...newRowData, targetDate: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label className="block mb-1 font-medium text-sm">Actual Date</label>
-                    <Input
-                      type="date"
-                      value={newRowData.actualDate}
-                      onChange={(e) => setNewRowData({ ...newRowData, actualDate: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                {/* 13. CP/CS & 14. Status */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block mb-1 font-medium text-sm">CP/CS/ESG_FORWARD_AREAS</label>
-                    <Select
-                      value={newRowData.dealCondition}
-                      onValueChange={(v: CAPType) => setNewRowData({ ...newRowData, dealCondition: v })}
-                    >
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="CP">CP (Condition Precedent)</SelectItem>
-                        <SelectItem value="CS">CS (Condition Subsequent)</SelectItem>
-                        <SelectItem value="ESG_Roadmap">ESG Roadmap</SelectItem>
-                        <SelectItem value="none">None</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <label className="block mb-1 font-medium text-sm">Status</label>
-                    <Select
-                      value={newRowData.status}
-                      onValueChange={(v: CAPStatus) => setNewRowData({ ...newRowData, status: v })}
-                    >
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="pending">Pending</SelectItem>
-                        <SelectItem value="in_review">In Review</SelectItem>
-                        <SelectItem value="accepted">Accepted</SelectItem>
-                        <SelectItem value="completed">Completed</SelectItem>
-                        <SelectItem value="delayed">Overdue</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {/* 15. Current Status Update */}
-                {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block mb-1 font-medium text-sm">Current Status Update (Company)</label>
-                    <Textarea
-                      value={newRowData.statusUpdate}
-                      disabled={true}
-                      onChange={(e) => setNewRowData({ ...newRowData, statusUpdate: e.target.value })}
-                      placeholder="Latest update on this action item"
-                      className="min-h-[60px]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block mb-1 font-medium text-sm">Current Status Update (Investor)</label>
-                    <Textarea
-                      value={newRowData.investorStatusUpdate}
-                      onChange={(e) => setNewRowData({ ...newRowData, investorStatusUpdate: e.target.value })}
-                      placeholder="Latest update on this action item"
-                      className="min-h-[60px]"
-                    />
-                  </div>
-                </div> */}
-
-                {/* 16. Review Remarks & 17. Last Review Date */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block mb-1 font-medium text-sm">Review Remarks</label>
-                    <Textarea
-                      value={newRowData.reviewRemarks}
-                      onChange={(e) => setNewRowData({ ...newRowData, reviewRemarks: e.target.value })}
-                      placeholder="Reviewer comments"
-                      className="min-h-[60px]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block mb-1 font-medium text-sm">Last Review Date</label>
-                    <Input
-                      type="date"
-                      value={newRowData.lastReviewDate}
-                      onChange={(e) => setNewRowData({ ...newRowData, lastReviewDate: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                {/* 18. Implementation Support & 19. Closure Verified */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block mb-1 font-medium text-sm">Implementation Support Needed</label>
-                    <Textarea
-                      value={newRowData.implementationSupportNeeded}
-                      onChange={(e) => setNewRowData({ ...newRowData, implementationSupportNeeded: e.target.value })}
-                      placeholder="What support is required?"
-                      className="min-h-[60px]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block mb-1 font-medium text-sm">Closure Verified By</label>
-                    <Input
-                      value={newRowData.closureVerifiedBy}
-                      onChange={(e) => setNewRowData({ ...newRowData, closureVerifiedBy: e.target.value })}
-                      placeholder="Name of verifier"
-                    />
-                  </div>
-                </div>
-
-                {/* 20. Assigned To & 21. Remarks */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block mb-1 font-medium text-sm">Assigned To</label>
-                    <Input
-                      value={newRowData.assignedTo}
-                      onChange={(e) => setNewRowData({ ...newRowData, assignedTo: e.target.value })}
-                      placeholder="Person responsible"
-                    />
-                  </div>
-                </div>
-
-                {/* Actions Buttons */}
-                <div className="flex justify-end gap-2 pt-4 border-t">
-                  <Button size="default" variant="ghost" onClick={() => setIsAddingRow(false)}>
-                    Cancel
-                  </Button>
-                  <Button size="default" onClick={addNewRow}>
-                    Save Item
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+      </div> */}
 
       {/* Delete Confirmation Dialog */}
       <Dialog

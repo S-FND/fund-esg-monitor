@@ -1,27 +1,20 @@
-import { useEffect, useState, useRef, useCallback, useMemo } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { useEffect, useState, useRef, useMemo } from "react";
+import { Card, CardContent, } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
-import { ESGCapItem, CAPStatus, CAPType, CAPPriority, CAPTable } from "@/components/esg-cap/CAPTable";
+import { ESGCapItem, CAPStatus, CAPPriority, CAPTable } from "@/components/esg-cap/CAPTable";
 import { ComparePlan, ReviewDialog } from "@/components/esg-cap/ReviewDialog";
-import { FilterControls } from "@/components/esg-cap/FilterControls";
-import { AlertsPanel } from "@/components/esg-cap/AlertsPanel";
-import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import {
-  ArrowLeft,
-  ArrowRight,
-  ArrowUp,
-  ArrowDown,
-  FileText,
-  CheckCircle2,
-  Clock,
-  Target
-} from "lucide-react";
 import { http } from "@/utils/httpInterceptor";
 import { useESGCAPAlerts } from "@/hooks/useESGCAPAlerts";
 import { AddCAPDialog } from "@/components/esg-cap/AddCAPDialog";
 import { EsgddAPIs } from "@/network/esgdd";
 import Loader from "@/components/ui/loader";
+import { ESGCapScoring } from "@/components/InvestorESGScoring";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { getDerivedInvestorStatus } from '@/utils/investorStatusUtils';
+import { getEffectiveStatus } from "@/utils/esgStatus";
+import { ComplianceScoreEngine, PlanItem, PlanJson } from "./compliance-score-engine";
 
 interface PlanHistory {
   updateByUserId: string;
@@ -32,6 +25,19 @@ interface PlanHistory {
     name: string;
     email: string;
   };
+}
+
+export interface ParseStats {
+  csItems: number;
+  cpItems: number;
+  roadmapItems: number;
+  applicableItems: number | null;
+}
+
+interface ParseState {
+  parsed: PlanJson | null;
+  error: string | null;
+  stats: ParseStats;
 }
 
 interface finalAcceptance {
@@ -50,10 +56,17 @@ interface APIResponse {
 }
 
 export default function ESGCAP() {
+  const { companyEmail } = useParams<{ companyEmail: string }>();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const [selectedCompany, setSelectedCompany] = useState<string>(() => {
+    return companyEmail ? decodeURIComponent(companyEmail) : "all";
+  });
+
   const [portfolioCompanies, setPortfolioCompanies] = useState([]);
   const [selectedItem, setSelectedItem] = useState<ESGCapItem | null>(null);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
-  const [selectedCompany, setSelectedCompany] = useState<string>("all");
   const { user, userRole } = useAuth();
   const [showComparisonView, setShowComparisonView] = useState(false);
   const [planData, setPlanData] = useState<APIResponse | null>(null);
@@ -67,14 +80,33 @@ export default function ESGCAP() {
   const [entityId, setEntityId] = useState<string>(null);
   const [reloadData, setReloadData] = useState(false);
   const [selectedEntityId, setSelectedEntityId] = useState(null)
+  // const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  // Read from URL on mount
+  const capFilterFromUrl = searchParams.get('capFilter') || null;
+  const [activeFilter, setActiveFilter] = useState<string | null>(capFilterFromUrl);
 
-  const alerts = useESGCAPAlerts(filteredCAPItems, previousCapItemsRef.current, planData?.finalPlan);
+  const handleFilterChange = (filterKey: string | null) => {
+    setActiveFilter(filterKey);
+    const newParams = new URLSearchParams(searchParams);
+    if (filterKey) {
+      newParams.set('capFilter', filterKey);
+    } else {
+      newParams.delete('capFilter');
+    }
+    setSearchParams(newParams);
+  };
+
+  useEffect(() => {
+    if (companyEmail) {
+      setSelectedCompany(decodeURIComponent(companyEmail));
+    } else {
+      setSelectedCompany("all");
+    }
+  }, [companyEmail]);
 
   const [financialYear, setFinancialYear] = useState("");
-
   const [isEditingFinalized, setIsEditingFinalized] = useState(false);
   const originalPlanRef = useRef<ESGCapItem[]>([]);
-  const [isSavingFinalized, setIsSavingFinalized] = useState(false);
 
   useEffect(() => {
     const currentDate = new Date();
@@ -88,34 +120,6 @@ export default function ESGCAP() {
 
     setFinancialYear(financialYear);
   }, []);
-
-  // Calculate stats
-  // Calculate stats
-  const totalItems = filteredCAPItems.length;
-
-  const completedItems = filteredCAPItems.filter(
-    (item) => item.investorStatus === "closed"
-  ).length;
-
-  const overdueItems = filteredCAPItems.filter(
-    (item) => item.status === "overdue"
-  ).length;
-
-  const dueSoonItems = filteredCAPItems.filter(
-    (item) => item.status === "due in <1 month"
-  ).length;
-
-  const upcomingItems = filteredCAPItems.filter(
-    (item) => item.status === "upcoming"
-  ).length;
-
-  const submittedItems = filteredCAPItems.filter(
-    (item) => item.status === "submitted"
-  ).length;
-
-  const resubmitItems = filteredCAPItems.filter(
-    (item) => item.status === "request to re-submit"
-  ).length;
 
   const handleReview = (item: ESGCapItem) => {
     let currentItem =
@@ -317,9 +321,9 @@ export default function ESGCAP() {
     (planData.finalPlan || (planData.founderPlanFinalStatus && planData.investorPlanFinalStatus)) :
     false;
 
-  const handleSubmitAllCap = async () => {
+  const handleSubmitAllCap = async (capItems) => {
     try {
-      // console.log('planData planData', planData);
+      // //console.log('planData planData', planData);
       const payload = {
         changeRequest: { plan: capItems },
         comment: 'Change Request',
@@ -476,6 +480,132 @@ export default function ESGCAP() {
 
   const progressPercentage = calculateProgress();
 
+  const mapPlanItems = (plan: any[]): PlanItem[] => {
+    return plan.map((item) => ({
+      // Basic
+      id: item.id ?? item._id,
+      name: item.item,
+      dealCondition: item.dealCondition,
+      priority: item.priority,
+      status: item.status,
+      investorStatus: item.investorStatus,
+
+      // Dates
+      csStartDate: null, // Backend doesn't provide yet
+      startDate: null, // Backend doesn't provide yet
+
+      originalDueDate: null, // Backend doesn't provide yet
+
+      currentDueDate: item.targetDate ?? null,
+
+      revisedDueDate: null, // Backend doesn't provide yet
+
+      targetDate: item.targetDate ?? null,
+
+      actualDate: item.actualDate ?? null,
+
+      actualSubmissionDate: item.actualDate ?? null,
+
+      finalSubmissionDate: item.actualDate ?? null,
+
+      uploadDate:
+        item.fileUploadedData?.length > 0
+          ? item.fileUploadedData[0]?.uploadedAt ?? null
+          : null,
+
+      reviewDate: item.lastReviewDate ?? null,
+
+      lastReviewDate: item.lastReviewDate ?? null,
+
+      closedDate:
+        item.investorStatus?.toLowerCase() === 'closed'
+          ? item.lastReviewDate
+          : null,
+
+      reSubmitDueDate: null,
+
+      // Timeline
+      timelineMonth: item.timelineMonth ?? 0,
+
+      // Flags
+      reSubmitRequired:
+        item.investorStatus?.toLowerCase() === 're-submit required',
+
+      dropped: item.investorStatus?.toLowerCase() === 'dropped',
+
+      closed: item.investorStatus?.toLowerCase() === 'closed',
+
+      // Audit Fields
+      revisionCount: 0,
+      revisionReason: undefined,
+      revisedBy: undefined,
+      revisedOn: null,
+      dateEditedBy: undefined,
+      dateEditedOn: null,
+      dateEditReason: undefined,
+
+      // Future Sub Items
+      subItems:
+        item.completionIndicators?.map((indicator: any, index: number) => ({
+          id: `${item.id}-${index}`,
+          name: indicator.indicatorLabel,
+          mandatory: true, // Current API doesn't expose mandatory flag
+          status:
+            item.status === 'submitted'
+              ? 'submitted'
+              : 'pending',
+          uploadDate: null,
+          actualSubmissionDate: item.actualDate ?? null,
+          finalSubmissionDate: item.actualDate ?? null,
+          reSubmitRequired: false,
+          reSubmitDueDate: null,
+          reviewer: undefined,
+          reviewedOn: item.lastReviewDate ?? null,
+          investorComment: item.reviewRemarks ?? '',
+          accepted:
+            item.investorStatus?.toLowerCase() === 'closed',
+        })) ?? [],
+
+      // Preserve complete backend object
+      ...item,
+    }));
+  }
+
+  function parseInput(text: string): ParseState {
+    const empty: ParseStats = { csItems: 0, cpItems: 0, roadmapItems: 0, applicableItems: null };
+    if (!text.trim()) return { parsed: null, error: null, stats: empty };
+    try {
+      const raw = JSON.parse(text);
+      const plan: PlanItem[] = Array.isArray(raw) ? raw : Array.isArray(raw?.plan) ? raw.plan : [];
+      let cs = 0,
+        cp = 0,
+        rm = 0;
+      for (const p of plan) {
+        if (p?.dealCondition === "CS") cs++;
+        else if (p?.dealCondition === "CP") cp++;
+        else if (p?.dealCondition === "Roadmap") rm++;
+      }
+      return {
+        parsed: Array.isArray(raw) ? { plan } : (raw as PlanJson),
+        error: null,
+        stats: { csItems: cs, cpItems: cp, roadmapItems: rm, applicableItems: null },
+      };
+    } catch (e) {
+      return { parsed: null, error: (e as Error).message, stats: empty };
+    }
+  }
+
+  const result = useMemo(() => {
+    if (!planData?.plan) return null;
+    const engine = new ComplianceScoreEngine();
+    const parse = parseInput(JSON.stringify({ plan: planData.plan }));
+    const r = engine.calculateComplianceScore(parse.parsed);
+    return r;
+    // //console.log("retur result => ",r);
+    // return calculateComplianceScore(mapESGCapItems(planData.plan));
+  }, [planData]);
+
+
   useEffect(() => {
     getCompanyInfoList();
   }, []);
@@ -503,12 +633,12 @@ export default function ESGCAP() {
     saveToLocalStorage(updatedItems);
   };
 
-  const handleDeleteItem = (itemId: string | number) => {
+  const handleDeleteItem = async (itemId: string | number) => {
     const updatedItems = capItems.filter(item => item.id !== itemId);
     setCapItems(updatedItems);
     setFilteredCAPItems(updatedItems);
     saveToLocalStorage(updatedItems);
-
+    await handleSubmitAllCap(updatedItems);
     toast({
       title: "Item Deleted",
       description: "Item has been removed from the plan.",
@@ -608,13 +738,89 @@ export default function ESGCAP() {
     });
   };
 
-  // Define a helper to get the items to display (normal or comparison)
   const currentDisplayItems = useMemo(() => {
-    if (showComparisonView && comparePlanData) {
-      return comparePlanData.founderPlan; // items to show in comparison mode
+    let items = showComparisonView && comparePlanData
+      ? comparePlanData.founderPlan
+      : capItems;
+
+    if (activeFilter) {
+      items = items.filter(item => {
+        const investorStatus = getDerivedInvestorStatus(item);
+        const effectiveStatus = getEffectiveStatus(item);
+        const companyStatus = (item.companyStatus || item.status || '').toLowerCase().trim();
+        const priority = (item.priority || '').toLowerCase();
+        const rawInvestorStatus = (item.investorStatus || '').toLowerCase().trim();
+        // ✅ FILTER: high-priority-overdue - Use INVESTOR STATUS
+        if (activeFilter === 'high-priority-overdue') {
+          return investorStatus === 'high-priority-overdue';
+        }
+
+        // ✅ FILTER: partly-submitted - Use COMPANY STATUS
+        if (activeFilter === 'partly-submitted') {
+          return effectiveStatus === 'partly-submitted';
+        }
+
+        if (activeFilter === 'submitted') {
+          return effectiveStatus === 'submitted';
+        }
+
+        if (activeFilter === 'submitted-pending-review') {
+          return companyStatus === 'submitted' &&
+            (investorStatus === 'under-review' || rawInvestorStatus === 'under review');
+        }
+
+        // ✅ FILTER: re-submit-requested - Use INVESTOR STATUS
+        if (activeFilter === 're-submit-requested') {
+          const status = (item.investorStatus || '').toLowerCase().trim();
+          return status === 're-submit-requested' ||
+            status === 're-submit requested' ||
+            getDerivedInvestorStatus(item) === 're-submit-requested';
+        }
+
+        // ✅ FILTER: closed-this-month - Check if closed AND target date in current month
+        if (activeFilter === 'closed-this-month') {
+          const isClosed = investorStatus === 'closed' || effectiveStatus === 'closed';
+          if (!isClosed || !item.targetDate) return false;
+
+          const today = new Date();
+          const target = new Date(item.targetDate);
+          return target.getMonth() === today.getMonth() &&
+            target.getFullYear() === today.getFullYear();
+        }
+
+        // ✅ FILTER: overdue (from Critical Risk Flags) - Use COMPANY STATUS
+        if (activeFilter === 'overdue') {
+          return effectiveStatus === 'overdue';
+        }
+
+        // ✅ FILTER: due-in-this-month (from Critical Risk Flags) - Use COMPANY STATUS
+        if (activeFilter === 'due-in-this-month') {
+          if (!item.targetDate) return false;
+          const today = new Date();
+          const target = new Date(item.targetDate);
+          return target.getMonth() === today.getMonth() &&
+            target.getFullYear() === today.getFullYear() &&
+            investorStatus !== 'closed';
+        }
+
+        if (activeFilter === 'upcoming') {
+          if (!item.targetDate) return false;
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const target = new Date(item.targetDate);
+          target.setHours(0, 0, 0, 0);
+
+          // Check if target date is in the future AND not in current month
+          const isCurrentMonth = target.getMonth() === today.getMonth() &&
+            target.getFullYear() === today.getFullYear();
+          return target > today && !isCurrentMonth && investorStatus !== 'closed';
+        }
+
+        return false;
+      });
     }
-    return capItems; // normal mode
-  }, [showComparisonView, comparePlanData, capItems]);
+    return items;
+  }, [showComparisonView, comparePlanData, capItems, activeFilter]);
 
   const currentOriginalItems = useMemo(() => {
     if (showComparisonView && comparePlanData) {
@@ -657,10 +863,25 @@ export default function ESGCAP() {
   const loggedInUser = getLoggedInUser();
   const isFiresideEmail = loggedInUser?.email?.endsWith('@fireside.com') ?? false;
 
+  // Find the selected company object
+  const selectedCompanyObject = portfolioCompanies.find(
+    c => c.email === selectedCompany || c._id === selectedCompany
+  );
+  const companyObjectId = selectedCompanyObject?._id;
 
   return (
     <div className="space-y-6">
       <Loader show={loading} text={loadingMessage} />
+      <Button
+        variant="ghost"
+        onClick={() => {
+          const queryString = searchParams.toString();
+          navigate(`/esg-dd/cap${queryString ? '?' + queryString : ''}`);
+        }}
+        className="mb-2"
+      >
+        ← Back to companies
+      </Button>
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">ESG Corrective Action Plan</h1>
@@ -668,91 +889,28 @@ export default function ESGCAP() {
             Review and finalize the ESG Corrective Action Plan items
           </p>
         </div>
-        <AddCAPDialog
-          onAddItem={handleAddItem}
-          onAddMultipleItems={handleAddMultipleItems}
-          existingPlan={capItems}
-        />
+          <div className="flex flex-wrap items-center justify-end gap-2 mb-3 md:mb-0">
+            <AddCAPDialog
+              onAddItem={handleAddItem}
+              onAddMultipleItems={handleAddMultipleItems}
+              existingPlan={capItems}
+              onRefresh={() => {
+                if (selectedEntityId) getPlanList(selectedEntityId);
+              }}
+              companyId={companyObjectId}
+              companyEmail={selectedCompany !== "all" ? selectedCompany : undefined}
+              entityId={selectedEntityId}
+            />
+        </div>
       </div>
-
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-
-        <Card className="border-none shadow-sm bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-          <CardContent className="p-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-blue-100">Total</p>
-                <p className="text-lg font-bold">{totalItems}</p>
-              </div>
-              <FileText className="h-4 w-4 text-white/80" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-none shadow-sm bg-gradient-to-br from-green-500 to-emerald-600 text-white">
-          <CardContent className="p-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-green-100">Closed</p>
-                <p className="text-lg font-bold">{completedItems}</p>
-              </div>
-              <CheckCircle2 className="h-4 w-4 text-white/80" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-none shadow-sm bg-gradient-to-br from-orange-500 to-orange-600 text-white">
-          <CardContent className="p-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-orange-100">
-                  Due &lt;1 Month
-                </p>
-                <p className="text-lg font-bold">{dueSoonItems}</p>
-              </div>
-              <Clock className="h-4 w-4 text-white/80" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-none shadow-sm bg-gradient-to-br from-red-500 to-red-600 text-white">
-          <CardContent className="p-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-red-100">Overdue</p>
-                <p className="text-lg font-bold">{overdueItems}</p>
-              </div>
-              <ArrowDown className="h-4 w-4 text-white/80" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-none shadow-sm bg-gradient-to-br from-blue-400 to-blue-500 text-white">
-          <CardContent className="p-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-blue-100">Submitted</p>
-                <p className="text-lg font-bold">{submittedItems}</p>
-              </div>
-              <ArrowUp className="h-4 w-4 text-white/80" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-none shadow-sm bg-gradient-to-br from-slate-500 to-slate-600 text-white">
-          <CardContent className="p-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-slate-100">Upcoming</p>
-                <p className="text-lg font-bold">{upcomingItems}</p>
-              </div>
-              <Target className="h-4 w-4 text-white/80" />
-            </div>
-          </CardContent>
-        </Card>
-
-      </div>
+      <ESGCapScoring
+        items={capItems}
+        onFilterChange={handleFilterChange}
+        activeFilter={activeFilter}
+        complianceScore={result?.overallComplianceScore}
+        entityId={selectedEntityId}
+      />
 
       {/* <div className="flex items-center justify-between">
         <FilterControls
@@ -777,17 +935,17 @@ export default function ESGCAP() {
         )} */}
       {/* </div> */}
 
-      <CardContent>
-        {/* Company filter (unchanged) */}
-        {!isFiresideEmail && (
-          <div className="flex items-center justify-between mb-6">
+      <CardContent className="p-0">
+        {/* Company filter */}
+        {/* <div className="flex items-center justify-between mb-6">
             <FilterControls
               companies={portfolioCompanies}
               selectedCompany={selectedCompany}
               onCompanyChange={setSelectedCompany}
             />
-          </div>
-        )}
+          </div>  */}
+
+
 
         {/* Alerts panel (unchanged) comment for fire side*/}
         {/* {filteredCAPItems.length > 0 && (
@@ -840,6 +998,7 @@ export default function ESGCAP() {
                         onRevertField={handleRevertField}
                         finalPlan={isEditingFinalized ? false : isPlanFinalized}
                         progressPercentage={progressPercentage}
+                        companyEmail={selectedCompany !== "all" ? selectedCompany : undefined}
                         companyEntityId={selectedEntityId}
                         setReloadData={setReloadData}
                       />
@@ -885,7 +1044,6 @@ export default function ESGCAP() {
           </CardFooter>
         )} */}
       </CardContent>
-
       <ReviewDialog
         item={selectedItem}
         open={reviewDialogOpen}

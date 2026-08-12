@@ -63,8 +63,8 @@ export function PreScreeningSection({ companyId }: PreScreeningSectionProps) {
 
   const handleSaveResponses = async () => {
     // In a real app, this would save to the backend
-    console.log("Saving pre-screening responses for company", companyId, responses);
-    console.log('responses', responses)
+    //console.log("Saving pre-screening responses for company", companyId, responses);
+    //console.log('responses', responses)
     let totalScore = getTotalScore()
     let decision = getDecision(totalScore)
     let action = getAction(decision)
@@ -72,7 +72,7 @@ export function PreScreeningSection({ companyId }: PreScreeningSectionProps) {
 
       return { ...q,id:`B.${index+1}`, selectedResponse: responses[q.id]?.response, score: responses[q.id]?.score, remarks: responses[q.id]?.remarks }
     })
-    console.log('updatedData', updatedQuestionData)
+    //console.log('updatedData', updatedQuestionData)
     let postPayload = {
       companyInfoId: companyId,
       responses: updatedQuestionData,
@@ -85,7 +85,7 @@ export function PreScreeningSection({ companyId }: PreScreeningSectionProps) {
     }
     const response = await http.post(`investor/pre-screening`, postPayload)
     if (response.data) {
-      console.log(`handleSaveResponses :: response.data`, response.data)
+      //console.log(`handleSaveResponses :: response.data`, response.data)
       toast({
         title: "Responses Saved",
         description: "Pre-screening responses have been saved successfully."
@@ -121,7 +121,7 @@ export function PreScreeningSection({ companyId }: PreScreeningSectionProps) {
       // }
       // else {
       //   const jsondata = await res.json();
-      //   console.log('jsondata', jsondata)
+      //   //console.log('jsondata', jsondata)
       //   getQuestions()
       // }
     } catch (error) {
@@ -136,21 +136,24 @@ export function PreScreeningSection({ companyId }: PreScreeningSectionProps) {
 
   const getQuestions = async () => {
     try {
-      const response = await http.get(`investor/pre-screening/questions/${companyId}/Prescreening`)
-      if (response.data) {
-        console.log('response.data', response.data)
-        setQuestions(response.data.data)
-      }
-      else {
-        //handle error
+      const response = await http.get(
+        `investor/pre-screening/questions/${companyId}/Prescreening`
+      );
+  
+      //console.log('response.data', response.data);
+  
+      const questionData = response?.data?.data;
+  
+      if (Array.isArray(questionData) && questionData.length > 0) {
+        setQuestions(questionData);
+      } else {
+        setQuestions(defaultQuestions);
       }
     } catch (error) {
-
+      console.error('Error fetching questions:', error);
+      setQuestions(defaultQuestions);
     }
-    finally {
-
-    }
-  }
+  };
 
   useEffect(() => {
     getQuestions();

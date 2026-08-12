@@ -50,7 +50,7 @@ export default function PreScreening() {
   // const { userRole } = useAuth();
   const [questions, setQuestions] = useState(initialQuestions);
   const [searchParams, setSearchParams] = useSearchParams();
-  console.log('companyInfoId',searchParams.get('companyInfoId'))
+  //console.log('companyInfoId',searchParams.get('companyInfoId'))
   const {
     responses,
     handleResponseChange,
@@ -68,14 +68,14 @@ export default function PreScreening() {
   const handlePrescreeningSubmit=async ()=>{
     
     try {
-      console.log('responses',responses)
+      //console.log('responses',responses)
       let decision=getDecision(totalScore)
       let action=getAction(decision)
       let updatedQuestionData=questions.map((q)=>{
         
         return {...q,selectedResponse:responses[q.id]?.response,score:responses[q.id]?.score,remarks:responses[q.id]?.remarks}
       })
-      console.log('updatedData',updatedQuestionData)
+      //console.log('updatedData',updatedQuestionData)
       let postPayload={
         companyInfoId:searchParams.get('companyInfoId'),
         responses:updatedQuestionData,
@@ -98,7 +98,7 @@ export default function PreScreening() {
       }
       else {
         const jsondata = await res.json();
-        console.log('jsondata', jsondata)
+        //console.log('jsondata', jsondata)
         // Navigate to pre-screening page
         navigate("/portfolio/categorization?companyInfoId="+searchParams.get('companyInfoId'))
       }
@@ -136,7 +136,7 @@ export default function PreScreening() {
       }
       else {
         const jsondata = await res.json();
-        // console.log('jsondata', jsondata)
+        // //console.log('jsondata', jsondata)
         // getQuestions()
       }
     } catch (error) {
@@ -161,7 +161,7 @@ export default function PreScreening() {
   //     }
   //     else {
   //       const jsondata = await res.json();
-  //       console.log('jsondata', jsondata)
+  //       //console.log('jsondata', jsondata)
   //       setQuestions(jsondata['data'])
         
   //     }

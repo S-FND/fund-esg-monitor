@@ -71,7 +71,7 @@ export default function Categorization() {
       }
       else {
         const jsondata = await res.json();
-        console.log('jsondata', jsondata)
+        //console.log('jsondata', jsondata)
         // Navigate to pre-screening page
         navigate("/portfolio")
       }

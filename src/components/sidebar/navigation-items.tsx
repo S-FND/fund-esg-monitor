@@ -7,7 +7,10 @@ import {
   ListChecks, 
   Users, 
   FileCheck,
-  Calculator 
+  Calculator, 
+  Bell,
+  LayoutDashboard,
+  Logs
 } from "lucide-react";
 import { NavItem, NavItemWithSubItems } from "./types";
 
@@ -37,6 +40,11 @@ export const mainNavItems: NavItem[] = [
     href: "/team",
     icon: Users,
   },
+  {
+    title: "Audit Logs",
+    href: "/audit-logs",
+    icon: FileText,
+  },
 ];
 
 export const esgDDNavItem: NavItemWithSubItems = {
@@ -44,6 +52,11 @@ export const esgDDNavItem: NavItemWithSubItems = {
   href: "/esg-dd",
   icon: ListChecks,
   subItems: [
+     {
+      title: "ESG CAP Dashboard",
+      href: "/esg-dd/cap/dashboard",
+      icon: LayoutDashboard,
+    },
     {
       title: "ESG DD Report",
       href: "/esg-dd/report",
@@ -52,6 +65,49 @@ export const esgDDNavItem: NavItemWithSubItems = {
     {
       title: "ESG CAP",
       href: "/esg-dd/cap",
+      icon: Logs,
+    },
+    {
+      title: "Notification",
+      href: "/notifications",
+      icon: Bell,
+    },
+  ]
+};
+
+export const misNavItem: NavItemWithSubItems = {
+  title: "MIS",
+  href: "/mis",
+  icon: ListChecks,
+  subItems: [
+    {
+      title: "Dashboard",
+      href: "/mis/dashboard",
+      icon: FileText,
+    },
+    {
+      title: "Portfolio",
+      href: "/mis/portfolio",
+      icon: FileCheck,
+    },
+    {
+      title: "Feature Management",
+      href: "/mis/features",
+      icon: FileText,
+    },
+    {
+      title: "Notifictions",
+      href: "/mis/notifications",
+      icon: FileCheck,
+    },
+    {
+      title: "Settings",
+      href: "/mis/settings",
+      icon: FileText,
+    },
+    {
+      title: "Help & Support",
+      href: "/mis/support",
       icon: FileCheck,
     },
   ]

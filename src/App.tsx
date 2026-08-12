@@ -48,6 +48,22 @@ import Categorization from "./pages/Categorization";
 import { http } from "@/utils/httpInterceptor";
 import Login from "./pages/Login";
 import Auth from "./pages/Auth";
+import { AuditLogsPage } from "./components/audit-log/AuditLogsPage";
+import AdminDashboard from "./components/mis/AdminDashboard";
+import Portfolio from "./components/mis/Portfolio";
+import KPIMaster from "./components/mis/KPIMaster";
+import FeatureManagement from "./components/mis/FeatureManagement";
+import CompanyDetail from "./components/mis/CompanyDetail";
+import Alerts from "./components/mis/Alerts";
+import Notifications from "./components/mis/Notifications";
+import AdminSettings from "./components/mis/AdminSettings";
+import AdminSupport from "./components/mis/AdminSupport";
+import AnalyticsDetail from "./components/mis/AnalyticsDetail";
+import CompanyRankings from "./components/mis/CompanyRankings";
+import CompanySelectionPage from "./pages/CompanySelectionPage";
+import ProtectedRoute from "./contexts/ProtectedRoute";
+import ESGCAPDashboard from "./pages/ESGCAPDashboard";
+import NotificationsPage from "./pages/Notifications";
 
 function App() {
   const { toast } = useToast();
@@ -72,12 +88,12 @@ function App() {
       // This is just a placeholder to show how the interceptor would be used
       // In a real app, you would make actual API calls where needed
       try {
-        console.log("HTTP interceptor is ready to use for API calls");
+        //console.log("HTTP interceptor is ready to use for API calls");
 
         // Example usage (commented out as it's not real)
         // const response = await http.get('/api/some-endpoint');
         // if (response.data) {
-        //   console.log("Data received:", response.data);
+        //   //console.log("Data received:", response.data);
         // }
       } catch (error) {
         console.error("Error in API call:", error);
@@ -97,10 +113,11 @@ function App() {
       <Route
         path="/*"
         element={
+          <ProtectedRoute>
           <Shell>
             <Sidebar />
-            <ScrollArea className="flex-1 w-full p-4 md:p-8">
-              <div className="flex justify-end space-x-4">
+            <ScrollArea className="flex-1 w-full md:p-8">
+              {/* <div className="flex justify-end space-x-4">
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button variant="outline">Log Out</Button>
@@ -121,7 +138,7 @@ function App() {
                   </AlertDialogContent>
                 </AlertDialog>
                 <ModeToggle />
-              </div>
+              </div> */}
 
               <Routes>
                 <Route path="dashboard" element={<Dashboard />} />
@@ -139,14 +156,55 @@ function App() {
                 <Route path="team/:id" element={<TeamMemberDetail />} />
                 <Route path="team/edit/:id" element={<TeamMemberEdit />} />
                 <Route path="esg-dd/report" element={<ESGDDReport />} />
-                <Route path="esg-dd/cap" element={<ESGCAP />} />
+                <Route path="esg-dd/cap" element={<CompanySelectionPage />} />
+                <Route path="esg-dd/cap/dashboard" element={<ESGCAPDashboard />} />
+                <Route path="esg-dd/cap/:companyEmail" element={<ESGCAP />} />
                 <Route path="esg-cap/review/:id" element={<ESGCapDetailsPage />} />
                 <Route path="valuation" element={<Valuation />} />
                 <Route path="esg-dd/risk-matrix" element={<ESGRiskMatrix />} />
+                <Route path="/notifications" element={<NotificationsPage />} />
+                {/* <Route path="/audit-logs" element={<AuditLogsPage />} /> */}
+
+
+                 <Route path="/mis/dashboard" element={
+                    <AdminDashboard />
+                } />
+                <Route path="/mis/portfolio" element={
+                    <Portfolio />  
+                } />
+                <Route path="/mis/features" element={
+                    <FeatureManagement />
+                } />
+               <Route path="/mis/kpi-master" element={
+                    <KPIMaster />
+                } />
+                
+                <Route path="/mis/portfolio/:companyId" element={
+                    <CompanyDetail />
+                } />
+                <Route path="/mis/alerts" element={
+                    <Alerts />
+                } />
+                <Route path="/mis/notifications" element={
+                    <Notifications />
+                } />
+                <Route path="/mis/settings" element={
+                    <AdminSettings />
+                } />
+                <Route path="/mis/support" element={
+                    <AdminSupport />
+                } />
+                <Route path="/mis/analytics-detail" element={
+                    <AnalyticsDetail />
+                } />
+                <Route path="/mis/company-rankings" element={
+                    <CompanyRankings />
+                } />
               </Routes>
 
             </ScrollArea>
           </Shell>
+          </ProtectedRoute>
         }
       />
 

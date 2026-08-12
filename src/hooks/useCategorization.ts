@@ -113,7 +113,7 @@ export function useCategorization(companyInfoId: string): CategorizationHookResu
       }
       else {
         const jsondata = await res.json();
-        console.log('jsondata', jsondata)
+        //console.log('jsondata', jsondata)
         getQuestions()
       }
     } catch (error) {
@@ -219,8 +219,8 @@ export function useCategorization(companyInfoId: string): CategorizationHookResu
       }
       else {
         const jsondata = await res.json();
-        console.log('getCategorisationData ::jsondata',jsondata)
-        console.log('getCategorisationData ::responses',responses)
+        //console.log('getCategorisationData ::jsondata',jsondata)
+        //console.log('getCategorisationData ::responses',responses)
         if (jsondata['categories'] && jsondata['categories'].length > 0) {
           let parsedResponse={}
           jsondata['categories'].forEach((response)=>{
@@ -234,7 +234,7 @@ export function useCategorization(companyInfoId: string): CategorizationHookResu
             })
             parsedResponse[response['questionName']]=responsesObj
           })
-          console.log("parsedResponse",parsedResponse)
+          //console.log("parsedResponse",parsedResponse)
           setResponses(parsedResponse)
         }
 
@@ -249,14 +249,14 @@ export function useCategorization(companyInfoId: string): CategorizationHookResu
   };
 
   useEffect(() => {
-    console.log("Inside useEffect companyInfoId", companyInfoId)
+    //console.log("Inside useEffect companyInfoId", companyInfoId)
     getQuestions()
     getCategorisationData(companyInfoId)
     
   }, [])
 
   useEffect(() => {
-    console.log("Inside useEffect questions", questions)
+    //console.log("Inside useEffect questions", questions)
     
   }, [questions])
 

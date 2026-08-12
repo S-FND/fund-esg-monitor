@@ -29,7 +29,7 @@ export function SDGTab({
   selectedPortfolio = "fundwise", 
   dashboardTopics = [] 
 }: SDGTabProps) {
-  console.log('SDGTab received data:', data);
+  //console.log('SDGTab received data:', data);
   
   const sdgData = data || [];
   const hasData = sdgData.length > 0;

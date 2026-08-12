@@ -1,6 +1,6 @@
 
 import { useLocation } from "react-router-dom";
-import { mainNavItems, esgDDNavItem, valuationNavItem } from "./navigation-items";
+import { mainNavItems, esgDDNavItem, valuationNavItem,misNavItem } from "./navigation-items";
 import { SidebarNavItem } from "./SidebarNavItem";
 import { SidebarSubmenu } from "./SidebarSubmenu";
 import { useAuth } from "@/contexts/AuthContext";
@@ -19,7 +19,7 @@ export function SidebarContent() {
 
   useEffect(() => {
     // In a real app, this would come from the backend based on user roles
-    console.log("Change in user Data happened")
+    //console.log("Change in user Data happened")
     if (user) {
       // Get the unique module names user has access to
       const accessList = user.assignedPages
@@ -59,6 +59,7 @@ export function SidebarContent() {
         {hasValuationAccess && (
           <SidebarSubmenu item={valuationNavItem} isInitiallyOpen={isValuationSubmenuOpen} />
         )}
+        <SidebarSubmenu item={misNavItem} isInitiallyOpen={false} />
       </ul>
     </nav>
   );

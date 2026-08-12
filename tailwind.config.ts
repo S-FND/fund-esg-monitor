@@ -70,6 +70,12 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				status: {
+					success: "hsl(var(--status-success))",
+					warning: "hsl(var(--status-warning))",
+					error: "hsl(var(--status-error))",
+					info: "hsl(var(--status-info))",
 				}
 			},
 			borderRadius: {

@@ -31,6 +31,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useState } from "react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 function getStageColor(stage: string) {
   switch (stage) {
@@ -47,6 +48,7 @@ interface Company {
   _id: string;
   companyName: string;
   sector: string;
+  industry: string;
   companytype: string;
   founder: string;
   opportunityStatus: string;
@@ -176,8 +178,9 @@ export function PortfolioTable({
             <TableRow className="bg-gray-50 hover:bg-gray-50">
               <TableHead className="font-semibold text-gray-700 w-12 text-center">No.</TableHead>
               <TableHead className="font-semibold text-gray-700">Company</TableHead>
-              <TableHead className="font-semibold text-gray-700">Sector</TableHead>
-              <TableHead className="font-semibold text-gray-700">Stage</TableHead>
+              <TableHead className="font-semibold text-gray-700">Industry</TableHead>
+              {/* <TableHead className="font-semibold text-gray-700">Sector</TableHead> */}
+              {/* <TableHead className="font-semibold text-gray-700">Stage</TableHead> */}
               <TableHead className="font-semibold text-gray-700">Founder/CEO</TableHead>
               <TableHead className="font-semibold text-gray-700">Status</TableHead>
               <TableHead className="font-semibold text-gray-700 text-right">Action</TableHead>
@@ -213,24 +216,49 @@ export function PortfolioTable({
                     </div>
                   </TableCell>
 
-                  <TableCell>
+                  {/* <TableCell>
                     <Badge variant="outline" className={deleted ? 'bg-gray-100 text-gray-600 border-gray-200' : 'bg-blue-50 text-blue-700 border-blue-200'}>
                       {company.sector}
                     </Badge>
-                  </TableCell>
+                  </TableCell> */}
 
                   <TableCell>
+                    <Badge
+                      variant="outline"
+                      className={
+                        deleted
+                          ? "bg-gray-100 text-gray-600 border-gray-200"
+                          : "bg-blue-50 text-blue-700 border-blue-200"
+                      }
+                    >
+                      {company.industry || "-"}
+                    </Badge>
+                  </TableCell>
+
+                  {/* <TableCell>
                     <Badge className={deleted ? 'bg-gray-100 text-gray-600 border-gray-200' : getStageColor(company.opportunityStatus)}>
                       <Target className="h-3 w-3 mr-1" />
                       {company.opportunityStatus}
                     </Badge>
-                  </TableCell>
+                  </TableCell> */}
 
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <User className="h-3.5 w-3.5 text-muted-foreground" />
-                      <span className="text-sm">{company.founder}</span>
-                    </div>
+                  <TableCell className="max-w-[220px]">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center gap-1 min-w-0 cursor-default">
+                            <User className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                            <span className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-sm">
+                              {company.founder}
+                            </span>
+                          </div>
+                        </TooltipTrigger>
+
+                        <TooltipContent className="max-w-sm break-words">
+                          <p>{company.founder}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </TableCell>
 
                   <TableCell>

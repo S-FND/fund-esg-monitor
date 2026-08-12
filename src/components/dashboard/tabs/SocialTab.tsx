@@ -42,7 +42,7 @@ export function SocialTab({
     const activeSocialTopics = allSocialTopics.filter(topic => dashboardTopics.includes(topic));
     setSelectedTopics(activeSocialTopics);
     
-    console.log('Active social topics:', activeSocialTopics);
+    //console.log('Active social topics:', activeSocialTopics);
   }, [dashboardTopics]);
 
   const formatPieData = (pieData: any, topicId: string) => {

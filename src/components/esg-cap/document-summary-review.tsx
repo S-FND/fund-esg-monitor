@@ -98,7 +98,7 @@ export default function DocumentSummaryDialog({
   const isValid = !!status && (!isReject || reason.trim());
 
   const handleSubmit = async () => {
-    console.log("onSubmit =", onSubmit);
+    //console.log("onSubmit =", onSubmit);
     if (!status || isSubmitting) return;
     if (isReject && !reason.trim()) return;
 
@@ -127,7 +127,7 @@ export default function DocumentSummaryDialog({
     try {
       // Use s3Link if available and not expired, otherwise fetch signed URL
       const response = await http.get(
-        `esgdd/escap/upload/evidence-files/signed-urls?key=${encodeURIComponent(doc.filename)}`
+        `esgdd/escap/uploaded/evidence-files/signed-urls?key=${encodeURIComponent(doc.filename)}`
       );
       if (response?.data?.signedUrl) {
         window.open(response.data.signedUrl, "_blank");

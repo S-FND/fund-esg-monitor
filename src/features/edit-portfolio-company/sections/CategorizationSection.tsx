@@ -29,7 +29,7 @@ export function CategorizationSection({ companyId }: CategorizationSectionProps)
 
   const handleSaveResponses = async () => {
     // In a real app, this would save to the backend
-    console.log("Saving categorization responses for company", companyId, responses);
+    //console.log("Saving categorization responses for company", companyId, responses);
     try {
       let questionResponse = []
       Object.keys(questions).map((q, index) => {
@@ -66,7 +66,7 @@ export function CategorizationSection({ companyId }: CategorizationSectionProps)
       }
       else {
         const jsondata = await res.json();
-        console.log('jsondata', jsondata)
+        //console.log('jsondata', jsondata)
         // Navigate to pre-screening page
       }
     } catch (error) {

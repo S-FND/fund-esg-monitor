@@ -54,7 +54,7 @@ export const dashboardApi = {
         }
       }
 
-      console.log('📤 User ID from localStorage:', params.user);
+      //console.log('📤 User ID from localStorage:', params.user);
 
       // 3. Add optional parameters
       if (filters.month) {
@@ -69,7 +69,7 @@ export const dashboardApi = {
         params.companyId = filters.companyId;
       }
 
-      console.log('📤 Building request with params:', params);
+      //console.log('📤 Building request with params:', params);
 
       // 4. MANUALLY build the query string
       let queryParams = `type=${params.type}&fy=${params.fy}`;
@@ -91,10 +91,10 @@ export const dashboardApi = {
       }
 
       const url = `investor/dashboard?${queryParams}`;
-      console.log('🔗 Final Request URL:', url);
+      //console.log('🔗 Final Request URL:', url);
 
       const response = await http.get(url);
-      console.log('📥 API Response:', response);
+      //console.log('📥 API Response:', response);
 
       return response?.data || {};
       
@@ -131,7 +131,7 @@ export const dashboardApi = {
     try {
       const userStr = localStorage.getItem('user');
       if (!userStr) {
-        console.log('No user found in localStorage');
+        //console.log('No user found in localStorage');
         return [];
       }
       
@@ -139,11 +139,11 @@ export const dashboardApi = {
       const userId = user?.isInvestor?.userId || user?._id;
       
       if (!userId) {
-        console.log('No user ID found');
+        //console.log('No user ID found');
         return [];
       }
       
-      console.log('Fetching funds for user:', userId);
+      //console.log('Fetching funds for user:', userId);
       const response = await http.get(`investor/fund/all/${userId}`);
       return response?.data?.data || [];
     } catch (error) {
@@ -156,7 +156,7 @@ export const dashboardApi = {
   async getCompanies(): Promise<Company[]> {
     try {
       const response = await http.get(`investor/companyInfo`);
-      console.log('Companies API response:', response?.data);
+      //console.log('Companies API response:', response?.data);
       
       const data = response?.data?.data || response?.data;
       
@@ -175,9 +175,9 @@ export const dashboardApi = {
   // Get fund by ID with proper type
   async getFundById(fundId: string): Promise<Fund | null> {
     try {
-      console.log('📊 Fetching fund details for ID:', fundId);
+      //console.log('📊 Fetching fund details for ID:', fundId);
       const response = await http.get(`investor/fund/${fundId}`);
-      console.log('📊 Fund details response:', response?.data);
+      //console.log('📊 Fund details response:', response?.data);
       return response?.data?.data || null;
     } catch (error) {
       console.error('Error fetching fund details:', error);
