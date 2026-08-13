@@ -183,26 +183,27 @@ export interface ESGCapItem {
     aiSummary: IDocumentValidation;
   }[];
   completionIndicators?: CompletionIndicator[];
-  status?:string;
-  highlights?:{
-    investor:Boolean
+  status?: string;
+  highlights?: {
+    investor: Boolean
   }
-  
+
 }
 
 export interface CompletionIndicator {
-  indicatorLabel:       string;
-  isMandatory?:         boolean;        // defaults true
-  status?:              SubItemStatus;
-  submissionDate?:      string | null;
-  resubmitRequired?:    boolean;
-  resubmitDueDate?:     string | null;
-  resubmitComment?:     string | null;
-  resubmittedDate?:     string | null;  // null = resubmit still open
+  indicatorLabel: string;
+  isMandatory?: boolean;        // defaults true
+  status?: SubItemStatus;
+  submissionDate?: string | null;
+  resubmitRequired?: boolean;
+  resubmitDueDate?: string | null;
+  resubmitComment?: string | null;
+  resubmittedDate?: string | null;  // null = resubmit still open
   finalSubmissionDate?: string | null;  // explicit override
-  guidanceResources?:   string;
-  fileUploadUrl?:       string;
-  reviewedOn?:          string | null;
+  guidanceResources?: string;
+  fileUploadUrl?: string;
+  reviewedOn?: string | null;
+  uploadedAt?: string | null;
 }
 
 interface CAPTableProps {

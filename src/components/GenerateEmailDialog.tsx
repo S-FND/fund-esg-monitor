@@ -12,7 +12,7 @@ import { useAnalyticsDashboardData, CompanyRawMetrics } from '@/hooks/useAnalyti
 import { useAllQuartersProgress } from '@/hooks/useAllQuartersProgress';
 import { isCompanyExcluded } from '@/lib/companyExclusions';
 import { toast } from 'sonner';
-import { ESGCapItem } from './esg-cap/CAPTable';
+import { CAPStatus, ESGCapItem } from './esg-cap/CAPTable';
 import { http } from '@/utils/httpInterceptor';
 import { Company } from '@/types/esg';
 import { ComplianceScoreEngine, PlanItem, PlanJson } from '@/pages/compliance-score-engine';
@@ -967,7 +967,12 @@ export const GenerateEmailDialog = ({ year = 2026, quarter = 'Q1' }: Props) => {
             buffer3: getCSCount("High", "buffer3", escapData.plan),
             under3: getCSCount("High", "under3", escapData.plan),
             over3: getCSCount("High", "over3", escapData.plan),
-            total: getPriorityTotal("High", escapData.plan)
+            total: getCSCount("High", "ontime", escapData.plan)+
+            getCSCount("High", "buffer1", escapData.plan)+
+            getCSCount("High", "buffer2", escapData.plan)+
+            getCSCount("High", "buffer3", escapData.plan)+
+            getCSCount("High", "under3", escapData.plan)+
+            getCSCount("High", "over3", escapData.plan),
 
           },
           medium: {
@@ -977,7 +982,12 @@ export const GenerateEmailDialog = ({ year = 2026, quarter = 'Q1' }: Props) => {
             buffer3: getCSCount("Medium", "buffer3", escapData.plan),
             under3: getCSCount("Medium", "under3", escapData.plan),
             over3: getCSCount("Medium", "over3", escapData.plan),
-            total: getPriorityTotal("Medium", escapData.plan)
+            total: getCSCount("Medium", "ontime", escapData.plan)+
+            getCSCount("Medium", "buffer1", escapData.plan)+
+            getCSCount("Medium", "buffer2", escapData.plan)+
+            getCSCount("Medium", "buffer3", escapData.plan)+
+            getCSCount("Medium", "under3", escapData.plan)+
+            getCSCount("Medium", "over3", escapData.plan),
           },
           low: {
             ontime: getCSCount("Low", "ontime", escapData.plan),
@@ -986,7 +996,12 @@ export const GenerateEmailDialog = ({ year = 2026, quarter = 'Q1' }: Props) => {
             buffer3: getCSCount("Low", "buffer3", escapData.plan),
             under3: getCSCount("Low", "under3", escapData.plan),
             over3: getCSCount("Low", "over3", escapData.plan),
-            total: getPriorityTotal("Low", escapData.plan)
+            total: getCSCount("Low", "ontime", escapData.plan)+
+            getCSCount("Low", "buffer1", escapData.plan)+
+            getCSCount("Low", "buffer2", escapData.plan)+
+            getCSCount("Low", "buffer3", escapData.plan)+
+            getCSCount("Low", "under3", escapData.plan)+
+            getCSCount("Low", "over3", escapData.plan),
           }
         },
         plan: escapData.plan,
@@ -1937,9 +1952,9 @@ function generateEmailHTMLV2(
 
 <!-- ── ESG Composite Score ───────────────────────────────────── -->
 
-<h2 style="font-size:17px;color:#2d2d2d;margin:28px 0 8px 0;border-bottom:2px solid #e5e7eb;padding-bottom:6px;">
+<h1 style="font-size:17px;color:#2d2d2d;margin:28px 0 8px 0;border-bottom:2px solid #e5e7eb;padding-bottom:6px;">
   ESG&nbsp;Composite&nbsp;Score: ${m.fmtScore(m.esgCompositePercentile)} (n=${m.esgPoolSize})
-</h2>
+</h1>
 
 
 <div style="font-size:13px;font-weight:700;color:#374151;padding:4px 0 2px 0;">
@@ -4510,11 +4525,11 @@ ${esgCapTemplateData ? `<h2 style="font-size:17px;color:#2d2d2d;margin:8px 0 4px
 </td>
 
 <td style="border-top:1px solid #e5e7eb;text-align:center;font-size:11px;">
-  ${esgCapTemplateData.priorityScore.high.buffer1}
+  ${esgCapTemplateData.priorityScore.high.buffer1+esgCapTemplateData.priorityScore.high.buffer2+esgCapTemplateData.priorityScore.high.buffer3}
 </td>
 
 <td style="border-top:1px solid #e5e7eb;text-align:center;font-size:11px;">
-  ${esgCapTemplateData.priorityScore.high.over3}
+  ${esgCapTemplateData.priorityScore.high.over3+esgCapTemplateData.priorityScore.high.under3}
 </td>
 
 <td
@@ -4525,7 +4540,7 @@ ${esgCapTemplateData ? `<h2 style="font-size:17px;color:#2d2d2d;margin:8px 0 4px
     color:#ef4444;
   "
 >
-  ${esgCapTemplateData.priorityScore.high.total}
+  ${esgCapTemplateData.priorityScore.high.ontime+esgCapTemplateData.priorityScore.high.buffer1+esgCapTemplateData.priorityScore.high.buffer2+esgCapTemplateData.priorityScore.high.buffer3+esgCapTemplateData.priorityScore.high.over3+esgCapTemplateData.priorityScore.high.under3}
 </td>
 
 </tr>
@@ -4552,11 +4567,11 @@ ${esgCapTemplateData ? `<h2 style="font-size:17px;color:#2d2d2d;margin:8px 0 4px
 </td>
 
 <td style="border-top:1px solid #e5e7eb;text-align:center;font-size:11px;">
-  ${esgCapTemplateData.priorityScore.medium.buffer1}
+  ${esgCapTemplateData.priorityScore.medium.buffer1+esgCapTemplateData.priorityScore.medium.buffer2+esgCapTemplateData.priorityScore.medium.buffer3}
 </td>
 
 <td style="border-top:1px solid #e5e7eb;text-align:center;font-size:11px;">
-  ${esgCapTemplateData.priorityScore.medium.under3}
+  ${esgCapTemplateData.priorityScore.medium.under3+esgCapTemplateData.priorityScore.medium.over3}
 </td>
 
 <td
@@ -4567,7 +4582,12 @@ ${esgCapTemplateData ? `<h2 style="font-size:17px;color:#2d2d2d;margin:8px 0 4px
     color:#ef4444;
   "
 >
-  ${esgCapTemplateData.priorityScore.medium.total}
+  ${esgCapTemplateData.priorityScore.medium.ontime+
+  esgCapTemplateData.priorityScore.medium.buffer1+
+  esgCapTemplateData.priorityScore.medium.buffer2+
+  esgCapTemplateData.priorityScore.medium.buffer3+
+  esgCapTemplateData.priorityScore.medium.over3+
+  esgCapTemplateData.priorityScore.medium.under3}
 </td>
 
 </tr>
@@ -4594,15 +4614,15 @@ ${esgCapTemplateData ? `<h2 style="font-size:17px;color:#2d2d2d;margin:8px 0 4px
 </td>
 
 <td style="border-top:1px solid #e5e7eb;text-align:center;font-size:11px;">
-  ${esgCapTemplateData.priorityScore.low.buffer1}
+  ${esgCapTemplateData.priorityScore.low.buffer1+esgCapTemplateData.priorityScore.low.buffer2+esgCapTemplateData.priorityScore.low.buffer3}
 </td>
 
 <td style="border-top:1px solid #e5e7eb;text-align:center;font-size:11px;">
-  ${esgCapTemplateData.priorityScore.low.under3}
+  ${esgCapTemplateData.priorityScore.low.under3+esgCapTemplateData.priorityScore.low.over3}
 </td>
 
 <td style="border-top:1px solid #e5e7eb;text-align:center;font-size:11px;">
-  ${esgCapTemplateData.priorityScore.low.total}
+  ${esgCapTemplateData.priorityScore.low.ontime+esgCapTemplateData.priorityScore.low.buffer1+esgCapTemplateData.priorityScore.low.buffer2+esgCapTemplateData.priorityScore.low.buffer3+esgCapTemplateData.priorityScore.low.over3+esgCapTemplateData.priorityScore.low.under3}
 </td>
 
 </tr>
@@ -4633,7 +4653,9 @@ ${esgCapTemplateData ? `<h2 style="font-size:17px;color:#2d2d2d;margin:8px 0 4px
     color:#059669;
   "
 >
-  ${esgCapTemplateData.priorityScore.high.ontime + esgCapTemplateData.priorityScore.medium.ontime + esgCapTemplateData.priorityScore.low.ontime}
+  ${esgCapTemplateData.priorityScore.low.ontime +
+  esgCapTemplateData.priorityScore.medium.ontime+
+  esgCapTemplateData.priorityScore.high.ontime}
 </td>
 
 <td
@@ -4645,7 +4667,16 @@ ${esgCapTemplateData ? `<h2 style="font-size:17px;color:#2d2d2d;margin:8px 0 4px
     color:#059669;
   "
 >
-  ${esgCapTemplateData.priorityScore.high.buffer1 + esgCapTemplateData.priorityScore.medium.buffer1 + esgCapTemplateData.priorityScore.low.buffer1}
+  ${esgCapTemplateData.priorityScore.high.buffer1 + 
+  esgCapTemplateData.priorityScore.medium.buffer1 + 
+  esgCapTemplateData.priorityScore.low.buffer1+
+  esgCapTemplateData.priorityScore.high.buffer2 + 
+  esgCapTemplateData.priorityScore.medium.buffer2 + 
+  esgCapTemplateData.priorityScore.low.buffer2+
+  esgCapTemplateData.priorityScore.high.buffer3 + 
+  esgCapTemplateData.priorityScore.medium.buffer3 + 
+  esgCapTemplateData.priorityScore.low.buffer3
+  }
 </td>
 
 
@@ -4659,7 +4690,13 @@ ${esgCapTemplateData ? `<h2 style="font-size:17px;color:#2d2d2d;margin:8px 0 4px
     color:#059669;
   "
 >
-  ${esgCapTemplateData.priorityScore.high.under3 + esgCapTemplateData.priorityScore.medium.under3 + esgCapTemplateData.priorityScore.low.under3}
+  ${esgCapTemplateData.priorityScore.high.under3 + 
+  esgCapTemplateData.priorityScore.medium.under3 + 
+  esgCapTemplateData.priorityScore.low.under3+
+  esgCapTemplateData.priorityScore.high.over3 + 
+  esgCapTemplateData.priorityScore.medium.over3 + 
+  esgCapTemplateData.priorityScore.low.over3
+  }
 </td>
 
 <td
@@ -12835,8 +12872,8 @@ async function generateEmailDOCXV4(
       priority: 'High',
       color: 'DC2626',
       completedInTime: esgCapTemplateData.priorityScore.high.ontime,
-      buffer1: esgCapTemplateData.priorityScore.high.buffer1,
-      notCompleted: esgCapTemplateData.priorityScore.high.under3,
+      buffer1: esgCapTemplateData.priorityScore.high.buffer1+esgCapTemplateData.priorityScore.high.buffer2+esgCapTemplateData.priorityScore.high.buffer3,
+      notCompleted: esgCapTemplateData.priorityScore.high.under3+esgCapTemplateData.priorityScore.high.over3,
       total: esgCapTemplateData.priorityScore.high.total,
     },
 
@@ -12844,8 +12881,8 @@ async function generateEmailDOCXV4(
       priority: 'Medium',
       color: 'D97706',
       completedInTime: esgCapTemplateData.priorityScore.medium.ontime,
-      buffer1: esgCapTemplateData.priorityScore.medium.buffer1,
-      notCompleted: esgCapTemplateData.priorityScore.medium.under3,
+      buffer1: esgCapTemplateData.priorityScore.medium.buffer1+esgCapTemplateData.priorityScore.medium.buffer2+esgCapTemplateData.priorityScore.medium.buffer3,
+      notCompleted: esgCapTemplateData.priorityScore.medium.under3+esgCapTemplateData.priorityScore.medium.over3,
       total: esgCapTemplateData.priorityScore.medium.total,
     },
 
@@ -12853,8 +12890,8 @@ async function generateEmailDOCXV4(
       priority: 'Low',
       color: '64748B',
       completedInTime: esgCapTemplateData.priorityScore.low.ontime,
-      buffer1: esgCapTemplateData.priorityScore.low.buffer1,
-      notCompleted: esgCapTemplateData.priorityScore.low.under3,
+      buffer1: esgCapTemplateData.priorityScore.low.buffer1+esgCapTemplateData.priorityScore.low.buffer2+esgCapTemplateData.priorityScore.low.buffer3,
+      notCompleted: esgCapTemplateData.priorityScore.low.under3+esgCapTemplateData.priorityScore.low.over3,
       total: esgCapTemplateData.priorityScore.low.total,
     },
   ]:[];
@@ -15461,6 +15498,219 @@ async function generateEmailDOCXV4(
   return Packer.toBlob(doc);
 }
 
+const getEffectiveStatus = (item: ESGCapItem): CAPStatus => {
+  const companyStatus = (item.companyStatus || item.status || "").toLowerCase();
+  const investorStatus = normalize(item.investorStatus);
+
+  // 3. Check company status
+  if (companyStatus === "closed") {
+    return "closed" as CAPStatus;
+  }
+
+  if (companyStatus === "partly-submitted") {
+    return "partly-submitted" as CAPStatus;
+  }
+
+  if (companyStatus === "submitted") {
+    return "submitted" as CAPStatus;
+  }
+
+  if (companyStatus === "submitted-pending-review") {
+    return "submitted-pending-review" as CAPStatus;
+  }
+
+  if (companyStatus === "due-in-this-month") {
+    return "due-in-this-month" as CAPStatus;
+  }
+
+  if (companyStatus === "overdue") {
+    return "overdue" as CAPStatus;
+  }
+
+  // 1. Check investor status first (investor overrides)
+  if (investorStatus === "closed") {
+    return "closed" as CAPStatus;
+  }
+
+  // 2. Check if investor has marked as re-submit
+  if (investorStatus === "re-submit requested") {
+    return "re-submit-requested" as CAPStatus;
+  }
+
+  if (
+    (investorStatus === "under-review" || investorStatus === "under review") &&
+    (companyStatus === "submitted")
+  ) {
+    return "submitted-pending-review" as CAPStatus;
+  }
+
+  // 4. If no target date, return empty
+  if (!item.targetDate) {
+    return "" as CAPStatus;
+  }
+
+  // 5. Derive from targetDate
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const target = new Date(item.targetDate);
+  target.setHours(0, 0, 0, 0);
+
+  const isCurrentMonth =
+    target.getFullYear() === today.getFullYear() &&
+    target.getMonth() === today.getMonth();
+
+  if (isCurrentMonth) {
+    return "due-in-this-month" as CAPStatus;
+  }
+
+  if (target < today) {
+    return "overdue" as CAPStatus;
+  }
+
+  return "upcoming" as CAPStatus;
+};
+
+const getCSCategory = (item: ESGCapItem) => {
+  const CUTOFF_DATE = new Date('2026-06-30T23:59:59.999');
+
+  if (!item.targetDate) {
+    return null;
+  }
+
+  const targetDate = new Date(item.targetDate);
+
+  if (isNaN(targetDate.getTime())) {
+    return null;
+  }
+  const rawStatus = getEffectiveStatus(item);
+  const companyStatus = normalize(rawStatus);
+  // =====================================================
+  // GET LATEST uploadedAt
+  // =====================================================
+
+  const uploadedDates = (item.completionIndicators || [])
+    .map(indicator => indicator.uploadedAt)
+    .filter(Boolean)
+    .map(date => new Date(date as string))
+    .filter(date => !isNaN(date.getTime()));
+
+  const updatedDate =
+    uploadedDates.length > 0
+      ? new Date(
+          Math.max(
+            ...uploadedDates.map(date => date.getTime())
+          )
+        )
+      : null;
+
+  // =====================================================
+  // TARGET DATE <= 30 JUNE 2026
+  // =====================================================
+
+  if (targetDate <= CUTOFF_DATE) {
+
+    // ---------------------------------------------------
+    // uploadedAt EXISTS
+    // ---------------------------------------------------
+
+    if (updatedDate) {
+
+      // Uploaded on or before target date
+      if (
+        (companyStatus === 'submitted' || companyStatus === 'closed') &&
+        updatedDate <= targetDate
+      ) {
+        return 'ontime';
+      }
+
+      // Uploaded after target date
+      const months = getMonthDifference(
+        targetDate,
+        updatedDate
+      );
+
+      if (months === 1) return 'buffer1';
+      if (months === 2) return 'buffer2';
+      if (months === 3) return 'buffer3';
+      if (months > 3) return 'over3';
+
+      return null;
+    }
+
+    // ---------------------------------------------------
+    // uploadedAt DOES NOT EXIST
+    // ---------------------------------------------------
+
+    // Old target + submitted = On Time
+    if ((companyStatus === 'submitted' || companyStatus === 'closed')) {
+      return 'ontime';
+    }
+
+    // ---------------------------------------------------
+    // NOT COMPLETED
+    // ---------------------------------------------------
+
+    const today = new Date();
+
+    const months = getMonthDifference(
+      targetDate,
+      today
+    );
+
+    if (months <= 3) {
+      return 'under3';
+    }
+
+    return 'over3';
+  }
+
+  // =====================================================
+  // TARGET DATE > 30 JUNE 2026
+  // =====================================================
+
+  const submitDate = getSubmitDate(item);
+
+  if (submitDate) {
+
+    // Submitted on or before target
+    if (
+      (companyStatus === 'submitted' || companyStatus === 'closed') &&
+      submitDate <= targetDate
+    ) {
+      return 'ontime';
+    }
+
+    // Submitted after target
+    const months = getMonthDifference(
+      targetDate,
+      submitDate
+    );
+
+    if (months === 1) return 'buffer1';
+    if (months === 2) return 'buffer2';
+    if (months === 3) return 'buffer3';
+    if (months > 3) return 'over3';
+
+    return null;
+  }
+
+  // =====================================================
+  // NOT SUBMITTED
+  // =====================================================
+
+  const today = new Date();
+
+  const months = getMonthDifference(
+    targetDate,
+    today
+  );
+
+  if (months <= 3) {
+    return 'under3';
+  }
+
+  return 'over3';
+};
 
 const getCSCount = (
   priority: 'High' | 'Medium' | 'Low',
@@ -15471,88 +15721,114 @@ const getCSCount = (
     | 'buffer3'
     | 'under3'
     | 'over3',
-  items: ESGCapItem[]
+    items: ESGCapItem[]
 ) => {
+
   let csItems = items.filter(item => item.dealCondition === 'CS');
   return csItems.filter(item => {
-
     if ((item.priority || 'Medium') !== priority) {
       return false;
     }
 
-    if (!item.targetDate) {
-      return false;
-    }
-
-    const targetDate = new Date(item.targetDate);
-
-    if (isNaN(targetDate.getTime())) {
-      return false;
-    }
-
-    const submitDate = getSubmitDate(item);
-
-    // -----------------------------------------
-    // SUBMITTED
-    // -----------------------------------------
-    if (submitDate) {
-      const months = getMonthDifference(
-        targetDate,
-        submitDate
-      );
-
-      switch (type) {
-        case 'ontime':
-          return months <= 0;
-
-        case 'buffer1':
-          return months === 1;
-
-        case 'buffer2':
-          return months === 2;
-
-        case 'buffer3':
-          return months === 3;
-
-        case 'under3':
-          return false;
-
-        case 'over3':
-          return months > 3;
-
-        default:
-          return false;
-      }
-    }
-
-    // -----------------------------------------
-    // NOT SUBMITTED
-    // -----------------------------------------
-    const today = new Date();
-
-    const months = getMonthDifference(
-      targetDate,
-      today
-    );
-
-    // Target date has not passed
-    if (months <= 0) {
-      return false;
-    }
-
-    // Not submitted + overdue <= 3 months
-    if (type === 'under3') {
-      return months >= 1 && months <= 3;
-    }
-
-    // Not submitted + overdue > 3 months
-    if (type === 'over3') {
-      return months > 3;
-    }
-
-    return false;
+    return getCSCategory(item) === type;
   }).length;
 };
+
+
+// const getCSCount = (
+//   priority: 'High' | 'Medium' | 'Low',
+//   type:
+//     | 'ontime'
+//     | 'buffer1'
+//     | 'buffer2'
+//     | 'buffer3'
+//     | 'under3'
+//     | 'over3',
+//   items: ESGCapItem[]
+// ) => {
+//   let csItems = items.filter(item => item.dealCondition === 'CS');
+//   return csItems.filter(item => {
+
+//     if ((item.priority || 'Medium') !== priority) {
+//       return false;
+//     }
+
+//     if (!item.targetDate) {
+//       return false;
+//     }
+
+//     const targetDate = new Date(item.targetDate);
+
+//     if (isNaN(targetDate.getTime())) {
+//       return false;
+//     }
+
+//     const submitDate = getSubmitDate(item);
+
+//     // -----------------------------------------
+//     // SUBMITTED
+//     // -----------------------------------------
+//     if (submitDate) {
+//       const months = getMonthDifference(
+//         targetDate,
+//         submitDate
+//       );
+
+//       switch (type) {
+//         case 'ontime':
+//           return months <= 0;
+
+//         case 'buffer1':
+//           return months === 1;
+
+//         case 'buffer2':
+//           return months === 2;
+
+//         case 'buffer3':
+//           return months === 3;
+
+//         case 'under3':
+//           return false;
+
+//         case 'over3':
+//           return months > 3;
+
+//         default:
+//           return false;
+//       }
+//     }
+
+//     // -----------------------------------------
+//     // NOT SUBMITTED
+//     // -----------------------------------------
+//     const today = new Date();
+
+//     const months = getMonthDifference(
+//       targetDate,
+//       today
+//     );
+
+//     // Target date has not passed
+//     if (months <= 0) {
+//       return false;
+//     }
+
+//     // Not submitted + overdue <= 3 months
+//     if (type === 'under3') {
+//       return months >= 1 && months <= 3;
+//     }
+
+//     // Not submitted + overdue > 3 months
+//     if (type === 'over3') {
+//       return months > 3;
+//     }
+
+//     return false;
+//   }).length;
+// };
+
+
+
 
 const getSubmitDate = (item: any): Date | null => {
   // 1. Get latest uploadedAt from completionIndicators
