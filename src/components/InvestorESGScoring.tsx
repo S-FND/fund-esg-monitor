@@ -345,20 +345,6 @@ export const ESGCapScoring: React.FC<ESGCapScoringProps> = ({ items, onFilterCha
     category: getCSCategory(item),
   }));
   
-  console.table(
-    debugInvestorCSItems.filter(
-      item => item.category === 'under3'
-    )
-  );
-
-  console.table(
-    debugInvestorCSItems.filter(
-      item =>
-        item.category === 'ontime' ||
-        item.category === 'under3'
-    )
-  );
-
   return (
     <>
     <div className="space-y-4">
