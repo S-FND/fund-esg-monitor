@@ -868,7 +868,7 @@ export default function ESGCAP() {
     c => c.email === selectedCompany || c._id === selectedCompany
   );
   const companyObjectId = selectedCompanyObject?._id;
-console.log('object---------selectedCompanyObject',selectedCompanyObject.companyName);
+
   return (
     <div className="space-y-6">
       <Loader show={loading} text={loadingMessage} />
@@ -888,7 +888,7 @@ console.log('object---------selectedCompanyObject',selectedCompanyObject.company
             ESG Corrective Action Plan
             {selectedCompanyObject?.companyName && (
               <span className="ml-2 text-muted-foreground">
-                - {selectedCompanyObject.companyName}
+                - {selectedCompanyObject?.companyName}
               </span>
             )}
           </h1>
