@@ -166,10 +166,10 @@ export const ESGCapScoring: React.FC<ESGCapScoringProps> = ({ items, onFilterCha
 
   const getUploadedDate = (item: any): Date | null => {
     const uploadedDates = (item.completionIndicators || [])
-      .map(indicator => indicator.uploadedAt)
+      .map((indicator: any) => indicator.uploadedAt)
       .filter(Boolean)
-      .map(date => new Date(date as string))
-      .filter(date => !isNaN(date.getTime()));
+      .map((date: string) => new Date(date))
+      .filter((date: Date) => !isNaN(date.getTime()));
   
     if (uploadedDates.length === 0) {
       return null;
@@ -179,7 +179,11 @@ export const ESGCapScoring: React.FC<ESGCapScoringProps> = ({ items, onFilterCha
       Math.max(...uploadedDates.map(date => date.getTime()))
     );
   };
-  const normalize = (s?: string) => (s ?? '').trim().toLowerCase();
+  
+  const normalize = (s?: string) =>
+    (s ?? '').trim().toLowerCase();
+  
+  
   const getCSCategory = (item: ESGCapItem) => {
     const CUTOFF_DATE = new Date('2026-06-30T23:59:59.999');
   
@@ -188,13 +192,21 @@ export const ESGCapScoring: React.FC<ESGCapScoringProps> = ({ items, onFilterCha
     }
   
     const targetDate = new Date(item.targetDate);
-  
     if (isNaN(targetDate.getTime())) {
       return null;
     }
   
-    const companyStatus = normalize(item.companyStatus);
-    const investorStatus = normalize(item.investorStatus);
+    // ---- 👇 NEW: Resolve status with fallback chain ----
+    // Priority: companyStatus > investorStatus > status
+    let rawStatus = item.companyStatus;
+    if (rawStatus === undefined || rawStatus === null) {
+      rawStatus = item.investorStatus; // fallback 1
+    }
+    if (rawStatus === undefined || rawStatus === null) {
+      rawStatus = item.status;         // fallback 2
+    }
+    // Normalize only if we have a value
+    const resolvedStatus = rawStatus ? normalize(String(rawStatus)) : null;
   
     const uploadedDate = getUploadedDate(item);
   
@@ -203,80 +215,41 @@ export const ESGCapScoring: React.FC<ESGCapScoringProps> = ({ items, onFilterCha
      * TARGET DATE <= 30 JUNE 2026
      * =====================================================
      */
-  
     if (targetDate <= CUTOFF_DATE) {
-  
       /*
-       * uploadedAt EXISTS
-       *
-       * Use uploadedAt to calculate On Time / Buffer.
+       * 1. uploadedAt EXISTS
        */
       if (uploadedDate) {
-  
-        // Uploaded on or before target date
-        if (
-          companyStatus === 'submitted' &&
-          investorStatus === 'closed' &&
-          uploadedDate <= targetDate
-        ) {
+        // Uploaded on/before target = ON TIME
+        if (uploadedDate <= targetDate) {
           return 'ontime';
         }
   
-        // Uploaded after target date
-        const months = getMonthDifference(
-          targetDate,
-          uploadedDate
-        );
-  
-        if (months === 1) {
-          return 'buffer1';
-        }
-  
-        if (months === 2) {
-          return 'buffer2';
-        }
-  
-        if (months === 3) {
-          return 'buffer3';
-        }
-  
-        if (months > 3) {
-          return 'over3';
-        }
-  
+        // Uploaded after target = BUFFER
+        const months = getMonthDifference(targetDate, uploadedDate);
+        if (months === 1) return 'buffer1';
+        if (months === 2) return 'buffer2';
+        if (months === 3) return 'buffer3';
+        if (months > 3) return 'over3';
         return null;
       }
   
       /*
-       * uploadedAt DOES NOT EXIST
-       *
-       * IMPORTANT:
-       * Do NOT use createdAt here.
-       *
-       * For old target dates, if the item is submitted
-       * and closed by investor, consider it On Time.
+       * 2. uploadedAt DOES NOT EXIST
+       * Only submitted (resolvedStatus) is considered completed.
        */
-      if (
-        companyStatus === 'submitted' &&
-        investorStatus === 'closed'
-      ) {
+      if (resolvedStatus === 'submitted') {
         return 'ontime';
       }
   
       /*
-       * No uploadedAt and not completed.
+       * 3. NOT COMPLETED
        */
       const today = new Date();
-  
-      const months = getMonthDifference(
-        targetDate,
-        today
-      );
-  
+      const months = getMonthDifference(targetDate, today);
       if (months <= 3) {
         return 'under3';
       }
-  
       return 'over3';
     }
   
@@ -289,38 +262,17 @@ export const ESGCapScoring: React.FC<ESGCapScoringProps> = ({ items, onFilterCha
     const submitDate = getSubmitDate(item);
   
     if (submitDate) {
-  
-      // Submitted on/before target date
-      if (
-        companyStatus === 'submitted' &&
-        investorStatus === 'closed' &&
-        submitDate <= targetDate
-      ) {
+      // Submitted on/before target = ON TIME
+      if (resolvedStatus === 'submitted' && submitDate <= targetDate) {
         return 'ontime';
       }
   
-      // Submitted after target date
-      const months = getMonthDifference(
-        targetDate,
-        submitDate
-      );
-  
-      if (months === 1) {
-        return 'buffer1';
-      }
-  
-      if (months === 2) {
-        return 'buffer2';
-      }
-  
-      if (months === 3) {
-        return 'buffer3';
-      }
-  
-      if (months > 3) {
-        return 'over3';
-      }
-  
+      // Submitted after target = BUFFER
+      const months = getMonthDifference(targetDate, submitDate);
+      if (months === 1) return 'buffer1';
+      if (months === 2) return 'buffer2';
+      if (months === 3) return 'buffer3';
+      if (months > 3) return 'over3';
       return null;
     }
   
@@ -329,18 +281,11 @@ export const ESGCapScoring: React.FC<ESGCapScoringProps> = ({ items, onFilterCha
      * NOT COMPLETED
      * =====================================================
      */
-  
     const today = new Date();
-  
-    const months = getMonthDifference(
-      targetDate,
-      today
-    );
-  
+    const months = getMonthDifference(targetDate, today);
     if (months <= 3) {
       return 'under3';
     }
-  
     return 'over3';
   };
 
@@ -390,6 +335,16 @@ export const ESGCapScoring: React.FC<ESGCapScoringProps> = ({ items, onFilterCha
     );
   };
 
+  const debugInvestorCSItems = csItems.map(item => ({
+    item: item.item,
+    priority: item.priority,
+    targetDate: item.targetDate,
+    companyStatus: item.companyStatus,
+    investorStatus: item.investorStatus,
+    uploadedDate: getUploadedDate(item)?.toISOString() || null,
+    category: getCSCategory(item),
+  }));
+  
   return (
     <>
     <div className="space-y-4">
