@@ -4488,6 +4488,17 @@ ${esgCapTemplateData ? `<h2 style="font-size:17px;color:#2d2d2d;margin:8px 0 4px
 >
   Not completed / Completed after Buffer Time
 </td>
+<td
+  style="
+    padding:10px 5px;
+    font-size:9px;
+    font-weight:700;
+    color:#ef4444;
+    text-align:center;
+  "
+>
+  Upcoming
+</td>
 
 <td
   style="
@@ -4529,7 +4540,10 @@ ${esgCapTemplateData ? `<h2 style="font-size:17px;color:#2d2d2d;margin:8px 0 4px
 </td>
 
 <td style="border-top:1px solid #e5e7eb;text-align:center;font-size:11px;">
-  ${esgCapTemplateData.priorityScore.high.over3+esgCapTemplateData.priorityScore.high.under3}
+  ${esgCapTemplateData.priorityScore.high.over3}
+</td>
+<td style="border-top:1px solid #e5e7eb;text-align:center;font-size:11px;">
+  ${esgCapTemplateData.priorityScore.high.under3}
 </td>
 
 <td
@@ -4571,7 +4585,11 @@ ${esgCapTemplateData ? `<h2 style="font-size:17px;color:#2d2d2d;margin:8px 0 4px
 </td>
 
 <td style="border-top:1px solid #e5e7eb;text-align:center;font-size:11px;">
-  ${esgCapTemplateData.priorityScore.medium.under3+esgCapTemplateData.priorityScore.medium.over3}
+  ${esgCapTemplateData.priorityScore.medium.over3}
+</td>
+
+<td style="border-top:1px solid #e5e7eb;text-align:center;font-size:11px;">
+  ${esgCapTemplateData.priorityScore.medium.under3}
 </td>
 
 <td
@@ -4618,7 +4636,11 @@ ${esgCapTemplateData ? `<h2 style="font-size:17px;color:#2d2d2d;margin:8px 0 4px
 </td>
 
 <td style="border-top:1px solid #e5e7eb;text-align:center;font-size:11px;">
-  ${esgCapTemplateData.priorityScore.low.under3+esgCapTemplateData.priorityScore.low.over3}
+  ${esgCapTemplateData.priorityScore.low.over3}
+</td>
+
+<td style="border-top:1px solid #e5e7eb;text-align:center;font-size:11px;">
+  ${esgCapTemplateData.priorityScore.low.under3}
 </td>
 
 <td style="border-top:1px solid #e5e7eb;text-align:center;font-size:11px;">
@@ -4690,12 +4712,25 @@ ${esgCapTemplateData ? `<h2 style="font-size:17px;color:#2d2d2d;margin:8px 0 4px
     color:#059669;
   "
 >
-  ${esgCapTemplateData.priorityScore.high.under3 + 
-  esgCapTemplateData.priorityScore.medium.under3 + 
-  esgCapTemplateData.priorityScore.low.under3+
+  ${
   esgCapTemplateData.priorityScore.high.over3 + 
   esgCapTemplateData.priorityScore.medium.over3 + 
   esgCapTemplateData.priorityScore.low.over3
+  }
+</td>
+
+<td
+  style="
+    border-top:1px solid #a7f3d0;
+    text-align:center;
+    font-size:11px;
+    font-weight:700;
+    color:#059669;
+  "
+>
+  ${esgCapTemplateData.priorityScore.high.under3 + 
+  esgCapTemplateData.priorityScore.medium.under3 + 
+  esgCapTemplateData.priorityScore.low.under3
   }
 </td>
 
@@ -11142,6 +11177,10 @@ async function generateEmailDOCXV3(
                                 'Not completed\n/Completed after Buffer Time',
                                 1650,
                               ),
+                              capHeaderCell(
+                                'Upcoming',
+                                1650,
+                              ),
 
                               capHeaderCell(
                                 'Total',
@@ -12165,7 +12204,7 @@ async function generateEmailDOCXV4(
   // ============================================================
   // ESG METRICS
   // ============================================================
-
+  console.log("esgCapTemplateData",esgCapTemplateData)
   const m = computeEsgMetrics(
     company,
     ranking,
@@ -12873,7 +12912,8 @@ async function generateEmailDOCXV4(
       color: 'DC2626',
       completedInTime: esgCapTemplateData.priorityScore.high.ontime,
       buffer1: esgCapTemplateData.priorityScore.high.buffer1+esgCapTemplateData.priorityScore.high.buffer2+esgCapTemplateData.priorityScore.high.buffer3,
-      notCompleted: esgCapTemplateData.priorityScore.high.under3+esgCapTemplateData.priorityScore.high.over3,
+      notCompleted: esgCapTemplateData.priorityScore.high.over3,
+      upcoming:esgCapTemplateData.priorityScore.high.under3,
       total: esgCapTemplateData.priorityScore.high.total,
     },
 
@@ -12882,7 +12922,8 @@ async function generateEmailDOCXV4(
       color: 'D97706',
       completedInTime: esgCapTemplateData.priorityScore.medium.ontime,
       buffer1: esgCapTemplateData.priorityScore.medium.buffer1+esgCapTemplateData.priorityScore.medium.buffer2+esgCapTemplateData.priorityScore.medium.buffer3,
-      notCompleted: esgCapTemplateData.priorityScore.medium.under3+esgCapTemplateData.priorityScore.medium.over3,
+      notCompleted: esgCapTemplateData.priorityScore.medium.over3,
+      upcoming:esgCapTemplateData.priorityScore.medium.under3,
       total: esgCapTemplateData.priorityScore.medium.total,
     },
 
@@ -12891,7 +12932,8 @@ async function generateEmailDOCXV4(
       color: '64748B',
       completedInTime: esgCapTemplateData.priorityScore.low.ontime,
       buffer1: esgCapTemplateData.priorityScore.low.buffer1+esgCapTemplateData.priorityScore.low.buffer2+esgCapTemplateData.priorityScore.low.buffer3,
-      notCompleted: esgCapTemplateData.priorityScore.low.under3+esgCapTemplateData.priorityScore.low.over3,
+      notCompleted: esgCapTemplateData.priorityScore.low.over3,
+      upcoming:esgCapTemplateData.priorityScore.low.under3,
       total: esgCapTemplateData.priorityScore.low.total,
     },
   ]:[];
@@ -13007,6 +13049,7 @@ async function generateEmailDOCXV4(
           item.completedInTime,
           item.buffer1,
           item.notCompleted,
+          item.upcoming,
           item.total
         ].map(
           (value, index) =>
@@ -14571,6 +14614,10 @@ async function generateEmailDOCXV4(
                                 'Not completed\n/Completed after Buffer Time',
                                 1650,
                               ),
+                              capHeaderCell(
+                                'Upcoming',
+                                1650,
+                              ),
 
                               capHeaderCell(
                                 'Total',
@@ -14661,6 +14708,12 @@ async function generateEmailDOCXV4(
                                 },
                                 {
                                   value: esgCapTemplateData.priorityScore.high.over3 + esgCapTemplateData.priorityScore.medium.over3 + esgCapTemplateData.priorityScore.low.over3,
+                                  width: 950,
+                                  color:
+                                    '059669',
+                                },
+                                {
+                                  value: esgCapTemplateData.priorityScore.high.under3 + esgCapTemplateData.priorityScore.medium.under3 + esgCapTemplateData.priorityScore.low.under3,
                                   width: 950,
                                   color:
                                     '059669',

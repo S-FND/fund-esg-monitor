@@ -946,7 +946,7 @@ export const usePortfolioRankings = (
             }
             consistencyRatio += qWithData / eligibleCount;
           }
-
+          console.log("consistencyRatio :: ",consistencyRatio ,"qKPIDefs :: ",qKPIDefs)
           const consistencyPct = qKPIDefs.length > 0
             ? r2((consistencyRatio / qKPIDefs.length) * 100)
             : 0;
