@@ -730,6 +730,45 @@ const getTrend = (current: number, previous: number): Trend => {
   return 'stable';
 };
 
+const getGrade = (percentile: number): { grade: string; color: string } => {
+  if (percentile >= 80) return { grade: 'AA', color: 'text-emerald-600' };
+  if (percentile >= 60) return { grade: 'A', color: 'text-blue-600' };
+  if (percentile >= 40) return { grade: 'BB', color: 'text-amber-600' };
+  if (percentile >= 20) return { grade: 'B', color: 'text-orange-600' };
+  return { grade: 'C', color: 'text-red-600' };
+};
+
+const getGradeTrend = (
+  currentValue: number | null | undefined,
+  previousValue: number | null | undefined
+) => {
+  if (currentValue == null || previousValue == null) {
+    return 'stable';
+  }
+
+  const { grade: currentGrade } = getGrade(currentValue);
+  const { grade: previousGrade } = getGrade(previousValue);
+
+  const gradeOrder = ['AA', 'A', 'BB', 'B', 'C'];
+
+  const currentIndex = gradeOrder.indexOf(currentGrade);
+  const previousIndex = gradeOrder.indexOf(previousGrade);
+
+  if (currentIndex === -1 || previousIndex === -1) {
+    return 'stable';
+  }
+
+  if (currentIndex < previousIndex) {
+    return 'up';
+  }
+
+  if (currentIndex > previousIndex) {
+    return 'down';
+  }
+
+  return 'stable';
+};
+
 const getQuarterAnalyticsWithTrend = (
   currentQuarter: any,
   prevQuarter: any
@@ -745,10 +784,10 @@ const getQuarterAnalyticsWithTrend = (
     return {
       key: currentPillar.key,
       companyPctileTrend: previousPillar
-        ? getTrend(
-          currentPillar.companyPctile,
-          previousPillar.companyPctile
-        )
+        ? getGradeTrend(
+            currentPillar.companyPctile,
+            previousPillar.companyPctile
+          )
         : 'stable',
     };
   });
@@ -760,72 +799,55 @@ const getQuarterAnalyticsWithTrend = (
       completenessPercentile: {
         current: currentQuarter.completenessPercentile,
         previous: prevQuarter?.completenessPercentile ?? null,
-        trend:
-          prevQuarter?.completenessPercentile != null
-            ? getTrend(
-              currentQuarter.completenessPercentile,
-              prevQuarter.completenessPercentile
-            )
-            : 'stable',
+        trend: getGradeTrend(
+          currentQuarter.completenessPercentile,
+          prevQuarter?.completenessPercentile
+        ),
       },
 
       consistencyPercentile: {
         current: currentQuarter.consistencyPercentile,
         previous: prevQuarter?.consistencyPercentile ?? null,
-        trend:
-          prevQuarter?.consistencyPercentile != null
-            ? getTrend(
-              currentQuarter.consistencyPercentile,
-              prevQuarter.consistencyPercentile
-            )
-            : 'stable',
+        trend: getGradeTrend(
+          currentQuarter.consistencyPercentile,
+          prevQuarter?.consistencyPercentile
+        ),
       },
 
       esgCompositeIndAvg: {
         current: currentQuarter.esgCompositeIndAvg,
         previous: prevQuarter?.esgCompositeIndAvg ?? null,
-        trend:
-          prevQuarter?.esgCompositeIndAvg != null
-            ? getTrend(
-              currentQuarter.esgCompositeIndAvg,
-              prevQuarter.esgCompositeIndAvg
-            )
-            : 'stable',
+        trend: getGradeTrend(
+          currentQuarter.esgCompositeIndAvg,
+          prevQuarter?.esgCompositeIndAvg
+        ),
       },
 
       esgCompositePercentile: {
         current: currentQuarter.esgCompositePercentile,
         previous: prevQuarter?.esgCompositePercentile ?? null,
-        trend:
-          prevQuarter?.esgCompositePercentile != null
-            ? getTrend(
-              currentQuarter.esgCompositePercentile,
-              prevQuarter.esgCompositePercentile
-            )
-            : 'stable',
+        trend: getGradeTrend(
+          currentQuarter.esgCompositePercentile,
+          prevQuarter?.esgCompositePercentile
+        ),
       },
 
       overallPercentile: {
         current: currentQuarter.overallPercentile,
         previous: prevQuarter?.overallPercentile ?? null,
-        trend:
-          prevQuarter?.overallPercentile != null
-            ? getTrend(
-              currentQuarter.overallPercentile,
-              prevQuarter.overallPercentile
-            )
-            : 'stable',
+        trend: getGradeTrend(
+          currentQuarter.overallPercentile,
+          prevQuarter?.overallPercentile
+        ),
       },
+
       timelinessPercentile: {
         current: currentQuarter.timelinessPercentile,
         previous: prevQuarter?.timelinessPercentile ?? null,
-        trend:
-          prevQuarter?.timelinessPercentile != null
-            ? getTrend(
-              currentQuarter.timelinessPercentile,
-              prevQuarter.timelinessPercentile
-            )
-            : 'stable',
+        trend: getGradeTrend(
+          currentQuarter.timelinessPercentile,
+          prevQuarter?.timelinessPercentile
+        ),
       },
 
       pillars: pillarTrends,
