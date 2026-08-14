@@ -380,7 +380,7 @@ export const ESGCapScoring: React.FC<ESGCapScoringProps> = ({ items, onFilterCha
               </div>
 
               <div className="text-center text-[10px] font-semibold ">
-                Not completed &lt;3 Buffer Time
+                Upcoming
               </div>
 
               <div className="text-center text-[10px] font-semibold ">
@@ -417,7 +417,7 @@ export const ESGCapScoring: React.FC<ESGCapScoringProps> = ({ items, onFilterCha
                 {getCSCount("High", "buffer3")}
               </div>
 
-              <div className="text-center text-xs font-semibold">
+              <div className="text-center text-xs font-semibold text-gray-600">
                 {getCSCount("High", "under3")}
               </div>
 
@@ -455,7 +455,7 @@ export const ESGCapScoring: React.FC<ESGCapScoringProps> = ({ items, onFilterCha
                 {getCSCount("Medium", "buffer3")}
               </div>
 
-              <div className="text-center text-xs font-semibold">
+              <div className="text-center text-xs font-semibold text-gray-600">
                 {getCSCount("Medium", "under3")}
               </div>
 
@@ -493,7 +493,7 @@ export const ESGCapScoring: React.FC<ESGCapScoringProps> = ({ items, onFilterCha
                 {getCSCount("Low", "buffer3")}
               </div>
 
-              <div className="text-center text-xs font-semibold">
+              <div className="text-center text-xs font-semibold text-gray-600">
                 {getCSCount("Low", "under3")}
               </div>
 
@@ -531,7 +531,7 @@ export const ESGCapScoring: React.FC<ESGCapScoringProps> = ({ items, onFilterCha
                 {getCSTotal("buffer3")}
               </div>
 
-              <div className="text-center text-xs font-bold">
+              <div className="text-center text-xs font-bold text-gray-600">
                 {getCSTotal("under3")}
               </div>
 
