@@ -63,8 +63,8 @@ const getCategoryForPercentile = (percentile: number): string => {
 export const ESGCategoryBreakdown = ({ title, companies, onClose, onCategoryClick, lowCompletenessBrands, filters,setFilteredCompanyBrands }: ESGCategoryBreakdownProps) => {
   const [showScores, setShowScores] = useState(false);
   console.log("ESGCategoryBreakdown - companies:", companies);
-  console.log("ESGCategoryBreakdown - filters:", filters);
-  // console.log("ESGCategoryBreakdown - companies.length:", companies.length);
+  console.log("ESGCategoryBreakdown - title:", title);
+  console.log("ESGCategoryBreakdown - companies.length:", companies.length);
   const withPercentiles = assignPercentiles(companies);
   // console.log("ESGCategoryBreakdown - withPercentiles:", withPercentiles);
   // let filteredCompanyIds = mockCompanies

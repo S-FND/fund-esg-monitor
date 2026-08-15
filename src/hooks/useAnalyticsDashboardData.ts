@@ -647,8 +647,8 @@ export function sumAggregations(items: AggregationMetrics[]): AggregationMetrics
 /** Safe division: returns 0 when denominator is 0 (instead of Infinity or NaN) */
 const safeDiv = (num: number, den: number): number => den === 0 ? 0 : num / den;
 
-export function deriveInsights(agg: AggregationMetrics, industry?: string, hasFashionPackaging?: boolean): InsightMetrics {
-    // if(industry){
+export function deriveInsights(agg: AggregationMetrics, industry?: string, hasFashionPackaging?: boolean,brand?:string): InsightMetrics {  
+  // if(industry){
     //   console.log('agg',JSON.stringify(agg),industry,'hasFashionPackaging :: ',hasFashionPackaging)
     // }
   const totalEmployees = agg.totalEmployment;
@@ -754,6 +754,14 @@ export function deriveInsights(agg: AggregationMetrics, industry?: string, hasFa
       const allRecycledPct = safeDiv(agg.primaryPlasticRecycled + agg.secondaryPlasticRecycled + agg.primaryNonPlastic + agg.secondaryNonPlastic, agg.totalPackagingMT) * 100;
       // 6. Recyclable % (10%)
       const recyclablePct = agg.primaryRecyclablePct;
+      if(brand == 'NewMe'){
+        console.log('virginPlasticReduction',virginPlasticReduction)
+        console.log('intensityScore',intensityScore)
+        console.log('materialRecycledPct',materialRecycledPct)
+        console.log('eprVpn',eprVpn)
+        console.log('allRecycledPct',allRecycledPct)
+        console.log('recyclablePct',recyclablePct)
+      }
       return (
         Math.min(100, virginPlasticReduction) * 0.20 +
         Math.min(100, intensityScore) * 0.30 +
@@ -1045,13 +1053,13 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters, kpiEntries?
           envFeatureCompanyIds.has(companyId);
 
         allEntries = allEntries.filter(e => {
-          if (e.kpi_id.startsWith('food_pkg_') && !stdPkgCompanyIds.has(e.companyId)) return false;
+          if (e.kpi_id?.startsWith('food_pkg_') && !stdPkgCompanyIds.has(e.companyId)) return false;
           return true;
         });
 
         let filteredCompanies = mockCompanies.filter(c => c.investmentStatus === 'Invested');
         if (filters.year && filters.year == 2025) {
-          filteredCompanies = filteredCompanies.filter(c => !['company-44', 'company-45'].includes(c.id))
+          filteredCompanies = filteredCompanies.filter(c => !['company-44', 'company-45','company-222','company-223','company-224'].includes(c.id))
         }
         // Need to do filters after calculation
         // if (filters.industry) filteredCompanies = filteredCompanies.filter(c => c.industry === filters.industry);
@@ -1123,13 +1131,15 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters, kpiEntries?
         });
 
         const companyRawData: CompanyRawMetrics[] = filteredCompanies.map(company => {
-          // //console.log(`Building raw data for company ${company.name} (${company.id})`);
+         console.log(`Building raw data for company ${company.name} (${company.id})`);
           const kpis = currentByCompany[company.id] || {};
           const aggregation = buildAggregation(kpis);
           const hasFashionPkg = fashionPkgCompanyIds.has(company.id);
-          // //console.log(`Company ${company.name} (${company.id}) - `);
-          
-          const insights = deriveInsights(aggregation, company.industry, hasFashionPkg);
+          console.log(`Company ${company.name} (${company.id}) - `);
+          if(company.brand == 'NewMe'){
+            console.log('aggregation :: ',aggregation)
+          }
+          const insights = deriveInsights(aggregation, company.industry, hasFashionPkg,company.brand);
           const obj = {
             companyId: company.id,
             companyName: company.name,
@@ -1144,7 +1154,7 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters, kpiEntries?
             hasWaterFeature: waterDetailedCompanyIds.has(company.id),
             hasEnvironmentFeature: hasEnvFeature(company.id),
           };
-          // //console.log(`Raw data for ${company.name}:`, obj);
+          //console.log(`Raw data for ${company.name}:`, obj);
           return obj;
         });
 
@@ -1270,8 +1280,10 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters, kpiEntries?
             
             const aggregation = buildAggregation(combinedKpis);
             const hasFashionPkg = fashionPkgCompanyIds.has(company.id);
-            
-            const insights = deriveInsights(aggregation, company.industry, hasFashionPkg);
+            if(company.brand == 'NewMe'){
+              console.log('quarterlyCombinedRawData :: aggregation',aggregation)
+            }
+            const insights = deriveInsights(aggregation, company.industry, hasFashionPkg,company.brand);
             return {
               companyId: company.id,
               companyName: company.name,
@@ -1479,9 +1491,13 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters, kpiEntries?
             });
 
             allCompanyRawData = allCompanies.map(company => {
+              console.log('company :: ',company.brand)
               const kpis = allCurrentByCompany[company.id] || {};
               const aggregation = buildAggregation(kpis);
-              const insights = deriveInsights(aggregation, company.industry, fashionPkgCompanyIds.has(company.id));
+              if(company.brand == 'NewMe'){
+                console.log('aggregation',aggregation)
+              }
+              const insights = deriveInsights(aggregation, company.industry, fashionPkgCompanyIds.has(company.id),company.brand);
               return {
                 companyId: company.id,
                 companyName: company.name,
