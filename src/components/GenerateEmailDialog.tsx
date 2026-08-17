@@ -16,6 +16,7 @@ import { CAPStatus, ESGCapItem } from './esg-cap/CAPTable';
 import { http } from '@/utils/httpInterceptor';
 import { Company } from '@/types/esg';
 import { ComplianceScoreEngine, PlanItem, PlanJson } from '@/pages/compliance-score-engine';
+import { useComparePeriods } from '@/hooks/periodComparision';
 
 const getOrdinalSuffix = (n: number): string => {
   const s = ['th', 'st', 'nd', 'rd'];
@@ -769,91 +770,232 @@ const getGradeTrend = (
   return 'stable';
 };
 
+
+const gradeOrder = ['AA', 'A', 'BB', 'B', 'C']; // best → worst
+const CATEGORY_RANK: Record<string, number> = { AA: 5, A: 4, BB: 3, B: 2, C: 1 };
+
+// Trend is ALWAYS derived from grade-band comparison (categoryA vs categoryB),
+// never from raw percentile/score movement.
+const getTrendFromGrade = (categoryB?: string, categoryA?: string): string => {
+  if (!categoryA || !categoryB) return 'stable';
+  const rankA = CATEGORY_RANK[categoryA];
+  const rankB = CATEGORY_RANK[categoryB];
+  if (rankA === rankB) return 'stable';
+  return rankB > rankA ? 'up' : 'down';
+};
+
+const RANKING_LOOKUP: Record<string, string> = {
+  overallPercentile: 'overall',
+  completenessPercentile: 'completeness',
+  consistencyPercentile: 'consistency',
+  timelinessPercentile: 'timeliness',
+};
+
+const ESG_LOOKUP: Record<string, string> = {
+  esgCompositeIndAvg: 'esgCompositeScore',
+  esgCompositePercentile: 'esgCompositeScore',
+};
+
+const PILLAR_TO_ESG_KEY: Record<string, string> = {
+  environment: 'circularEconomyIndex',
+  social: 'socialScore',
+  governance: 'governanceScore',
+};
+
+const findCompanyEntry = (
+  cards: any[] | undefined,
+  cardKey: string,
+  companyBrand: string
+) => {
+  const card = cards?.find(c => c.key === cardKey);
+  return card?.companies?.find((c: any) => c.brand === companyBrand);
+};
+
 const getQuarterAnalyticsWithTrend = (
   currentQuarter: any,
-  prevQuarter: any
+  rankingCards: any[],
+  esgCardCompare: any[],
+  companyBrand: string
 ) => {
   const currentPillars = currentQuarter?.pillars || [];
-  const previousPillars = prevQuarter?.pillars || [];
+
+  // const pillarTrends = currentPillars.map((currentPillar: any) => {
+  //   const esgKey = PILLAR_TO_ESG_KEY[currentPillar.key];
+  //   const entry = esgKey ? findCompanyEntry(esgCardCompare, esgKey, companyBrand) : undefined;
+
+  //   return {
+  //     key: currentPillar.key,
+  //     companyPctileTrend: getTrendFromGrade(entry?.categoryB, entry?.categoryA),
+  //   };
+  // });
 
   const pillarTrends = currentPillars.map((currentPillar: any) => {
-    const previousPillar = previousPillars.find(
-      (p: any) => p.key === currentPillar.key
-    );
-
+    // currentPillar.key already matches esgCardCompare's key directly
+    // (circularEconomyIndex / socialScore / governanceScore) — no remapping needed
+    const entry = findCompanyEntry(esgCardCompare, currentPillar.key, companyBrand);
+  
     return {
       key: currentPillar.key,
-      companyPctileTrend: previousPillar
-        ? getGradeTrend(
-            currentPillar.companyPctile,
-            previousPillar.companyPctile
-          )
-        : 'stable',
+      current: currentPillar.companyPctile ?? entry?.percentileB ?? null,
+      previous: entry?.percentileA ?? null,
+      companyPctileTrend: getTrendFromGrade(entry?.categoryB, entry?.categoryA),
     };
   });
+
+  const buildIndicator = (
+    field: string,
+    currentValue: number,
+    lookupMap: Record<string, string>,
+    sourceCards: any[],
+    prevField: 'percentileA' | 'scoreA' = 'percentileA'
+  ) => {
+    const cardKey = lookupMap[field];
+    const entry = findCompanyEntry(sourceCards, cardKey, companyBrand);
+
+    return {
+      current: currentValue,
+      previous: entry?.[prevField] ?? null,
+      trend: getTrendFromGrade(entry?.categoryB, entry?.categoryA), // grade-band compare only
+    };
+  };
 
   return {
     ...currentQuarter,
 
     indicators: {
-      completenessPercentile: {
-        current: currentQuarter.completenessPercentile,
-        previous: prevQuarter?.completenessPercentile ?? null,
-        trend: getGradeTrend(
-          currentQuarter.completenessPercentile,
-          prevQuarter?.completenessPercentile
-        ),
-      },
+      completenessPercentile: buildIndicator(
+        'completenessPercentile',
+        currentQuarter.completenessPercentile,
+        RANKING_LOOKUP,
+        rankingCards
+      ),
 
-      consistencyPercentile: {
-        current: currentQuarter.consistencyPercentile,
-        previous: prevQuarter?.consistencyPercentile ?? null,
-        trend: getGradeTrend(
-          currentQuarter.consistencyPercentile,
-          prevQuarter?.consistencyPercentile
-        ),
-      },
+      consistencyPercentile: buildIndicator(
+        'consistencyPercentile',
+        currentQuarter.consistencyPercentile,
+        RANKING_LOOKUP,
+        rankingCards
+      ),
 
-      esgCompositeIndAvg: {
-        current: currentQuarter.esgCompositeIndAvg,
-        previous: prevQuarter?.esgCompositeIndAvg ?? null,
-        trend: getGradeTrend(
-          currentQuarter.esgCompositeIndAvg,
-          prevQuarter?.esgCompositeIndAvg
-        ),
-      },
+      esgCompositeIndAvg: buildIndicator(
+        'esgCompositeIndAvg',
+        currentQuarter.esgCompositeIndAvg,
+        ESG_LOOKUP,
+        esgCardCompare,
+        'scoreA'
+      ),
 
-      esgCompositePercentile: {
-        current: currentQuarter.esgCompositePercentile,
-        previous: prevQuarter?.esgCompositePercentile ?? null,
-        trend: getGradeTrend(
-          currentQuarter.esgCompositePercentile,
-          prevQuarter?.esgCompositePercentile
-        ),
-      },
+      esgCompositePercentile: buildIndicator(
+        'esgCompositePercentile',
+        currentQuarter.esgCompositePercentile,
+        ESG_LOOKUP,
+        esgCardCompare
+      ),
 
-      overallPercentile: {
-        current: currentQuarter.overallPercentile,
-        previous: prevQuarter?.overallPercentile ?? null,
-        trend: getGradeTrend(
-          currentQuarter.overallPercentile,
-          prevQuarter?.overallPercentile
-        ),
-      },
+      overallPercentile: buildIndicator(
+        'overallPercentile',
+        currentQuarter.overallPercentile,
+        RANKING_LOOKUP,
+        rankingCards
+      ),
 
-      timelinessPercentile: {
-        current: currentQuarter.timelinessPercentile,
-        previous: prevQuarter?.timelinessPercentile ?? null,
-        trend: getGradeTrend(
-          currentQuarter.timelinessPercentile,
-          prevQuarter?.timelinessPercentile
-        ),
-      },
+      timelinessPercentile: buildIndicator(
+        'timelinessPercentile',
+        currentQuarter.timelinessPercentile,
+        RANKING_LOOKUP,
+        rankingCards
+      ),
 
       pillars: pillarTrends,
     },
   };
 };
+
+// const getQuarterAnalyticsWithTrend = (
+//   currentQuarter: any,
+//   prevQuarter: any
+// ) => {
+//   const currentPillars = currentQuarter?.pillars || [];
+//   const previousPillars = prevQuarter?.pillars || [];
+
+//   const pillarTrends = currentPillars.map((currentPillar: any) => {
+//     const previousPillar = previousPillars.find(
+//       (p: any) => p.key === currentPillar.key
+//     );
+
+//     return {
+//       key: currentPillar.key,
+//       companyPctileTrend: previousPillar
+//         ? getGradeTrend(
+//           currentPillar.companyPctile,
+//           previousPillar.companyPctile
+//         )
+//         : 'stable',
+//     };
+//   });
+
+//   return {
+//     ...currentQuarter,
+
+//     indicators: {
+//       completenessPercentile: {
+//         current: currentQuarter.completenessPercentile,
+//         previous: prevQuarter?.completenessPercentile ?? null,
+//         trend: getGradeTrend(
+//           currentQuarter.completenessPercentile,
+//           prevQuarter?.completenessPercentile
+//         ),
+//       },
+
+//       consistencyPercentile: {
+//         current: currentQuarter.consistencyPercentile,
+//         previous: prevQuarter?.consistencyPercentile ?? null,
+//         trend: getGradeTrend(
+//           currentQuarter.consistencyPercentile,
+//           prevQuarter?.consistencyPercentile
+//         ),
+//       },
+
+//       esgCompositeIndAvg: {
+//         current: currentQuarter.esgCompositeIndAvg,
+//         previous: prevQuarter?.esgCompositeIndAvg ?? null,
+//         trend: getGradeTrend(
+//           currentQuarter.esgCompositeIndAvg,
+//           prevQuarter?.esgCompositeIndAvg
+//         ),
+//       },
+
+//       esgCompositePercentile: {
+//         current: currentQuarter.esgCompositePercentile,
+//         previous: prevQuarter?.esgCompositePercentile ?? null,
+//         trend: getGradeTrend(
+//           currentQuarter.esgCompositePercentile,
+//           prevQuarter?.esgCompositePercentile
+//         ),
+//       },
+
+//       overallPercentile: {
+//         current: currentQuarter.overallPercentile,
+//         previous: prevQuarter?.overallPercentile ?? null,
+//         trend: getGradeTrend(
+//           currentQuarter.overallPercentile,
+//           prevQuarter?.overallPercentile
+//         ),
+//       },
+
+//       timelinessPercentile: {
+//         current: currentQuarter.timelinessPercentile,
+//         previous: prevQuarter?.timelinessPercentile ?? null,
+//         trend: getGradeTrend(
+//           currentQuarter.timelinessPercentile,
+//           prevQuarter?.timelinessPercentile
+//         ),
+//       },
+
+//       pillars: pillarTrends,
+//     },
+//   };
+// };
 
 
 
@@ -870,6 +1012,34 @@ export const GenerateEmailDialog = ({ year = 2026, quarter = 'Q1' }: Props) => {
       medium: { [key: string]: number },
     }
   } | null>(null);
+
+
+  const { rankingCards, esgCards: esgCardCompare, isLoading: compareLoading } = useComparePeriods(
+    {
+      "period": "annual",
+      "quarter": "Q4",
+      "year": 2025,
+      "cumulative": false,
+      "periodType": "quarterly"
+    },
+    {
+      "period": "annual",
+      "quarter": "Q1",
+      "year": 2026,
+      "cumulative": false,
+      "periodType": "quarterly"
+    },
+    false,
+    {
+      "period": "annual",
+      "quarter": "Q1",
+      "year": 2026,
+      "cumulative": false
+    }
+  );
+
+  console.log('rankingCards :: ',rankingCards)
+  console.log('esgCardCompare :: ',esgCardCompare)
 
 
   const getMisData = async (rankings, analyticsData, companyId) => {
@@ -941,8 +1111,8 @@ export const GenerateEmailDialog = ({ year = 2026, quarter = 'Q1' }: Props) => {
   const handleDownload = async (companyId: string) => {
     console.log('Handle download')
 
-    // const company = mockCompanies.find(c => c.id === companyId);
-    // if (!company) return false;
+    const company = mockCompanies.find(c => c.id === companyId);
+    if (!company) return false;
 
 
 
@@ -989,12 +1159,12 @@ export const GenerateEmailDialog = ({ year = 2026, quarter = 'Q1' }: Props) => {
             buffer3: getCSCount("High", "buffer3", escapData.plan),
             under3: getCSCount("High", "under3", escapData.plan),
             over3: getCSCount("High", "over3", escapData.plan),
-            total: getCSCount("High", "ontime", escapData.plan)+
-            getCSCount("High", "buffer1", escapData.plan)+
-            getCSCount("High", "buffer2", escapData.plan)+
-            getCSCount("High", "buffer3", escapData.plan)+
-            getCSCount("High", "under3", escapData.plan)+
-            getCSCount("High", "over3", escapData.plan),
+            total: getCSCount("High", "ontime", escapData.plan) +
+              getCSCount("High", "buffer1", escapData.plan) +
+              getCSCount("High", "buffer2", escapData.plan) +
+              getCSCount("High", "buffer3", escapData.plan) +
+              getCSCount("High", "under3", escapData.plan) +
+              getCSCount("High", "over3", escapData.plan),
 
           },
           medium: {
@@ -1004,12 +1174,12 @@ export const GenerateEmailDialog = ({ year = 2026, quarter = 'Q1' }: Props) => {
             buffer3: getCSCount("Medium", "buffer3", escapData.plan),
             under3: getCSCount("Medium", "under3", escapData.plan),
             over3: getCSCount("Medium", "over3", escapData.plan),
-            total: getCSCount("Medium", "ontime", escapData.plan)+
-            getCSCount("Medium", "buffer1", escapData.plan)+
-            getCSCount("Medium", "buffer2", escapData.plan)+
-            getCSCount("Medium", "buffer3", escapData.plan)+
-            getCSCount("Medium", "under3", escapData.plan)+
-            getCSCount("Medium", "over3", escapData.plan),
+            total: getCSCount("Medium", "ontime", escapData.plan) +
+              getCSCount("Medium", "buffer1", escapData.plan) +
+              getCSCount("Medium", "buffer2", escapData.plan) +
+              getCSCount("Medium", "buffer3", escapData.plan) +
+              getCSCount("Medium", "under3", escapData.plan) +
+              getCSCount("Medium", "over3", escapData.plan),
           },
           low: {
             ontime: getCSCount("Low", "ontime", escapData.plan),
@@ -1018,12 +1188,12 @@ export const GenerateEmailDialog = ({ year = 2026, quarter = 'Q1' }: Props) => {
             buffer3: getCSCount("Low", "buffer3", escapData.plan),
             under3: getCSCount("Low", "under3", escapData.plan),
             over3: getCSCount("Low", "over3", escapData.plan),
-            total: getCSCount("Low", "ontime", escapData.plan)+
-            getCSCount("Low", "buffer1", escapData.plan)+
-            getCSCount("Low", "buffer2", escapData.plan)+
-            getCSCount("Low", "buffer3", escapData.plan)+
-            getCSCount("Low", "under3", escapData.plan)+
-            getCSCount("Low", "over3", escapData.plan),
+            total: getCSCount("Low", "ontime", escapData.plan) +
+              getCSCount("Low", "buffer1", escapData.plan) +
+              getCSCount("Low", "buffer2", escapData.plan) +
+              getCSCount("Low", "buffer3", escapData.plan) +
+              getCSCount("Low", "under3", escapData.plan) +
+              getCSCount("Low", "over3", escapData.plan),
           }
         },
         plan: escapData.plan,
@@ -1043,7 +1213,9 @@ export const GenerateEmailDialog = ({ year = 2026, quarter = 'Q1' }: Props) => {
 
     const compareResult = getQuarterAnalyticsWithTrend(
       currentM,
-      prevM
+      rankingCards,
+      esgCardCompare,
+      company.brand
     );
     console.log('compareResult :: ', compareResult)
     if (format === 'docx') {
@@ -1382,6 +1554,8 @@ function computeEsgMetrics(
   const govPool = getValidScoresV1(submittingRaw, 'governanceScore');
   const esgPool = getValidScoresV1(submittingRaw, 'esgCompositeScore');
   const allPillarPools = [envPool, socPool, govPool];
+
+  console.log('socPool',socPool)
 
   const envPercentile = cohortPercentilev1(insights.circularEconomyIndex ?? 0, company.brand, envPool);
   const socPercentile = cohortPercentilev1(insights.socialScore ?? 0, company.brand, socPool);
@@ -4558,7 +4732,7 @@ ${esgCapTemplateData ? `<h2 style="font-size:17px;color:#2d2d2d;margin:8px 0 4px
 </td>
 
 <td style="border-top:1px solid #e5e7eb;text-align:center;font-size:11px;">
-  ${esgCapTemplateData.priorityScore.high.buffer1+esgCapTemplateData.priorityScore.high.buffer2+esgCapTemplateData.priorityScore.high.buffer3}
+  ${esgCapTemplateData.priorityScore.high.buffer1 + esgCapTemplateData.priorityScore.high.buffer2 + esgCapTemplateData.priorityScore.high.buffer3}
 </td>
 
 <td style="border-top:1px solid #e5e7eb;text-align:center;font-size:11px;">
@@ -4576,7 +4750,7 @@ ${esgCapTemplateData ? `<h2 style="font-size:17px;color:#2d2d2d;margin:8px 0 4px
     color:#ef4444;
   "
 >
-  ${esgCapTemplateData.priorityScore.high.ontime+esgCapTemplateData.priorityScore.high.buffer1+esgCapTemplateData.priorityScore.high.buffer2+esgCapTemplateData.priorityScore.high.buffer3+esgCapTemplateData.priorityScore.high.over3+esgCapTemplateData.priorityScore.high.under3}
+  ${esgCapTemplateData.priorityScore.high.ontime + esgCapTemplateData.priorityScore.high.buffer1 + esgCapTemplateData.priorityScore.high.buffer2 + esgCapTemplateData.priorityScore.high.buffer3 + esgCapTemplateData.priorityScore.high.over3 + esgCapTemplateData.priorityScore.high.under3}
 </td>
 
 </tr>
@@ -4603,7 +4777,7 @@ ${esgCapTemplateData ? `<h2 style="font-size:17px;color:#2d2d2d;margin:8px 0 4px
 </td>
 
 <td style="border-top:1px solid #e5e7eb;text-align:center;font-size:11px;">
-  ${esgCapTemplateData.priorityScore.medium.buffer1+esgCapTemplateData.priorityScore.medium.buffer2+esgCapTemplateData.priorityScore.medium.buffer3}
+  ${esgCapTemplateData.priorityScore.medium.buffer1 + esgCapTemplateData.priorityScore.medium.buffer2 + esgCapTemplateData.priorityScore.medium.buffer3}
 </td>
 
 <td style="border-top:1px solid #e5e7eb;text-align:center;font-size:11px;">
@@ -4622,12 +4796,12 @@ ${esgCapTemplateData ? `<h2 style="font-size:17px;color:#2d2d2d;margin:8px 0 4px
     color:#ef4444;
   "
 >
-  ${esgCapTemplateData.priorityScore.medium.ontime+
-  esgCapTemplateData.priorityScore.medium.buffer1+
-  esgCapTemplateData.priorityScore.medium.buffer2+
-  esgCapTemplateData.priorityScore.medium.buffer3+
-  esgCapTemplateData.priorityScore.medium.over3+
-  esgCapTemplateData.priorityScore.medium.under3}
+  ${esgCapTemplateData.priorityScore.medium.ontime +
+      esgCapTemplateData.priorityScore.medium.buffer1 +
+      esgCapTemplateData.priorityScore.medium.buffer2 +
+      esgCapTemplateData.priorityScore.medium.buffer3 +
+      esgCapTemplateData.priorityScore.medium.over3 +
+      esgCapTemplateData.priorityScore.medium.under3}
 </td>
 
 </tr>
@@ -4654,7 +4828,7 @@ ${esgCapTemplateData ? `<h2 style="font-size:17px;color:#2d2d2d;margin:8px 0 4px
 </td>
 
 <td style="border-top:1px solid #e5e7eb;text-align:center;font-size:11px;">
-  ${esgCapTemplateData.priorityScore.low.buffer1+esgCapTemplateData.priorityScore.low.buffer2+esgCapTemplateData.priorityScore.low.buffer3}
+  ${esgCapTemplateData.priorityScore.low.buffer1 + esgCapTemplateData.priorityScore.low.buffer2 + esgCapTemplateData.priorityScore.low.buffer3}
 </td>
 
 <td style="border-top:1px solid #e5e7eb;text-align:center;font-size:11px;">
@@ -4666,7 +4840,7 @@ ${esgCapTemplateData ? `<h2 style="font-size:17px;color:#2d2d2d;margin:8px 0 4px
 </td>
 
 <td style="border-top:1px solid #e5e7eb;text-align:center;font-size:11px;">
-  ${esgCapTemplateData.priorityScore.low.ontime+esgCapTemplateData.priorityScore.low.buffer1+esgCapTemplateData.priorityScore.low.buffer2+esgCapTemplateData.priorityScore.low.buffer3+esgCapTemplateData.priorityScore.low.over3+esgCapTemplateData.priorityScore.low.under3}
+  ${esgCapTemplateData.priorityScore.low.ontime + esgCapTemplateData.priorityScore.low.buffer1 + esgCapTemplateData.priorityScore.low.buffer2 + esgCapTemplateData.priorityScore.low.buffer3 + esgCapTemplateData.priorityScore.low.over3 + esgCapTemplateData.priorityScore.low.under3}
 </td>
 
 </tr>
@@ -4698,8 +4872,8 @@ ${esgCapTemplateData ? `<h2 style="font-size:17px;color:#2d2d2d;margin:8px 0 4px
   "
 >
   ${esgCapTemplateData.priorityScore.low.ontime +
-  esgCapTemplateData.priorityScore.medium.ontime+
-  esgCapTemplateData.priorityScore.high.ontime}
+      esgCapTemplateData.priorityScore.medium.ontime +
+      esgCapTemplateData.priorityScore.high.ontime}
 </td>
 
 <td
@@ -4711,16 +4885,16 @@ ${esgCapTemplateData ? `<h2 style="font-size:17px;color:#2d2d2d;margin:8px 0 4px
     color:#059669;
   "
 >
-  ${esgCapTemplateData.priorityScore.high.buffer1 + 
-  esgCapTemplateData.priorityScore.medium.buffer1 + 
-  esgCapTemplateData.priorityScore.low.buffer1+
-  esgCapTemplateData.priorityScore.high.buffer2 + 
-  esgCapTemplateData.priorityScore.medium.buffer2 + 
-  esgCapTemplateData.priorityScore.low.buffer2+
-  esgCapTemplateData.priorityScore.high.buffer3 + 
-  esgCapTemplateData.priorityScore.medium.buffer3 + 
-  esgCapTemplateData.priorityScore.low.buffer3
-  }
+  ${esgCapTemplateData.priorityScore.high.buffer1 +
+      esgCapTemplateData.priorityScore.medium.buffer1 +
+      esgCapTemplateData.priorityScore.low.buffer1 +
+      esgCapTemplateData.priorityScore.high.buffer2 +
+      esgCapTemplateData.priorityScore.medium.buffer2 +
+      esgCapTemplateData.priorityScore.low.buffer2 +
+      esgCapTemplateData.priorityScore.high.buffer3 +
+      esgCapTemplateData.priorityScore.medium.buffer3 +
+      esgCapTemplateData.priorityScore.low.buffer3
+      }
 </td>
 
 
@@ -4734,11 +4908,10 @@ ${esgCapTemplateData ? `<h2 style="font-size:17px;color:#2d2d2d;margin:8px 0 4px
     color:#059669;
   "
 >
-  ${
-  esgCapTemplateData.priorityScore.high.over3 + 
-  esgCapTemplateData.priorityScore.medium.over3 + 
-  esgCapTemplateData.priorityScore.low.over3
-  }
+  ${esgCapTemplateData.priorityScore.high.over3 +
+      esgCapTemplateData.priorityScore.medium.over3 +
+      esgCapTemplateData.priorityScore.low.over3
+      }
 </td>
 
 <td
@@ -4750,10 +4923,10 @@ ${esgCapTemplateData ? `<h2 style="font-size:17px;color:#2d2d2d;margin:8px 0 4px
     color:#059669;
   "
 >
-  ${esgCapTemplateData.priorityScore.high.under3 + 
-  esgCapTemplateData.priorityScore.medium.under3 + 
-  esgCapTemplateData.priorityScore.low.under3
-  }
+  ${esgCapTemplateData.priorityScore.high.under3 +
+      esgCapTemplateData.priorityScore.medium.under3 +
+      esgCapTemplateData.priorityScore.low.under3
+      }
 </td>
 
 <td
@@ -12226,7 +12399,7 @@ async function generateEmailDOCXV4(
   // ============================================================
   // ESG METRICS
   // ============================================================
-  console.log("esgCapTemplateData",esgCapTemplateData)
+  console.log("esgCapTemplateData", esgCapTemplateData)
   const m = computeEsgMetrics(
     company,
     ranking,
@@ -12933,9 +13106,9 @@ async function generateEmailDOCXV4(
       priority: 'High',
       color: 'DC2626',
       completedInTime: esgCapTemplateData.priorityScore.high.ontime,
-      buffer1: esgCapTemplateData.priorityScore.high.buffer1+esgCapTemplateData.priorityScore.high.buffer2+esgCapTemplateData.priorityScore.high.buffer3,
+      buffer1: esgCapTemplateData.priorityScore.high.buffer1 + esgCapTemplateData.priorityScore.high.buffer2 + esgCapTemplateData.priorityScore.high.buffer3,
       notCompleted: esgCapTemplateData.priorityScore.high.over3,
-      upcoming:esgCapTemplateData.priorityScore.high.under3,
+      upcoming: esgCapTemplateData.priorityScore.high.under3,
       total: esgCapTemplateData.priorityScore.high.total,
     },
 
@@ -12943,9 +13116,9 @@ async function generateEmailDOCXV4(
       priority: 'Medium',
       color: 'D97706',
       completedInTime: esgCapTemplateData.priorityScore.medium.ontime,
-      buffer1: esgCapTemplateData.priorityScore.medium.buffer1+esgCapTemplateData.priorityScore.medium.buffer2+esgCapTemplateData.priorityScore.medium.buffer3,
+      buffer1: esgCapTemplateData.priorityScore.medium.buffer1 + esgCapTemplateData.priorityScore.medium.buffer2 + esgCapTemplateData.priorityScore.medium.buffer3,
       notCompleted: esgCapTemplateData.priorityScore.medium.over3,
-      upcoming:esgCapTemplateData.priorityScore.medium.under3,
+      upcoming: esgCapTemplateData.priorityScore.medium.under3,
       total: esgCapTemplateData.priorityScore.medium.total,
     },
 
@@ -12953,12 +13126,12 @@ async function generateEmailDOCXV4(
       priority: 'Low',
       color: '64748B',
       completedInTime: esgCapTemplateData.priorityScore.low.ontime,
-      buffer1: esgCapTemplateData.priorityScore.low.buffer1+esgCapTemplateData.priorityScore.low.buffer2+esgCapTemplateData.priorityScore.low.buffer3,
+      buffer1: esgCapTemplateData.priorityScore.low.buffer1 + esgCapTemplateData.priorityScore.low.buffer2 + esgCapTemplateData.priorityScore.low.buffer3,
       notCompleted: esgCapTemplateData.priorityScore.low.over3,
-      upcoming:esgCapTemplateData.priorityScore.low.under3,
+      upcoming: esgCapTemplateData.priorityScore.low.under3,
       total: esgCapTemplateData.priorityScore.low.total,
     },
-  ]:[];
+  ] : [];
 
   // ============================================================
   // ESCAP HEADER CELL
@@ -14415,7 +14588,7 @@ async function generateEmailDOCXV4(
           // ======================================================
           // 7. COMPLIANCE SCORE + PRIORITY TABLE
           // ======================================================
-          ...(esgCapTemplateData?[new Paragraph({
+          ...(esgCapTemplateData ? [new Paragraph({
             spacing: {
               before: 280,
               after: 90,
@@ -14931,9 +15104,9 @@ async function generateEmailDOCXV4(
                   ),
               }),
             ],
-          })]:[]),
+          })] : []),
 
-          
+
 
           // ======================================================
           // 9. CONDITIONS PRECEDENT
@@ -15672,10 +15845,10 @@ const getCSCategory = (item: ESGCapItem) => {
   const updatedDate =
     uploadedDates.length > 0
       ? new Date(
-          Math.max(
-            ...uploadedDates.map(date => date.getTime())
-          )
+        Math.max(
+          ...uploadedDates.map(date => date.getTime())
         )
+      )
       : null;
 
   // =====================================================
@@ -15796,7 +15969,7 @@ const getCSCount = (
     | 'buffer3'
     | 'under3'
     | 'over3',
-    items: ESGCapItem[]
+  items: ESGCapItem[]
 ) => {
 
   let csItems = items.filter(item => item.dealCondition === 'CS');

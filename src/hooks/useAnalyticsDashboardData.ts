@@ -23,6 +23,7 @@ export interface AnalyticsFilters {
   qCategory?: QCategory;
   firesidePOC?: string;
   cumulative?: boolean;
+  periodType?:'quarterly' | 'annual';
 }
 
 export interface CompanyRawMetrics {
