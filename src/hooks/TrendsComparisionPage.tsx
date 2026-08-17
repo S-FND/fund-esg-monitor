@@ -480,7 +480,7 @@ interface TrendsComparisonPageProps {
 export const TrendsComparisonPage = ({ filters, newInsight = false, showTrends, setShowTrends }: TrendsComparisonPageProps) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [filteredCompanyBrands, setFilteredCompanyBrands] = useState<string[]>([])
-
+  console.log('trends comparision filters :: ',filters)
   function parsePeriod(
     raw: string | null,
     defaults: PeriodSelection
