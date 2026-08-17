@@ -80,6 +80,15 @@ export const ESGCategoryBreakdown = ({ title, companies, onClose, onCategoryClic
   // .map((c) => c.brand);
   // console.log('filteredCompanyIds :: => ',filteredCompanyIds)
   const filteredCompanyIds = useMemo(() => {
+    // ── Exclude specific companies only for Q1 2026 ──
+    let excludedBrands: string[] = [];
+    if (filters?.year === 2026 && filters?.quarter === 'Q1') {
+      const excludedIds = ['company-222', 'company-223', 'company-224'];
+      excludedBrands = mockCompanies
+        .filter(c => excludedIds.includes(c.id))
+        .map(c => c.brand);
+    }
+  
     return mockCompanies
       .filter((c) => {
         if (c.investmentStatus !== 'Invested') return false;
@@ -88,6 +97,8 @@ export const ESGCategoryBreakdown = ({ title, companies, onClose, onCategoryClic
         if (filters?.revenueStage && c.revenueStage !== filters.revenueStage) return false;
         if (filters?.qCategory && c.qCategory !== filters.qCategory) return false;
         if (filters?.firesidePOC && c.fl !== filters.firesidePOC) return false;
+        // ── Exclude the brands ──
+        if (excludedBrands.length > 0 && excludedBrands.includes(c.brand)) return false;
         return true;
       })
       .map((c) => c.brand);
@@ -97,6 +108,8 @@ export const ESGCategoryBreakdown = ({ title, companies, onClose, onCategoryClic
     filters?.revenueStage,
     filters?.qCategory,
     filters?.firesidePOC,
+    filters?.year,    // ← add this
+    filters?.quarter, // ← and this
   ]);
 
   useEffect(() => {
