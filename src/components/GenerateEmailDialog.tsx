@@ -833,9 +833,11 @@ const getQuarterAnalyticsWithTrend = (
     // currentPillar.key already matches esgCardCompare's key directly
     // (circularEconomyIndex / socialScore / governanceScore) — no remapping needed
     const entry = findCompanyEntry(esgCardCompare, currentPillar.key, companyBrand);
-  
+    console.log('entry :: ', entry)
+
     return {
       key: currentPillar.key,
+      enabled: entry ? true : false,
       current: currentPillar.companyPctile ?? entry?.percentileB ?? null,
       previous: entry?.percentileA ?? null,
       companyPctileTrend: getTrendFromGrade(entry?.categoryB, entry?.categoryA),
@@ -1038,8 +1040,8 @@ export const GenerateEmailDialog = ({ year = 2026, quarter = 'Q1' }: Props) => {
     }
   );
 
-  console.log('rankingCards :: ',rankingCards)
-  console.log('esgCardCompare :: ',esgCardCompare)
+  console.log('rankingCards :: ', rankingCards)
+  console.log('esgCardCompare :: ', esgCardCompare)
 
 
   const getMisData = async (rankings, analyticsData, companyId) => {
@@ -1555,7 +1557,7 @@ function computeEsgMetrics(
   const esgPool = getValidScoresV1(submittingRaw, 'esgCompositeScore');
   const allPillarPools = [envPool, socPool, govPool];
 
-  console.log('socPool',socPool)
+  console.log('socPool', socPool)
 
   const envPercentile = cohortPercentilev1(insights.circularEconomyIndex ?? 0, company.brand, envPool);
   const socPercentile = cohortPercentilev1(insights.socialScore ?? 0, company.brand, socPool);
@@ -4370,8 +4372,8 @@ ${getTrendIcon(m.indicators?.timelinessPercentile?.trend)}
     color:#2563eb;
   "
 >
-  ${m.fmtScore(m.pillars[0].companyPctile)}
-   ${getTrendIcon(m.indicators?.pillars[0]?.companyPctileTrend)}
+  ${m.indicators?.pillars[0]?.enabled ? m.fmtScore(m.pillars[0].companyPctile) : `N/A`}
+   ${m.indicators?.pillars[0]?.enabled ? getTrendIcon(m.indicators?.pillars[0]?.companyPctileTrend) : ``}
     
 </div>
 
@@ -4432,8 +4434,9 @@ ${getTrendIcon(m.indicators?.timelinessPercentile?.trend)}
     color:#7c3aed;
   "
 >
-${m.fmtScore(m.pillars[1].companyPctile)}
-${getTrendIcon(m.indicators?.pillars[1]?.companyPctileTrend)}
+
+ ${m.indicators?.pillars[1]?.enabled ? m.fmtScore(m.pillars[1].companyPctile) : `N/A`}
+   ${m.indicators?.pillars[1]?.enabled ? getTrendIcon(m.indicators?.pillars[1]?.companyPctileTrend) : ``}
 </div>
 
 <div style="font-size:10px;color:#6b7280;">
@@ -4493,8 +4496,10 @@ ${getTrendIcon(m.indicators?.pillars[1]?.companyPctileTrend)}
     color:#d97706;
   "
 >
-${m.fmtScore(m.pillars[2].companyPctile)}
-${getTrendIcon(m.indicators?.pillars[2]?.companyPctileTrend)}
+
+
+ ${m.indicators?.pillars[2]?.enabled ? m.fmtScore(m.pillars[2].companyPctile) : `N/A`}
+   ${m.indicators?.pillars[2]?.enabled ? getTrendIcon(m.indicators?.pillars[2]?.companyPctileTrend) : ``}
 </div>
 
 <div style="font-size:10px;color:#6b7280;">
