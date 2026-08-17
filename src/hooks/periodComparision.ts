@@ -146,8 +146,8 @@ export function useComparePeriods(
   const { data: analyticsA, isLoading: analyticsALoading } = useAnalyticsDashboardData(periodAFilters);
   const { data: analyticsB, isLoading: analyticsBLoading } = useAnalyticsDashboardData(periodBFilters);
 
-  const companyRawDataA = analyticsA?.companyRawData || [];
-  const companyRawDataB = analyticsB?.companyRawData || [];
+  const companyRawDataA = analyticsA?.quarterlyCombinedRawData || analyticsA?.companyRawData || [];
+  const companyRawDataB = analyticsB?.quarterlyCombinedRawData || analyticsB?.companyRawData || [];
 
   const isLoading = rankingsALoading || rankingsBLoading || analyticsALoading || analyticsBLoading;
 
