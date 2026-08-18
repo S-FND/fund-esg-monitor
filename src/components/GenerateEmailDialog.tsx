@@ -4593,7 +4593,7 @@ ${getTrendIcon(m.indicators?.timelinessPercentile?.trend)}
 </tr>
 </table>
 <p style="font-family: Arial, sans-serif; font-size: 11px; color: #111; line-height: 15px; margin-top: -16px;">
-  <strong>*ESG Performance Score:</strong> Measures overall performance across Environmental, Social, and Governance factors, benchmarked to the Fireside Portfolio.
+  <strong>*ESG Performance Score:</strong> Measures overall performance across Environmental, Social, and Governance KPIs, benchmarked to the Fireside Portfolio.
 </p>
 
 <!-- ========================================================= -->
