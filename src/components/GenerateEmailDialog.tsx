@@ -9993,7 +9993,7 @@ async function generateEmailDOCXV4(
 
   const scoreCards = [
     {
-      label: 'RESPONSIVENESS SCORE',
+      label: 'Responsiveness Score',
       value: m.fmtScore(m.overallPercentile),
       color: getGrade(m.overallPercentile).color,
       fill: 'FFFFFF',
@@ -10007,7 +10007,7 @@ async function generateEmailDOCXV4(
     },
 
     {
-      label: 'COMPLETENESS',
+      label: 'Completeness',
       value: m.fmtScore(m.completenessPercentile),
       color: getGrade(m.completenessPercentile).color,
       companyCount:41,
@@ -10021,7 +10021,7 @@ async function generateEmailDOCXV4(
     },
 
     {
-      label: 'CONSISTENCY',
+      label: 'Consistency',
       value: m.fmtScore(m.consistencyPercentile),
       color: getGrade(m.consistencyPercentile).color,
       fill: 'FFFFFF',
@@ -10035,7 +10035,7 @@ async function generateEmailDOCXV4(
     },
 
     {
-      label: 'TIMELINESS',
+      label: 'Timeliness',
       value: m.fmtScore(m.timelinessPercentile),
       color: getGrade(m.timelinessPercentile).color,
       fill: 'FFFFFF',
@@ -10055,7 +10055,7 @@ async function generateEmailDOCXV4(
 
   const compositeCards = [
     {
-      label: 'ESG PERFORMANCE SCORE',
+      label: 'ESG Performance Score',
       value: m.fmtScore(m.esgCompositePercentile),
       color: getGrade(m.esgCompositePercentile).color,
       fill: 'FFFFFF',
@@ -10069,7 +10069,7 @@ async function generateEmailDOCXV4(
     },
 
     {
-      label: 'ENVIRONMENT',
+      label: 'Environment',
       value: m.fmtScore(m.pillars[0].companyPctile),
       color: getGrade(m.pillars[0].companyPctile).color,
       fill: 'FFFFFF',
@@ -10083,7 +10083,7 @@ async function generateEmailDOCXV4(
     },
 
     {
-      label: 'SOCIAL',
+      label: 'Social',
       value: m.fmtScore(m.pillars[1].companyPctile),
       color: getGrade(m.pillars[1].companyPctile).color,
       companyCount:m.pillars[1].n,
@@ -10097,7 +10097,7 @@ async function generateEmailDOCXV4(
     },
 
     {
-      label: 'GOVERNANCE',
+      label: 'Governance',
       value: m.fmtScore(m.pillars[2].companyPctile),
       color: getGrade(m.pillars[2].companyPctile).color,
       fill: 'FFFFFF',
@@ -11257,7 +11257,7 @@ async function generateEmailDOCXV4(
 
             children: [
               new TextRun({
-                text: 'ESG Performance Score: Measures overall performance across Environmental, Social, and Governance factors, benchmarked to the Fireside Portfolio.',
+                text: 'ESG Performance Score: Measures overall performance across Environmental, Social, and Governance KPIs, benchmarked to the Fireside Portfolio.',
                 size: 12,
                 bold: true,
                 color: '1A1A1A',
