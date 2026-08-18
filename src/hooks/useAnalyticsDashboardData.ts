@@ -743,8 +743,22 @@ export function deriveInsights(agg: AggregationMetrics, industry?: string, hasFa
       // 1. % Reduction in Virgin Plastic (20%)
       const virginPlasticReduction = totalPlasticAgg > 0 ? safeDiv(agg.primaryPlasticRecycled + agg.secondaryPlasticRecycled, totalPlasticAgg) * 100 : 0;
       // 2. MT plastic per Cr revenue — intensity score (30%), lower=better
-      const plasticIntensity = agg.netRevenue > 0 ? totalPlasticAgg / agg.netRevenue : 0;
-      const intensityScore = Math.max(0, 100 * (1 - Math.min(1, plasticIntensity)));
+      // const plasticIntensity = agg.netRevenue > 0 ? totalPlasticAgg / agg.netRevenue : 0;
+      // const intensityScore = Math.max(0, 100 * (1 - Math.min(1, plasticIntensity)));
+      // Option 1: If both revenue and plastic are 0, return 0 instead of 100.
+      const hasActualPackagingData = agg.totalPackagingMT > 0 || totalPlasticAgg > 0;
+      let intensityScore = 0;
+      if (agg.netRevenue > 0 && totalPlasticAgg > 0) {
+        // Has revenue AND has plastic → calculate score
+        const intensity = totalPlasticAgg / agg.netRevenue;
+        intensityScore = Math.max(0, 100 * (1 - Math.min(1, intensity)));
+      } else if (agg.netRevenue > 0 && totalPlasticAgg === 0 && hasActualPackagingData && (agg.totalPackagingMT > 0 || agg.primaryTotalMT > 0 || agg.secondaryTotalMT > 0)) {
+        // Has revenue, zero plastic, AND they actually reported packaging → perfect score
+        intensityScore = 100;
+      } else {
+        // Missing packaging data OR no revenue → score 0
+        intensityScore = 0;
+      }
       // 3. Total packaging material recycled as % of total packaging (20%)
       const materialRecycledPct = safeDiv(agg.totalPackagingRecycledMT, agg.totalPackagingMT) * 100;
       // 4. EPR or Voluntary Plastic Neutrality % (10%) — if either one is done they get the score
@@ -790,9 +804,19 @@ export function deriveInsights(agg: AggregationMetrics, industry?: string, hasFa
       } else {
         const totalPlasticAgg2 = agg.primaryPlasticVirgin + agg.primaryPlasticRecycled + agg.secondaryPlasticVirgin + agg.secondaryPlasticRecycled;
         const virginPlasticReduction2 = totalPlasticAgg2 > 0 ? safeDiv(agg.primaryPlasticRecycled + agg.secondaryPlasticRecycled, totalPlasticAgg2) * 100 : 0;
-        const plasticIntensity2 = agg.netRevenue > 0 ? totalPlasticAgg2 / agg.netRevenue : 0;
-        const intensityScore2 = Math.max(0, 100 * (1 - Math.min(1, plasticIntensity2)));
+        // const plasticIntensity2 = agg.netRevenue > 0 ? totalPlasticAgg2 / agg.netRevenue : 0;
+        // const intensityScore2 = Math.max(0, 100 * (1 - Math.min(1, plasticIntensity2)));
         const materialRecycledPct2 = safeDiv(agg.totalPackagingRecycledMT, agg.totalPackagingMT) * 100;
+        const hasActualPackagingData2 = agg.totalPackagingMT > 0 || totalPlasticAgg2 > 0;
+        let intensityScore2 = 0;
+        if (agg.netRevenue > 0 && totalPlasticAgg2 > 0) {
+          const intensity = totalPlasticAgg2 / agg.netRevenue;
+          intensityScore2 = Math.max(0, 100 * (1 - Math.min(1, intensity)));
+        } else if (agg.netRevenue > 0 && totalPlasticAgg2 === 0 && hasActualPackagingData2 && (agg.totalPackagingMT > 0 || agg.primaryTotalMT > 0 || agg.secondaryTotalMT > 0)) {
+          intensityScore2 = 100;
+        } else {
+          intensityScore2 = 0;
+        }
         const eprCompliancePct2 = safeDiv(agg.totalPackagingRecycledMT, agg.eprTargetsMT) * 100;
         const vpnPct2 = agg.voluntaryPlasticNeutralityPct;
         const eprVpn2 = Math.min(100, Math.max(Math.min(100, eprCompliancePct2), Math.min(100, vpnPct2)));
