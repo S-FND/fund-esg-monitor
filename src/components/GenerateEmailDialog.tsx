@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Mail, Download, Loader2, FileText, Code } from 'lucide-react';
+import { Mail, Download, Loader2, FileText, Code, UploadCloud } from 'lucide-react';
 import { mockCompanies, generateUniquePassword } from '@/data/mockData';
 import { usePortfolioRankings, CompanyRanking } from '@/hooks/usePortfolioRankings';
 import { useAnalyticsDashboardData, CompanyRawMetrics } from '@/hooks/useAnalyticsDashboardData';
@@ -272,7 +272,7 @@ function generateEmailHTML(
 <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:12px 0 20px 0;">
   <tr>
     <td width="24%" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:10px 8px;text-align:center;">
-      <div style="font-size:10px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;"><strong>Overall</strong></div>
+      <div style="font-size:10px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;"><strong>Responsiveness Score</strong></div>
       <div style="font-size:15px;font-weight:700;color:#059669;">${fmtScore(overallPercentile)}</div>
     </td>
     <td width="1%"></td>
@@ -293,7 +293,7 @@ function generateEmailHTML(
   </tr>
 </table>
 
-<h2 style="font-size:17px;color:#2d2d2d;margin:28px 0 8px 0;border-bottom:2px solid #e5e7eb;padding-bottom:6px;">ESG&nbsp;Composite&nbsp;Score: ${fmtScore(esgCompositePercentile)} (n=${esgPool.length})</h2>
+<h2 style="font-size:17px;color:#2d2d2d;margin:28px 0 8px 0;border-bottom:2px solid #e5e7eb;padding-bottom:6px;">ESG&nbsp;Preformance&nbsp;Score: ${fmtScore(esgCompositePercentile)} (n=${esgPool.length})</h2>
 
 <div style="font-size:13px;font-weight:700;color:#374151;padding:4px 0 2px 0;">📊 ESG&nbsp;Composite (n=${esgPool.length})</div>
 <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:10px;">
@@ -731,12 +731,32 @@ const getTrend = (current: number, previous: number): Trend => {
   return 'stable';
 };
 
+// const getGrade = (percentile: number): { grade: string; color: string } => {
+//   if (percentile >= 80) return { grade: 'AA', color: 'text-emerald-600' };
+//   if (percentile >= 60) return { grade: 'A', color: 'text-blue-600' };
+//   if (percentile >= 40) return { grade: 'BB', color: 'text-amber-600' };
+//   if (percentile >= 20) return { grade: 'B', color: 'text-orange-600' };
+//   return { grade: 'C', color: 'text-red-600' };
+// };
+
 const getGrade = (percentile: number): { grade: string; color: string } => {
-  if (percentile >= 80) return { grade: 'AA', color: 'text-emerald-600' };
-  if (percentile >= 60) return { grade: 'A', color: 'text-blue-600' };
-  if (percentile >= 40) return { grade: 'BB', color: 'text-amber-600' };
-  if (percentile >= 20) return { grade: 'B', color: 'text-orange-600' };
-  return { grade: 'C', color: 'text-red-600' };
+  if (percentile >= 80) {
+    return { grade: 'AA', color: '#059669' }; // emerald-600
+  }
+
+  if (percentile >= 60) {
+    return { grade: 'A', color: '#2563EB' }; // blue-600
+  }
+
+  if (percentile >= 40) {
+    return { grade: 'BB', color: '#D97706' }; // amber-600
+  }
+
+  if (percentile >= 20) {
+    return { grade: 'B', color: '#EA580C' }; // orange-600
+  }
+
+  return { grade: 'C', color: '#DC2626' }; // red-600
 };
 
 const getGradeTrend = (
@@ -1137,9 +1157,10 @@ export const GenerateEmailDialog = ({ year = 2026, quarter = 'Q1' }: Props) => {
 
     //Escap Data construct
 
-    const escapData = allEscap.find(e => e.entityId.misCompanyId.toLocaleLowerCase() === currentMisConstruct.company.brand.toLocaleLowerCase());
+    const escapData = allEscap.find(e => (e.entityId.misCompanyId.toLocaleLowerCase() === currentMisConstruct.company.brand.toLocaleLowerCase() || (e.entityId.misCompanyId.toLocaleLowerCase() === currentMisConstruct.company.companyCode.toLocaleLowerCase())));
     allEscap.forEach(e => {
-      if (e.entityId.misCompanyId.toLocaleLowerCase() === currentMisConstruct.company.brand.toLocaleLowerCase()) {
+      if ((e.entityId.misCompanyId.toLocaleLowerCase() === currentMisConstruct.company.brand.toLocaleLowerCase()) || 
+      (e.entityId.misCompanyId.toLocaleLowerCase() === currentMisConstruct.company.companyCode.toLocaleLowerCase()))   {
         console.log('escapData found :: ', e);
       }
     })
@@ -1156,46 +1177,75 @@ export const GenerateEmailDialog = ({ year = 2026, quarter = 'Q1' }: Props) => {
         priorityScore: {
           high: {
             ontime: getCSCount("High", "ontime", escapData.plan),
+
             buffer1: getCSCount("High", "buffer1", escapData.plan),
             buffer2: getCSCount("High", "buffer2", escapData.plan),
             buffer3: getCSCount("High", "buffer3", escapData.plan),
-            under3: getCSCount("High", "under3", escapData.plan),
-            over3: getCSCount("High", "over3", escapData.plan),
+
+            // under3: getCSCount("High", "under3", escapData.plan),
+            // over3: getCSCount("High", "over3", escapData.plan),
+
+            afterBufer: getCompletedOver3Count("High", escapData.plan),
+
+            overdue: getNotCompletedOver3Count("High", escapData.plan),
+
+            upcoming: getCSCount("High", "upcoming", escapData.plan),
+
             total: getCSCount("High", "ontime", escapData.plan) +
               getCSCount("High", "buffer1", escapData.plan) +
               getCSCount("High", "buffer2", escapData.plan) +
               getCSCount("High", "buffer3", escapData.plan) +
               getCSCount("High", "under3", escapData.plan) +
-              getCSCount("High", "over3", escapData.plan),
+              getNotCompletedOver3Count("High", escapData.plan) +
+              getCompletedOver3Count("High", escapData.plan) +
+              getCSCount("High", "upcoming", escapData.plan)
 
           },
           medium: {
             ontime: getCSCount("Medium", "ontime", escapData.plan),
+
             buffer1: getCSCount("Medium", "buffer1", escapData.plan),
             buffer2: getCSCount("Medium", "buffer2", escapData.plan),
             buffer3: getCSCount("Medium", "buffer3", escapData.plan),
-            under3: getCSCount("Medium", "under3", escapData.plan),
-            over3: getCSCount("Medium", "over3", escapData.plan),
+            // under3: getCSCount("Medium", "under3", escapData.plan),
+            // over3: getCSCount("Medium", "over3", escapData.plan),
+            afterBufer: getCompletedOver3Count("Medium", escapData.plan),
+
+            overdue: getNotCompletedOver3Count("Medium", escapData.plan),
+
+            upcoming: getCSCount("Medium", "upcoming", escapData.plan),
+
             total: getCSCount("Medium", "ontime", escapData.plan) +
               getCSCount("Medium", "buffer1", escapData.plan) +
               getCSCount("Medium", "buffer2", escapData.plan) +
               getCSCount("Medium", "buffer3", escapData.plan) +
               getCSCount("Medium", "under3", escapData.plan) +
-              getCSCount("Medium", "over3", escapData.plan),
+              getNotCompletedOver3Count("Medium", escapData.plan) +
+              getCompletedOver3Count("Medium", escapData.plan) +
+              getCSCount("Medium", "upcoming", escapData.plan)
           },
           low: {
             ontime: getCSCount("Low", "ontime", escapData.plan),
+
             buffer1: getCSCount("Low", "buffer1", escapData.plan),
             buffer2: getCSCount("Low", "buffer2", escapData.plan),
             buffer3: getCSCount("Low", "buffer3", escapData.plan),
-            under3: getCSCount("Low", "under3", escapData.plan),
-            over3: getCSCount("Low", "over3", escapData.plan),
+            // under3: getCSCount("Low", "under3", escapData.plan),
+            // over3: getCSCount("Low", "over3", escapData.plan),
+            afterBufer: getCompletedOver3Count("Low", escapData.plan),
+
+            overdue: getNotCompletedOver3Count("Low", escapData.plan),
+
+            upcoming: getCSCount("Low", "upcoming", escapData.plan),
+
             total: getCSCount("Low", "ontime", escapData.plan) +
               getCSCount("Low", "buffer1", escapData.plan) +
               getCSCount("Low", "buffer2", escapData.plan) +
               getCSCount("Low", "buffer3", escapData.plan) +
               getCSCount("Low", "under3", escapData.plan) +
-              getCSCount("Low", "over3", escapData.plan),
+              getNotCompletedOver3Count("Low", escapData.plan) +
+              getCompletedOver3Count("Low", escapData.plan) +
+              getCSCount("Low", "upcoming", escapData.plan)
           }
         },
         plan: escapData.plan,
@@ -1490,6 +1540,8 @@ interface EsgMetricsResult {
   ord: (n: number) => string;
   fmtScore: (p: number) => string;
   fmtBarLabel: (p: number) => string;
+  // fmtScore: (p: number) => {grade:string,color:string} | string;
+  // fmtBarLabel: (p: number) => {grade:string,color:string} |string;
 
   overallPercentile: number;
   completenessPercentile: number;
@@ -1659,7 +1711,7 @@ function generateEmailHTMLV1(
 <h1 style="font-size:20px;color:#1a1a1a;margin:0 0 4px 0;">${company.brand}</h1>
 
 <h2 style="font-size:17px;color:#2d2d2d;margin:8px 0 4px 0;border-bottom:2px solid #e5e7eb;padding-bottom:6px;">Progress (Data Reporting)</h2>
-<p style="color:#6b7280;font-size:14px;margin:0 0 16px 0;">See how your ESG reporting compares to other portfolio companies (n=${allRankings.length}).</p>
+<p style="color:#6b7280;font-size:14px;margin:0 0 16px 0;">See how your ESG reporting compares to other portfolio companies (n=${41}).</p>
 
 <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:12px 0 20px 0;">
   <tr>
@@ -3970,7 +4022,7 @@ function generateEmailHTMLV4(
   "
 >
   See how your ESG reporting compares to other portfolio companies
-  (n=${allRankings.length}).
+  (n=${41}).
 </p>
 
 
@@ -3995,7 +4047,7 @@ function generateEmailHTMLV4(
   width="24%"
   valign="top"
   style="
-    background:#f9fafb;
+    background:#ffffff;
     border:1px solid #e5e7eb;
     border-radius:8px;
     padding:12px 8px;
@@ -4005,7 +4057,7 @@ function generateEmailHTMLV4(
 
 <div
   style="
-    font-size:10px;
+    font-size:15px;
     font-weight:600;
     color:#6b7280;
     text-transform:uppercase;
@@ -4013,14 +4065,14 @@ function generateEmailHTMLV4(
     margin-bottom:6px;
   "
 >
-  Overall
+  Responsiveness Score
 </div>
 
 <div
   style="
     font-size:20px;
     font-weight:700;
-    color:#059669;
+    color:${getGrade(m.overallPercentile)?.color};
     line-height:1.2;
   "
 >
@@ -4043,7 +4095,7 @@ function generateEmailHTMLV4(
   style="
     display:inline-block;
     background:#e5e7eb;
-    color:#374151;
+    color:${getGrade(m.overallPercentile)?.color};
     font-size:9px;
     padding:3px 7px;
     border-radius:10px;
@@ -4063,7 +4115,7 @@ function generateEmailHTMLV4(
   width="24%"
   valign="top"
   style="
-    background:#f9fafb;
+    background:#ffffff;
     border:1px solid #e5e7eb;
     border-radius:8px;
     padding:12px 8px;
@@ -4088,7 +4140,7 @@ function generateEmailHTMLV4(
   style="
     font-size:20px;
     font-weight:700;
-    color:#059669;
+    color:${getGrade(m.completenessPercentile)?.color};
     line-height:1.2;
   "
 >
@@ -4112,7 +4164,7 @@ ${getTrendIcon(m.indicators?.completenessPercentile?.trend)}
   style="
     display:inline-block;
     background:#e5e7eb;
-    color:#374151;
+    color:${getGrade(m.completenessPercentile)?.color};
     font-size:9px;
     padding:3px 7px;
     border-radius:10px;
@@ -4132,7 +4184,7 @@ ${getTrendIcon(m.indicators?.completenessPercentile?.trend)}
   width="24%"
   valign="top"
   style="
-    background:#f9fafb;
+    background:#ffffff;
     border:1px solid #e5e7eb;
     border-radius:8px;
     padding:12px 8px;
@@ -4157,7 +4209,7 @@ ${getTrendIcon(m.indicators?.completenessPercentile?.trend)}
   style="
     font-size:20px;
     font-weight:700;
-    color:#2563eb;
+    color:${getGrade(m.consistencyPercentile)?.color};
     line-height:1.2;
   "
 >
@@ -4181,7 +4233,7 @@ ${getTrendIcon(m.indicators?.consistencyPercentile?.trend)}
   style="
     display:inline-block;
     background:#e5e7eb;
-    color:#374151;
+    color:${getGrade(m.consistencyPercentile)?.color};
     font-size:9px;
     padding:3px 7px;
     border-radius:10px;
@@ -4201,7 +4253,7 @@ ${getTrendIcon(m.indicators?.consistencyPercentile?.trend)}
   width="24%"
   valign="top"
   style="
-    background:#f9fafb;
+    background:#ffffff;
     border:1px solid #e5e7eb;
     border-radius:8px;
     padding:12px 8px;
@@ -4226,11 +4278,11 @@ ${getTrendIcon(m.indicators?.consistencyPercentile?.trend)}
   style="
     font-size:20px;
     font-weight:700;
-    color:#d97706;
+    color:${getGrade(m.timelinessPercentile)?.color};
     line-height:1.2;
   "
 >
-${m.fmtScore(m.timelinessPercentile)}
+${m.fmtScore(m.timelinessPercentile)} 
 ${getTrendIcon(m.indicators?.timelinessPercentile?.trend)}
 </div>
 
@@ -4249,7 +4301,7 @@ ${getTrendIcon(m.indicators?.timelinessPercentile?.trend)}
   style="
     display:inline-block;
     background:#e5e7eb;
-    color:#374151;
+    color:${getGrade(m.timelinessPercentile)?.color};
     font-size:9px;
     padding:3px 7px;
     border-radius:10px;
@@ -4263,7 +4315,9 @@ ${getTrendIcon(m.indicators?.timelinessPercentile?.trend)}
 
 </tr>
 </table>
-
+<div style="font-family: Arial, sans-serif; font-size: 11px; color: #111; line-height: 15px; margin-top: -16px;">
+  <strong>*Responsiveness Score:</strong> Measures the completeness, consistency, and timeliness of ESG data reporting, benchmarked to the Fireside Portfolio.
+</div>
 
 <!-- ========================================================= -->
 <!-- EXISTING CONTENT CAN CONTINUE BELOW                      -->
@@ -4282,7 +4336,7 @@ ${getTrendIcon(m.indicators?.timelinessPercentile?.trend)}
 <td
   width="24%"
   style="
-    background:#f0fdf4;
+    background:#ffffff;
     border:1px solid #bbf7d0;
     border-radius:8px;
     padding:12px 8px;
@@ -4294,23 +4348,23 @@ ${getTrendIcon(m.indicators?.timelinessPercentile?.trend)}
 
 <div
   style="
-    font-size:10px;
+    font-size:15px;
     font-weight:600;
     color:#6b7280;
     text-transform:uppercase;
   "
 >
-  ESG Composite Score
+  ESG Performance Score
 </div>
 
 <div
   style="
     font-size:20px;
     font-weight:700;
-    color:#059669;
+    color:${getGrade(m.esgCompositePercentile)?.color}; 
   "
 >
-  ${m.fmtScore(m.esgCompositePercentile)}
+  ${m.fmtScore(m.esgCompositePercentile)} 
   ${getTrendIcon(m.indicators?.esgCompositePercentile?.trend)}
  
 </div>
@@ -4323,8 +4377,8 @@ ${getTrendIcon(m.indicators?.timelinessPercentile?.trend)}
 <span
   style="
     display:inline-block;
-    background:#dcfce7;
-    color:#166534;
+    background:#e5e7eb;
+    color:${getGrade(m.esgCompositePercentile)?.color}; 
     font-size:9px;
     font-weight:600;
     padding:3px 8px;
@@ -4344,7 +4398,7 @@ ${getTrendIcon(m.indicators?.timelinessPercentile?.trend)}
 <td
   width="24%"
   style="
-    background:#eff6ff;
+    background:#ffffff;
     border:1px solid #bfdbfe;
     border-radius:8px;
     padding:12px 8px;
@@ -4369,7 +4423,9 @@ ${getTrendIcon(m.indicators?.timelinessPercentile?.trend)}
   style="
     font-size:20px;
     font-weight:700;
-    color:#2563eb;
+    color:${m.indicators?.pillars[0]?.enabled
+      ? getGrade(m.pillars[0].companyPctile)?.color
+      : '#6B7280'}; 
   "
 >
   ${m.indicators?.pillars[0]?.enabled ? m.fmtScore(m.pillars[0].companyPctile) : `N/A`}
@@ -4385,8 +4441,10 @@ ${getTrendIcon(m.indicators?.timelinessPercentile?.trend)}
 <span
   style="
     display:inline-block;
-    background:#dbeafe;
-    color:#1d4ed8;
+    background:#e5e7eb;
+    color:${m.indicators?.pillars[0]?.enabled
+      ? getGrade(m.pillars[0].companyPctile)?.color
+      : '#6B7280'}; 
     font-size:9px;
     font-weight:600;
     padding:3px 8px;
@@ -4406,7 +4464,7 @@ ${getTrendIcon(m.indicators?.timelinessPercentile?.trend)}
 <td
   width="24%"
   style="
-    background:#f5f3ff;
+    background:#ffffff;
     border:1px solid #ddd6fe;
     border-radius:8px;
     padding:12px 8px;
@@ -4431,7 +4489,9 @@ ${getTrendIcon(m.indicators?.timelinessPercentile?.trend)}
   style="
     font-size:20px;
     font-weight:700;
-    color:#7c3aed;
+    color:${m.indicators?.pillars[1]?.enabled
+      ? getGrade(m.pillars[1].companyPctile)?.color
+      : '#6B7280'}; 
   "
 >
 
@@ -4447,8 +4507,10 @@ ${getTrendIcon(m.indicators?.timelinessPercentile?.trend)}
 <span
   style="
     display:inline-block;
-    background:#ede9fe;
-    color:#6d28d9;
+    background:#e5e7eb;
+    color:${m.indicators?.pillars[1]?.enabled
+      ? getGrade(m.pillars[1].companyPctile)?.color
+      : '#6B7280'}; 
     font-size:9px;
     font-weight:600;
     padding:3px 8px;
@@ -4468,7 +4530,7 @@ ${getTrendIcon(m.indicators?.timelinessPercentile?.trend)}
 <td
   width="24%"
   style="
-    background:#fffbeb;
+    background:#ffffff;
     border:1px solid #fde68a;
     border-radius:8px;
     padding:12px 8px;
@@ -4493,7 +4555,9 @@ ${getTrendIcon(m.indicators?.timelinessPercentile?.trend)}
   style="
     font-size:20px;
     font-weight:700;
-    color:#d97706;
+    color:${m.indicators?.pillars[2]?.enabled
+      ? getGrade(m.pillars[2].companyPctile)?.color
+      : '#6B7280'}; 
   "
 >
 
@@ -4510,8 +4574,10 @@ ${getTrendIcon(m.indicators?.timelinessPercentile?.trend)}
 <span
   style="
     display:inline-block;
-    background:#fef3c7;
-    color:#b45309;
+    background:#e5e7eb;
+    color:${m.indicators?.pillars[2]?.enabled
+      ? getGrade(m.pillars[2].companyPctile)?.color
+      : '#6B7280'}; 
     font-size:9px;
     font-weight:600;
     padding:3px 8px;
@@ -4526,6 +4592,9 @@ ${getTrendIcon(m.indicators?.timelinessPercentile?.trend)}
 
 </tr>
 </table>
+<p style="font-family: Arial, sans-serif; font-size: 11px; color: #111; line-height: 15px; margin-top: -16px;">
+  <strong>*ESG Performance Score:</strong> Measures overall performance across Environmental, Social, and Governance KPIs, benchmarked to the Fireside Portfolio.
+</p>
 
 <!-- ========================================================= -->
 <!-- COMPLIANCE SCORE + PRIORITY SUMMARY                       -->
@@ -4645,7 +4714,7 @@ ${esgCapTemplateData ? `<h2 style="font-size:17px;color:#2d2d2d;margin:8px 0 4px
     padding:10px 5px;
     font-size:9px;
     font-weight:700;
-    color:#52698a;
+    color:#111827;
     text-align:center;
   "
 >
@@ -4657,7 +4726,7 @@ ${esgCapTemplateData ? `<h2 style="font-size:17px;color:#2d2d2d;margin:8px 0 4px
     padding:10px 5px;
     font-size:9px;
     font-weight:700;
-    color:#059669;
+    color:#111827;
     text-align:center;
   "
 >
@@ -4669,7 +4738,7 @@ ${esgCapTemplateData ? `<h2 style="font-size:17px;color:#2d2d2d;margin:8px 0 4px
     padding:10px 5px;
     font-size:9px;
     font-weight:700;
-    color:#65a30d;
+    color:#111827;
     text-align:center;
   "
 >
@@ -4683,18 +4752,29 @@ ${esgCapTemplateData ? `<h2 style="font-size:17px;color:#2d2d2d;margin:8px 0 4px
     padding:10px 5px;
     font-size:9px;
     font-weight:700;
-    color:#ef4444;
+    color:#111827;
     text-align:center;
   "
 >
-  Not completed / Completed after Buffer Time
+  Completed After Buffer Time
 </td>
 <td
   style="
     padding:10px 5px;
     font-size:9px;
     font-weight:700;
-    color:#ef4444;
+    color:#111827;
+    text-align:center;
+  "
+>
+  Overdue
+</td>
+<td
+  style="
+    padding:10px 5px;
+    font-size:9px;
+    font-weight:700;
+    color:#111827;
     text-align:center;
   "
 >
@@ -4706,7 +4786,7 @@ ${esgCapTemplateData ? `<h2 style="font-size:17px;color:#2d2d2d;margin:8px 0 4px
     padding:10px 5px;
     font-size:9px;
     font-weight:700;
-    color:#52698a;
+    color:#111827;
     text-align:center;
   "
 >
@@ -4741,11 +4821,17 @@ ${esgCapTemplateData ? `<h2 style="font-size:17px;color:#2d2d2d;margin:8px 0 4px
 </td>
 
 <td style="border-top:1px solid #e5e7eb;text-align:center;font-size:11px;">
-  ${esgCapTemplateData.priorityScore.high.over3}
+  ${esgCapTemplateData.priorityScore.high.afterBufer}
 </td>
+
 <td style="border-top:1px solid #e5e7eb;text-align:center;font-size:11px;">
-  ${esgCapTemplateData.priorityScore.high.under3}
+  ${esgCapTemplateData.priorityScore.high.overdue}
 </td>
+
+<td style="border-top:1px solid #e5e7eb;text-align:center;font-size:11px;">
+  ${esgCapTemplateData.priorityScore.high.upcoming}
+</td>
+
 
 <td
   style="
@@ -4755,7 +4841,7 @@ ${esgCapTemplateData ? `<h2 style="font-size:17px;color:#2d2d2d;margin:8px 0 4px
     color:#ef4444;
   "
 >
-  ${esgCapTemplateData.priorityScore.high.ontime + esgCapTemplateData.priorityScore.high.buffer1 + esgCapTemplateData.priorityScore.high.buffer2 + esgCapTemplateData.priorityScore.high.buffer3 + esgCapTemplateData.priorityScore.high.over3 + esgCapTemplateData.priorityScore.high.under3}
+  ${esgCapTemplateData.priorityScore.high.total}
 </td>
 
 </tr>
@@ -4786,12 +4872,17 @@ ${esgCapTemplateData ? `<h2 style="font-size:17px;color:#2d2d2d;margin:8px 0 4px
 </td>
 
 <td style="border-top:1px solid #e5e7eb;text-align:center;font-size:11px;">
-  ${esgCapTemplateData.priorityScore.medium.over3}
+  ${esgCapTemplateData.priorityScore.medium.afterBufer}
 </td>
 
 <td style="border-top:1px solid #e5e7eb;text-align:center;font-size:11px;">
-  ${esgCapTemplateData.priorityScore.medium.under3}
+  ${esgCapTemplateData.priorityScore.medium.overdue}
 </td>
+
+<td style="border-top:1px solid #e5e7eb;text-align:center;font-size:11px;">
+  ${esgCapTemplateData.priorityScore.medium.upcoming}
+</td>
+
 
 <td
   style="
@@ -4801,12 +4892,7 @@ ${esgCapTemplateData ? `<h2 style="font-size:17px;color:#2d2d2d;margin:8px 0 4px
     color:#ef4444;
   "
 >
-  ${esgCapTemplateData.priorityScore.medium.ontime +
-      esgCapTemplateData.priorityScore.medium.buffer1 +
-      esgCapTemplateData.priorityScore.medium.buffer2 +
-      esgCapTemplateData.priorityScore.medium.buffer3 +
-      esgCapTemplateData.priorityScore.medium.over3 +
-      esgCapTemplateData.priorityScore.medium.under3}
+    ${esgCapTemplateData.priorityScore.medium.total}
 </td>
 
 </tr>
@@ -4837,15 +4923,19 @@ ${esgCapTemplateData ? `<h2 style="font-size:17px;color:#2d2d2d;margin:8px 0 4px
 </td>
 
 <td style="border-top:1px solid #e5e7eb;text-align:center;font-size:11px;">
-  ${esgCapTemplateData.priorityScore.low.over3}
+  ${esgCapTemplateData.priorityScore.low.afterBufer}
 </td>
 
 <td style="border-top:1px solid #e5e7eb;text-align:center;font-size:11px;">
-  ${esgCapTemplateData.priorityScore.low.under3}
+  ${esgCapTemplateData.priorityScore.low.overdue}
 </td>
 
 <td style="border-top:1px solid #e5e7eb;text-align:center;font-size:11px;">
-  ${esgCapTemplateData.priorityScore.low.ontime + esgCapTemplateData.priorityScore.low.buffer1 + esgCapTemplateData.priorityScore.low.buffer2 + esgCapTemplateData.priorityScore.low.buffer3 + esgCapTemplateData.priorityScore.low.over3 + esgCapTemplateData.priorityScore.low.under3}
+  ${esgCapTemplateData.priorityScore.low.upcoming}
+</td>
+
+<td style="border-top:1px solid #e5e7eb;text-align:center;font-size:11px;">
+  ${esgCapTemplateData.priorityScore.low.total}
 </td>
 
 </tr>
@@ -4913,9 +5003,9 @@ ${esgCapTemplateData ? `<h2 style="font-size:17px;color:#2d2d2d;margin:8px 0 4px
     color:#059669;
   "
 >
-  ${esgCapTemplateData.priorityScore.high.over3 +
-      esgCapTemplateData.priorityScore.medium.over3 +
-      esgCapTemplateData.priorityScore.low.over3
+  ${esgCapTemplateData.priorityScore.high.afterBufer +
+      esgCapTemplateData.priorityScore.medium.afterBufer +
+      esgCapTemplateData.priorityScore.low.afterBufer
       }
 </td>
 
@@ -4928,9 +5018,24 @@ ${esgCapTemplateData ? `<h2 style="font-size:17px;color:#2d2d2d;margin:8px 0 4px
     color:#059669;
   "
 >
-  ${esgCapTemplateData.priorityScore.high.under3 +
-      esgCapTemplateData.priorityScore.medium.under3 +
-      esgCapTemplateData.priorityScore.low.under3
+  ${esgCapTemplateData.priorityScore.high.overdue +
+      esgCapTemplateData.priorityScore.medium.overdue +
+      esgCapTemplateData.priorityScore.low.overdue
+      }
+</td>
+
+<td
+  style="
+    border-top:1px solid #a7f3d0;
+    text-align:center;
+    font-size:11px;
+    font-weight:700;
+    color:#059669;
+  "
+>
+  ${esgCapTemplateData.priorityScore.high.upcoming +
+      esgCapTemplateData.priorityScore.medium.upcoming +
+      esgCapTemplateData.priorityScore.low.upcoming
       }
 </td>
 
@@ -4965,192 +5070,7 @@ ${esgCapTemplateData ? `<h2 style="font-size:17px;color:#2d2d2d;margin:8px 0 4px
 </table>
 
 
-<!-- ========================================================= -->
-<!-- STATUS SUMMARY                                            -->
-<!-- ========================================================= -->
-
-<table
-  width="100%"
-  cellpadding="0"
-  cellspacing="0"
-  border="0"
-  style="
-    margin:0 0 18px 0;
-    border:1px solid #e5e7eb;
-    border-radius:8px;
-  "
->
-<tr>
-
-<!-- DUE -->
-<td width="16.66%" style="padding:10px 4px;">
-
-<table
-  width="100%"
-  cellpadding="0"
-  cellspacing="0"
-  border="0"
-  style="background:#fff7ed;border-radius:8px;"
->
-<tr>
-<td align="center" style="padding:9px 3px;">
-
-<div style="font-size:18px;font-weight:700;color:#ea580c;">
-  ${esgCapTemplateData?.esgMetrics?.dueThisMonth}
-</div>
-
-<div style="font-size:8px;color:#ea580c;">
-  Due in this Month
-</div>
-
-</td>
-</tr>
-</table>
-
-</td>
-
-
-<!-- OVERDUE -->
-<td width="16.66%" style="padding:10px 4px;">
-
-<table
-  width="100%"
-  cellpadding="0"
-  cellspacing="0"
-  border="0"
-  style="background:#fff1f2;border-radius:8px;"
->
-<tr>
-<td align="center" style="padding:9px 3px;">
-
-<div style="font-size:18px;font-weight:700;color:#dc2626;">
-  ${esgCapTemplateData?.esgMetrics?.overdue}
-</div>
-
-<div style="font-size:8px;color:#dc2626;">
-  Overdue
-</div>
-
-</td>
-</tr>
-</table>
-
-</td>
-
-
-<!-- PARTIALLY SUBMITTED -->
-<td width="16.66%" style="padding:10px 4px;">
-
-<table
-  width="100%"
-  cellpadding="0"
-  cellspacing="0"
-  border="0"
-  style="background:#eff6ff;border-radius:8px;"
->
-<tr>
-<td align="center" style="padding:9px 3px;">
-
-<div style="font-size:18px;font-weight:700;color:#2563eb;">
-  ${esgCapTemplateData?.esgMetrics?.partlySubmitted}
-</div>
-
-<div style="font-size:8px;color:#2563eb;">
-  Partly Submitted
-</div>
-
-</td>
-</tr>
-</table>
-
-</td>
-
-
-<!-- RESUBMIT -->
-<td width="16.66%" style="padding:10px 4px;">
-
-<table
-  width="100%"
-  cellpadding="0"
-  cellspacing="0"
-  border="0"
-  style="background:#fffbeb;border-radius:8px;"
->
-<tr>
-<td align="center" style="padding:9px 3px;">
-
-<div style="font-size:18px;font-weight:700;color:#d97706;">
-  ${esgCapTemplateData?.esgMetrics?.resubmitRequested}
-</div>
-
-<div style="font-size:8px;color:#d97706;">
-  Re-submit Requested
-</div>
-
-</td>
-</tr>
-</table>
-
-</td>
-
-
-<!-- PENDING REVIEW -->
-<td width="16.66%" style="padding:10px 4px;">
-
-<table
-  width="100%"
-  cellpadding="0"
-  cellspacing="0"
-  border="0"
-  style="background:#faf5ff;border-radius:8px;"
->
-<tr>
-<td align="center" style="padding:9px 3px;">
-
-<div style="font-size:18px;font-weight:700;color:#9333ea;">
-  ${esgCapTemplateData?.esgMetrics?.submittedPendingReview}
-</div>
-
-<div style="font-size:8px;color:#9333ea;">
-  Submitted Pending Review
-</div>
-
-</td>
-</tr>
-</table>
-
-</td>
-
-
-<!-- CLOSED -->
-<td width="16.66%" style="padding:10px 4px;">
-
-<table
-  width="100%"
-  cellpadding="0"
-  cellspacing="0"
-  border="0"
-  style="background:#f0fdf4;border-radius:8px;"
->
-<tr>
-<td align="center" style="padding:9px 3px;">
-
-<div style="font-size:18px;font-weight:700;color:#16a34a;">
-  ${esgCapTemplateData?.esgMetrics?.closed} 
-</div>
-
-<div style="font-size:8px;color:#16a34a;">
-  Closed
-</div>
-
-</td>
-</tr>
-</table>
-
-</td>
-
-</tr>
-</table>`: ""
+`: ""
     }
 
 
@@ -5418,18 +5338,26 @@ async function generateEmailDOCXV1(
               children: [
                 new Paragraph({
                   alignment: AlignmentType.CENTER, spacing: { after: 40 }, children: [
-                    new TextRun({ text: card.label, size: 16, bold: true, color: '6B7280', font: 'Arial' }),
+                    // new TextRun({ text: card.label, size: 16, bold: true, color: '6B7280', font: 'Arial' }),
+                    new TextRun({
+                      text: card.value,
+                      size: card.label === 'OVERALL' ? 40 : 30,
+                      bold: true,
+                      color: '059669',
+                      font: 'Arial',
+                    })
                   ]
                 }),
                 new Paragraph({
                   alignment: AlignmentType.CENTER, children: [
-                    new TextRun({ text: card.value, size: 22, bold: true, color: '059669', font: 'Arial' }),
+                    new TextRun({ text: card.value, size: 20, bold: true, color: '059669', font: 'Arial' }),
                   ]
                 }),
               ],
             })),
           })],
         }),
+        new Paragraph({ spacing: { after: 300 }, children: [new TextRun({ text: `See how your ESG reporting compares to other portfolio companies (n=${allRankings.length}).`, size: 24, color: '6B7280', font: 'Arial' })] }),
 
         new Paragraph({ spacing: { after: 200 }, children: [] }),
 
@@ -5646,7 +5574,7 @@ async function generateEmailDOCXV2(
 
   const scoreCards = [
     {
-      label: 'OVERALL',
+      label: 'RESPONSIVENESS SCORE',
       value: m.fmtScore(m.overallPercentile),
       color: '059669',
       fill: 'F0FDF4',
@@ -5673,7 +5601,7 @@ async function generateEmailDOCXV2(
 
   const compositeCards = [
     {
-      label: 'COMPOSITE SCORE',
+      label: 'ESG PERFORMANCE SCORE',
       value: m.fmtScore(m.overallPercentile),
     },
     {
@@ -6083,2962 +6011,6 @@ async function generateEmailDOCXV2(
   return Packer.toBlob(doc);
 }
 
-// async function generateEmailDOCXV3(
-//   company: typeof mockCompanies[0],
-//   ranking: CompanyRanking,
-//   companyRaw: CompanyRawMetrics | undefined,
-//   allCompaniesRaw: CompanyRawMetrics[],
-//   allRankings: CompanyRanking[],
-//   overallProgress: {
-//     filled: number;
-//     total: number;
-//     percentage: number;
-//   },
-//   scoreFormat: ScoreFormat = 'percentile',
-// ) {
-//   const {
-//     Document,
-//     Packer,
-//     Paragraph,
-//     TextRun,
-//     Table,
-//     TableRow,
-//     TableCell,
-//     AlignmentType,
-//     WidthType,
-//     ShadingType,
-//     BorderStyle,
-//   } = await import('docx');
-
-//   const m = computeEsgMetrics(
-//     company,
-//     ranking,
-//     companyRaw,
-//     allCompaniesRaw,
-//     allRankings,
-//     scoreFormat,
-//   );
-
-//   const isCat = scoreFormat === 'category';
-
-//   // ============================================================
-//   // COMMON STYLES
-//   // ============================================================
-
-//   const noBorder = {
-//     style: BorderStyle.NONE,
-//     size: 0,
-//     color: 'FFFFFF',
-//   };
-
-//   const noBorders = {
-//     top: noBorder,
-//     bottom: noBorder,
-//     left: noBorder,
-//     right: noBorder,
-//   };
-
-//   const cellBorder = {
-//     style: BorderStyle.SINGLE,
-//     size: 1,
-//     color: 'E5E7EB',
-//   };
-
-//   const cellBorders = {
-//     top: cellBorder,
-//     bottom: cellBorder,
-//     left: cellBorder,
-//     right: cellBorder,
-//   };
-
-//   const capBorder = {
-//     style: BorderStyle.SINGLE,
-//     size: 1,
-//     color: 'D9E2EC',
-//   };
-
-//   const capBorders = {
-//     top: capBorder,
-//     bottom: capBorder,
-//     left: capBorder,
-//     right: capBorder,
-//   };
-
-//   // ============================================================
-//   // BAR ROW
-//   // ============================================================
-
-//   const makeBarRow = (
-//     label: string,
-//     value: number,
-//     color: string,
-//   ) =>
-//     new TableRow({
-//       children: [
-//         new TableCell({
-//           width: {
-//             size: 2000,
-//             type: WidthType.DXA,
-//           },
-//           borders: noBorders,
-//           margins: {
-//             top: 40,
-//             bottom: 40,
-//             left: 80,
-//             right: 80,
-//           },
-//           children: [
-//             new Paragraph({
-//               children: [
-//                 new TextRun({
-//                   text: label,
-//                   size: 18,
-//                   color: '6B7280',
-//                   font: 'Arial',
-//                 }),
-//               ],
-//             }),
-//           ],
-//         }),
-
-//         new TableCell({
-//           width: {
-//             size: 5500,
-//             type: WidthType.DXA,
-//           },
-//           borders: noBorders,
-//           margins: {
-//             top: 40,
-//             bottom: 40,
-//             left: 0,
-//             right: 80,
-//           },
-//           children: [
-//             new Table({
-//               width: {
-//                 size: 5000,
-//                 type: WidthType.DXA,
-//               },
-//               columnWidths: [
-//                 Math.max(1, Math.round(value * 50)),
-//                 Math.max(1, Math.round((100 - value) * 50)),
-//               ],
-//               rows: [
-//                 new TableRow({
-//                   height: {
-//                     value: 220,
-//                     rule: 'exact' as any,
-//                   },
-//                   children: [
-//                     new TableCell({
-//                       width: {
-//                         size: Math.max(
-//                           1,
-//                           Math.round(value * 50),
-//                         ),
-//                         type: WidthType.DXA,
-//                       },
-//                       shading: {
-//                         fill: color,
-//                         type: ShadingType.CLEAR,
-//                       },
-//                       borders: noBorders,
-//                       children: [
-//                         new Paragraph({
-//                           children: [],
-//                         }),
-//                       ],
-//                     }),
-
-//                     new TableCell({
-//                       width: {
-//                         size: Math.max(
-//                           1,
-//                           Math.round((100 - value) * 50),
-//                         ),
-//                         type: WidthType.DXA,
-//                       },
-//                       shading: {
-//                         fill: 'F3F4F6',
-//                         type: ShadingType.CLEAR,
-//                       },
-//                       borders: noBorders,
-//                       children: [
-//                         new Paragraph({
-//                           children: [],
-//                         }),
-//                       ],
-//                     }),
-//                   ],
-//                 }),
-//               ],
-//             }),
-//           ],
-//         }),
-
-//         new TableCell({
-//           width: {
-//             size: 700,
-//             type: WidthType.DXA,
-//           },
-//           borders: noBorders,
-//           margins: {
-//             top: 40,
-//             bottom: 40,
-//             left: 40,
-//             right: 80,
-//           },
-//           children: [
-//             new Paragraph({
-//               children: [
-//                 new TextRun({
-//                   text: m.fmtBarLabel(value),
-//                   size: 18,
-//                   bold: true,
-//                   color: '374151',
-//                   font: 'Arial',
-//                 }),
-//               ],
-//             }),
-//           ],
-//         }),
-//       ],
-//     });
-
-//   // ============================================================
-//   // ESG PILLARS
-//   // ============================================================
-
-//   const pillarSections = m.pillars.flatMap((p) => {
-//     if (p.isNA) {
-//       return [
-//         new Paragraph({
-//           spacing: {
-//             before: 200,
-//             after: 60,
-//           },
-//           children: [
-//             new TextRun({
-//               text: p.label,
-//               size: 24,
-//               bold: true,
-//               color: '374151',
-//               font: 'Arial',
-//             }),
-//           ],
-//         }),
-
-//         new Paragraph({
-//           spacing: {
-//             after: 100,
-//           },
-//           children: [
-//             new TextRun({
-//               text: 'NA — not applicable',
-//               size: 22,
-//               italics: true,
-//               color: '9CA3AF',
-//               font: 'Arial',
-//             }),
-//           ],
-//         }),
-//       ];
-//     }
-
-//     return [
-//       new Paragraph({
-//         spacing: {
-//           before: 200,
-//           after: 60,
-//         },
-//         children: [
-//           new TextRun({
-//             text: `${p.label} (n=${p.n})`,
-//             size: 24,
-//             bold: true,
-//             color: '374151',
-//             font: 'Arial',
-//           }),
-//         ],
-//       }),
-
-//       new Table({
-//         width: {
-//           size: 8200,
-//           type: WidthType.DXA,
-//         },
-//         columnWidths: [
-//           2000,
-//           5500,
-//           700,
-//         ],
-//         rows: [
-//           makeBarRow(
-//             `Your ${isCat ? 'Category' : 'Percentile'}`,
-//             p.companyPctile,
-//             '3B82F6',
-//           ),
-//           makeBarRow(
-//             'Sector Avg',
-//             p.indAvg,
-//             '22C55E',
-//           ),
-//           makeBarRow(
-//             'Revenue Cohort Avg',
-//             p.revAvg,
-//             'F59E0B',
-//           ),
-//         ],
-//       }),
-//     ];
-//   });
-
-//   // ============================================================
-//   // ESG SCORE CARDS
-//   // ============================================================
-
-//   const scoreCards = [
-//     {
-//       label: 'OVERALL',
-//       value: m.fmtScore(m.overallPercentile),
-//       color: '059669',
-//       fill: 'F0FDF4',
-//     },
-//     {
-//       label: 'COMPLETENESS',
-//       value: m.fmtScore(m.completenessPercentile),
-//       color: '2563EB',
-//       fill: 'EFF6FF',
-//     },
-//     {
-//       label: 'CONSISTENCY',
-//       value: m.fmtScore(m.consistencyPercentile),
-//       color: '7C3AED',
-//       fill: 'F5F3FF',
-//     },
-//     {
-//       label: 'TIMELINESS',
-//       value: m.fmtScore(m.timelinessPercentile),
-//       color: 'D97706',
-//       fill: 'FFFBEB',
-//     },
-//   ];
-
-//   const compositeCards = [
-//     {
-//       label: 'COMPOSITE SCORE',
-//       value: m.fmtScore(m.overallPercentile),
-//     },
-//     {
-//       label: 'ENVIRONMENT',
-//       value: m.fmtScore(m.completenessPercentile),
-//     },
-//     {
-//       label: 'SOCIAL',
-//       value: m.fmtScore(m.consistencyPercentile),
-//     },
-//     {
-//       label: 'GOVERNANCE',
-//       value: m.fmtScore(m.timelinessPercentile),
-//     },
-//   ];
-
-//   // ============================================================
-//   // SCORE CARD HELPER
-//   // ============================================================
-
-//   const makeScoreCard = (
-//     label: string,
-//     value: string,
-//     color: string,
-//     fill: string,
-//     showGrade = true,
-//   ) =>
-//     new TableCell({
-//       width: {
-//         size: 2250,
-//         type: WidthType.DXA,
-//       },
-
-//       borders: cellBorders,
-
-//       shading: {
-//         fill,
-//         type: ShadingType.CLEAR,
-//       },
-
-//       margins: {
-//         top: 140,
-//         bottom: 140,
-//         left: 100,
-//         right: 100,
-//       },
-
-//       children: [
-//         new Paragraph({
-//           alignment: AlignmentType.CENTER,
-
-//           spacing: {
-//             before: 0,
-//             after: 60,
-//             line: 220,
-//           },
-
-//           children: [
-//             new TextRun({
-//               text: label,
-//               size: 16,
-//               bold: true,
-//               color: '6B7280',
-//               font: 'Arial',
-//             }),
-//           ],
-//         }),
-
-//         new Paragraph({
-//           alignment: AlignmentType.CENTER,
-
-//           spacing: {
-//             before: 0,
-//             after: showGrade ? 10 : 40,
-//             line: 260,
-//           },
-
-//           children: [
-//             new TextRun({
-//               text: value,
-//               size: showGrade ? 24 : 20,
-//               bold: true,
-//               color,
-//               font: 'Arial',
-//             }),
-//           ],
-//         }),
-
-//         ...(showGrade
-//           ? [
-//               new Paragraph({
-//                 alignment: AlignmentType.CENTER,
-
-//                 spacing: {
-//                   before: 0,
-//                   after: 25,
-//                   line: 210,
-//                 },
-
-//                 children: [
-//                   new TextRun({
-//                     text: 'grade',
-//                     size: 16,
-//                     color: '6B7280',
-//                     font: 'Arial',
-//                   }),
-//                 ],
-//               }),
-//             ]
-//           : []),
-
-//         new Paragraph({
-//           alignment: AlignmentType.CENTER,
-
-//           spacing: {
-//             before: 0,
-//             after: 0,
-//             line: 190,
-//           },
-
-//           children: [
-//             new TextRun({
-//               text: `n=${allRankings.length}`,
-//               size: 14,
-//               color: '6B7280',
-//               font: 'Arial',
-//             }),
-//           ],
-//         }),
-//       ],
-//     });
-
-//   // ============================================================
-//   // eSCAP DUMMY DATA
-//   // ============================================================
-
-//   const dummyCapItems = [
-//     {
-//       sno: 1,
-//       capItem: 'PoSH, H&S & CoC Training',
-//       priority: 'High',
-//       targetDate: '22 Feb 2023',
-//       companyStatus: 'Submitted',
-//       investorStatus: 'Under Review',
-//       completedOn: '',
-//     },
-//     {
-//       sno: 2,
-//       capItem: 'Plastic Reduction in Packaging',
-//       priority: 'High',
-//       targetDate: '24 Nov 2023',
-//       companyStatus: 'Overdue',
-//       investorStatus: '-',
-//       completedOn: '',
-//     },
-//     {
-//       sno: 3,
-//       capItem: 'HR Policy Development',
-//       priority: 'Medium',
-//       targetDate: '13 Jun 2024',
-//       companyStatus: 'Submitted',
-//       investorStatus: 'Under Review',
-//       completedOn: '',
-//     },
-//     {
-//       sno: 4,
-//       capItem: 'Human Rights Policy',
-//       priority: 'Medium',
-//       targetDate: '13 Jun 2024',
-//       companyStatus: 'Overdue',
-//       investorStatus: '-',
-//       completedOn: '',
-//     },
-//     {
-//       sno: 5,
-//       capItem: 'Standalone ESG Policy',
-//       priority: 'Medium',
-//       targetDate: '13 Jun 2024',
-//       companyStatus: 'Submitted',
-//       investorStatus: 'Under Review',
-//       completedOn: '',
-//     },
-//     {
-//       sno: 6,
-//       capItem: 'Supplier Code of Conduct',
-//       priority: 'Low',
-//       targetDate: '30 Jun 2024',
-//       companyStatus: 'Closed',
-//       investorStatus: 'Approved',
-//       completedOn: '28 Jun 2024',
-//     },
-//   ];
-
-//   // ============================================================
-//   // PRIORITY SUMMARY
-//   // ============================================================
-
-//   const prioritySummary = [
-//     {
-//       priority: 'High',
-//       color: 'DC2626',
-//       completedInTime: 0,
-//       buffer1: 0,
-//       buffer2: 0,
-//       buffer3: 0,
-//       notCompleted: 3,
-//       total: 3,
-//     },
-//     {
-//       priority: 'Medium',
-//       color: 'D97706',
-//       completedInTime: 0,
-//       buffer1: 0,
-//       buffer2: 0,
-//       buffer3: 0,
-//       notCompleted: 5,
-//       total: 5,
-//     },
-//     {
-//       priority: 'Low',
-//       color: '64748B',
-//       completedInTime: 0,
-//       buffer1: 0,
-//       buffer2: 0,
-//       buffer3: 0,
-//       notCompleted: 0,
-//       total: 0,
-//     },
-//   ];
-
-//   // ============================================================
-//   // PRIORITY ROW
-//   // ============================================================
-
-//   const makePriorityRow = (
-//     item: typeof prioritySummary[number],
-//   ) =>
-//     new TableRow({
-//       children: [
-//         new TableCell({
-//           width: {
-//             size: 850,
-//             type: WidthType.DXA,
-//           },
-
-//           borders: capBorders,
-
-//           margins: {
-//             top: 90,
-//             bottom: 90,
-//             left: 50,
-//             right: 50,
-//           },
-
-//           children: [
-//             new Paragraph({
-//               alignment: AlignmentType.CENTER,
-
-//               children: [
-//                 new TextRun({
-//                   text: item.priority,
-//                   size: 17,
-//                   bold: true,
-//                   color: item.color,
-//                   font: 'Arial',
-//                 }),
-//               ],
-//             }),
-//           ],
-//         }),
-
-//         ...[
-//           item.completedInTime,
-//           item.buffer1,
-//           item.buffer2,
-//           item.buffer3,
-//           item.notCompleted,
-//         ].map(
-//           (value, index) =>
-//             new TableCell({
-//               width: {
-//                 size: 1100,
-//                 type: WidthType.DXA,
-//               },
-
-//               borders: capBorders,
-
-//               margins: {
-//                 top: 90,
-//                 bottom: 90,
-//                 left: 40,
-//                 right: 40,
-//               },
-
-//               children: [
-//                 new Paragraph({
-//                   alignment: AlignmentType.CENTER,
-
-//                   children: [
-//                     new TextRun({
-//                       text: String(value),
-//                       size: 17,
-//                       color:
-//                         index === 4
-//                           ? 'EF4444'
-//                           : '111827',
-//                       font: 'Arial',
-//                     }),
-//                   ],
-//                 }),
-//               ],
-//             }),
-//         ),
-
-//         new TableCell({
-//           width: {
-//             size: 800,
-//             type: WidthType.DXA,
-//           },
-
-//           borders: capBorders,
-
-//           margins: {
-//             top: 90,
-//             bottom: 90,
-//             left: 40,
-//             right: 40,
-//           },
-
-//           children: [
-//             new Paragraph({
-//               alignment: AlignmentType.CENTER,
-
-//               children: [
-//                 new TextRun({
-//                   text: String(item.total),
-//                   size: 17,
-//                   color:
-//                     item.notCompleted > 0
-//                       ? 'EF4444'
-//                       : '111827',
-//                   font: 'Arial',
-//                 }),
-//               ],
-//             }),
-//           ],
-//         }),
-//       ],
-//     });
-
-//   // ============================================================
-//   // CAP HEADER CELL
-//   // ============================================================
-
-//   // const capHeaderCell = (
-//   //   text: string,
-//   //   width: number,
-//   //   align = AlignmentType.CENTER,
-//   // ) =>
-//   //   new TableCell({
-//   //     width: {
-//   //       size: width,
-//   //       type: WidthType.DXA,
-//   //     },
-
-//   //     shading: {
-//   //       fill: 'F1F5F9',
-//   //       type: ShadingType.CLEAR,
-//   //     },
-
-//   //     borders: capBorders,
-
-//   //     margins: {
-//   //       top: 100,
-//   //       bottom: 100,
-//   //       left: 50,
-//   //       right: 50,
-//   //     },
-
-//   //     children: [
-//   //       new Paragraph({
-//   //         alignment: align,
-
-//   //         spacing: {
-//   //           before: 0,
-//   //           after: 0,
-//   //           line: 180,
-//   //         },
-
-//   //         children: [
-//   //           new TextRun({
-//   //             text,
-//   //             size: 15,
-//   //             bold: true,
-//   //             color: '111827',
-//   //             font: 'Arial',
-//   //           }),
-//   //         ],
-//   //       }),
-//   //     ],
-//   //   });
-
-//   // ============================================================
-// // CAP HEADER CELL
-// // ============================================================
-
-// const capHeaderCell = (
-//   text: string,
-//   width: number,
-//   align: any = AlignmentType.CENTER,
-// ) =>
-//   new TableCell({
-//     width: {
-//       size: width,
-//       type: WidthType.DXA,
-//     },
-
-//     shading: {
-//       fill: 'F1F5F9',
-//       type: ShadingType.CLEAR,
-//     },
-
-//     borders: capBorders,
-
-//     margins: {
-//       top: 140,
-//       bottom: 140,
-//       left: 45,
-//       right: 45,
-//     },
-
-//     verticalAlign: 'center' as any,
-
-//     children: [
-//       new Paragraph({
-//         alignment: align,
-
-//         spacing: {
-//           before: 0,
-//           after: 0,
-//           line: 160,
-//           lineRule: 'auto' as any,
-//         },
-
-//         children: [
-//           new TextRun({
-//             text,
-//             size: 12,
-//             bold: true,
-//             color: '111827',
-//             font: 'Arial',
-//           }),
-//         ],
-//       }),
-//     ],
-//   });
-
-//   // ============================================================
-//   // CAP ITEM ROW
-//   // ============================================================
-
-//   const makeCapItemRow = (
-//     item: typeof dummyCapItems[number],
-//   ) => {
-//     const priorityStyle =
-//       item.priority === 'High'
-//         ? {
-//             fill: 'FECACA',
-//             color: 'DC2626',
-//           }
-//         : item.priority === 'Medium'
-//           ? {
-//               fill: 'FEF08A',
-//               color: 'A16207',
-//             }
-//           : {
-//               fill: 'E2E8F0',
-//               color: '475569',
-//             };
-
-//     const companyStatusStyle =
-//       item.companyStatus === 'Overdue'
-//         ? {
-//             fill: 'FEE2E2',
-//             color: 'DC2626',
-//           }
-//         : item.companyStatus === 'Closed'
-//           ? {
-//               fill: 'DCFCE7',
-//               color: '15803D',
-//             }
-//           : {
-//               fill: 'F3E8FF',
-//               color: '9333EA',
-//             };
-
-//     const investorStatusStyle =
-//       item.investorStatus === 'Under Review'
-//         ? {
-//             fill: 'DBEAFE',
-//             color: '1D4ED8',
-//           }
-//         : item.investorStatus === 'Approved'
-//           ? {
-//               fill: 'DCFCE7',
-//               color: '15803D',
-//             }
-//           : {
-//               fill: 'F1F5F9',
-//               color: '64748B',
-//             };
-
-//     const itemColor =
-//       item.companyStatus === 'Overdue'
-//         ? 'DC2626'
-//         : '111827';
-
-//     return new TableRow({
-//       children: [
-
-//         // S.NO
-//         new TableCell({
-//           width: {
-//             size: 450,
-//             type: WidthType.DXA,
-//           },
-
-//           borders: capBorders,
-
-//           margins: {
-//             top: 110,
-//             bottom: 110,
-//             left: 40,
-//             right: 40,
-//           },
-
-//           children: [
-//             new Paragraph({
-//               alignment: AlignmentType.CENTER,
-
-//               children: [
-//                 new TextRun({
-//                   text: String(item.sno),
-//                   size: 16,
-//                   color: itemColor,
-//                   font: 'Arial',
-//                 }),
-//               ],
-//             }),
-//           ],
-//         }),
-
-//         // CAP ITEM
-//         new TableCell({
-//           width: {
-//             size: 2350,
-//             type: WidthType.DXA,
-//           },
-
-//           borders: capBorders,
-
-//           margins: {
-//             top: 110,
-//             bottom: 110,
-//             left: 80,
-//             right: 60,
-//           },
-
-//           children: [
-//             new Paragraph({
-//               children: [
-//                 new TextRun({
-//                   text: item.capItem,
-//                   size: 16,
-//                   color: itemColor,
-//                   font: 'Arial',
-//                 }),
-//               ],
-//             }),
-//           ],
-//         }),
-
-//         // PRIORITY
-//         new TableCell({
-//           width: {
-//             size: 800,
-//             type: WidthType.DXA,
-//           },
-
-//           borders: capBorders,
-
-//           margins: {
-//             top: 90,
-//             bottom: 90,
-//             left: 30,
-//             right: 30,
-//           },
-
-//           children: [
-//             new Paragraph({
-//               alignment: AlignmentType.CENTER,
-
-//               children: [
-//                 new TextRun({
-//                   text: item.priority,
-//                   size: 13,
-//                   bold: true,
-//                   color: priorityStyle.color,
-//                   font: 'Arial',
-
-//                   shading: {
-//                     fill: priorityStyle.fill,
-//                     type: ShadingType.CLEAR,
-//                   },
-//                 }),
-//               ],
-//             }),
-//           ],
-//         }),
-
-//         // TARGET DATE
-//         new TableCell({
-//           width: {
-//             size: 1100,
-//             type: WidthType.DXA,
-//           },
-
-//           borders: capBorders,
-
-//           margins: {
-//             top: 110,
-//             bottom: 110,
-//             left: 40,
-//             right: 40,
-//           },
-
-//           children: [
-//             new Paragraph({
-//               children: [
-//                 new TextRun({
-//                   text: item.targetDate,
-//                   size: 14,
-//                   color: itemColor,
-//                   font: 'Arial',
-//                 }),
-//               ],
-//             }),
-//           ],
-//         }),
-
-//         // COMPANY STATUS
-//         new TableCell({
-//           width: {
-//             size: 1200,
-//             type: WidthType.DXA,
-//           },
-
-//           borders: capBorders,
-
-//           margins: {
-//             top: 90,
-//             bottom: 90,
-//             left: 30,
-//             right: 30,
-//           },
-
-//           children: [
-//             new Paragraph({
-//               alignment: AlignmentType.CENTER,
-
-//               children: [
-//                 new TextRun({
-//                   text:
-//                     item.companyStatus === 'Overdue'
-//                       ? '× Overdue'
-//                       : item.companyStatus === 'Closed'
-//                         ? '✓ Closed'
-//                         : '◷ Submitted',
-
-//                   size: 12,
-//                   bold: true,
-//                   color: companyStatusStyle.color,
-//                   font: 'Arial',
-
-//                   shading: {
-//                     fill: companyStatusStyle.fill,
-//                     type: ShadingType.CLEAR,
-//                   },
-//                 }),
-//               ],
-//             }),
-//           ],
-//         }),
-
-//         // INVESTOR STATUS
-//         new TableCell({
-//           width: {
-//             size: 1350,
-//             type: WidthType.DXA,
-//           },
-
-//           borders: capBorders,
-
-//           margins: {
-//             top: 90,
-//             bottom: 90,
-//             left: 30,
-//             right: 30,
-//           },
-
-//           children: [
-//             new Paragraph({
-//               alignment: AlignmentType.CENTER,
-
-//               children: [
-//                 new TextRun({
-//                   text:
-//                     item.investorStatus === '-'
-//                       ? '-'
-//                       : item.investorStatus === 'Approved'
-//                         ? '✓ Approved'
-//                         : '◷ Under Review',
-
-//                   size: 12,
-//                   bold: true,
-//                   color: investorStatusStyle.color,
-//                   font: 'Arial',
-
-//                   shading: {
-//                     fill: investorStatusStyle.fill,
-//                     type: ShadingType.CLEAR,
-//                   },
-//                 }),
-//               ],
-//             }),
-//           ],
-//         }),
-
-//         // COMPLETED ON
-//         new TableCell({
-//           width: {
-//             size: 900,
-//             type: WidthType.DXA,
-//           },
-
-//           borders: capBorders,
-
-//           margins: {
-//             top: 110,
-//             bottom: 110,
-//             left: 30,
-//             right: 30,
-//           },
-
-//           children: [
-//             new Paragraph({
-//               alignment: AlignmentType.CENTER,
-
-//               children: [
-//                 new TextRun({
-//                   text: item.completedOn || '',
-//                   size: 13,
-//                   color: '475569',
-//                   font: 'Arial',
-//                 }),
-//               ],
-//             }),
-//           ],
-//         }),
-
-//         // ACTIONS
-//         new TableCell({
-//           width: {
-//             size: 850,
-//             type: WidthType.DXA,
-//           },
-
-//           borders: capBorders,
-
-//           margins: {
-//             top: 90,
-//             bottom: 90,
-//             left: 30,
-//             right: 30,
-//           },
-
-//           children: [
-//             new Paragraph({
-//               alignment: AlignmentType.CENTER,
-
-//               children: [
-//                 new TextRun({
-//                   text: '✎ Update',
-//                   size: 12,
-//                   bold: true,
-//                   color: 'FFFFFF',
-//                   font: 'Arial',
-
-//                   shading: {
-//                     fill: '34B882',
-//                     type: ShadingType.CLEAR,
-//                   },
-//                 }),
-//               ],
-//             }),
-//           ],
-//         }),
-//       ],
-//     });
-//   };
-
-//   // ============================================================
-//   // CAP STATUS CARDS
-//   // ============================================================
-
-//   const capStatusCards = [
-//     {
-//       value: '0',
-//       label: 'Due in this Month',
-//       color: 'EA580C',
-//       fill: 'FFF7ED',
-//     },
-//     {
-//       value: '3',
-//       label: 'Overdue',
-//       color: 'DC2626',
-//       fill: 'FFF1F2',
-//     },
-//     {
-//       value: '1',
-//       label: 'Partly Submitted',
-//       color: '2563EB',
-//       fill: 'EFF6FF',
-//     },
-//     {
-//       value: '0',
-//       label: 'Re-submit Requested',
-//       color: 'D97706',
-//       fill: 'FFFBEB',
-//     },
-//     {
-//       value: '3',
-//       label: 'Submitted Pending Review',
-//       color: '9333EA',
-//       fill: 'FAF5FF',
-//     },
-//     {
-//       value: '3',
-//       label: 'Closed',
-//       color: '16A34A',
-//       fill: 'F0FDF4',
-//     },
-//   ];
-
-//   // ============================================================
-//   // DOCUMENT
-//   // ============================================================
-
-//   const doc = new Document({
-//     styles: {
-//       default: {
-//         document: {
-//           run: {
-//             font: 'Arial',
-//             size: 22,
-//           },
-//         },
-//       },
-//     },
-
-//     sections: [
-//       {
-//         properties: {
-//           page: {
-//             margin: {
-//               top: 1440,
-//               right: 1440,
-//               bottom: 1440,
-//               left: 1440,
-//             },
-//           },
-//         },
-
-//         children: [
-
-//           // ======================================================
-//           // 1. OVERALL RANKING
-//           // ======================================================
-
-//           new Paragraph({
-//             spacing: {
-//               after: 60,
-//             },
-
-//             children: [
-//               new TextRun({
-//                 text: company.brand,
-//                 size: 34,
-//                 bold: true,
-//                 color: '1A1A1A',
-//                 font: 'Arial',
-//               }),
-//             ],
-//           }),
-
-//           new Paragraph({
-//             spacing: {
-//               before: 80,
-//               after: 60,
-//             },
-
-//             border: {
-//               bottom: {
-//                 style: BorderStyle.SINGLE,
-//                 size: 2,
-//                 color: 'E5E7EB',
-//                 space: 4,
-//               },
-//             },
-
-//             children: [
-//               new TextRun({
-//                 text: 'Overall Ranking',
-//                 size: 30,
-//                 bold: true,
-//                 color: '1A1A1A',
-//                 font: 'Arial',
-//               }),
-//             ],
-//           }),
-
-//           new Paragraph({
-//             spacing: {
-//               after: 250,
-//             },
-
-//             children: [
-//               new TextRun({
-//                 text:
-//                   `See how your ESG reporting compares to other portfolio companies (n=${allRankings.length}).`,
-//                 size: 24,
-//                 color: '6B7280',
-//                 font: 'Arial',
-//               }),
-//             ],
-//           }),
-
-//           // Overall ranking summary
-//           new Table({
-//             width: {
-//               size: 9000,
-//               type: WidthType.DXA,
-//             },
-
-//             columnWidths: [
-//               3000,
-//               3000,
-//               3000,
-//             ],
-
-//             rows: [
-//               new TableRow({
-//                 children: [
-
-//                   new TableCell({
-//                     width: {
-//                       size: 3000,
-//                       type: WidthType.DXA,
-//                     },
-
-//                     shading: {
-//                       fill: 'F0FDF4',
-//                       type: ShadingType.CLEAR,
-//                     },
-
-//                     borders: cellBorders,
-
-//                     margins: {
-//                       top: 180,
-//                       bottom: 180,
-//                       left: 100,
-//                       right: 100,
-//                     },
-
-//                     children: [
-//                       new Paragraph({
-//                         alignment: AlignmentType.CENTER,
-
-//                         children: [
-//                           new TextRun({
-//                             text: 'OVERALL',
-//                             size: 16,
-//                             bold: true,
-//                             color: '6B7280',
-//                             font: 'Arial',
-//                           }),
-//                         ],
-//                       }),
-
-//                       new Paragraph({
-//                         alignment: AlignmentType.CENTER,
-
-//                         spacing: {
-//                           before: 50,
-//                           after: 30,
-//                         },
-
-//                         children: [
-//                           new TextRun({
-//                             text: m.fmtScore(
-//                               m.overallPercentile,
-//                             ),
-//                             size: 30,
-//                             bold: true,
-//                             color: '059669',
-//                             font: 'Arial',
-//                           }),
-//                         ],
-//                       }),
-
-//                       new Paragraph({
-//                         alignment: AlignmentType.CENTER,
-
-//                         children: [
-//                           new TextRun({
-//                             text:
-//                               `${isCat ? 'Category' : 'Percentile'} Score`,
-//                             size: 15,
-//                             color: '6B7280',
-//                             font: 'Arial',
-//                           }),
-//                         ],
-//                       }),
-//                     ],
-//                   }),
-
-//                   new TableCell({
-//                     width: {
-//                       size: 3000,
-//                       type: WidthType.DXA,
-//                     },
-
-//                     shading: {
-//                       fill: 'EFF6FF',
-//                       type: ShadingType.CLEAR,
-//                     },
-
-//                     borders: cellBorders,
-
-//                     margins: {
-//                       top: 180,
-//                       bottom: 180,
-//                       left: 100,
-//                       right: 100,
-//                     },
-
-//                     children: [
-//                       new Paragraph({
-//                         alignment: AlignmentType.CENTER,
-
-//                         children: [
-//                           new TextRun({
-//                             text: 'PORTFOLIO',
-//                             size: 16,
-//                             bold: true,
-//                             color: '6B7280',
-//                             font: 'Arial',
-//                           }),
-//                         ],
-//                       }),
-
-//                       new Paragraph({
-//                         alignment: AlignmentType.CENTER,
-
-//                         spacing: {
-//                           before: 50,
-//                           after: 30,
-//                         },
-
-//                         children: [
-//                           new TextRun({
-//                             text: `n=${allRankings.length}`,
-//                             size: 30,
-//                             bold: true,
-//                             color: '2563EB',
-//                             font: 'Arial',
-//                           }),
-//                         ],
-//                       }),
-
-//                       new Paragraph({
-//                         alignment: AlignmentType.CENTER,
-
-//                         children: [
-//                           new TextRun({
-//                             text: 'Companies Compared',
-//                             size: 15,
-//                             color: '6B7280',
-//                             font: 'Arial',
-//                           }),
-//                         ],
-//                       }),
-//                     ],
-//                   }),
-
-//                   new TableCell({
-//                     width: {
-//                       size: 3000,
-//                       type: WidthType.DXA,
-//                     },
-
-//                     shading: {
-//                       fill: 'FFFBEB',
-//                       type: ShadingType.CLEAR,
-//                     },
-
-//                     borders: cellBorders,
-
-//                     margins: {
-//                       top: 180,
-//                       bottom: 180,
-//                       left: 100,
-//                       right: 100,
-//                     },
-
-//                     children: [
-//                       new Paragraph({
-//                         alignment: AlignmentType.CENTER,
-
-//                         children: [
-//                           new TextRun({
-//                             text: 'DATA REPORTING',
-//                             size: 16,
-//                             bold: true,
-//                             color: '6B7280',
-//                             font: 'Arial',
-//                           }),
-//                         ],
-//                       }),
-
-//                       new Paragraph({
-//                         alignment: AlignmentType.CENTER,
-
-//                         spacing: {
-//                           before: 50,
-//                           after: 30,
-//                         },
-
-//                         children: [
-//                           new TextRun({
-//                             text: `${overallProgress.percentage}%`,
-//                             size: 30,
-//                             bold: true,
-//                             color: 'D97706',
-//                             font: 'Arial',
-//                           }),
-//                         ],
-//                       }),
-
-//                       new Paragraph({
-//                         alignment: AlignmentType.CENTER,
-
-//                         children: [
-//                           new TextRun({
-//                             text:
-//                               `${overallProgress.filled}/${overallProgress.total} completed`,
-//                             size: 15,
-//                             color: '6B7280',
-//                             font: 'Arial',
-//                           }),
-//                         ],
-//                       }),
-//                     ],
-//                   }),
-//                 ],
-//               }),
-//             ],
-//           }),
-
-
-//           // ======================================================
-//           // 2. ESG SCORE CARDS
-//           // ======================================================
-
-//           new Paragraph({
-//             spacing: {
-//               before: 280,
-//               after: 100,
-//             },
-
-//             border: {
-//               bottom: {
-//                 style: BorderStyle.SINGLE,
-//                 size: 2,
-//                 color: 'E5E7EB',
-//                 space: 4,
-//               },
-//             },
-
-//             children: [
-//               new TextRun({
-//                 text: 'ESG Score Cards',
-//                 size: 28,
-//                 bold: true,
-//                 color: '2D2D2D',
-//                 font: 'Arial',
-//               }),
-//             ],
-//           }),
-
-//           new Table({
-//             width: {
-//               size: 9000,
-//               type: WidthType.DXA,
-//             },
-
-//             columnWidths: [
-//               2250,
-//               2250,
-//               2250,
-//               2250,
-//             ],
-
-//             rows: [
-//               new TableRow({
-//                 height: {
-//                   value: 1150,
-//                   rule: 'atLeast' as any,
-//                 },
-
-//                 children: scoreCards.map(
-//                   (card) =>
-//                     makeScoreCard(
-//                       card.label,
-//                       card.value,
-//                       card.color,
-//                       card.fill,
-//                       true,
-//                     ),
-//                 ),
-//               }),
-//             ],
-//           }),
-
-
-//           // ======================================================
-//           // 3. ESG CATEGORY / COMPOSITE CARDS
-//           // ======================================================
-
-//           new Paragraph({
-//             spacing: {
-//               before: 100,
-//               after: 100,
-//             },
-
-//             children: [],
-//           }),
-
-//           new Table({
-//             width: {
-//               size: 9000,
-//               type: WidthType.DXA,
-//             },
-
-//             columnWidths: [
-//               2250,
-//               2250,
-//               2250,
-//               2250,
-//             ],
-
-//             rows: [
-//               new TableRow({
-//                 height: {
-//                   value: 1150,
-//                   rule: 'atLeast' as any,
-//                 },
-
-//                 children: compositeCards.map(
-//                   (card) =>
-//                     makeScoreCard(
-//                       card.label,
-//                       card.value,
-//                       '059669',
-//                       'F0FDF4',
-//                       false,
-//                     ),
-//                 ),
-//               }),
-//             ],
-//           }),
-
-
-//           // ======================================================
-//           // 4. ESG COMPOSITE SCORE
-//           // ======================================================
-
-//           new Paragraph({
-//             spacing: {
-//               before: 280,
-//               after: 100,
-//             },
-
-//             border: {
-//               bottom: {
-//                 style: BorderStyle.SINGLE,
-//                 size: 2,
-//                 color: 'E5E7EB',
-//                 space: 4,
-//               },
-//             },
-
-//             children: [
-//               new TextRun({
-//                 text:
-//                   `ESG Composite Score: ${m.fmtScore(
-//                     m.esgCompositePercentile,
-//                   )} (n=${m.esgPoolSize}) — ${
-//                     isCat
-//                       ? 'Category'
-//                       : 'Percentile'
-//                   } Comparison`,
-
-//                 size: 28,
-//                 bold: true,
-//                 color: '2D2D2D',
-//                 font: 'Arial',
-//               }),
-//             ],
-//           }),
-
-//           new Table({
-//             width: {
-//               size: 8200,
-//               type: WidthType.DXA,
-//             },
-
-//             columnWidths: [
-//               2700,
-//               2700,
-//               2800,
-//             ],
-
-//             rows: [
-//               new TableRow({
-//                 children: [
-
-//                   new TableCell({
-//                     borders: noBorders,
-//                     width: {
-//                       size: 2700,
-//                       type: WidthType.DXA,
-//                     },
-
-//                     children: [
-//                       new Paragraph({
-//                         children: [
-//                           new TextRun({
-//                             text: '■ ',
-//                             color: '3B82F6',
-//                             size: 20,
-//                             font: 'Arial',
-//                           }),
-
-//                           new TextRun({
-//                             text:
-//                               `Your ${
-//                                 isCat
-//                                   ? 'Category'
-//                                   : 'Percentile'
-//                               }`,
-//                             color: '6B7280',
-//                             size: 20,
-//                             font: 'Arial',
-//                           }),
-//                         ],
-//                       }),
-//                     ],
-//                   }),
-
-//                   new TableCell({
-//                     borders: noBorders,
-//                     width: {
-//                       size: 2700,
-//                       type: WidthType.DXA,
-//                     },
-
-//                     children: [
-//                       new Paragraph({
-//                         children: [
-//                           new TextRun({
-//                             text: '■ ',
-//                             color: '22C55E',
-//                             size: 20,
-//                             font: 'Arial',
-//                           }),
-
-//                           new TextRun({
-//                             text: 'Sector Avg',
-//                             color: '6B7280',
-//                             size: 20,
-//                             font: 'Arial',
-//                           }),
-//                         ],
-//                       }),
-//                     ],
-//                   }),
-
-//                   new TableCell({
-//                     borders: noBorders,
-//                     width: {
-//                       size: 2800,
-//                       type: WidthType.DXA,
-//                     },
-
-//                     children: [
-//                       new Paragraph({
-//                         children: [
-//                           new TextRun({
-//                             text: '■ ',
-//                             color: 'F59E0B',
-//                             size: 20,
-//                             font: 'Arial',
-//                           }),
-
-//                           new TextRun({
-//                             text: 'Revenue Cohort Avg',
-//                             color: '6B7280',
-//                             size: 20,
-//                             font: 'Arial',
-//                           }),
-//                         ],
-//                       }),
-//                     ],
-//                   }),
-//                 ],
-//               }),
-//             ],
-//           }),
-
-//           new Paragraph({
-//             spacing: {
-//               before: 180,
-//               after: 60,
-//             },
-
-//             children: [
-//               new TextRun({
-//                 text: 'ESG Composite',
-//                 size: 24,
-//                 bold: true,
-//                 color: '374151',
-//                 font: 'Arial',
-//               }),
-//             ],
-//           }),
-
-//           new Table({
-//             width: {
-//               size: 8200,
-//               type: WidthType.DXA,
-//             },
-
-//             columnWidths: [
-//               2000,
-//               5500,
-//               700,
-//             ],
-
-//             rows: [
-//               makeBarRow(
-//                 `Your ${
-//                   isCat
-//                     ? 'Category'
-//                     : 'Percentile'
-//                 }`,
-//                 m.esgCompositePercentile,
-//                 '3B82F6',
-//               ),
-
-//               makeBarRow(
-//                 'Sector Avg',
-//                 m.esgCompositeIndAvg,
-//                 '22C55E',
-//               ),
-
-//               makeBarRow(
-//                 'Revenue Cohort Avg',
-//                 m.esgCompositeRevAvg,
-//                 'F59E0B',
-//               ),
-//             ],
-//           }),
-
-
-//           // ======================================================
-//           // 5. ESG PILLARS
-//           // ======================================================
-
-//           new Paragraph({
-//             spacing: {
-//               before: 280,
-//               after: 100,
-//             },
-
-//             border: {
-//               bottom: {
-//                 style: BorderStyle.SINGLE,
-//                 size: 2,
-//                 color: 'E5E7EB',
-//                 space: 4,
-//               },
-//             },
-
-//             children: [
-//               new TextRun({
-//                 text: 'ESG Pillars',
-//                 size: 28,
-//                 bold: true,
-//                 color: '2D2D2D',
-//                 font: 'Arial',
-//               }),
-//             ],
-//           }),
-
-//           ...pillarSections,
-
-
-//           // ======================================================
-//           // 6. eSCAP SCORE
-//           // ======================================================
-
-//           new Paragraph({
-//             spacing: {
-//               before: 450,
-//               after: 120,
-//             },
-
-//             border: {
-//               bottom: {
-//                 style: BorderStyle.SINGLE,
-//                 size: 2,
-//                 color: 'E5E7EB',
-//                 space: 4,
-//               },
-//             },
-
-//             children: [
-//               new TextRun({
-//                 text: 'eSCAP Score',
-//                 size: 30,
-//                 bold: true,
-//                 color: '2D2D2D',
-//                 font: 'Arial',
-//               }),
-//             ],
-//           }),
-
-//           new Paragraph({
-//             spacing: {
-//               after: 150,
-//             },
-
-//             children: [
-//               new TextRun({
-//                 text:
-//                   'Compliance and action-plan status across ESG requirements',
-//                 size: 20,
-//                 color: '6B7280',
-//                 font: 'Arial',
-//               }),
-//             ],
-//           }),
-
-
-//           // ======================================================
-//           // 7. COMPLIANCE SCORE + PRIORITY BREAKDOWN
-//           // ======================================================
-
-//           new Table({
-//             width: {
-//               size: 9000,
-//               type: WidthType.DXA,
-//             },
-
-//             columnWidths: [
-//               2200,
-//               6800,
-//             ],
-
-//             rows: [
-//               new TableRow({
-//                 children: [
-
-//                   // COMPLIANCE SCORE
-//                   new TableCell({
-//                     width: {
-//                       size: 2200,
-//                       type: WidthType.DXA,
-//                     },
-
-//                     borders: capBorders,
-
-//                     shading: {
-//                       fill: 'F0FDF4',
-//                       type: ShadingType.CLEAR,
-//                     },
-
-//                     margins: {
-//                       top: 260,
-//                       bottom: 260,
-//                       left: 120,
-//                       right: 120,
-//                     },
-
-//                     children: [
-
-//                       new Paragraph({
-//                         alignment:
-//                           AlignmentType.CENTER,
-
-//                         spacing: {
-//                           after: 30,
-//                         },
-
-//                         children: [
-//                           new TextRun({
-//                             text: 'B',
-//                             size: 58,
-//                             bold: true,
-//                             color: 'EA580C',
-//                             font: 'Arial',
-//                           }),
-//                         ],
-//                       }),
-
-//                       new Paragraph({
-//                         alignment:
-//                           AlignmentType.CENTER,
-
-//                         spacing: {
-//                           after: 120,
-//                         },
-
-//                         children: [
-//                           new TextRun({
-//                             text: 'At Risk',
-//                             size: 17,
-//                             color: 'EA580C',
-//                             font: 'Arial',
-//                           }),
-//                         ],
-//                       }),
-
-//                       new Paragraph({
-//                         alignment:
-//                           AlignmentType.CENTER,
-
-//                         spacing: {
-//                           after: 120,
-//                         },
-
-//                         children: [
-//                           new TextRun({
-//                             text: '────────',
-//                             size: 10,
-//                             color: 'BBF7D0',
-//                             font: 'Arial',
-//                           }),
-//                         ],
-//                       }),
-
-//                       new Paragraph({
-//                         alignment:
-//                           AlignmentType.CENTER,
-
-//                         children: [
-//                           new TextRun({
-//                             text:
-//                               'Compliance Score',
-//                             size: 19,
-//                             bold: true,
-//                             color: '52698A',
-//                             font: 'Arial',
-//                           }),
-//                         ],
-//                       }),
-//                     ],
-//                   }),
-
-
-//                   // PRIORITY TABLE
-//                   new TableCell({
-//                     width: {
-//                       size: 6800,
-//                       type: WidthType.DXA,
-//                     },
-
-//                     borders: capBorders,
-
-//                     margins: {
-//                       top: 50,
-//                       bottom: 50,
-//                       left: 50,
-//                       right: 50,
-//                     },
-
-//                     children: [
-//                       new Table({
-//                         width: {
-//                           size: 6700,
-//                           type: WidthType.DXA,
-//                         },
-
-//                         columnWidths: [
-//                           850,
-//                           1100,
-//                           1100,
-//                           1100,
-//                           1100,
-//                           1100,
-//                           800,
-//                         ],
-
-//                         rows: [
-
-//                           // HEADER
-//                           new TableRow({
-//                             children: [
-
-//                               capHeaderCell(
-//                                 'PRIORITY',
-//                                 850,
-//                               ),
-
-//                               capHeaderCell(
-//                                 'Completed\nin Time',
-//                                 1100,
-//                               ),
-
-//                               capHeaderCell(
-//                                 'Completed\nwithin 1\nBuffer Time',
-//                                 1100,
-//                               ),
-
-//                               capHeaderCell(
-//                                 'Completed\nwithin 2\nBuffer Time',
-//                                 1100,
-//                               ),
-
-//                               capHeaderCell(
-//                                 'Completed\nwithin 3\nBuffer Time',
-//                                 1100,
-//                               ),
-
-//                               capHeaderCell(
-//                                 'Not completed\n<3 Buffer Time',
-//                                 1100,
-//                               ),
-
-//                               capHeaderCell(
-//                                 'Total',
-//                                 800,
-//                               ),
-//                             ],
-//                           }),
-
-//                           // DATA
-//                           ...prioritySummary.map(
-//                             makePriorityRow,
-//                           ),
-
-//                           // TOTAL
-//                           new TableRow({
-//                             children: [
-
-//                               new TableCell({
-//                                 width: {
-//                                   size: 850,
-//                                   type: WidthType.DXA,
-//                                 },
-
-//                                 shading: {
-//                                   fill: 'ECFDF5',
-//                                   type: ShadingType.CLEAR,
-//                                 },
-
-//                                 borders: capBorders,
-
-//                                 children: [
-//                                   new Paragraph({
-//                                     alignment:
-//                                       AlignmentType.CENTER,
-
-//                                     children: [
-//                                       new TextRun({
-//                                         text: 'Total',
-//                                         size: 16,
-//                                         bold: true,
-//                                         color: '374151',
-//                                         font: 'Arial',
-//                                       }),
-//                                     ],
-//                                   }),
-//                                 ],
-//                               }),
-
-//                               ...[
-//                                 0,
-//                                 0,
-//                                 0,
-//                                 0,
-//                                 8,
-//                               ].map(
-//                                 (value) =>
-//                                   new TableCell({
-//                                     width: {
-//                                       size: 1100,
-//                                       type: WidthType.DXA,
-//                                     },
-
-//                                     shading: {
-//                                       fill: 'ECFDF5',
-//                                       type: ShadingType.CLEAR,
-//                                     },
-
-//                                     borders:
-//                                       capBorders,
-
-//                                     children: [
-//                                       new Paragraph({
-//                                         alignment:
-//                                           AlignmentType.CENTER,
-
-//                                         children: [
-//                                           new TextRun({
-//                                             text:
-//                                               String(
-//                                                 value,
-//                                               ),
-//                                             size: 16,
-//                                             bold: true,
-//                                             color:
-//                                               value > 0
-//                                                 ? 'EF4444'
-//                                                 : '059669',
-//                                             font: 'Arial',
-//                                           }),
-//                                         ],
-//                                       }),
-//                                     ],
-//                                   }),
-//                               ),
-
-//                               new TableCell({
-//                                 width: {
-//                                   size: 800,
-//                                   type: WidthType.DXA,
-//                                 },
-
-//                                 shading: {
-//                                   fill: 'ECFDF5',
-//                                   type: ShadingType.CLEAR,
-//                                 },
-
-//                                 borders:
-//                                   capBorders,
-
-//                                 children: [
-//                                   new Paragraph({
-//                                     alignment:
-//                                       AlignmentType.CENTER,
-
-//                                     children: [
-//                                       new TextRun({
-//                                         text: '8',
-//                                         size: 17,
-//                                         bold: true,
-//                                         color: '059669',
-//                                         font: 'Arial',
-//                                         shading: {
-//                                           fill: 'A7F3D0',
-//                                           type:
-//                                             ShadingType.CLEAR,
-//                                         },
-//                                       }),
-//                                     ],
-//                                   }),
-//                                 ],
-//                               }),
-//                             ],
-//                           }),
-//                         ],
-//                       }),
-//                     ],
-//                   }),
-//                 ],
-//               }),
-//             ],
-//           }),
-
-
-//           // ======================================================
-//           // 8. ESCAP STATUS CARDS
-//           // ======================================================
-
-//           new Paragraph({
-//             spacing: {
-//               before: 120,
-//               after: 80,
-//             },
-
-//             children: [],
-//           }),
-
-//           new Table({
-//             width: {
-//               size: 9000,
-//               type: WidthType.DXA,
-//             },
-
-//             columnWidths: [
-//               1500,
-//               1500,
-//               1500,
-//               1500,
-//               1500,
-//               1500,
-//             ],
-
-//             rows: [
-//               new TableRow({
-//                 children:
-//                   capStatusCards.map(
-//                     (card) =>
-//                       new TableCell({
-//                         width: {
-//                           size: 1500,
-//                           type: WidthType.DXA,
-//                         },
-
-//                         shading: {
-//                           fill: card.fill,
-//                           type:
-//                             ShadingType.CLEAR,
-//                         },
-
-//                         borders: noBorders,
-
-//                         margins: {
-//                           top: 110,
-//                           bottom: 110,
-//                           left: 50,
-//                           right: 50,
-//                         },
-
-//                         children: [
-
-//                           new Paragraph({
-//                             alignment:
-//                               AlignmentType.CENTER,
-
-//                             spacing: {
-//                               after: 20,
-//                             },
-
-//                             children: [
-//                               new TextRun({
-//                                 text:
-//                                   card.value,
-//                                 size: 25,
-//                                 bold: true,
-//                                 color:
-//                                   card.color,
-//                                 font: 'Arial',
-//                               }),
-//                             ],
-//                           }),
-
-//                           new Paragraph({
-//                             alignment:
-//                               AlignmentType.CENTER,
-
-//                             children: [
-//                               new TextRun({
-//                                 text:
-//                                   card.label,
-//                                 size: 11,
-//                                 color:
-//                                   card.color,
-//                                 font: 'Arial',
-//                               }),
-//                             ],
-//                           }),
-//                         ],
-//                       }),
-//                   ),
-//               }),
-//             ],
-//           }),
-
-
-//           // ======================================================
-//           // 9. CP
-//           // ======================================================
-
-//           new Paragraph({
-//             spacing: {
-//               before: 150,
-//               after: 0,
-//             },
-
-//             children: [],
-//           }),
-
-//           new Table({
-//             width: {
-//               size: 9000,
-//               type: WidthType.DXA,
-//             },
-
-//             columnWidths: [
-//               8500,
-//               500,
-//             ],
-
-//             rows: [
-//               new TableRow({
-//                 children: [
-
-//                   new TableCell({
-//                     width: {
-//                       size: 8500,
-//                       type: WidthType.DXA,
-//                     },
-
-//                     shading: {
-//                       fill: 'F8FAFC',
-//                       type: ShadingType.CLEAR,
-//                     },
-
-//                     borders: capBorders,
-
-//                     margins: {
-//                       top: 110,
-//                       bottom: 110,
-//                       left: 120,
-//                       right: 100,
-//                     },
-
-//                     children: [
-//                       new Paragraph({
-//                         children: [
-//                           new TextRun({
-//                             text:
-//                               'CP – Conditions Precedent',
-//                             size: 20,
-//                             bold: true,
-//                             color: '1E293B',
-//                             font: 'Arial',
-//                           }),
-//                         ],
-//                       }),
-//                     ],
-//                   }),
-
-//                   new TableCell({
-//                     width: {
-//                       size: 500,
-//                       type: WidthType.DXA,
-//                     },
-
-//                     shading: {
-//                       fill: 'F8FAFC',
-//                       type: ShadingType.CLEAR,
-//                     },
-
-//                     borders: capBorders,
-
-//                     children: [
-//                       new Paragraph({
-//                         alignment:
-//                           AlignmentType.CENTER,
-
-//                         children: [
-//                           new TextRun({
-//                             text: '▼',
-//                             size: 15,
-//                             color: '64748B',
-//                             font: 'Arial',
-//                           }),
-//                         ],
-//                       }),
-//                     ],
-//                   }),
-//                 ],
-//               }),
-//             ],
-//           }),
-
-
-//           // ======================================================
-//           // 10. CS
-//           // ======================================================
-
-//           new Table({
-//             width: {
-//               size: 9000,
-//               type: WidthType.DXA,
-//             },
-
-//             columnWidths: [
-//               8500,
-//               500,
-//             ],
-
-//             rows: [
-//               new TableRow({
-//                 children: [
-
-//                   new TableCell({
-//                     width: {
-//                       size: 8500,
-//                       type: WidthType.DXA,
-//                     },
-
-//                     shading: {
-//                       fill: 'F8FAFC',
-//                       type: ShadingType.CLEAR,
-//                     },
-
-//                     borders: capBorders,
-
-//                     margins: {
-//                       top: 110,
-//                       bottom: 110,
-//                       left: 120,
-//                       right: 100,
-//                     },
-
-//                     children: [
-//                       new Paragraph({
-//                         children: [
-//                           new TextRun({
-//                             text:
-//                               'CS – Conditions Subsequent',
-//                             size: 20,
-//                             bold: true,
-//                             color: '1E293B',
-//                             font: 'Arial',
-//                           }),
-//                         ],
-//                       }),
-//                     ],
-//                   }),
-
-//                   new TableCell({
-//                     width: {
-//                       size: 500,
-//                       type: WidthType.DXA,
-//                     },
-
-//                     shading: {
-//                       fill: 'F8FAFC',
-//                       type: ShadingType.CLEAR,
-//                     },
-
-//                     borders: capBorders,
-
-//                     children: [
-//                       new Paragraph({
-//                         alignment:
-//                           AlignmentType.CENTER,
-
-//                         children: [
-//                           new TextRun({
-//                             text: '▶',
-//                             size: 15,
-//                             color: '2563EB',
-//                             font: 'Arial',
-//                           }),
-//                         ],
-//                       }),
-//                     ],
-//                   }),
-//                 ],
-//               }),
-//             ],
-//           }),
-
-
-//           // ======================================================
-//           // 11. CAP ITEMS TABLE
-//           // ======================================================
-
-//           new Table({
-//             width: {
-//               size: 9000,
-//               type: WidthType.DXA,
-//             },
-
-//             columnWidths: [
-//               450,
-//               2350,
-//               800,
-//               1100,
-//               1200,
-//               1350,
-//               900,
-//               850,
-//             ],
-
-//             rows: [
-
-//               new TableRow({
-//                 children: [
-//                   capHeaderCell(
-//                     'S.\nNo',
-//                     450,
-//                   ),
-
-//                   capHeaderCell(
-//                     'CAP Item',
-//                     2350,
-//                     AlignmentType.CENTER,
-//                   ),
-
-//                   capHeaderCell(
-//                     'Priority↓',
-//                     800,
-//                   ),
-
-//                   capHeaderCell(
-//                     'Target Date↑',
-//                     1100,
-//                     AlignmentType.CENTER,
-//                   ),
-
-//                   capHeaderCell(
-//                     'Company Status',
-//                     1200,
-//                   ),
-
-//                   capHeaderCell(
-//                     'Investor Status',
-//                     1350,
-//                   ),
-
-//                   capHeaderCell(
-//                     'Completed On',
-//                     900,
-//                   ),
-
-//                   capHeaderCell(
-//                     'Actions',
-//                     850,
-//                   ),
-//                 ],
-//               }),
-
-//               // ARRAY ITERATION
-//               ...dummyCapItems.map(
-//                 makeCapItemRow,
-//               ),
-//             ],
-//           }),
-
-
-//           // ======================================================
-//           // 12. LOGIN / INFORMATION
-//           // ======================================================
-
-//           new Paragraph({
-//             shading: {
-//               fill: 'EFF6FF',
-//               type: ShadingType.CLEAR,
-//             },
-
-//             spacing: {
-//               before: 400,
-//               after: 60,
-//             },
-
-//             children: [
-//               new TextRun({
-//                 text:
-//                   'Curious how your metrics are calculated and how you compare with your sector and revenue peers? Log in to view your results and tailored ESG recommendations.',
-//                 size: 22,
-//                 italics: true,
-//                 color: '374151',
-//                 font: 'Arial',
-//               }),
-//             ],
-//           }),
-
-//           new Paragraph({
-//             shading: {
-//               fill: 'EFF6FF',
-//               type: ShadingType.CLEAR,
-//             },
-
-//             spacing: {
-//               after: 60,
-//             },
-
-//             children: [
-//               new TextRun({
-//                 text: 'URL : ',
-//                 size: 22,
-//                 bold: true,
-//                 color: '374151',
-//                 font: 'Arial',
-//               }),
-
-//               new TextRun({
-//                 text:
-//                   'https://fireside.fandoro.ai/',
-//                 size: 22,
-//                 bold: true,
-//                 color: '2563EB',
-//                 font: 'Arial',
-//               }),
-//             ],
-//           }),
-
-
-//           // ======================================================
-//           // LOGIN DETAILS
-//           // ======================================================
-
-//           new Table({
-//             width: {
-//               size: 5000,
-//               type: WidthType.DXA,
-//             },
-
-//             columnWidths: [
-//               1800,
-//               3200,
-//             ],
-
-//             rows: [
-
-//               new TableRow({
-//                 children: [
-
-//                   new TableCell({
-//                     borders: cellBorders,
-
-//                     width: {
-//                       size: 1800,
-//                       type: WidthType.DXA,
-//                     },
-
-//                     margins: {
-//                       top: 60,
-//                       bottom: 60,
-//                       left: 100,
-//                       right: 100,
-//                     },
-
-//                     children: [
-//                       new Paragraph({
-//                         children: [
-//                           new TextRun({
-//                             text: 'Login ID:',
-//                             size: 22,
-//                             bold: true,
-//                             color: '374151',
-//                             font: 'Arial',
-//                           }),
-//                         ],
-//                       }),
-//                     ],
-//                   }),
-
-//                   new TableCell({
-//                     borders: cellBorders,
-
-//                     width: {
-//                       size: 3200,
-//                       type: WidthType.DXA,
-//                     },
-
-//                     margins: {
-//                       top: 60,
-//                       bottom: 60,
-//                       left: 100,
-//                       right: 100,
-//                     },
-
-//                     children: [
-//                       new Paragraph({
-//                         children: [
-//                           new TextRun({
-//                             text:
-//                               company.companyCode,
-//                             size: 22,
-//                             font: 'Courier New',
-//                           }),
-//                         ],
-//                       }),
-//                     ],
-//                   }),
-//                 ],
-//               }),
-
-//               new TableRow({
-//                 children: [
-
-//                   new TableCell({
-//                     borders: cellBorders,
-
-//                     width: {
-//                       size: 1800,
-//                       type: WidthType.DXA,
-//                     },
-
-//                     margins: {
-//                       top: 60,
-//                       bottom: 60,
-//                       left: 100,
-//                       right: 100,
-//                     },
-
-//                     children: [
-//                       new Paragraph({
-//                         children: [
-//                           new TextRun({
-//                             text: 'Password:',
-//                             size: 22,
-//                             bold: true,
-//                             color: '374151',
-//                             font: 'Arial',
-//                           }),
-//                         ],
-//                       }),
-//                     ],
-//                   }),
-
-//                   new TableCell({
-//                     borders: cellBorders,
-
-//                     width: {
-//                       size: 3200,
-//                       type: WidthType.DXA,
-//                     },
-
-//                     margins: {
-//                       top: 60,
-//                       bottom: 60,
-//                       left: 100,
-//                       right: 100,
-//                     },
-
-//                     children: [
-//                       new Paragraph({
-//                         children: [
-//                           new TextRun({
-//                             text: m.password,
-//                             size: 22,
-//                             font: 'Courier New',
-//                           }),
-//                         ],
-//                       }),
-//                     ],
-//                   }),
-//                 ],
-//               }),
-//             ],
-//           }),
-
-
-//           // ======================================================
-//           // 13. SUPPORT
-//           // ======================================================
-
-//           new Paragraph({
-//             spacing: {
-//               before: 300,
-//               after: 60,
-//             },
-
-//             shading: {
-//               fill: 'F3F4F6',
-//               type: ShadingType.CLEAR,
-//             },
-
-//             children: [
-//               new TextRun({
-//                 text:
-//                   'For technical issues faced:',
-//                 size: 22,
-//                 bold: true,
-//                 color: '374151',
-//                 font: 'Arial',
-//               }),
-//             ],
-//           }),
-
-//           new Paragraph({
-//             shading: {
-//               fill: 'F3F4F6',
-//               type: ShadingType.CLEAR,
-//             },
-
-//             spacing: {
-//               after: 100,
-//             },
-
-//             children: [
-//               new TextRun({
-//                 text:
-//                   'Contact Smita Mishra — sm@fandoro.com',
-//                 size: 22,
-//                 color: '374151',
-//                 font: 'Arial',
-//               }),
-//             ],
-//           }),
-
-//           new Paragraph({
-//             shading: {
-//               fill: 'F3F4F6',
-//               type: ShadingType.CLEAR,
-//             },
-
-//             spacing: {
-//               after: 60,
-//             },
-
-//             children: [
-//               new TextRun({
-//                 text:
-//                   'For data related issues:',
-//                 size: 22,
-//                 bold: true,
-//                 color: '374151',
-//                 font: 'Arial',
-//               }),
-//             ],
-//           }),
-
-//           new Paragraph({
-//             shading: {
-//               fill: 'F3F4F6',
-//               type: ShadingType.CLEAR,
-//             },
-
-//             spacing: {
-//               after: 200,
-//             },
-
-//             children: [
-//               new TextRun({
-//                 text:
-//                   'Contact Tarak Doshi — tarak@firesideventures.com',
-//                 size: 22,
-//                 color: '374151',
-//                 font: 'Arial',
-//               }),
-//             ],
-//           }),
-
-
-//           // ======================================================
-//           // 14. FOOTER
-//           // ======================================================
-
-//           new Paragraph({
-//             spacing: {
-//               before: 400,
-//             },
-
-//             border: {
-//               top: {
-//                 style: BorderStyle.SINGLE,
-//                 size: 1,
-//                 color: 'E5E7EB',
-//                 space: 8,
-//               },
-//             },
-
-//             children: [
-//               new TextRun({
-//                 text:
-//                   'Fireside Ventures — ESG Reporting Platform',
-//                 size: 20,
-//                 color: '9CA3AF',
-//                 font: 'Arial',
-//               }),
-//             ],
-//           }),
-
-//           new Paragraph({
-//             children: [
-//               new TextRun({
-//                 text:
-//                   'This is a confidential communication intended solely for the recipient.',
-//                 size: 20,
-//                 color: '9CA3AF',
-//                 font: 'Arial',
-//               }),
-//             ],
-//           }),
-//         ],
-//       },
-//     ],
-//   });
-
-//   return Packer.toBlob(doc);
-// }
 
 async function generateEmailDOCXV3(
   company: typeof mockCompanies[0],
@@ -9434,7 +6406,7 @@ async function generateEmailDOCXV3(
 
   const scoreCards = [
     {
-      label: 'OVERALL',
+      label: 'RESPONSIVENESS SCORE',
       value: m.fmtScore(
         m.overallPercentile,
       ),
@@ -9826,7 +6798,7 @@ async function generateEmailDOCXV3(
                   text: item.priority,
                   size: 11,
                   bold: true,
-                  color: item.color,
+                  color: '111827',
                   font: 'Arial',
                 }),
               ],
@@ -12353,8 +9325,9 @@ async function generateEmailDOCXV4(
         buffer1: number,
         buffer2: number,
         buffer3: number,
-        under3: number,
-        over3: number,
+        afterBufer: number,
+        overdue:number,
+        upcoming: number,
         total: number
       },
       medium: {
@@ -12362,8 +9335,9 @@ async function generateEmailDOCXV4(
         buffer1: number,
         buffer2: number,
         buffer3: number,
-        under3: number,
-        over3: number,
+        afterBufer: number,
+        overdue:number,
+        upcoming: number,
         total: number
       },
       low: {
@@ -12371,8 +9345,9 @@ async function generateEmailDOCXV4(
         buffer1: number,
         buffer2: number,
         buffer3: number,
-        under3: number,
-        over3: number,
+        afterBufer: number,
+        overdue:number,
+        upcoming: number,
         total: number
       }
     },
@@ -12833,35 +9808,59 @@ async function generateEmailDOCXV4(
 
   const scoreCards = [
     {
-      label: 'OVERALL',
+      label: 'Responsiveness Score',
       value: m.fmtScore(m.overallPercentile),
-      color: '059669',
-      fill: 'F0FDF4',
+      color: getGrade(m.overallPercentile).color,
+      fill: 'FFFFFF',
       trend: overallTrend,
+      companyCount:41,
+      labelSize: 16,
+      valueSize: 32,
+      trendSize: 20,
+      gradeSize: 16,
+      countSize: 14,
     },
 
     {
-      label: 'COMPLETENESS',
+      label: 'Completeness',
       value: m.fmtScore(m.completenessPercentile),
-      color: '2563EB',
-      fill: 'EFF6FF',
+      color: getGrade(m.completenessPercentile).color,
+      companyCount:41,
+      fill: 'FFFFFF',
       trend: completenessTrend,
+      labelSize: 12,
+      valueSize: 18,
+      trendSize: 12,
+      gradeSize: 12,
+      countSize: 12,
     },
 
     {
-      label: 'CONSISTENCY',
+      label: 'Consistency',
       value: m.fmtScore(m.consistencyPercentile),
-      color: '7C3AED',
-      fill: 'F5F3FF',
+      color: getGrade(m.consistencyPercentile).color,
+      fill: 'FFFFFF',
+      companyCount:41,
       trend: consistencyTrend,
+      labelSize: 12,
+      valueSize: 18,
+      trendSize: 12,
+      gradeSize: 12,
+      countSize: 12,
     },
 
     {
-      label: 'TIMELINESS',
+      label: 'Timeliness',
       value: m.fmtScore(m.timelinessPercentile),
-      color: 'D97706',
-      fill: 'FFFBEB',
+      color: getGrade(m.timelinessPercentile).color,
+      fill: 'FFFFFF',
       trend: timelinessTrend,
+      labelSize: 12,
+      valueSize: 18,
+      trendSize: 12,
+      gradeSize: 12,
+      companyCount:41,
+      countSize: 12,
     },
   ];
 
@@ -12871,35 +9870,59 @@ async function generateEmailDOCXV4(
 
   const compositeCards = [
     {
-      label: 'COMPOSITE SCORE',
+      label: 'ESG Performance Score',
       value: m.fmtScore(m.esgCompositePercentile),
-      color: '059669',
-      fill: 'F0FDF4',
+      color: getGrade(m.esgCompositePercentile).color,
+      fill: 'FFFFFF',
       trend: esgCompositeTrend,
+      companyCount:41,
+      labelSize: 16,
+      valueSize: 32,
+      trendSize: 20,
+      gradeSize: 16,
+      countSize: 14,
     },
 
     {
-      label: 'ENVIRONMENT',
+      label: 'Environment',
       value: m.fmtScore(m.pillars[0].companyPctile),
-      color: '2563EB',
-      fill: 'EFF6FF',
+      color: getGrade(m.pillars[0].companyPctile).color,
+      fill: 'FFFFFF',
       trend: environmentTrend,
+      companyCount:m.pillars[0].n,
+      labelSize: 12,
+      valueSize: 18,
+      trendSize: 12,
+      gradeSize: 12,
+      countSize: 12,
     },
 
     {
-      label: 'SOCIAL',
+      label: 'Social',
       value: m.fmtScore(m.pillars[1].companyPctile),
-      color: '7C3AED',
-      fill: 'F5F3FF',
+      color: getGrade(m.pillars[1].companyPctile).color,
+      companyCount:m.pillars[1].n,
+      fill: 'FFFFFF',
       trend: socialTrend,
+      labelSize: 12,
+      valueSize: 18,
+      trendSize: 12,
+      gradeSize: 12,
+      countSize: 12,
     },
 
     {
-      label: 'GOVERNANCE',
+      label: 'Governance',
       value: m.fmtScore(m.pillars[2].companyPctile),
-      color: 'D97706',
-      fill: 'FFFBEB',
+      color: getGrade(m.pillars[2].companyPctile).color,
+      fill: 'FFFFFF',
       trend: governanceTrend,
+      companyCount:m.pillars[2].n,
+      labelSize: 12,
+      valueSize: 18,
+      trendSize: 12,
+      gradeSize: 12,
+      countSize: 12,
     },
   ];
 
@@ -12914,6 +9937,13 @@ async function generateEmailDOCXV4(
     fill: string,
     showGrade = true,
     trend: Trend = 'stable',
+    companyCount: number,
+    labelSize?: number,
+    valueSize?: number,
+    trendSize?: number,
+    gradeSize?: number,
+    countSize?: number,
+    
   ) =>
     new TableCell({
       width: {
@@ -12950,7 +9980,7 @@ async function generateEmailDOCXV4(
           children: [
             new TextRun({
               text: label,
-              size: 16,
+              size: labelSize ?? 16,
               bold: true,
               color: '6B7280',
               font: 'Arial',
@@ -12970,7 +10000,7 @@ async function generateEmailDOCXV4(
           children: [
             new TextRun({
               text: value,
-              size: showGrade ? 24 : 20,
+              size: valueSize ?? (showGrade ? 24 : 20),
               bold: true,
               color,
               font: 'Arial',
@@ -12978,7 +10008,7 @@ async function generateEmailDOCXV4(
 
             new TextRun({
               text: ` ${getTrendIcon(trend)}`,
-              size: showGrade ? 18 : 16,
+              size: trendSize ?? (showGrade ? 18 : 16),
               bold: true,
               color: getTrendColor(trend),
               font: 'Arial',
@@ -13000,7 +10030,7 @@ async function generateEmailDOCXV4(
               children: [
                 new TextRun({
                   text: 'grade',
-                  size: 16,
+                  size: gradeSize ?? 16,
                   color: '6B7280',
                   font: 'Arial',
                 }),
@@ -13020,8 +10050,8 @@ async function generateEmailDOCXV4(
 
           children: [
             new TextRun({
-              text: `n=${allRankings.length}`,
-              size: 14,
+              text: `n=${companyCount}`,
+              size: countSize ?? 14,
               color: '6B7280',
               font: 'Arial',
             }),
@@ -13112,8 +10142,9 @@ async function generateEmailDOCXV4(
       color: 'DC2626',
       completedInTime: esgCapTemplateData.priorityScore.high.ontime,
       buffer1: esgCapTemplateData.priorityScore.high.buffer1 + esgCapTemplateData.priorityScore.high.buffer2 + esgCapTemplateData.priorityScore.high.buffer3,
-      notCompleted: esgCapTemplateData.priorityScore.high.over3,
-      upcoming: esgCapTemplateData.priorityScore.high.under3,
+      afterBuffer: esgCapTemplateData.priorityScore.high.afterBufer,
+      overdue: esgCapTemplateData.priorityScore.high.overdue,
+      upcoming: esgCapTemplateData.priorityScore.high.upcoming,
       total: esgCapTemplateData.priorityScore.high.total,
     },
 
@@ -13122,8 +10153,9 @@ async function generateEmailDOCXV4(
       color: 'D97706',
       completedInTime: esgCapTemplateData.priorityScore.medium.ontime,
       buffer1: esgCapTemplateData.priorityScore.medium.buffer1 + esgCapTemplateData.priorityScore.medium.buffer2 + esgCapTemplateData.priorityScore.medium.buffer3,
-      notCompleted: esgCapTemplateData.priorityScore.medium.over3,
-      upcoming: esgCapTemplateData.priorityScore.medium.under3,
+      afterBuffer: esgCapTemplateData.priorityScore.medium.afterBufer,
+      overdue: esgCapTemplateData.priorityScore.medium.overdue,
+      upcoming: esgCapTemplateData.priorityScore.medium.upcoming,
       total: esgCapTemplateData.priorityScore.medium.total,
     },
 
@@ -13132,11 +10164,14 @@ async function generateEmailDOCXV4(
       color: '64748B',
       completedInTime: esgCapTemplateData.priorityScore.low.ontime,
       buffer1: esgCapTemplateData.priorityScore.low.buffer1 + esgCapTemplateData.priorityScore.low.buffer2 + esgCapTemplateData.priorityScore.low.buffer3,
-      notCompleted: esgCapTemplateData.priorityScore.low.over3,
-      upcoming: esgCapTemplateData.priorityScore.low.under3,
+      afterBuffer: esgCapTemplateData.priorityScore.low.afterBufer,
+      overdue: esgCapTemplateData.priorityScore.low.overdue,
+      upcoming: esgCapTemplateData.priorityScore.low.upcoming,
       total: esgCapTemplateData.priorityScore.low.total,
     },
   ] : [];
+
+  console.log("prioritySummary", prioritySummary)
 
   // ============================================================
   // ESCAP HEADER CELL
@@ -13248,7 +10283,8 @@ async function generateEmailDOCXV4(
         ...[
           item.completedInTime,
           item.buffer1,
-          item.notCompleted,
+          item.afterBuffer,
+          item.overdue,
           item.upcoming,
           item.total
         ].map(
@@ -13890,313 +10926,7 @@ async function generateEmailDOCXV4(
             ],
           }),
 
-          // ======================================================
-          // 1. OVERALL RANKING
-          // ======================================================
-
-          // new Paragraph({
-          //   spacing: {
-          //     before: 80,
-          //     after: 60,
-          //   },
-
-          //   border: {
-          //     bottom: {
-          //       style: BorderStyle.SINGLE,
-          //       size: 2,
-          //       color: 'E5E7EB',
-          //       space: 4,
-          //     },
-          //   },
-
-          //   children: [
-          //     new TextRun({
-          //       text: 'Overall Ranking',
-          //       size: 30,
-          //       bold: true,
-          //       color: '1A1A1A',
-          //       font: 'Arial',
-          //     }),
-          //   ],
-          // }),
-
-          // new Paragraph({
-          //   spacing: {
-          //     after: 180,
-          //   },
-
-          //   children: [
-          //     new TextRun({
-          //       text:
-          //         `See how your ESG reporting compares to other portfolio companies (n=${allRankings.length}).`,
-          //       size: 20,
-          //       color: '6B7280',
-          //       font: 'Arial',
-          //     }),
-          //   ],
-          // }),
-
-          // new Table({
-          //   width: {
-          //     size: 9000,
-          //     type: WidthType.DXA,
-          //   },
-
-          //   columnWidths: [
-          //     3000,
-          //     3000,
-          //     3000,
-          //   ],
-
-          //   rows: [
-          //     new TableRow({
-          //       cantSplit: true,
-
-          //       children: [
-          //         new TableCell({
-          //           width: {
-          //             size: 3000,
-          //             type: WidthType.DXA,
-          //           },
-
-          //           shading: {
-          //             fill: 'F0FDF4',
-          //             type:
-          //               ShadingType.CLEAR,
-          //           },
-
-          //           borders: cellBorders,
-
-          //           margins: {
-          //             top: 160,
-          //             bottom: 160,
-          //             left: 80,
-          //             right: 80,
-          //           },
-
-          //           verticalAlign:
-          //             'center' as any,
-
-          //           children: [
-          //             new Paragraph({
-          //               alignment:
-          //                 AlignmentType.CENTER,
-
-          //               children: [
-          //                 new TextRun({
-          //                   text: 'OVERALL',
-          //                   size: 15,
-          //                   bold: true,
-          //                   color: '6B7280',
-          //                   font: 'Arial',
-          //                 }),
-          //               ],
-          //             }),
-
-          //             new Paragraph({
-          //               alignment:
-          //                 AlignmentType.CENTER,
-
-          //               spacing: {
-          //                 before: 40,
-          //                 after: 20,
-          //               },
-
-          //               children: [
-          //                 new TextRun({
-          //                   text:
-          //                     m.fmtScore(
-          //                       m.overallPercentile,
-          //                     ),
-          //                   size: 28,
-          //                   bold: true,
-          //                   color: '059669',
-          //                   font: 'Arial',
-          //                 }),
-          //               ],
-          //             }),
-
-          //             new Paragraph({
-          //               alignment:
-          //                 AlignmentType.CENTER,
-
-          //               children: [
-          //                 new TextRun({
-          //                   text:
-          //                     `${isCat
-          //                       ? 'Category'
-          //                       : 'Percentile'
-          //                     } Score`,
-          //                   size: 14,
-          //                   color: '6B7280',
-          //                   font: 'Arial',
-          //                 }),
-          //               ],
-          //             }),
-          //           ],
-          //         }),
-
-          //         new TableCell({
-          //           width: {
-          //             size: 3000,
-          //             type: WidthType.DXA,
-          //           },
-
-          //           shading: {
-          //             fill: 'EFF6FF',
-          //             type:
-          //               ShadingType.CLEAR,
-          //           },
-
-          //           borders: cellBorders,
-
-          //           margins: {
-          //             top: 160,
-          //             bottom: 160,
-          //             left: 80,
-          //             right: 80,
-          //           },
-
-          //           verticalAlign:
-          //             'center' as any,
-
-          //           children: [
-          //             new Paragraph({
-          //               alignment:
-          //                 AlignmentType.CENTER,
-
-          //               children: [
-          //                 new TextRun({
-          //                   text: 'PORTFOLIO',
-          //                   size: 15,
-          //                   bold: true,
-          //                   color: '6B7280',
-          //                   font: 'Arial',
-          //                 }),
-          //               ],
-          //             }),
-
-          //             new Paragraph({
-          //               alignment:
-          //                 AlignmentType.CENTER,
-
-          //               spacing: {
-          //                 before: 40,
-          //                 after: 20,
-          //               },
-
-          //               children: [
-          //                 new TextRun({
-          //                   text:
-          //                     `n=${allRankings.length}`,
-          //                   size: 28,
-          //                   bold: true,
-          //                   color: '2563EB',
-          //                   font: 'Arial',
-          //                 }),
-          //               ],
-          //             }),
-
-          //             new Paragraph({
-          //               alignment:
-          //                 AlignmentType.CENTER,
-
-          //               children: [
-          //                 new TextRun({
-          //                   text:
-          //                     'Companies Compared',
-          //                   size: 14,
-          //                   color: '6B7280',
-          //                   font: 'Arial',
-          //                 }),
-          //               ],
-          //             }),
-          //           ],
-          //         }),
-
-          //         new TableCell({
-          //           width: {
-          //             size: 3000,
-          //             type: WidthType.DXA,
-          //           },
-
-          //           shading: {
-          //             fill: 'FFFBEB',
-          //             type:
-          //               ShadingType.CLEAR,
-          //           },
-
-          //           borders: cellBorders,
-
-          //           margins: {
-          //             top: 160,
-          //             bottom: 160,
-          //             left: 80,
-          //             right: 80,
-          //           },
-
-          //           verticalAlign:
-          //             'center' as any,
-
-          //           children: [
-          //             new Paragraph({
-          //               alignment:
-          //                 AlignmentType.CENTER,
-
-          //               children: [
-          //                 new TextRun({
-          //                   text:
-          //                     'DATA REPORTING',
-          //                   size: 15,
-          //                   bold: true,
-          //                   color: '6B7280',
-          //                   font: 'Arial',
-          //                 }),
-          //               ],
-          //             }),
-
-          //             new Paragraph({
-          //               alignment:
-          //                 AlignmentType.CENTER,
-
-          //               spacing: {
-          //                 before: 40,
-          //                 after: 20,
-          //               },
-
-          //               children: [
-          //                 new TextRun({
-          //                   text:
-          //                     `${overallProgress.percentage}%`,
-          //                   size: 28,
-          //                   bold: true,
-          //                   color: 'D97706',
-          //                   font: 'Arial',
-          //                 }),
-          //               ],
-          //             }),
-
-          //             new Paragraph({
-          //               alignment:
-          //                 AlignmentType.CENTER,
-
-          //               children: [
-          //                 new TextRun({
-          //                   text:
-          //                     `${overallProgress.filled}/${overallProgress.total} completed`,
-          //                   size: 14,
-          //                   color: '6B7280',
-          //                   font: 'Arial',
-          //                 }),
-          //               ],
-          //             }),
-          //           ],
-          //         }),
-          //       ],
-          //     }),
-          //   ],
-          // }),
-
+          
           // ======================================================
           // 2. ESG SCORE CARDS
           // ======================================================
@@ -14222,6 +10952,22 @@ async function generateEmailDOCXV4(
                 size: 28,
                 bold: true,
                 color: '2D2D2D',
+                font: 'Arial',
+              }),
+            ],
+          }),
+
+          new Paragraph({
+            spacing: {
+              before: 0,    // removes/reduces the gap above this line
+              after: 200,   // increases the gap below this line
+            },
+            children: [
+              new TextRun({
+                text: 'See how your ESG reporting compares to other portfolio companies (n=41).',
+                size: 15,
+                bold: false,
+                color: '1A1A1A',
                 font: 'Arial',
               }),
             ],
@@ -14254,11 +11000,34 @@ async function generateEmailDOCXV4(
                         card.fill,
                         true,
                         card.trend,
+                        card.companyCount,
+                        card.labelSize,
+                        card.valueSize,
+                        card.trendSize,
+                        card.gradeSize,
+                        card.countSize,
                       ),
                   ),
               }),
             ],
           }),
+          new Paragraph({
+            spacing: {
+              after: 60,
+            },
+
+            children: [
+              new TextRun({
+                text: '*Responsiveness Score: Measures the completeness, consistency, and timeliness of ESG data reporting, benchmarked to the Fireside Portfolio.',
+                size: 12,
+                bold: true,
+                color: '1A1A1A',
+                font: 'Arial',
+              }),
+            ],
+          }),
+                
+
 
           // ======================================================
           // 3. COMPOSITE CARDS
@@ -14300,8 +11069,30 @@ async function generateEmailDOCXV4(
                         card.fill,
                         false,
                         card.trend,
+                        card.companyCount,
+                        card.labelSize,
+                        card.valueSize,
+                        card.trendSize,
+                        card.gradeSize,
+                        card.countSize,
                       ),
                   ),
+              }),
+            ],
+          }),
+
+          new Paragraph({
+            spacing: {
+              after: 60,
+            },
+
+            children: [
+              new TextRun({
+                text: 'ESG Performance Score: Measures overall performance across Environmental, Social, and Governance KPIs, benchmarked to the Fireside Portfolio.',
+                size: 12,
+                bold: true,
+                color: '1A1A1A',
+                font: 'Arial',
               }),
             ],
           }),
@@ -14811,7 +11602,11 @@ async function generateEmailDOCXV4(
                               // ),
 
                               capHeaderCell(
-                                'Not completed\n/Completed after Buffer Time',
+                                'Completed after Buffer Time',
+                                1650,
+                              ),
+                              capHeaderCell(
+                                'Overdue',
                                 1650,
                               ),
                               capHeaderCell(
@@ -14907,13 +11702,19 @@ async function generateEmailDOCXV4(
                                     '059669',
                                 },
                                 {
-                                  value: esgCapTemplateData.priorityScore.high.over3 + esgCapTemplateData.priorityScore.medium.over3 + esgCapTemplateData.priorityScore.low.over3,
+                                  value: esgCapTemplateData.priorityScore.high.afterBufer + esgCapTemplateData.priorityScore.medium.afterBufer + esgCapTemplateData.priorityScore.low.afterBufer,
                                   width: 950,
                                   color:
                                     '059669',
                                 },
                                 {
-                                  value: esgCapTemplateData.priorityScore.high.under3 + esgCapTemplateData.priorityScore.medium.under3 + esgCapTemplateData.priorityScore.low.under3,
+                                  value: esgCapTemplateData.priorityScore.high.overdue + esgCapTemplateData.priorityScore.medium.overdue + esgCapTemplateData.priorityScore.low.overdue,
+                                  width: 950,
+                                  color:
+                                    '059669',
+                                },
+                                {
+                                  value: esgCapTemplateData.priorityScore.high.upcoming + esgCapTemplateData.priorityScore.medium.upcoming + esgCapTemplateData.priorityScore.low.upcoming,
                                   width: 950,
                                   color:
                                     '059669',
@@ -15016,100 +11817,7 @@ async function generateEmailDOCXV4(
             children: [],
           }),
 
-          new Table({
-            width: {
-              size: 9000,
-              type: WidthType.DXA,
-            },
-
-            columnWidths: [
-              1500,
-              1500,
-              1500,
-              1500,
-              1500,
-              1500,
-            ],
-
-            rows: [
-              new TableRow({
-                cantSplit: true,
-
-                children:
-                  capStatusCards.map(
-                    (card) =>
-                      new TableCell({
-                        width: {
-                          size: 1500,
-                          type: WidthType.DXA,
-                        },
-
-                        shading: {
-                          fill: card.fill,
-                          type:
-                            ShadingType.CLEAR,
-                        },
-
-                        borders: noBorders,
-
-                        margins: {
-                          top: 80,
-                          bottom: 80,
-                          left: 25,
-                          right: 25,
-                        },
-
-                        verticalAlign:
-                          'center' as any,
-
-                        children: [
-                          new Paragraph({
-                            alignment:
-                              AlignmentType.CENTER,
-
-                            spacing: {
-                              after: 5,
-                            },
-
-                            children: [
-                              new TextRun({
-                                text:
-                                  card.value,
-                                size: 22,
-                                bold: true,
-                                color:
-                                  card.color,
-                                font: 'Arial',
-                              }),
-                            ],
-                          }),
-
-                          new Paragraph({
-                            alignment:
-                              AlignmentType.CENTER,
-
-                            spacing: {
-                              before: 0,
-                              after: 0,
-                            },
-
-                            children: [
-                              new TextRun({
-                                text:
-                                  card.label,
-                                size: 8,
-                                color:
-                                  card.color,
-                                font: 'Arial',
-                              }),
-                            ],
-                          }),
-                        ],
-                      }),
-                  ),
-              }),
-            ],
-          })] : []),
+          ] : []),
 
 
 
@@ -15973,7 +12681,8 @@ const getCSCount = (
     | 'buffer2'
     | 'buffer3'
     | 'under3'
-    | 'over3',
+    | 'over3'
+    | 'upcoming',
   items: ESGCapItem[]
 ) => {
 
@@ -16303,6 +13012,28 @@ const getPriorityTotal = (
   return csItems.filter(
     item => (item.priority || "Medium") === priority && item.dealCondition == "CS"
   ).length;
+};
+
+const isCompanySubmitted = (item: ESGCapItem): boolean => {
+  return normalize(item.companyStatus ?? item.status) === 'submitted';
+};
+
+const getCompletedOver3Count = (priority: 'High' | 'Medium' | 'Low', items: ESGCapItem[]) => {
+  let csItems = items.filter(item => item.dealCondition === 'CS');
+  return csItems.filter(item => {
+    if ((item.priority || 'Medium') !== priority) return false;
+    if (getCSCategory(item) !== 'over3') return false;
+    return isCompanySubmitted(item);
+  }).length;
+};
+
+const getNotCompletedOver3Count = (priority: 'High' | 'Medium' | 'Low', items: ESGCapItem[]) => {
+  let csItems = items.filter(item => item.dealCondition === 'CS');
+  return csItems.filter(item => {
+    if ((item.priority || 'Medium') !== priority) return false;
+    if (getCSCategory(item) !== 'over3') return false;
+    return !isCompanySubmitted(item);
+  }).length;
 };
 
 

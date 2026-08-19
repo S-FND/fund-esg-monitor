@@ -19,7 +19,7 @@ const BUCKETS: { key: BucketKey; header: string; card: string; row: string; name
 ];
 
 const PILLAR_LABEL: Record<PillarKey, string> = {
-  composite: 'ESG Composite Score',
+  composite: 'ESG Performance Score',
   env: 'Environment Score',
   social: 'Social Score',
   gov: 'Governance Score',
@@ -87,7 +87,7 @@ export const ESGCompositePanel = ({ result, scoreAverages, companyRawData }: Pro
     const governance = avgInsight('governanceScore');
 
     const headers = [
-      { key: 'composite' as PillarKey, label: 'ESG Composite Score', value: composite, n: submittingCount, icon: BarChart3,   card: 'border-emerald-200 bg-emerald-50/60 dark:bg-emerald-950/20', iconColor: 'text-emerald-500' },
+      { key: 'composite' as PillarKey, label: 'ESG Performance Score', value: composite, n: submittingCount, icon: BarChart3,   card: 'border-emerald-200 bg-emerald-50/60 dark:bg-emerald-950/20', iconColor: 'text-emerald-500' },
       { key: 'env' as PillarKey,       label: 'Environment Score',   value: environment, n: envEligible.length, icon: Leaf,   card: 'border-amber-200 bg-amber-50/60 dark:bg-amber-950/20',    iconColor: 'text-amber-500' },
       { key: 'social' as PillarKey,    label: 'Social Score',        value: social, n: submittingCount, icon: Users,          card: 'border-blue-200 bg-blue-50/60 dark:bg-blue-950/20',       iconColor: 'text-blue-500' },
       { key: 'gov' as PillarKey,       label: 'Governance Score',    value: governance, n: submittingCount, icon: ShieldCheck, card: 'border-purple-200 bg-purple-50/60 dark:bg-purple-950/20', iconColor: 'text-purple-500' },
@@ -114,7 +114,7 @@ export const ESGCompositePanel = ({ result, scoreAverages, companyRawData }: Pro
   const governance = scoreAverages ? r1(scoreAverages.governanceScore) : r1(mean(companies.map(c => c.scores.governanceScore)));
 
   const headers = [
-    { key: 'composite' as PillarKey, label: 'ESG Composite Score', value: composite, n, icon: BarChart3,   card: 'border-emerald-200 bg-emerald-50/60 dark:bg-emerald-950/20', iconColor: 'text-emerald-500' },
+    { key: 'composite' as PillarKey, label: 'ESG Performance Score', value: composite, n, icon: BarChart3,   card: 'border-emerald-200 bg-emerald-50/60 dark:bg-emerald-950/20', iconColor: 'text-emerald-500' },
     { key: 'env' as PillarKey,       label: 'Environment Score',   value: environment, n: envCompanies.length, icon: Leaf, card: 'border-amber-200 bg-amber-50/60 dark:bg-amber-950/20', iconColor: 'text-amber-500' },
     { key: 'social' as PillarKey,    label: 'Social Score',        value: social, n, icon: Users,          card: 'border-blue-200 bg-blue-50/60 dark:bg-blue-950/20', iconColor: 'text-blue-500' },
     { key: 'gov' as PillarKey,       label: 'Governance Score',    value: governance, n, icon: ShieldCheck, card: 'border-purple-200 bg-purple-50/60 dark:bg-purple-950/20', iconColor: 'text-purple-500' },
@@ -174,7 +174,7 @@ function ESGCompositePanelInner({
     <section className="space-y-3">
       <div className="flex items-center gap-2">
         <BarChart3 className="w-4 h-4 text-emerald-500" />
-        <h2 className="text-base font-semibold">ESG Composite Score</h2>
+        <h2 className="text-base font-semibold">ESG Performance Score</h2>
         <Badge variant="outline" className="text-[10px]">Auto-calculated</Badge>
         <Badge variant="secondary" className="text-[10px] ml-1">n={n}</Badge>
       </div>
