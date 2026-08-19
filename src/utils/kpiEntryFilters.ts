@@ -7,6 +7,7 @@ export interface KpiEntryFilterParams {
   quarters?: string[];
   allowAnnualForFY?: boolean;
   cumulative?: boolean;
+  
 }
 
 const isFullYearQuarterSet = (quarters: string[]) =>

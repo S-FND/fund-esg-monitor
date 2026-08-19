@@ -884,8 +884,15 @@ export default function ESGCAP() {
       </Button>
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">ESG Corrective Action Plan</h1>
-          <p className="text-muted-foreground">
+          <h1 className="font-bold tracking-tight">
+            ESG Corrective Action Plan
+            {selectedCompanyObject?.companyName && (
+              <span className="ml-2 text-muted-foreground">
+                - {selectedCompanyObject?.companyName}
+              </span>
+            )}
+          </h1>
+          <p className="text-xs text-muted-foreground">
             Review and finalize the ESG Corrective Action Plan items
           </p>
         </div>

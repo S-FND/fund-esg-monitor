@@ -119,249 +119,268 @@ export const ESGCapScoring: React.FC<ESGCapScoringProps> = ({ items, onFilterCha
     item => item.dealCondition === "CS"
   );
 
-  const getSubmitDate = (item: any): Date | null => {
-    const indicators = item.completionIndicators || [];
-  
-    const uploadedDates = indicators
-      .map(indicator => indicator.uploadedAt)
-      .filter(Boolean)
-      .map(date => new Date(date as string))
-      .filter(date => !isNaN(date.getTime()));
-  
-    // Last uploadedAt = submit date
-    if (uploadedDates.length > 0) {
-      return new Date(
-        Math.max(...uploadedDates.map(date => date.getTime()))
-      );
-    }
-  
-    // If no uploadedAt and company submitted,
-    // use this item's createdAt
-    const companyStatus = (
-      item.companyStatus ||
-      item.status ||
-      ""
-    ).toLowerCase().trim();
-  
-    if (companyStatus === "submitted" && item.createdAt) {
-      const createdAt = new Date(item.createdAt);
-  
-      if (!isNaN(createdAt.getTime())) {
-        return createdAt;
-      }
-    }
-  
-    return null;
-  };
-
-  const getMonthDifference = (
-    targetDate: Date,
-    submitDate: Date
-  ): number => {
-    return (
-      (submitDate.getFullYear() - targetDate.getFullYear()) * 12 +
-      (submitDate.getMonth() - targetDate.getMonth())
-    );
-  };
-
-  const getUploadedDate = (item: any): Date | null => {
-    const uploadedDates = (item.completionIndicators || [])
-      .map(indicator => indicator.uploadedAt)
-      .filter(Boolean)
-      .map(date => new Date(date as string))
-      .filter(date => !isNaN(date.getTime()));
-  
-    if (uploadedDates.length === 0) {
-      return null;
-    }
-  
-    return new Date(
-      Math.max(...uploadedDates.map(date => date.getTime()))
-    );
-  };
   const normalize = (s?: string) => (s ?? '').trim().toLowerCase();
-  const getCSCategory = (item: ESGCapItem) => {
-    const CUTOFF_DATE = new Date('2026-06-30T23:59:59.999');
+
+    // Get submit date for a CS item
+    const getSubmitDate = (item: any): Date | null => {
+      // 1. Get latest uploadedAt from completionIndicators
+      const uploadedDates = (item.completionIndicators || [])
+        .map(indicator => indicator.uploadedAt)
+        .filter(Boolean)
+        .map(date => new Date(date as string))
+        .filter(date => !isNaN(date.getTime()));
   
-    if (!item.targetDate) {
+      if (uploadedDates.length > 0) {
+        return new Date(
+          Math.max(...uploadedDates.map(date => date.getTime()))
+        );
+      }
+  
+      // 2. If no uploadedAt and company is submitted,
+      //    use item's createdAt
+      if (normalize(item.companyStatus) === 'submitted') {
+        if (item.createdAt) {
+          const createdDate = new Date(item.createdAt);
+  
+          if (!isNaN(createdDate.getTime())) {
+            return createdDate;
+          }
+        }
+      }
+  
       return null;
-    }
+    };
   
-    const targetDate = new Date(item.targetDate);
+    const getMonthDifference = (
+      startDate: Date,
+      endDate: Date
+    ): number => {
+      return (
+        (endDate.getFullYear() - startDate.getFullYear()) * 12 +
+        (endDate.getMonth() - startDate.getMonth())
+      );
+    };
   
-    if (isNaN(targetDate.getTime())) {
-      return null;
-    }
-  
-    const companyStatus = normalize(item.companyStatus);
-    const investorStatus = normalize(item.investorStatus);
-  
-    const uploadedDate = getUploadedDate(item);
-  
-    /*
-     * =====================================================
-     * TARGET DATE <= 30 JUNE 2026
-     * =====================================================
-     */
-  
-    if (targetDate <= CUTOFF_DATE) {
-  
-      /*
-       * uploadedAt EXISTS
-       *
-       * Use uploadedAt to calculate On Time / Buffer.
-       */
-      if (uploadedDate) {
-  
-        // Uploaded on or before target date
+    const getCSCategory = (item: ESGCapItem) => {
+      const CUTOFF_DATE = new Date('2026-06-30T23:59:59.999');
+    
+      if (!item.targetDate) {
+        return null;
+      }
+    
+      const targetDate = new Date(item.targetDate);
+    
+      if (isNaN(targetDate.getTime())) {
+        return null;
+      }
+    
+      // IMPORTANT:
+      // Do NOT use investor status here.
+      // Only company status is considered.
+      const companyStatus = normalize(item.companyStatus ?? item.status);
+    
+      // =====================================================
+      // GET LATEST uploadedAt
+      // =====================================================
+    
+      const uploadedDates = (item.completionIndicators || [])
+        .map(indicator => indicator.uploadedAt)
+        .filter(Boolean)
+        .map(date => new Date(date as string))
+        .filter(date => !isNaN(date.getTime()));
+    
+      const updatedDate =
+        uploadedDates.length > 0
+          ? new Date(
+              Math.max(...uploadedDates.map(date => date.getTime()))
+            )
+          : null;
+    
+      // =====================================================
+      // GET SUBMIT DATE
+      // =====================================================
+    
+      const submitDate = getSubmitDate(item);
+    
+      // =====================================================
+      // TARGET DATE <= 30 JUNE 2026
+      // =====================================================
+    
+      if (targetDate <= CUTOFF_DATE) {
+    
+        // ---------------------------------------------------
+        // Submitted / Closed + uploaded date
+        // ---------------------------------------------------
+    
         if (
-          companyStatus === 'submitted' &&
-          investorStatus === 'closed' &&
-          uploadedDate <= targetDate
+          updatedDate &&
+          (companyStatus === 'submitted' || companyStatus === 'closed')
+        ) {
+    
+          // Same month or before target month = ON TIME
+          //
+          // Example:
+          // Target  : 24 June
+          // Uploaded: 26 June
+          // Month difference = 0
+          //
+          // Business rule => ON TIME
+          const months = getMonthDifference(
+            targetDate,
+            updatedDate
+          );
+    
+          if (months <= 0) {
+            return 'ontime';
+          }
+    
+          if (months === 1) {
+            return 'buffer1';
+          }
+    
+          if (months === 2) {
+            return 'buffer2';
+          }
+    
+          if (months === 3) {
+            return 'buffer3';
+          }
+    
+          if (months > 3) {
+            return 'over3';
+          }
+        }
+    
+        // ---------------------------------------------------
+        // No uploadedAt but submitted/closed
+        // ---------------------------------------------------
+    
+        if (
+          !updatedDate &&
+          (companyStatus === 'submitted' || companyStatus === 'closed')
         ) {
           return 'ontime';
         }
-  
-        // Uploaded after target date
+    
+        // ---------------------------------------------------
+        // NOT COMPLETED
+        // ---------------------------------------------------
+    
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+    
+        const cleanTargetDate = new Date(targetDate);
+        cleanTargetDate.setHours(0, 0, 0, 0);
+    
+        // Target is still in future
+        if (cleanTargetDate > today) {
+          return 'upcoming';
+        }
+    
+        const months = getMonthDifference(
+          cleanTargetDate,
+          today
+        );
+    
+        if (months <= 3) {
+          return 'under3';
+        }
+    
+        return 'over3';
+      }
+    
+      // =====================================================
+      // TARGET DATE > 30 JUNE 2026
+      // =====================================================
+    
+      if (submitDate) {
+    
+        // Submitted on/before target
+        if (
+          (companyStatus === 'submitted' || companyStatus === 'closed') &&
+          submitDate <= targetDate
+        ) {
+          return 'ontime';
+        }
+    
+        // Submitted after target
         const months = getMonthDifference(
           targetDate,
-          uploadedDate
+          submitDate
         );
-  
+    
+        // IMPORTANT:
+        // Same calendar month = ON TIME
+        if (months <= 0) {
+          return 'ontime';
+        }
+    
         if (months === 1) {
           return 'buffer1';
         }
-  
+    
         if (months === 2) {
           return 'buffer2';
         }
-  
+    
         if (months === 3) {
           return 'buffer3';
         }
-  
+    
         if (months > 3) {
           return 'over3';
         }
-  
+    
         return null;
       }
-  
-      /*
-       * uploadedAt DOES NOT EXIST
-       *
-       * IMPORTANT:
-       * Do NOT use createdAt here.
-       *
-       * For old target dates, if the item is submitted
-       * and closed by investor, consider it On Time.
-       */
-      if (
-        companyStatus === 'submitted' &&
-        investorStatus === 'closed'
-      ) {
-        return 'ontime';
-      }
-  
-      /*
-       * No uploadedAt and not completed.
-       */
+    
+      // =====================================================
+      // NOT SUBMITTED
+      // =====================================================
+    
       const today = new Date();
-  
+      today.setHours(0, 0, 0, 0);
+    
+      const cleanTargetDate = new Date(targetDate);
+      cleanTargetDate.setHours(0, 0, 0, 0);
+    
+      // FUTURE TARGET DATE
+      if (cleanTargetDate > today) {
+        return 'upcoming';
+      }
+    
+      // TARGET DATE PASSED
       const months = getMonthDifference(
-        targetDate,
+        cleanTargetDate,
         today
       );
-  
+    
       if (months <= 3) {
         return 'under3';
       }
-  
+    
       return 'over3';
-    }
+    };
   
-    /*
-     * =====================================================
-     * TARGET DATE AFTER 30 JUNE 2026
-     * =====================================================
-     */
-  
-    const submitDate = getSubmitDate(item);
-  
-    if (submitDate) {
-  
-      // Submitted on/before target date
-      if (
-        companyStatus === 'submitted' &&
-        investorStatus === 'closed' &&
-        submitDate <= targetDate
-      ) {
-        return 'ontime';
-      }
-  
-      // Submitted after target date
-      const months = getMonthDifference(
-        targetDate,
-        submitDate
-      );
-  
-      if (months === 1) {
-        return 'buffer1';
-      }
-  
-      if (months === 2) {
-        return 'buffer2';
-      }
-  
-      if (months === 3) {
-        return 'buffer3';
-      }
-  
-      if (months > 3) {
-        return 'over3';
-      }
-  
-      return null;
-    }
-  
-    /*
-     * =====================================================
-     * NOT COMPLETED
-     * =====================================================
-     */
-  
-    const today = new Date();
-  
-    const months = getMonthDifference(
-      targetDate,
-      today
-    );
-  
-    if (months <= 3) {
-      return 'under3';
-    }
-  
-    return 'over3';
-  };
-
-  const getCSCount = (
-    priority: 'High' | 'Medium' | 'Low',
-    type:
-      | 'ontime'
-      | 'buffer1'
-      | 'buffer2'
-      | 'buffer3'
-      | 'under3'
-      | 'over3'
-  ) => {
-    return csItems.filter(item => {
-      if ((item.priority || 'Medium') !== priority) {
-        return false;
-      }
-  
-      return getCSCategory(item) === type;
-    }).length;
-  };
+    const getCSCount = (
+      priority: 'High' | 'Medium' | 'Low',
+      type:
+        | 'ontime'
+        | 'buffer1'
+        | 'buffer2'
+        | 'buffer3'
+        | 'under3'
+        | 'over3'
+        | 'upcoming'
+    ) => {
+      return csItems.filter(item => {
+        if ((item.priority || 'Medium') !== priority) {
+          return false;
+        }
+    
+        return getCSCategory(item) === type;
+      }).length;
+    };
 
   const getPriorityTotal = (
     priority: "High" | "Medium" | "Low"
@@ -382,6 +401,7 @@ export const ESGCapScoring: React.FC<ESGCapScoringProps> = ({ items, onFilterCha
     | "buffer3"
     | "under3"
     | "over3"
+    | "upcoming"
   ) => {
     return (
       getCSCount("High", type) +
@@ -390,6 +410,75 @@ export const ESGCapScoring: React.FC<ESGCapScoringProps> = ({ items, onFilterCha
     );
   };
 
+  const debugCSItems = csItems.map(item => {
+    const targetDate = item.targetDate
+      ? new Date(item.targetDate)
+      : null;
+  
+    const uploadedDates = (item.completionIndicators || [])
+      .map(indicator => indicator.uploadedAt)
+      .filter(Boolean)
+      .map(date => new Date(date as string))
+      .filter(date => !isNaN(date.getTime()));
+  
+    const updatedDate =
+      uploadedDates.length > 0
+        ? new Date(
+            Math.max(
+              ...uploadedDates.map(date => date.getTime())
+            )
+          )
+        : null;
+  
+    const submitDate = getSubmitDate(item);
+  
+    const today = new Date();
+  
+    today.setHours(0, 0, 0, 0);
+  
+    const monthsFromToday =
+      targetDate && !isNaN(targetDate.getTime())
+        ? getMonthDifference(today, targetDate)
+        : null;
+  
+    const monthsFromTarget =
+      targetDate &&
+      !isNaN(targetDate.getTime()) &&
+      submitDate
+        ? getMonthDifference(targetDate, submitDate)
+        : null;
+  
+    return {
+      item: item.item,
+      priority: item.priority,
+  
+      // Dates
+      today: today.toISOString().split('T')[0],
+      targetDate:
+        targetDate && !isNaN(targetDate.getTime())
+          ? targetDate.toISOString().split('T')[0]
+          : null,
+  
+      latestUploadedAt:
+        updatedDate?.toISOString() || null,
+  
+      submitDate:
+        submitDate?.toISOString() || null,
+  
+      // Status
+      companyStatus: normalize(item.companyStatus),
+  
+      // Calculations
+      monthsFromToday,
+      monthsFromTarget,
+  
+      // Final result
+      category: getCSCategory(item),
+    };
+  });
+  
+  console.table(debugCSItems);
+  
   return (
     <>
     <div className="space-y-4">
@@ -425,7 +514,7 @@ export const ESGCapScoring: React.FC<ESGCapScoringProps> = ({ items, onFilterCha
               </div>
 
               <div className="text-center text-[10px] font-semibold ">
-                Not completed &lt;3 Buffer Time
+                Upcoming
               </div>
 
               <div className="text-center text-[10px] font-semibold ">
@@ -462,8 +551,8 @@ export const ESGCapScoring: React.FC<ESGCapScoringProps> = ({ items, onFilterCha
                 {getCSCount("High", "buffer3")}
               </div>
 
-              <div className="text-center text-xs font-semibold">
-                {getCSCount("High", "under3")}
+              <div className="text-center text-xs font-semibold text-gray-600">
+                {getCSCount("High", "upcoming")}
               </div>
 
               <div className="text-center text-xs font-bold">
@@ -500,8 +589,8 @@ export const ESGCapScoring: React.FC<ESGCapScoringProps> = ({ items, onFilterCha
                 {getCSCount("Medium", "buffer3")}
               </div>
 
-              <div className="text-center text-xs font-semibold">
-                {getCSCount("Medium", "under3")}
+              <div className="text-center text-xs font-semibold text-gray-600">
+                {getCSCount("Medium", "upcoming")}
               </div>
 
               <div className="text-center text-xs font-bold">
@@ -538,8 +627,8 @@ export const ESGCapScoring: React.FC<ESGCapScoringProps> = ({ items, onFilterCha
                 {getCSCount("Low", "buffer3")}
               </div>
 
-              <div className="text-center text-xs font-semibold">
-                {getCSCount("Low", "under3")}
+              <div className="text-center text-xs font-semibold text-gray-600">
+                {getCSCount("Low", "upcoming")}
               </div>
 
               <div className="text-center text-xs font-bold">
@@ -576,8 +665,8 @@ export const ESGCapScoring: React.FC<ESGCapScoringProps> = ({ items, onFilterCha
                 {getCSTotal("buffer3")}
               </div>
 
-              <div className="text-center text-xs font-bold">
-                {getCSTotal("under3")}
+              <div className="text-center text-xs font-bold text-gray-600">
+                {getCSTotal("upcoming")}
               </div>
 
               <div className="text-center text-xs font-bold">
