@@ -10957,6 +10957,22 @@ async function generateEmailDOCXV4(
             ],
           }),
 
+          new Paragraph({
+            spacing: {
+              before: 0,    // removes/reduces the gap above this line
+              after: 200,   // increases the gap below this line
+            },
+            children: [
+              new TextRun({
+                text: 'See how your ESG reporting compares to other portfolio companies (n=41).',
+                size: 15,
+                bold: false,
+                color: '1A1A1A',
+                font: 'Arial',
+              }),
+            ],
+          }),
+
           new Table({
             width: {
               size: 9000,
