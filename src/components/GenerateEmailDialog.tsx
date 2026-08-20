@@ -874,7 +874,7 @@ const getQuarterAnalyticsWithTrend = (
     const entry = findCompanyEntry(sourceCards, cardKey, companyBrand);
 
     return {
-      current: currentValue,
+      current: field == 'esgCompositePercentile'?entry.percentileB:currentValue,
       previous: entry?.[prevField] ?? null,
       trend: getTrendFromGrade(entry?.categoryB, entry?.categoryA), // grade-band compare only
     };
@@ -4364,7 +4364,7 @@ ${getTrendIcon(m.indicators?.timelinessPercentile?.trend)}
     color:${getGrade(m.esgCompositePercentile)?.color}; 
   "
 >
-  ${m.fmtScore(m.esgCompositePercentile)} 
+  ${m.fmtScore(m.indicators?.esgCompositePercentile?.current)} 
   ${getTrendIcon(m.indicators?.esgCompositePercentile?.trend)}
  
 </div>
