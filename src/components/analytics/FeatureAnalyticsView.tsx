@@ -132,7 +132,7 @@ const SectionHeader = ({ title, n, icon: Icon }: { title: string; n?: number; ic
 export const FeatureAnalyticsView = ({
   featureKey, companyRawData, currentInsights, currentAggregation, filters, quarterlyPerQuarterRawData, allCompanyRawData
 }: FeatureAnalyticsViewProps) => {
-  debugger;
+ 
   const navigate = useNavigate();
   const mapping = FEATURE_FIELD_MAPPINGS[featureKey];
 
@@ -248,6 +248,8 @@ export const FeatureAnalyticsView = ({
   })), [featureCompanyRawData]);
 
   const insightMetrics = FEATURE_INSIGHT_METRICS[featureKey] || [];
+
+  console.log('insightMetrics :: ',insightMetrics)
 
   // Pre-compute Q4 vendor MIS analytics for Sourcing & Fulfillment (must be before conditional returns)
   // Only vendor count (num_vendors) fields use Q4 snapshot. % International fields use regular
@@ -1448,6 +1450,7 @@ export const FeatureAnalyticsView = ({
   // ─── Primary & Secondary Packaging ───
   if (featureKey === 'primarySecondaryPackaging') {
     // Use feature-filtered data consistently so stat cards match detail views
+    console.log('primary and secondary :: featureCompanyRawData => ',featureCompanyRawData)
     const pkgData = featureCompanyRawData;
     const parseNum = (v: string | undefined) => { const n = parseFloat(v || '0'); return isNaN(n) ? 0 : n; };
     const k = (key: string) => pkgData.reduce((s, c) => s + parseNum(c.kpis[key]), 0);
@@ -1471,7 +1474,7 @@ export const FeatureAnalyticsView = ({
           const row: any = { brand: c.brand, companyName: c.companyName, industry: c.industry, value: String(Math.round(total * 100) / 100) };
           // Add quarterly values by summing all keys per quarter
           if (featureQuarterlyPerQuarterRawData) {
-            ['Q1', 'Q2', 'Q3', 'Q4'].forEach(q => {
+            ['Q1','Q2','Q3', 'Q4'].forEach(q => {
               const qData = featureQuarterlyPerQuarterRawData[q] || [];
               const match = qData.find(qc => qc.brand === c.brand);
               if (match) {
@@ -1579,7 +1582,7 @@ export const FeatureAnalyticsView = ({
       return totalMT > 0 ? weightedSum / totalMT : 0;
     })();
     const secNonRecyclablePct = secRecyclablePct > 0 ? 100 - secRecyclablePct : 0;
-
+    console.log('pkgData :: ',pkgData)
     return (
       <div className="space-y-4">
         {insightMetrics.length > 0 && (
@@ -1642,8 +1645,8 @@ export const FeatureAnalyticsView = ({
                 + p('food_pkg_basic_primary_breakup_primary_others') + p('fashion_primary_pkg_fabric_mt') + p('fashion_primary_pkg_other_mt');
               return { brand: c.brand, companyName: c.companyName, industry: c.industry, value: String(r2(total)) };
             }))} />
-            <MetricCard label="Plastic Virgin (MT)" value={fmt(priPlasticVirgin)} onClick={() => handleCardClick('Primary — Plastic Virgin (MT)', companyValMulti('Primary — Plastic Virgin (MT)', 'food_pkg_basic_primary_breakup_primary_plastic_virgin', 'fashion_primary_pkg_plastic_recyclable_mt', 'fashion_primary_pkg_plastic_non_recyclable_mt'))} />
-            <MetricCard label="Plastic Recycled (MT)" value={fmt(priPlasticRecycled)} onClick={() => handleCardClick('Primary — Plastic Recycled (MT)', companyVal('food_pkg_basic_primary_breakup_primary_plastic_recycled'))} />
+            <MetricCard label="Plastic Virgin (MT) ysssss" value={fmt(priPlasticVirgin)} onClick={() => handleCardClick('Primary — Plastic Virgin (MT)', companyValMulti('Primary — Plastic Virgin (MT)', 'food_pkg_basic_primary_breakup_primary_plastic_virgin', 'fashion_primary_pkg_plastic_recyclable_mt', 'fashion_primary_pkg_plastic_non_recyclable_mt'))} />
+            <MetricCard label="Plastic Recycled (MT) yssss" value={fmt(priPlasticRecycled)} onClick={() => handleCardClick('Primary — Plastic Recycled (MT)', companyVal('food_pkg_basic_primary_breakup_primary_plastic_recycled'))} />
             <MetricCard label="Paper Virgin (MT)" value={fmt(priPaperVirgin)} onClick={() => handleCardClick('Primary — Paper Virgin (MT)', companyValMulti('Primary — Paper Virgin (MT)', 'food_pkg_basic_primary_breakup_primary_paper_virgin', 'fashion_primary_pkg_paper_mt'))} />
             <MetricCard label="Paper Recycled (MT)" value={fmt(priPaperRecycled)} onClick={() => handleCardClick('Primary — Paper Recycled (MT)', companyValMulti('Primary — Paper Recycled (MT)', 'food_pkg_basic_primary_breakup_primary_paper_recycled', 'fashion_primary_pkg_cardboard_mt'))} />
             <MetricCard label="Metal (MT)" value={fmt(priMetal)} onClick={() => handleCardClick('Primary — Metal (MT)', companyVal('food_pkg_basic_primary_breakup_primary_metal'))} />
@@ -2288,6 +2291,8 @@ const InsightSection = ({
   filters?: any;
   allCompanyRawData?: CompanyRawMetrics[];
 }) => {
+  console.log("insightMetrics :: insightMetrics")
+  console.log('quarterlyPerQuarterRawData',quarterlyPerQuarterRawData)
   const isSingleCompany = !!filters?.companyId;
   const [graphMode, setGraphMode] = useState<'consolidated' | 'timeline'>(isSingleCompany && !!quarterlyPerQuarterRawData ? 'timeline' : 'consolidated');
   const hasTimelineData = !!quarterlyPerQuarterRawData;
@@ -2402,6 +2407,7 @@ const InsightSection = ({
   const plasticReductionData = useMemo(() => {
     if (!quarterlyPerQuarterRawData) return null;
     const q4Data = quarterlyPerQuarterRawData['Q4'] || [];
+    console.log('q4Data :: ',q4Data)
     const parseNum = (v: string | undefined) => { const n = parseFloat(v || '0'); return isNaN(n) ? 0 : n; };
 
     // All virgin plastic KPI keys (food + fashion)
@@ -2418,11 +2424,17 @@ const InsightSection = ({
 
     // Check if a company actually has virgin plastic packaging data filled (not blank)
     const hasPlasticData = (c: CompanyRawMetrics) => {
+      console.log('Company ID:', c.companyId);
+      let filtered=VIRGIN_PLASTIC_KEYS.filter((v)=> c.kpis[v]);
+      console.log('filtered :: ',filtered)
       return VIRGIN_PLASTIC_KEYS.some(k => c.kpis[k] !== undefined && c.kpis[k] !== null && c.kpis[k]?.trim() !== '');
     };
 
     // Get total virgin plastic (MT) for a company
     const getVirginPlasticMT = (c: CompanyRawMetrics) => {
+      let filtered=VIRGIN_PLASTIC_KEYS.filter((v)=> c.kpis[v]);
+      console.log('filtered :: ',filtered)
+      console.log('VIRGIN_PLASTIC_KEYS.reduce((sum, k) => sum + parseNum(c.kpis[k]), 0);',VIRGIN_PLASTIC_KEYS.reduce((sum, k) => sum + parseNum(c.kpis[k]), 0));
       return VIRGIN_PLASTIC_KEYS.reduce((sum, k) => sum + parseNum(c.kpis[k]), 0);
     };
 
@@ -2437,6 +2449,7 @@ const InsightSection = ({
     ['Q1', 'Q2', 'Q3'].forEach(q => {
       const qData = quarterlyPerQuarterRawData[q] || [];
       qData.forEach(c => {
+        console.log('baseQuarterData :: q => ',q,'Company Id :: ',c.companyId)
         if (!baseQuarterData.has(c.companyId) && hasPlasticData(c)) {
           baseQuarterData.set(c.companyId, { intensity: getPlasticIntensity(c), virginMT: getVirginPlasticMT(c), quarter: q, company: c });
         }
@@ -2445,7 +2458,7 @@ const InsightSection = ({
 
     const q4Map = new Map(q4Data.map(c => [c.companyId, { intensity: getPlasticIntensity(c), virginMT: getVirginPlasticMT(c), company: c }]));
     const q4HasData = new Map(q4Data.map(c => [c.companyId, hasPlasticData(c)]));
-
+    console.log('q4HasData :: ',q4HasData)
     const companies: { brand: string; companyName: string; industry: string; value: string; numValue: number; ratioColumns?: Record<string, string> }[] = [];
     const allCompanyIds = new Set([...baseQuarterData.keys(), ...q4Map.keys()]);
     const brandMap = new Map<string, { brand: string; companyName: string; industry: string }>();
@@ -2814,6 +2827,7 @@ const InsightSection = ({
               // Consolidated mode (default): top 10 companies
               // Special handling for plasticReductionPct which uses cross-quarter data
               if (metric.key === 'plasticReductionPct' && plasticReductionData) {
+                console.log('plasticReductionData :: ',plasticReductionData)
                 const sorted = [...plasticReductionData.companies].sort((a, b) => b.numValue - a.numValue);
                 if (!isSingleCompany && sorted.length < 2) return null;
                 const chartData = sorted.slice(0, topN);

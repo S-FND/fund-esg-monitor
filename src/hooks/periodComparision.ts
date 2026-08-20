@@ -149,6 +149,10 @@ export function useComparePeriods(
   const companyRawDataA = analyticsA?.quarterlyCombinedRawData || analyticsA?.companyRawData || [];
   const companyRawDataB = analyticsB?.quarterlyCombinedRawData || analyticsB?.companyRawData || [];
 
+
+  console.log('companyRawDataA :: ',companyRawDataA)
+  console.log('companyRawDataB :: ',companyRawDataB)
+
   const isLoading = rankingsALoading || rankingsBLoading || analyticsALoading || analyticsBLoading;
 
   const result = useMemo<Pick<UseComparePeriodsResult, 'rankingCards' | 'esgCards'>>(() => {
