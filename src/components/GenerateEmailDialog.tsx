@@ -857,7 +857,7 @@ const getQuarterAnalyticsWithTrend = (
     return {
       key: currentPillar.key,
       enabled: entry ? true : false,
-      current: currentPillar.companyPctile ?? entry?.percentileB ?? null,
+      current: entry?.percentileB ?? currentPillar.companyPctile?? null,
       previous: entry?.percentileA ?? null,
       companyPctileTrend: getTrendFromGrade(entry?.categoryB, entry?.categoryA),
     };
@@ -4428,7 +4428,7 @@ ${getTrendIcon(m.indicators?.timelinessPercentile?.trend)}
       : '#6B7280'}; 
   "
 >
-  ${m.indicators?.pillars[0]?.enabled ? m.fmtScore(m.pillars[0].companyPctile) : `N/A`}
+  ${m.indicators?.pillars[0]?.enabled ? m.fmtScore(m.indicators?.pillars[0]?.current) : `N/A`}
    ${m.indicators?.pillars[0]?.enabled ? getTrendIcon(m.indicators?.pillars[0]?.companyPctileTrend) : ``}
     
 </div>
@@ -4495,7 +4495,7 @@ ${getTrendIcon(m.indicators?.timelinessPercentile?.trend)}
   "
 >
 
- ${m.indicators?.pillars[1]?.enabled ? m.fmtScore(m.pillars[1].companyPctile) : `N/A`}
+ ${m.indicators?.pillars[1]?.enabled ? m.fmtScore(m.indicators?.pillars[1]?.current) : `N/A`}
    ${m.indicators?.pillars[1]?.enabled ? getTrendIcon(m.indicators?.pillars[1]?.companyPctileTrend) : ``}
 </div>
 
@@ -4562,7 +4562,7 @@ ${getTrendIcon(m.indicators?.timelinessPercentile?.trend)}
 >
 
 
- ${m.indicators?.pillars[2]?.enabled ? m.fmtScore(m.pillars[2].companyPctile) : `N/A`}
+ ${m.indicators?.pillars[2]?.enabled ? m.fmtScore(m.indicators?.pillars[2]?.current) : `N/A`}
    ${m.indicators?.pillars[2]?.enabled ? getTrendIcon(m.indicators?.pillars[2]?.companyPctileTrend) : ``}
 </div>
 

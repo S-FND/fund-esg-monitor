@@ -2305,7 +2305,7 @@ const AnalyticsDetail = () => {
                                 <TableCell className="text-xs text-right font-mono">{formatValue(row.q1 || '', false) || '—'}</TableCell>
                                 <TableCell className="text-xs text-right font-mono">{formatValue(row.q2 || '', false) || '—'}</TableCell>
                                 <TableCell className="text-xs text-right font-mono">{formatValue(row.q3 || '', false) || '—'}</TableCell>
-                                <TableCell className="text-xs text-right font-mono">{formatValue(row.q4 || '', false) || '—'} {filterYear}</TableCell>
+                                <TableCell className="text-xs text-right font-mono">{filterYear == '2025' ?formatValue(row.q4 || '', false) : '—'} </TableCell>
                               </>}
 
                               {!showMissing && isAwards && <><TableCell className="text-xs whitespace-pre-wrap break-words max-w-xs">{row.col1 || '—'}</TableCell><TableCell className="text-xs whitespace-pre-wrap break-words max-w-xs">{row.col2 || '—'}</TableCell></>}
