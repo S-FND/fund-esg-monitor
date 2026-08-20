@@ -179,6 +179,7 @@ interface PeriodSelection {
   companyId?: string;
   qCategory?: QCategory;
   firesidePOC?: string;
+  from?: string;
 }
 
 const defaultPeriodA: PeriodSelection = { periodType: 'quarterly', quarter: 'Q4', year: 2025 };
@@ -560,8 +561,8 @@ export const TrendsComparisonPage = ({ filters, newInsight = false, showTrends, 
     periodA.year === periodB.year &&
     (periodA.periodType === 'annual' || periodA.quarter === periodB.quarter);
 
-  const periodAFilters = toFilters(appliedA);
-  const periodBFilters = toFilters(appliedB);
+  const periodAFilters = toFilters({...appliedA,from:"Compare Page"});
+  const periodBFilters = toFilters({...appliedB,from:"Compare Page"});
 
   // ── Period A rankings ──
   const rankingsAV1 = usePortfolioRankings(periodAFilters.year, periodAFilters.quarter || "FY", periodAFilters.cumulative, null, filters);
@@ -582,9 +583,13 @@ export const TrendsComparisonPage = ({ filters, newInsight = false, showTrends, 
   // ── Period A & B full analytics data (for ESG insights + companyRawData) ──
   const { data: analyticsA, isLoading: analyticsALoading } = useAnalyticsDashboardData(periodAFilters);
   const { data: analyticsB, isLoading: analyticsBLoading } = useAnalyticsDashboardData(periodBFilters);
-
-  const companyRawDataA = analyticsA?.companyRawData || [];
-  const companyRawDataB = analyticsB?.companyRawData || [];
+  // let analyticsBLoading=false
+  console.log("Analytics A:", analyticsA);
+  console.log("Analytics B:", analyticsB);
+  const companyRawDataA = analyticsA?.quarterlyCombinedRawData || analyticsA?.companyRawData || [];
+  const companyRawDataB =  analyticsB?.quarterlyCombinedRawData || analyticsB?.companyRawData || [];
+  console.log("Company Raw Data A:", companyRawDataA);
+  console.log("Company Raw Data B:", companyRawDataB);
 
   const companyRawDataAByBrand = useMemo(() => {
     const map = new Map<string, CompanyRawMetrics>();

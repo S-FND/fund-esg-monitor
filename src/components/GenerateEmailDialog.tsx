@@ -1038,14 +1038,14 @@ export const GenerateEmailDialog = ({ year = 2026, quarter = 'Q1' }: Props) => {
 
   const { rankingCards, esgCards: esgCardCompare, isLoading: compareLoading } = useComparePeriods(
     {
-      "period": "annual",
+      "period": "quarterly",
       "quarter": "Q4",
       "year": 2025,
       "cumulative": false,
       "periodType": "quarterly"
     },
     {
-      "period": "annual",
+      "period": "quarterly",
       "quarter": "Q1",
       "year": 2026,
       "cumulative": false,
@@ -1173,7 +1173,7 @@ export const GenerateEmailDialog = ({ year = 2026, quarter = 'Q1' }: Props) => {
 
       esgCapTemplateData = {
         complianceScore: complianceScore.overallComplianceScore ?? 0,
-        complianceRating: complianceRating,
+        complianceRating: {...complianceRating,color:getGrade(complianceScore.overallComplianceScore ?? 0).color},
         priorityScore: {
           high: {
             ontime: getCSCount("High", "ontime", escapData.plan),
@@ -3920,7 +3920,8 @@ function generateEmailHTMLV4(
 ) {
 
 
-  console.log('computeEsgMetrics :: m :: => ', m)
+  console.log('computeEsgMetrics :: m :: => ', m);
+  console.log('computeEsgMetrics :: esgCapTemplateData :: => ', esgCapTemplateData);
   // const dummyCapItems = [
   //   {
   //     sno: 1,
@@ -4638,7 +4639,7 @@ ${esgCapTemplateData ? `<h2 style="font-size:17px;color:#2d2d2d;margin:8px 0 4px
   style="
     font-size:42px;
     font-weight:700;
-    color:#ea580c;
+    color:${esgCapTemplateData.complianceRating.color};
     line-height:1;
     margin-bottom:4px;
   "
@@ -4649,7 +4650,7 @@ ${esgCapTemplateData ? `<h2 style="font-size:17px;color:#2d2d2d;margin:8px 0 4px
 <div
   style="
     font-size:12px;
-    color:#ea580c;
+    color:${esgCapTemplateData.complianceRating.color};
     margin-bottom:18px;
   "
 >
@@ -10171,7 +10172,7 @@ async function generateEmailDOCXV4(
     },
   ] : [];
 
-  console.log("prioritySummary", prioritySummary)
+  // console.log("prioritySummary", prioritySummary)
 
   // ============================================================
   // ESCAP HEADER CELL
@@ -11468,7 +11469,7 @@ async function generateEmailDOCXV4(
                             text: esgCapTemplateData.complianceRating.grade,
                             size: 48,
                             bold: true,
-                            color: 'EA580C',
+                            color: esgCapTemplateData.complianceRating.color,
                             font: 'Arial',
                           }),
                         ],
@@ -11487,7 +11488,7 @@ async function generateEmailDOCXV4(
                           new TextRun({
                             text: esgCapTemplateData.complianceRating.label,
                             size: 14,
-                            color: 'EA580C',
+                            color: esgCapTemplateData.complianceRating.color,
                             font: 'Arial',
                           }),
                         ],
@@ -12543,8 +12544,12 @@ const getCSCategory = (item: ESGCapItem) => {
   if (isNaN(targetDate.getTime())) {
     return null;
   }
-  const rawStatus = getEffectiveStatus(item);
-  const companyStatus = normalize(rawStatus);
+
+  // IMPORTANT:
+  // Do NOT use investor status here.
+  // Only company status is considered.
+  const companyStatus = normalize(item.companyStatus ?? item.status);
+
   // =====================================================
   // GET LATEST uploadedAt
   // =====================================================
@@ -12558,11 +12563,15 @@ const getCSCategory = (item: ESGCapItem) => {
   const updatedDate =
     uploadedDates.length > 0
       ? new Date(
-        Math.max(
-          ...uploadedDates.map(date => date.getTime())
+          Math.max(...uploadedDates.map(date => date.getTime()))
         )
-      )
       : null;
+
+  // =====================================================
+  // GET SUBMIT DATE
+  // =====================================================
+
+  const submitDate = getSubmitDate(item);
 
   // =====================================================
   // TARGET DATE <= 30 JUNE 2026
@@ -12571,39 +12580,56 @@ const getCSCategory = (item: ESGCapItem) => {
   if (targetDate <= CUTOFF_DATE) {
 
     // ---------------------------------------------------
-    // uploadedAt EXISTS
+    // Submitted / Closed + uploaded date
     // ---------------------------------------------------
 
-    if (updatedDate) {
+    if (
+      updatedDate &&
+      (companyStatus === 'submitted' || companyStatus === 'closed')
+    ) {
 
-      // Uploaded on or before target date
-      if (
-        (companyStatus === 'submitted' || companyStatus === 'closed') &&
-        updatedDate <= targetDate
-      ) {
-        return 'ontime';
-      }
-
-      // Uploaded after target date
+      // Same month or before target month = ON TIME
+      //
+      // Example:
+      // Target  : 24 June
+      // Uploaded: 26 June
+      // Month difference = 0
+      //
+      // Business rule => ON TIME
       const months = getMonthDifference(
         targetDate,
         updatedDate
       );
 
-      if (months === 1) return 'buffer1';
-      if (months === 2) return 'buffer2';
-      if (months === 3) return 'buffer3';
-      if (months > 3) return 'over3';
+      if (months <= 0) {
+        return 'ontime';
+      }
 
-      return null;
+      if (months === 1) {
+        return 'buffer1';
+      }
+
+      if (months === 2) {
+        return 'buffer2';
+      }
+
+      if (months === 3) {
+        return 'buffer3';
+      }
+
+      if (months > 3) {
+        return 'over3';
+      }
     }
 
     // ---------------------------------------------------
-    // uploadedAt DOES NOT EXIST
+    // No uploadedAt but submitted/closed
     // ---------------------------------------------------
 
-    // Old target + submitted = On Time
-    if ((companyStatus === 'submitted' || companyStatus === 'closed')) {
+    if (
+      !updatedDate &&
+      (companyStatus === 'submitted' || companyStatus === 'closed')
+    ) {
       return 'ontime';
     }
 
@@ -12612,9 +12638,18 @@ const getCSCategory = (item: ESGCapItem) => {
     // ---------------------------------------------------
 
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const cleanTargetDate = new Date(targetDate);
+    cleanTargetDate.setHours(0, 0, 0, 0);
+
+    // Target is still in future
+    if (cleanTargetDate > today) {
+      return 'upcoming';
+    }
 
     const months = getMonthDifference(
-      targetDate,
+      cleanTargetDate,
       today
     );
 
@@ -12629,11 +12664,9 @@ const getCSCategory = (item: ESGCapItem) => {
   // TARGET DATE > 30 JUNE 2026
   // =====================================================
 
-  const submitDate = getSubmitDate(item);
-
   if (submitDate) {
 
-    // Submitted on or before target
+    // Submitted on/before target
     if (
       (companyStatus === 'submitted' || companyStatus === 'closed') &&
       submitDate <= targetDate
@@ -12647,10 +12680,27 @@ const getCSCategory = (item: ESGCapItem) => {
       submitDate
     );
 
-    if (months === 1) return 'buffer1';
-    if (months === 2) return 'buffer2';
-    if (months === 3) return 'buffer3';
-    if (months > 3) return 'over3';
+    // IMPORTANT:
+    // Same calendar month = ON TIME
+    if (months <= 0) {
+      return 'ontime';
+    }
+
+    if (months === 1) {
+      return 'buffer1';
+    }
+
+    if (months === 2) {
+      return 'buffer2';
+    }
+
+    if (months === 3) {
+      return 'buffer3';
+    }
+
+    if (months > 3) {
+      return 'over3';
+    }
 
     return null;
   }
@@ -12660,9 +12710,19 @@ const getCSCategory = (item: ESGCapItem) => {
   // =====================================================
 
   const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
+  const cleanTargetDate = new Date(targetDate);
+  cleanTargetDate.setHours(0, 0, 0, 0);
+
+  // FUTURE TARGET DATE
+  if (cleanTargetDate > today) {
+    return 'upcoming';
+  }
+
+  // TARGET DATE PASSED
   const months = getMonthDifference(
-    targetDate,
+    cleanTargetDate,
     today
   );
 

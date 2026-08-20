@@ -10,6 +10,9 @@ import { useEffect, useState } from 'react';
 import { filterKpiEntries } from '@/utils/kpiEntryFilters';
 import { http } from '@/utils/httpInterceptor';
 
+
+console.log('useAnalyticsDashboardData MODULE LOADED');
+
 // ──── Types ────
 export interface AnalyticsFilters {
   period: 'quarterly' | 'annual';
@@ -24,6 +27,7 @@ export interface AnalyticsFilters {
   firesidePOC?: string;
   cumulative?: boolean;
   periodType?:'quarterly' | 'annual';
+  from?:string;
 }
 
 export interface CompanyRawMetrics {
@@ -957,6 +961,7 @@ export function deriveInsights(agg: AggregationMetrics, industry?: string, hasFa
 
 export const useAnalyticsDashboardData = (filters: AnalyticsFilters, kpiEntries?: { companyId: string; kpi_id: string; value: string | null; quarter: string; year: number }[],
   featureRows?: { companyId: string; feature_key: string, enabled: boolean }[]) => {
+    
   const { asOf } = useAsOf();
   const [data, setData] = useState<AnalyticsDashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -1240,6 +1245,7 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters, kpiEntries?
             if (!q14ByCompanyQuarter[e.companyId][e.quarter]) q14ByCompanyQuarter[e.companyId][e.quarter] = {};
             q14ByCompanyQuarter[e.companyId][e.quarter][e.kpi_id] = e.value || '';
           });
+          console.log(`Quarterly KPI entries for ${filters.year}:`, q14ByCompanyQuarter);
           quarterlyCombinedRawData = filteredCompanies.map(company => {
             const quarterData = q14ByCompanyQuarter[company.id] || {};
             const qs = Object.keys(quarterData);
@@ -1302,10 +1308,12 @@ export const useAnalyticsDashboardData = (filters: AnalyticsFilters, kpiEntries?
                 combinedKpis[k] = v;
               }
             });
-            
+            if(company.brand == 'UnderNeat'){
+              console.log('quarterlyCombinedRawData :: combinedKpis',combinedKpis)
+            }
             const aggregation = buildAggregation(combinedKpis);
             const hasFashionPkg = fashionPkgCompanyIds.has(company.id);
-            if(company.brand == 'NewMe'){
+            if(company.brand == 'UnderNeat'){
               console.log('quarterlyCombinedRawData :: aggregation',aggregation)
             }
             const insights = deriveInsights(aggregation, company.industry, hasFashionPkg,company.brand);
