@@ -171,7 +171,6 @@ function generateEmailHTML(
   overallProgress: { filled: number; total: number; percentage: number },
   scoreFormat: ScoreFormat = 'percentile',
 ) {
-  debugger;
   const insights = companyRaw?.insights || {} as any;
   const industry = companyRaw?.industry || company.industry || '';
   const revenueStage = companyRaw?.revenueStage || company.revenueStage || '';
@@ -390,7 +389,7 @@ async function generateEmailDOCX(
   const insights = companyRaw?.insights || {} as any;
   const industry = companyRaw?.industry || company.industry || '';
   const revenueStage = companyRaw?.revenueStage || company.revenueStage || '';
-  debugger;
+
   // ─── Performance metric percentiles (matching ESGCategoryBreakdown) ───
   const allAvgScores = allRankings.map(r => Math.round((r.completionPct + r.consistencyPct + r.timelinessScore) / 3 * 10) / 10);
   const allComplScores = allRankings.map(r => r.completionPct);
