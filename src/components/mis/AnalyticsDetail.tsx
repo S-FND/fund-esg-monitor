@@ -510,6 +510,8 @@ const AnalyticsDetail = () => {
 
   const state = rawState;
 
+  console.log("AnalyticsDetail state:", state);
+
   // Determine context-aware defaults for filters
   const isQuarterlyView = state?.filters?.period === 'quarterly';
   const contextQuarter = state?.filters?.quarter || 'Q4';
@@ -773,7 +775,7 @@ const AnalyticsDetail = () => {
   const rebuiltCompanyData = useMemo(() => {
     if (!freshData || !state || !canRefetch) return null;
 
-    console.log("freshData :: ",freshData)
+    console.log("rebuiltCompanyData :: freshData :: ",freshData)
 
     console.log(`[rebuild] RUNNING at ${Date.now()}`, {
       hasFreshData: !!freshData,
@@ -788,6 +790,7 @@ const AnalyticsDetail = () => {
     const sourceCalcId = state.sourceCalcId;
 
     if (sourceKpiKey) {
+      console.log("Entry in sourceKpiKey block :: ",sourceKpiKey)
       // Headcount KPI keys use Q4 snapshot as the primary "Value" column
       const q4SnapshotKeys = new Set([
         'employees_wc_male_fulltime', 'employees_wc_male_contractual', 'employees_wc_male_parttime',
@@ -809,6 +812,7 @@ const AnalyticsDetail = () => {
       // companyRawData (FY) when the specific KPI has no data in quarterly combined
       // (e.g. CSR fields that are stored as FY-only entries).
       let rawData = applyFeatureCompanyFilter(freshData.quarterlyCombinedRawData || freshData.companyRawData);
+      console.log('applyFeatureCompanyFilter :: rawData :: ',rawData)
       const hasDataInQuarterly = rawData.some(c => {
         const val = c.kpis[sourceKpiKey];
         return val !== undefined && val !== null && val.trim() !== '';
@@ -1509,6 +1513,7 @@ const AnalyticsDetail = () => {
         const allCompaniesForPercentile = (freshData.quarterlyCombinedRawData || freshData.companyRawData || [])
           .filter(c => Object.keys(c.kpis).length > 0)
           .map(c => {
+            console.log(`Preparing merged KPIs for percentile normalization for ${c.companyName} (${c.companyId}) circularEconomyIndex ${c.insights.circularEconomyIndex}`);
             // Merge FY + quarterly data (same logic as row construction)
             const qcMatch = freshData.quarterlyCombinedRawData?.find(x => x.companyId === c.companyId);
             const fyMatch = freshData.companyRawData?.find(x => x.companyId === c.companyId);
@@ -1524,7 +1529,7 @@ const AnalyticsDetail = () => {
               hasEnvironmentFeature: c.hasEnvironmentFeature,
             };
           });
-
+          console.log(`Total companies for percentile normalization: ${allCompaniesForPercentile['company-19']}`);
         // Compute cross-quarter virgin plastic reduction for percentile normalization
         let detailVirginReductions: Map<string, number> | undefined;
         if (freshData.quarterlyPerQuarterRawData) {
@@ -1548,6 +1553,7 @@ const AnalyticsDetail = () => {
             );
             const compMatch = allCompaniesForPercentile.find(c => c.companyId === row.companyId);
             if (compMatch) {
+              console.log(`compMatch.insights.circularEconomyIndex for ${row.companyName} (${row.companyId}):`, compMatch.insights.circularEconomyIndex);
               row.value = compMatch.insights.circularEconomyIndex.toFixed(4);
             }
           } else if (row.companyId) {
